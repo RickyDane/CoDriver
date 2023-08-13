@@ -20,7 +20,8 @@ fn main() {
               go_to_desktop,
               go_to_images,
               go_to_downloads,
-              go_to_videos
+              go_to_videos,
+              go_to_devices
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -254,7 +255,7 @@ async fn go_to_videos() -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn go_to_disks() -> Vec<FDir> {
+async fn go_to_devices() -> Vec<FDir> {
     let _ = set_current_dir(video_dir().unwrap());
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();

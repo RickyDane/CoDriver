@@ -45,6 +45,13 @@ async function openItem(name, path, isDir) {
 
 }
 
+async function goHome() {
+	await invoke("go_home")
+		.then((items) => {
+			showItems(items.filter(str => !str.name.startsWith(".")));
+		});
+}
+
 async function goBack() {
 	await invoke("go_back")
 		.then((items) => {
@@ -68,13 +75,6 @@ async function goDownloads() {
 
 async function goImages() {
 	await invoke("go_to_images")
-		.then((items) => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
-		});
-}
-
-async function goVideos() {
-	await invoke("go_to_videos")
 		.then((items) => {
 			showItems(items.filter(str => !str.name.startsWith(".")));
 		});
