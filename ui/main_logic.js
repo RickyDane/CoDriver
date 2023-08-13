@@ -21,13 +21,13 @@ async function showItems(items, currentDir) {
 			itemLink.append(newRow)
 			directoryList.append(itemLink);
 		});
-	let goBackButton = document.querySelector(".go-back-button").setAttribute("onclick", "goBack('"+currentDir+"/../')");
+	let goBackButton = document.querySelector(".go-back-button").setAttribute("onclick", "goBack()");
 }
 
 async function listDirectories() {
 	await invoke("list_dirs")
 	.then((items) => {
-		showItems(items);	
+		showItems(items);
 	});
 }
 
@@ -35,7 +35,7 @@ async function openItem(name, path, isDir) {
 	if (isDir == 1) {
 		await invoke("open_dir", {path, name})
 			.then((items) => {
-				showItems(items, path);
+				showItems(items.filter(str => str[0] != "."));
 			});
 	}
 	else {
@@ -44,12 +44,23 @@ async function openItem(name, path, isDir) {
 
 }
 
-async function goBack(backToPath) {
-	console.log(backToPath);
-	await invoke("go_back", {backToPath})
+async function goBack() {
+	await invoke("go_back")
 		.then((items) => {
-			showItems(items, backToPath);
+			showItems(items.filter(str => str[0] != "."));
 		});
+}
+
+async function goHome() {
+	await invoke("go_home")
+		.then((items) => {
+			showItems(items.filter(str => str[0] != "."));
+		});
+}
+
+async function searchFor() {
+	let fileName = document.querySelector(".search-bar-input").value; 
+	await invoke("search_for", {fileName});
 }
 
 listDirectories();

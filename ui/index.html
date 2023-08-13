@@ -7,18 +7,27 @@
 		<meta charset="utf-8"/>
 	</head>
 	<body>
-		<h1>File Explorer</h1>
-		<br>
-		<h4>Verzeichnis</h4>
-		<br>
-		<div style="display: flex; flex-flow: row; align-items: center; gap: 10px;">
-			<button class="go-back-button"><i class="fa-solid fa-caret-left"></i> Zurück</button>
-			<p>|</p>
-			<button onclick="goBack('../')" class="home-button"> 
-				<div><i class="fa-solid fa-house"></i></div>
-			</button>
+		<div class="header-nav">
+			<div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 30%;">
+				<button class="go-back-button"><i class="fa-solid fa-caret-left"></i> Zurück</button>
+				<p>|</p>
+				<button onclick="goHome()" class="home-button"> 
+					<div><i class="fa-solid fa-house"></i></div>
+				</button>
+			</div>
+			<div class="file-searchbar">
+				<input class="search-bar-input" type="text" placeholder="Suchergebnis"/>
+				<button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
+			</div>
+			<div style="width: 30%;"></div>
 		</div>
-		<br><br>
-		<div class="directory-list"></div>
+		<div class="explorer-container">
+			<h1>Ricky's File Explorer</h1>
+			<br>
+			<h4>Verzeichnis</h4>
+			<br>
+			<br><br>
+			<div class="directory-list"></div>
+		</div>
 	</body>
 </html>

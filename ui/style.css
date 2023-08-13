@@ -3,13 +3,16 @@
 	padding: 0;
 	box-sizing: border-box;
 	color: white;
+	font-family: sans-serif;
 }
 
 
 body {
-	margin: 20px;
 	height: 100vh;
 	background-color: #363945;
+}
+.explorer-container {
+	margin: 20px;
 }
 
 
@@ -56,18 +59,62 @@ body {
 	font-size: large;
 	border: none;
 	cursor: pointer;
+	padding: 10px;
+	border-radius: 5px;
+}
+.go-back-button:hover {
+	background-color: rgba(0, 0, 0, 0.15);
 }
 .home-button {
 	background-color: transparent;
 	border: none;
 	border-radius: 5px;
-	border: 1px solid rgba(0, 0, 0, 0.25);
 	font-size: large;
-	padding: 5px;
+	padding: 10px;
 	cursor: pointer;
 }
 .home-button:hover {
 	background-color: rgba(0, 0, 0, 0.15);
+}
+.header-nav {
+	display: flex;
+	flex-flow: row;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	position: sticky;
+	top: 0;
+	background-color: #363945;
+	width: 100%;
+	padding: 10px;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
+}
+.file-searchbar {
+	display: flex;
+	flex-flow: row;
+	align-items: center;
+	border: 1px solid rgba(0, 0, 0, 0.25);
+	width: 30%;
+	border-radius: 5px;
+}
+.file-searchbar > input {
+	width: 100%;
+	padding: 10px 15px;
+	background-color: #282b34;
+	border-radius: 5px;
+	border: none;
+	z-index: 3;
+}
+.search-button {
+	margin-left: -2px;
+	padding: 10px 10px 10px 12px;
+	border: none;
+	background-color: transparent;
+	cursor: pointer;
+	z-index: 2;
+}
+.search-button:hover {
+	background-color: rgba(0, 0, 0, 0.1);
 }
 
 
