@@ -1,9 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::env::{current_dir, set_current_dir};
+use std::{env::{current_dir, set_current_dir}, fs::File};
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
-use rust_search::SearchBuilder;
+use rust_search:: SearchBuilder;
+use tauri::api::path::home_dir;
+use stopwatch::Stopwatch;
 
 fn main() {
     tauri::Builder::default()
@@ -45,7 +47,7 @@ async fn list_dirs() -> Vec<FDir> {
         }
         dir_list.push(FDir {
             name: String::from(name), 
-            is_dir: i8::from(is_dir_int),
+            is_dir: is_dir_int,
             path: String::from(path)
         });
     }
@@ -72,7 +74,7 @@ async fn open_dir(path: String, _name: String) -> Vec<FDir> {
         }
         dir_list.push(FDir {
             name: String::from(name), 
-            is_dir: i8::from(is_dir_int),
+            is_dir: is_dir_int,
             path: String::from(path)
         });
     }
@@ -105,7 +107,7 @@ async fn go_back() -> Vec<FDir> {
         }
         dir_list.push(FDir {
             name: String::from(name), 
-            is_dir: i8::from(is_dir_int),
+            is_dir: is_dir_int,
             path: String::from(path)
         });
     }
@@ -114,7 +116,7 @@ async fn go_back() -> Vec<FDir> {
 
 #[tauri::command]
 async fn go_home() -> Vec<FDir> {
-    let _ = set_current_dir("/");
+    let _ = set_current_dir(home_dir().unwrap());
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
     println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
@@ -132,7 +134,7 @@ async fn go_home() -> Vec<FDir> {
         }
         dir_list.push(FDir {
             name: String::from(name), 
-            is_dir: i8::from(is_dir_int),
+            is_dir: is_dir_int,
             path: String::from(path)
         });
     }
@@ -140,18 +142,37 @@ async fn go_home() -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn search_for(file_name: String) {
+async fn search_for(file_name: String) -> Vec<FDir> {
+    let sw = Stopwatch::start_new();
     let search: Vec<String> = SearchBuilder::default()
-        .location(current_dir().unwrap())
+        .location(home_dir().unwrap())
         .search_input(file_name)
-        .limit(50)
-        .depth(10)
         .ignore_case()
         .hidden()
         .build()
         .collect();
+    println!("Search time: {} ms", sw.elapsed_ms());
 
-        for path in search {
-            println!("{}", path);
+    let mut dir_list: Vec<FDir> = Vec::new();
+    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
+    for item in search {
+        let temp_item = &item.split("/").collect::<Vec<&str>>();
+        let name = &temp_item[*&temp_item.len() - 1];
+        let path = &item; 
+        let temp_file = File::open(&item);
+        let is_dir = temp_file.unwrap().metadata().unwrap().is_dir();
+        let is_dir_int;
+        if is_dir.to_owned() {
+            is_dir_int = 1;
         }
+        else {
+            is_dir_int = 0;
+        }
+        dir_list.push(FDir {
+            name: name.to_string(), 
+            is_dir: is_dir_int,
+            path: String::from(path)
+        });
+    }
+    return dir_list;
 }

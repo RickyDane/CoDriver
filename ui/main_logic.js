@@ -27,7 +27,7 @@ async function showItems(items, currentDir) {
 async function listDirectories() {
 	await invoke("list_dirs")
 	.then((items) => {
-		showItems(items);
+		showItems(items.filter(str => !str.name.startsWith(".")));
 	});
 }
 
@@ -35,7 +35,7 @@ async function openItem(name, path, isDir) {
 	if (isDir == 1) {
 		await invoke("open_dir", {path, name})
 			.then((items) => {
-				showItems(items.filter(str => str[0] != "."));
+			showItems(items.filter(str => !str.name.startsWith(".")));
 			});
 	}
 	else {
@@ -47,20 +47,29 @@ async function openItem(name, path, isDir) {
 async function goBack() {
 	await invoke("go_back")
 		.then((items) => {
-			showItems(items.filter(str => str[0] != "."));
+			showItems(items.filter(str => !str.name.startsWith(".")));
 		});
 }
 
 async function goHome() {
 	await invoke("go_home")
 		.then((items) => {
-			showItems(items.filter(str => str[0] != "."));
+			showItems(items.filter(str => !str.name.startsWith(".")));
 		});
 }
 
 async function searchFor() {
+	document.querySelector(".cancel-search-button").style.display = "block";
 	let fileName = document.querySelector(".search-bar-input").value; 
-	await invoke("search_for", {fileName});
+	await invoke("search_for", {fileName})
+		.then((items) => {
+			showItems(items.filter(str => !str.name.startsWith(".")));
+		});
+}
+
+async function cancelSearch() {
+	document.querySelector(".cancel-search-button").style.display = "none";
+	listDirectories();
 }
 
 listDirectories();
