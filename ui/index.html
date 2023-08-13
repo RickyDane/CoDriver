@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+	<head>
+		<link rel="stylesheet" href="style.css"/>
+		<script src="https://kit.fontawesome.com/1439cf8123.js" crossorigin="anonymous"></script>
+		<script src="main_logic.js" defer></script>
+		<meta charset="utf-8"/>
+	</head>
+	<body>
+		<h1>File Explorer</h1>
+		<br>
+		<h4>Verzeichnis</h4>
+		<br>
+		<div style="display: flex; flex-flow: row; align-items: center; gap: 10px;">
+			<button class="go-back-button"><i class="fa-solid fa-caret-left"></i> Zurück</button>
+			<p>|</p>
+			<button onclick="goBack('../')" class="home-button"> 
+				<div><i class="fa-solid fa-house"></i></div>
+			</button>
+		</div>
+		<br><br>
+		<div class="directory-list"></div>
+	</body>
+</html>

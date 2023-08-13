@@ -1,0 +1,62 @@
+{
+  "build": {
+    "beforeBuildCommand": "",
+    "beforeDevCommand": "",
+    "devPath": "../ui",
+    "distDir": "../ui",
+	"withGlobalTauri": true
+  },
+  "package": {
+    "productName": "file-explorer",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false
+    },
+    "bundle": {
+      "active": true,
+      "category": "DeveloperTool",
+      "copyright": "",
+      "deb": {
+        "depends": []
+      },
+      "externalBin": [],
+      "icon": [
+		  "icons/Square30x30Logo.png"
+	  ],
+      "identifier": "com.tauri.dev",
+      "longDescription": "",
+      "macOS": {
+        "entitlements": null,
+        "exceptionDomain": "",
+        "frameworks": [],
+        "providerShortName": null,
+        "signingIdentity": null
+      },
+      "resources": [],
+      "shortDescription": "",
+      "targets": "all",
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": ""
+      }
+    },
+    "security": {
+      "csp": null
+    },
+    "updater": {
+      "active": false
+    },
+    "windows": [
+      {
+        "fullscreen": false,
+        "height": 600,
+        "resizable": true,
+        "title": "File Explorer",
+        "width": 1000
+      }
+    ]
+  }
+}

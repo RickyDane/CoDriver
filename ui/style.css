@@ -1,0 +1,78 @@
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	color: white;
+}
+
+
+body {
+	margin: 20px;
+	height: 100vh;
+	background-color: #363945;
+}
+
+
+/* Custom controls*/
+.button {
+	padding: 10px 15px;
+	color: white;
+	background-color: rgba(35, 35, 35, 0.75);
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+}
+.item-button {
+	border: none;
+	background-color: transparent;
+	border-radius: 5px;
+	padding: 5px 10px;
+	cursor: pointer;
+	text-align: left;
+	font-size: large;
+	width: 150px;
+	height: 100px;
+	overflow: hidden;
+	display: flex;
+	flex-flow: column;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+	margin: 5px;
+	border: 1px solid rgba(0, 0, 0, 0.25);
+}
+.item-button:hover {
+	background-color: rgba(0, 0, 0, 0.15);
+}
+.item-icon {
+	font-size: xx-large;
+}
+.folder-icon {
+	color: grey;
+}
+.go-back-button {
+	background-color: transparent;
+	color: white;
+	font-size: large;
+	border: none;
+	cursor: pointer;
+}
+.home-button {
+	background-color: transparent;
+	border: none;
+	border-radius: 5px;
+	border: 1px solid rgba(0, 0, 0, 0.25);
+	font-size: large;
+	padding: 5px;
+	cursor: pointer;
+}
+.home-button:hover {
+	background-color: rgba(0, 0, 0, 0.15);
+}
+
+
+.directory-list {
+	width: 100%;
+	display: flex;
+	flex-flow: wrap;
+}
