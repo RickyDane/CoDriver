@@ -18,7 +18,7 @@ async function showItems(items, currentDir) {
 			}
 			else {
 				newRow.innerHTML = `
-						<i class="item-icon folder-icon fa-solid fa-file"></i>
+						<i class="item-icon fa-solid fa-file"></i>
 						<p>${item.name}</p>
 					`;
 			}

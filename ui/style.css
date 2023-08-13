@@ -103,6 +103,7 @@ body {
 }
 .folder-icon {
 	color: grey;
+	font-size: 3.5em;
 }
 .go-back-button {
 	background-color: transparent;
