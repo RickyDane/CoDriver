@@ -11,12 +11,16 @@ async function showItems(items, currentDir) {
 			itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"')");
 			let newRow = document.createElement("div");
 			if (item.is_dir == 1) {
-				newRow.innerHTML = '<i class="item-icon folder-icon fa-solid fa-folder"></i>' + '<p>'+item.name+'</p>';
-				newRow.className = "directory-list-item directory-item";
+				newRow.innerHTML = `
+						<i class="item-icon folder-icon fa-solid fa-folder"></i>
+						<p>${item.name}</p>
+					`;
 			}
 			else {
-				newRow.innerHTML = '<i class="item-icon fa-solid fa-file"></i>' + '<p>'+item.name+'</p>';
-				newRow.className = "directory-list-item file-item";
+				newRow.innerHTML = `
+						<i class="item-icon folder-icon fa-solid fa-file"></i>
+						<p>${item.name}</p>
+					`;
 			}
 			itemLink.append(newRow)
 			directoryList.append(itemLink);
