@@ -11,23 +11,27 @@
 			<div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 30%;">
 				<button class="go-back-button"><i class="fa-solid fa-caret-left"></i> Zurück</button>
 				<p>|</p>
-				<button onclick="goHome()" class="home-button"> 
-					<div><i class="fa-solid fa-house"></i></div>
-				</button>
+				<button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
+				<button onclick="switchView()" class="header-nav-button"><i class="fa-solid fa-list"></i></button>
 			</div>
+			<div style="width: 30%;"></div>
 			<div class="file-searchbar">
 				<input class="search-bar-input" type="text" placeholder="Suchergebnis"/>
 				<button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
 				<button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
 			</div>
-			<div style="width: 30%;"></div>
 		</div>
-		<div class="explorer-container">
-			<h1>Ricky's File Explorer</h1>
-			<br>
-			<h4>Verzeichnis</h4>
-			<br><br><br>
-			<div class="directory-list"></div>
+		<div style="display: flex; flex-flow: row; margin-top: 100px;">
+			<div class="site-nav-bar">
+				<button class="site-nav-bar-button" onclick="goDesktop()"><i class="fa-solid fa-desktop"></i> Desktop</button>
+				<button class="site-nav-bar-button" onclick="goDownloads()"><i class="fa-solid fa-download"></i> Downloads</button>
+				<button class="site-nav-bar-button" onclick="goImages()"><i class="fa-solid fa-image"></i> Bilder</button>
+				<button class="site-nav-bar-button" onclick="goVideos()"><i class="fa-solid fa-video"></i> Videos</button>
+				<button class="site-nav-bar-button" onclick="goDisks()"><i class="fa-solid fa-hard-drive"></i> Rechner</button>
+			</div>
+			<div class="explorer-container">
+				<div class="directory-list"></div>
+			</div>
 		</div>
 	</body>
 </html>

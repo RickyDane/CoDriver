@@ -21,7 +21,8 @@ async function showItems(items, currentDir) {
 			itemLink.append(newRow)
 			directoryList.append(itemLink);
 		});
-	let goBackButton = document.querySelector(".go-back-button").setAttribute("onclick", "goBack()");
+	document.querySelector(".go-back-button").setAttribute("onclick", "goBack()");
+	document.querySelector(".directory-entries-count").innerHTML = items.length;
 }
 
 async function listDirectories() {
@@ -51,8 +52,29 @@ async function goBack() {
 		});
 }
 
-async function goHome() {
-	await invoke("go_home")
+async function goDesktop() {
+	await invoke("go_to_desktop")
+		.then((items) => {
+			showItems(items.filter(str => !str.name.startsWith(".")));
+		});
+}
+
+async function goDownloads() {
+	await invoke("go_to_downloads")
+		.then((items) => {
+			showItems(items.filter(str => !str.name.startsWith(".")));
+		});
+}
+
+async function goImages() {
+	await invoke("go_to_images")
+		.then((items) => {
+			showItems(items.filter(str => !str.name.startsWith(".")));
+		});
+}
+
+async function goVideos() {
+	await invoke("go_to_videos")
 		.then((items) => {
 			showItems(items.filter(str => !str.name.startsWith(".")));
 		});

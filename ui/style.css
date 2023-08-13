@@ -13,7 +13,37 @@ body {
 }
 .explorer-container {
 	margin: 20px;
-	margin-top: 100px;
+	margin-left: calc(200px + 50px); 
+}
+.header-nav {
+	display: flex;
+	flex-flow: row;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	position: fixed;
+	top: 0;
+	background-color: #363945;
+	width: 100%;
+	height: 60px;
+	padding: 0px 20px 0px 10px;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
+	z-index: 3;
+}
+.site-nav-bar {
+	background-color: #363945;
+	position: fixed;
+	top: 60px;
+	left: 0;
+	bottom: 0;
+	width: 200px;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
+	display: flex;
+	flex-flow: column;
+	align-items: center;
+	padding: 10px;
+	z-index: 2;
+	gap: 5px;
 }
 
 
@@ -33,7 +63,7 @@ body {
 	padding: 5px 10px;
 	cursor: pointer;
 	text-align: left;
-	font-size: large;
+	font-size: small;
 	width: 150px;
 	height: 100px;
 	overflow: hidden;
@@ -66,7 +96,7 @@ body {
 .go-back-button:hover {
 	background-color: rgba(0, 0, 0, 0.15);
 }
-.home-button {
+.header-nav-button {
 	background-color: transparent;
 	border: none;
 	border-radius: 5px;
@@ -74,22 +104,27 @@ body {
 	padding: 10px;
 	cursor: pointer;
 }
-.home-button:hover {
+.header-nav-button:hover {
 	background-color: rgba(0, 0, 0, 0.15);
 }
-.header-nav {
+.site-nav-bar-button {
+	background-color: rgba(0, 0, 0, 0.15);
+	border: none;
+	width: 100%;
+	text-align: left;
+	border-radius: 5px;
+	padding: 10px;
+	cursor: pointer;
 	display: flex;
 	flex-flow: row;
-	justify-content: space-between;
-	align-items: center;
 	gap: 10px;
-	position: fixed;
-	top: 0;
-	background-color: #363945;
-	width: 100%;
-	padding: 10px;
-	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
+	font-size: small;
 }
+.site-nav-bar-button:hover {
+	background-color: rgba(0, 0, 0, 0.25);
+}
+
+
 .file-searchbar {
 	display: flex;
 	flex-flow: row;
