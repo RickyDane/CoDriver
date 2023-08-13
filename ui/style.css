@@ -98,10 +98,24 @@ body {
 	background-color: rgba(0, 0, 0, 0.25);
 	padding: 5px;
 }
-.item-icon {
+.item-button-list {
+	display: flex;
+	flex-flow: row;
+	background-color: rgba(0, 0, 0, 0.25);
+	border: none;
+	border-radius: 5px;
+	gap: 5px;
+	align-items: center;
+}
+.item-button-list > div {
+	display: flex;
+	flex-flow: row;
+	align-items: center;
+}
+.item-button > div > .item-icon {
 	font-size: xx-large;
 }
-.folder-icon {
+.item-button > div > .folder-icon {
 	color: grey;
 	font-size: 3.5em;
 }
