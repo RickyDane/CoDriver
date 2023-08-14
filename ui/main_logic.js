@@ -43,9 +43,6 @@ function showItems(items, currentDir) {
 }
 
 async function listDirectories() {
-	directoryList.innerHTML = `
-		<img src="resources/preloader.gif" width="32px" height="auto"/>
-	`;
 	await invoke("list_dirs")
 	.then(async (items) => {
 		await showItems(items.filter(str => !str.name.startsWith(".")));
@@ -54,9 +51,6 @@ async function listDirectories() {
 
 function openItem(name, path, isDir) {
 	if (isDir == 1) {
-		directoryList.innerHTML = `
-				<img src="resources/preloader.gif" width="32px" height="auto"/>
-			`;
 		invoke("open_dir", {path, name})
 			.then((items) => {
 				showItems(items.filter(str => !str.name.startsWith(".")));
