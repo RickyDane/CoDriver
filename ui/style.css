@@ -58,7 +58,7 @@ body {
 }
 .item-button {
 	border: none;
-	background-color: transparent;
+	background-color: rgba(0, 0, 0, 0.15);
 	border-radius: 5px;
 	cursor: pointer;
 	text-align: left;
@@ -72,10 +72,9 @@ body {
 	align-items: center;
 	text-align: center;
 	margin: 5px;
-	border: 1px solid rgba(0, 0, 0, 0.25);
 }
 .item-button:hover {
-	background-color: rgba(0, 0, 0, 0.15);
+	background-color: rgba(0, 0, 0, 0.25);
 }
 .item-button > div {
 	position: relative;
@@ -88,6 +87,8 @@ body {
 .item-button > div > .item-icon {
 	display: flex;
 	margin-bottom: 20px;
+	height: 32px;
+	width: auto;
 }
 .item-button > div > p {
 	position: absolute;
@@ -98,6 +99,7 @@ body {
 	background-color: rgba(0, 0, 0, 0.25);
 	padding: 5px;
 	font-size: small;
+	max-height: 37px;
 }
 .item-button-list {
 	display: flex;
@@ -109,7 +111,8 @@ body {
 	align-items: center;
 	cursor: pointer;
 	padding: 10px;
-	font-size: medium;
+	font-size: small;
+	max-width: 250px;
 }
 .item-button-list:hover {
 	background-color: rgba(0, 0, 0, 0.25);
@@ -120,15 +123,9 @@ body {
 	align-items: center;
 	gap: 10px;
 }
-.item-buttons-list > div > svg {
-	margin-bottom 0;
-}
-.item-button > div > .item-icon {
-	font-size: xx-large;
-}
-.item-button > div > .folder-icon {
-	color: grey;
-	font-size: 3.5em;
+.item-button-list > div > .item-icon {
+	height: 16px;
+	width: auto;
 }
 .go-back-button {
 	background-color: transparent;

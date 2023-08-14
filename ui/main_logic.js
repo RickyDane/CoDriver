@@ -3,37 +3,37 @@ const { confirm } = window.__TAURI__.dialog;
 const { message } = window.__TAURI__.dialog; 
 
 let view = "wrap";
+let directoryList = document.querySelector(".directory-list");
+let directoryCount = document.querySelector(".directory-entries-count");
 
-async function showItems(items, currentDir) {
-	let directoryList = document.querySelector(".directory-list");
-		directoryList.innerHTML = "";
-		items.forEach(item => {
-			let itemLink = document.createElement("button");
-			if (view == "wrap") {
-				itemLink.className = "item-button";
-			}
-			else {
-				itemLink.className = "item-button-list";
-			}
-			itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"')");
-			let newRow = document.createElement("div");
-			if (item.is_dir == 1) {
-				newRow.innerHTML = `
-						<i class="item-icon fa-solid fa-folder"></i>
-						<p>${item.name}</p>
-					`;
-			}
-			else {
-				newRow.innerHTML = `
-						<i class="item-icon fa-solid fa-file"></i>
-						<p>${item.name}</p>
-					`;
-			}
-			itemLink.append(newRow)
-			directoryList.append(itemLink);
-		});
-	document.querySelector(".go-back-button").setAttribute("onclick", "goBack()");
-	document.querySelector(".directory-entries-count").innerHTML = items.length;
+function showItems(items, currentDir) {
+	directoryList.innerHTML = "";
+	directoryCount.innerHTML = items.length;
+	for (let i = 0; i <= items.length; i++) {
+		let itemLink = document.createElement("button");
+		if (view == "wrap") {
+			itemLink.className = "item-button";
+		}
+		else {
+			itemLink.className = "item-button-list";
+		}
+		itemLink.setAttribute("onclick", "openItem('"+items[i].name+"', '"+items[i].path+"', '"+items[i].is_dir+"')");
+		let newRow = document.createElement("div");
+		if (items[i].is_dir == 1) {
+			newRow.innerHTML = `
+				<img class="item-icon" src="resources/folder-icon.png"/> 
+				<p>${items[i].name}</p>
+				`;
+		}
+		else {
+			newRow.innerHTML = `
+				<img class="item-icon" src="resources/file-icon.png"/>	
+				<p>${items[i].name}</p>
+				`;
+		}
+		itemLink.append(newRow)
+		directoryList.append(itemLink);
+	}
 }
 
 async function listDirectories() {
@@ -43,15 +43,15 @@ async function listDirectories() {
 	});
 }
 
-async function openItem(name, path, isDir) {
+function openItem(name, path, isDir) {
 	if (isDir == 1) {
-		await invoke("open_dir", {path, name})
+		invoke("open_dir", {path, name})
 			.then((items) => {
 				showItems(items.filter(str => !str.name.startsWith(".")));
 			});
 	}
 	else {
-		await invoke("open_item", {path});
+		invoke("open_item", {path});
 	}
 
 }

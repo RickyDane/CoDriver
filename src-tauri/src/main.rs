@@ -22,7 +22,8 @@ fn main() {
               go_to_downloads,
               go_to_videos,
               go_to_devices,
-              go_to_music
+              go_to_music,
+              set_favorite
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -61,27 +62,24 @@ async fn list_dirs() -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn open_dir(path: String, _name: String) -> Vec<FDir> {
+async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
     let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(&path).unwrap();
-    let _ = set_current_dir(path);
+    let current_directory = fs::read_dir(&_path).unwrap();
+    let _ = set_current_dir(_path);
     println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
     for item in current_directory {
         let temp_item = item.unwrap();
         let name = &temp_item.file_name().into_string().unwrap();
         let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
+        let mut is_dir_int: i8 = 0;
         let path = &temp_item.path().to_str().unwrap().to_string();
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
-        else {
-            is_dir_int = 0;
-        }
         dir_list.push(FDir {
-            name: String::from(name), 
+            name: name.to_owned(), 
             is_dir: is_dir_int,
-            path: String::from(path)
+            path: path.to_owned()
         });
     }
     return dir_list;
@@ -342,4 +340,9 @@ async fn search_for(file_name: String) -> Vec<FDir> {
         });
     }
     return dir_list;
+}
+
+#[tauri::command]
+async fn set_favorite(name: String, path: String) {
+    let _ = serde_json::to_writer(File::create("favorites.json").unwrap(), "test");
 }
