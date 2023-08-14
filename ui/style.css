@@ -85,7 +85,7 @@ body {
 	justify-content: center;
 	align-items: center;
 }
-.item-icon {
+.item-button > div > .item-icon {
 	display: flex;
 	margin-bottom: 20px;
 }
@@ -97,20 +97,31 @@ body {
 	text-align: left;
 	background-color: rgba(0, 0, 0, 0.25);
 	padding: 5px;
+	font-size: small;
 }
 .item-button-list {
 	display: flex;
 	flex-flow: row;
-	background-color: rgba(0, 0, 0, 0.25);
+	background-color: rgba(0, 0, 0, 0.15);
 	border: none;
 	border-radius: 5px;
 	gap: 5px;
 	align-items: center;
+	cursor: pointer;
+	padding: 10px;
+	font-size: medium;
+}
+.item-button-list:hover {
+	background-color: rgba(0, 0, 0, 0.25);
 }
 .item-button-list > div {
 	display: flex;
 	flex-flow: row;
 	align-items: center;
+	gap: 10px;
+}
+.item-buttons-list > div > svg {
+	margin-bottom 0;
 }
 .item-button > div > .item-icon {
 	font-size: xx-large;

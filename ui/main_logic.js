@@ -2,12 +2,19 @@ const { invoke } = window.__TAURI__.tauri;
 const { confirm } = window.__TAURI__.dialog; 
 const { message } = window.__TAURI__.dialog; 
 
+let view = "wrap";
+
 async function showItems(items, currentDir) {
 	let directoryList = document.querySelector(".directory-list");
 		directoryList.innerHTML = "";
 		items.forEach(item => {
 			let itemLink = document.createElement("button");
-			itemLink.className = "item-button";
+			if (view == "wrap") {
+				itemLink.className = "item-button";
+			}
+			else {
+				itemLink.className = "item-button-list";
+			}
 			itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"')");
 			let newRow = document.createElement("div");
 			if (item.is_dir == 1) {
@@ -91,6 +98,13 @@ async function goVideos() {
 		});
 }
 
+async function goMusic() {
+	await invoke("go_to_music")
+		.then((items) => {
+			showItems(items.filter(str => !str.name.startsWith(".")));
+		});
+}
+
 async function searchFor() {
 	document.querySelector(".cancel-search-button").style.display = "block";
 	let fileName = document.querySelector(".search-bar-input").value; 
@@ -107,8 +121,7 @@ async function cancelSearch() {
 
 async function switchView() {
 	let list = document.querySelector(".directory-list");
-	let listStyle = window.getComputedStyle(list);
-	if (listStyle.getPropertyValue("flex-flow") == "row wrap") {
+	if (view == "wrap") {
 		list.style.flexFlow = "column";
 		list.style.gap = "5px";
 		document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
@@ -116,6 +129,7 @@ async function switchView() {
 			item.classList.add("item-button-list");
 			item.classList.remove("item-button");
 		});
+		view = "column";
 	}
 	else {
 		list.style.flexFlow = "wrap";
@@ -125,6 +139,7 @@ async function switchView() {
 			item.classList.remove("item-button-list");
 			item.classList.add("item-button");
 		});
+		view = "wrap";
 	}
 }
 

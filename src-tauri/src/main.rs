@@ -4,7 +4,7 @@ use std::{env::{current_dir, set_current_dir}, fs::File};
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
 use rust_search:: SearchBuilder;
-use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir};
+use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir};
 use stopwatch::Stopwatch;
 
 fn main() {
@@ -21,7 +21,8 @@ fn main() {
               go_to_images,
               go_to_downloads,
               go_to_videos,
-              go_to_devices
+              go_to_devices,
+              go_to_music
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -255,6 +256,33 @@ async fn go_to_videos() -> Vec<FDir> {
 }
 
 #[tauri::command]
+async fn go_to_music() -> Vec<FDir> {
+    let _ = set_current_dir(audio_dir().unwrap());
+    let mut dir_list: Vec<FDir> = Vec::new();
+    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
+    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
+    for item in current_directory {
+        let temp_item = item.unwrap();
+        let name = &temp_item.file_name().into_string().unwrap();
+        let is_dir = &temp_item.path().is_dir();
+        let is_dir_int: i8;
+        let path = &temp_item.path().to_str().unwrap().to_string();
+        if is_dir.to_owned() {
+            is_dir_int = 1;
+        }
+        else {
+            is_dir_int = 0;
+        }
+        dir_list.push(FDir {
+            name: String::from(name), 
+            is_dir: is_dir_int,
+            path: String::from(path)
+        });
+    }
+    return dir_list;
+}
+
+#[tauri::command]
 async fn go_to_devices() -> Vec<FDir> {
     let _ = set_current_dir(video_dir().unwrap());
     let mut dir_list: Vec<FDir> = Vec::new();
@@ -285,10 +313,9 @@ async fn go_to_devices() -> Vec<FDir> {
 async fn search_for(file_name: String) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
     let search: Vec<String> = SearchBuilder::default()
-        .location(home_dir().unwrap())
+        .location(current_dir().unwrap())
         .search_input(file_name)
         .ignore_case()
-        .hidden()
         .build()
         .collect();
     println!("Search time: {} ms", sw.elapsed_ms());
