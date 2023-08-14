@@ -309,17 +309,14 @@ async fn go_to_devices() -> Vec<FDir> {
 
 #[tauri::command]
 async fn search_for(file_name: String) -> Vec<FDir> {
-    let sw = Stopwatch::start_new();
     let search: Vec<String> = SearchBuilder::default()
         .location(current_dir().unwrap())
         .search_input(file_name)
         .ignore_case()
+        .depth(50)
         .build()
         .collect();
-    println!("Search time: {} ms", sw.elapsed_ms());
-
     let mut dir_list: Vec<FDir> = Vec::new();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
     for item in search {
         let temp_item = &item.split("/").collect::<Vec<&str>>();
         let name = &temp_item[*&temp_item.len() - 1];

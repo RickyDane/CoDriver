@@ -6,10 +6,16 @@ let view = "wrap";
 let directoryList = document.querySelector(".directory-list");
 let directoryCount = document.querySelector(".directory-entries-count");
 
+document.querySelector(".search-bar-input").addEventListener("change", () => {
+	searchFor();
+});
+
 function showItems(items, currentDir) {
 	directoryList.innerHTML = "";
 	directoryCount.innerHTML = items.length;
-	for (let i = 0; i <= items.length; i++) {
+	const itemsLength = items.length;
+	let i = 0;
+	for (i; i < itemsLength; i++) {
 		let itemLink = document.createElement("button");
 		if (view == "wrap") {
 			itemLink.className = "item-button";
@@ -37,14 +43,20 @@ function showItems(items, currentDir) {
 }
 
 async function listDirectories() {
+	directoryList.innerHTML = `
+		<img src="resources/preloader.gif" width="32px" height="auto"/>
+	`;
 	await invoke("list_dirs")
-	.then((items) => {
-		showItems(items.filter(str => !str.name.startsWith(".")));
+	.then(async (items) => {
+		await showItems(items.filter(str => !str.name.startsWith(".")));
 	});
 }
 
 function openItem(name, path, isDir) {
 	if (isDir == 1) {
+		directoryList.innerHTML = `
+				<img src="resources/preloader.gif" width="32px" height="auto"/>
+			`;
 		invoke("open_dir", {path, name})
 			.then((items) => {
 				showItems(items.filter(str => !str.name.startsWith(".")));
@@ -53,7 +65,6 @@ function openItem(name, path, isDir) {
 	else {
 		invoke("open_item", {path});
 	}
-
 }
 
 async function goHome() {
@@ -110,7 +121,7 @@ async function searchFor() {
 	let fileName = document.querySelector(".search-bar-input").value; 
 	await invoke("search_for", {fileName})
 		.then((items) => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
+			showItems(items);
 		});
 }
 
