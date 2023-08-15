@@ -63,6 +63,7 @@ async fn list_dirs() -> Vec<FDir> {
 
 #[tauri::command]
 async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
+    let sw = Stopwatch::start_new();
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(&_path).unwrap();
     let _ = set_current_dir(_path);
@@ -82,6 +83,7 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
             path: path.to_owned()
         });
     }
+    println!("{} ms", sw.elapsed_ms());
     return dir_list;
 }
 
@@ -309,6 +311,7 @@ async fn go_to_devices() -> Vec<FDir> {
 
 #[tauri::command]
 async fn search_for(file_name: String) -> Vec<FDir> {
+    let sw = Stopwatch::start_new();
     let search: Vec<String> = SearchBuilder::default()
         .location(current_dir().unwrap())
         .search_input(file_name)
@@ -336,6 +339,7 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             path: String::from(path)
         });
     }
+    println!("{} ms", sw.elapsed_ms());
     return dir_list;
 }
 

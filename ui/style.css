@@ -113,6 +113,7 @@ body {
 	padding: 10px;
 	font-size: small;
 	max-width: 250px;
+	overflow: hidden;
 }
 .item-button-list:hover {
 	background-color: rgba(0, 0, 0, 0.25);
@@ -205,4 +206,37 @@ body {
 	width: 100%;
 	display: flex;
 	flex-flow: wrap;
+}
+
+
+.context-menu {
+	width: 200px;
+	height: fit-content;
+	padding: 5px;
+	display: flex;
+	flex-flow: column;
+	justify-content: center;
+	align-items: center;
+	position: fixed;
+	top: 0;
+	left: 0;
+	margin: auto;
+	background-color: #363945;
+	border-radius: 5px;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.1);
+}
+.context-menu > button {
+	color: white;
+	width: 100%;
+	padding: 10px;
+	border: none;
+	background-color: rgba(0, 0, 0, 0.15);
+	border-radius: 5px;
+	margin: 2px;
+	cursor: pointer;
+	text-align: left;
+}
+.context-menu > button:hover {
+	background-color: rgba(0, 0, 0, 0.25);
+	color: white;
 }

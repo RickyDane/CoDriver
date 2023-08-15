@@ -6,8 +6,29 @@ let view = "wrap";
 let directoryList = document.querySelector(".directory-list");
 let directoryCount = document.querySelector(".directory-entries-count");
 
-document.querySelector(".search-bar-input").addEventListener("change", () => {
-	searchFor();
+document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
+	if (e.keyCode === 13) {
+		searchFor();
+	}
+	else if (e.keyCode === 27) {
+		cancelSearch();
+	}
+});
+
+// Close context menu when click elsewhere
+document.addEventListener("mousedown", (e) => {
+	if (!e.target.classList.contains("context-item-icon") && !e.target.classList.contains("context-item")) {
+		document.querySelector(".context-menu").style.display = "none";
+	}
+});
+
+// Open context menu for pasting for example
+document.addEventListener("contextmenu", (e) => {
+	e.preventDefault();
+	let contextMenu = document.querySelector(".context-menu");
+	contextMenu.style.display = "flex";
+	contextMenu.style.left = e.clientX + "px";
+	contextMenu.style.top = e.clientY + "px";
 });
 
 function showItems(items, currentDir) {
@@ -25,6 +46,7 @@ function showItems(items, currentDir) {
 		}
 		itemLink.setAttribute("onclick", "openItem('"+items[i].name+"', '"+items[i].path+"', '"+items[i].is_dir+"')");
 		let newRow = document.createElement("div");
+		newRow.className = "directory-item-entry";
 		if (items[i].is_dir == 1) {
 			newRow.innerHTML = `
 				<img class="item-icon" src="resources/folder-icon.png"/> 
@@ -40,6 +62,17 @@ function showItems(items, currentDir) {
 		itemLink.append(newRow)
 		directoryList.append(itemLink);
 	}
+
+	document.querySelectorAll(".item-button").forEach(item => {
+		// Open context menu when right-clicking of file/folder
+		item.addEventListener("contextmenu", (e) => {
+			e.preventDefault();
+			let contextMenu = document.querySelector(".context-menu");
+			contextMenu.style.display = "flex";
+			contextMenu.style.left = e.clientX + "px";
+			contextMenu.style.top = e.clientY + "px";
+		});
+	});
 }
 
 async function listDirectories() {
