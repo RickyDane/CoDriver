@@ -1,9 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy}};
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file}}; 
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
-use rust_search:: SearchBuilder;
+use rust_search::SearchBuilder;
 use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir};
 use stopwatch::Stopwatch;
 
@@ -18,7 +18,8 @@ fn main() {
               go_home,
               search_for,
               go_to_dir,
-              copy_paste
+              copy_paste,
+              delete_item
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -215,20 +216,55 @@ async fn search_for(file_name: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn copy_paste(from_path: String) -> Vec<FDir> {
-    println!("from {} to {:?}", &from_path, current_dir().unwrap().join(&from_path.replace("/", "").replace("'", "")));
-    /*let sw = Stopwatch::start_new();
-    let copy_process = copy(&from_path, current_dir().unwrap().join(&from_path.replace("/", "")));
+async fn copy_paste(act_file_name: String, from_path: String) -> Vec<FDir> {
+    println!("{} {}", &act_file_name, &from_path);
+    let sw = Stopwatch::start_new();
+    let file_name: String = current_dir().unwrap().join(&act_file_name.replace("/", "")).to_str().unwrap().to_string();
+    let temp_file_ext: String;
+    let file_ext: String;
+    let mut temp_filename: String = String::new();
+
+    for i in 0..file_name.split(".").count() - 1 {
+        temp_filename += file_name.split(".").nth(i).unwrap();
+    }
+
+    temp_file_ext = file_name.split(".").nth(file_name.split(".").count() - 1).unwrap().to_string();
+    file_ext = ".".to_string().to_owned()+&temp_file_ext.as_str();
+    temp_filename = file_name.strip_suffix(&file_ext).unwrap().to_string();
+
+    let mut is_file_existing = File::open(&file_name).is_ok();
+    let mut counter = 1;
+    let mut final_filename: String = format!("{}{}", &temp_filename, file_ext);
+    while is_file_existing {
+        final_filename = format!("{}_{}{}", &temp_filename, counter, file_ext); 
+        is_file_existing = File::open(&final_filename).is_ok();
+        counter += 1;
+    }
+
+    let copy_process = copy(current_dir().unwrap().join(&from_path), final_filename); 
     if copy_process.is_ok() {
         println!("Copy-Paste time: {} ms", sw.elapsed_ms());
     }
     else {
         println!("Fehler beim copy-paste");
-    }*/
-
+    }
     return list_dirs().await;
 }
 
+#[tauri::command]
+async fn delete_item(act_file_name: String) -> Vec<FDir> {
+    let is_dir = File::open(&act_file_name).unwrap().metadata().unwrap().is_dir();
+    println!("{}", &act_file_name);
+    if is_dir {
+        let _ = remove_dir_all(act_file_name);
+    }
+    else {
+        let _ = remove_file(act_file_name);
+    }
+    return list_dirs().await;
+}
+
+#[allow(unused)]
 #[tauri::command]
 async fn set_favorite(name: String, path: String) {
     let _ = serde_json::to_writer(File::create("favorites.json").unwrap(), "test");
