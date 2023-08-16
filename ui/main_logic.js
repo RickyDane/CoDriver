@@ -5,6 +5,8 @@ const { message } = window.__TAURI__.dialog;
 let view = "wrap";
 let directoryList = document.querySelector(".directory-list");
 let directoryCount = document.querySelector(".directory-entries-count");
+let contextMenu = document.querySelector(".context-menu");
+let copyPath = "";
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
@@ -24,11 +26,22 @@ document.addEventListener("mousedown", (e) => {
 
 // Open context menu for pasting for example
 document.addEventListener("contextmenu", (e) => {
-	e.preventDefault();
-	let contextMenu = document.querySelector(".context-menu");
+	// e.preventDefault();
 	contextMenu.style.display = "flex";
 	contextMenu.style.left = e.clientX + "px";
 	contextMenu.style.top = e.clientY + "px";
+	contextMenu.children[2].addEventListener("click", async () => {
+		if (copyPath != "") {
+			console.log("Pasted: " + copyPath);
+			let fromPath = copyPath;
+			await invoke("copy_paste", {fromPath})
+				.then(items => {
+					showItems(items);
+				});
+			copyPath = "";
+			contextMenu.style.display = "none";
+		}
+	});
 });
 
 function showItems(items, currentDir) {
@@ -67,10 +80,15 @@ function showItems(items, currentDir) {
 		// Open context menu when right-clicking of file/folder
 		item.addEventListener("contextmenu", (e) => {
 			e.preventDefault();
-			let contextMenu = document.querySelector(".context-menu");
 			contextMenu.style.display = "flex";
 			contextMenu.style.left = e.clientX + "px";
 			contextMenu.style.top = e.clientY + "px";
+			contextMenu.children[1].addEventListener("click", () => {
+				item = item.getAttribute("onclick").split(",")[1].trim().split("/");
+				copyPath = item[item.length - 1].replace("'", "");
+				console.log(copyPath);
+				contextMenu.style.display = "none";
+			});
 		});
 	});
 }
@@ -108,36 +126,8 @@ async function goBack() {
 		});
 }
 
-async function goDesktop() {
-	await invoke("go_to_desktop")
-		.then((items) => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
-		});
-}
-
-async function goDownloads() {
-	await invoke("go_to_downloads")
-		.then((items) => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
-		});
-}
-
-async function goImages() {
-	await invoke("go_to_images")
-		.then((items) => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
-		});
-}
-
-async function goVideos() {
-	await invoke("go_to_videos")
-		.then((items) => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
-		});
-}
-
-async function goMusic() {
-	await invoke("go_to_music")
+async function goToDir(directory) {
+	await invoke("go_to_dir", {directory})
 		.then((items) => {
 			showItems(items.filter(str => !str.name.startsWith(".")));
 		});

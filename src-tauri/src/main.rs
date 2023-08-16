@@ -1,10 +1,10 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::File};
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy}};
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
 use rust_search:: SearchBuilder;
-use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir};
+use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir};
 use stopwatch::Stopwatch;
 
 fn main() {
@@ -17,13 +17,8 @@ fn main() {
               go_back,
               go_home,
               search_for,
-              go_to_desktop,
-              go_to_images,
-              go_to_downloads,
-              go_to_videos,
-              go_to_devices,
-              go_to_music,
-              set_favorite
+              go_to_dir,
+              copy_paste
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -121,170 +116,46 @@ async fn go_back() -> Vec<FDir> {
 }
 
 #[tauri::command]
+fn go_to_dir(directory: u8) -> Vec<FDir> {
+    let wanted_directory = match directory {
+        0 => set_current_dir(desktop_dir().unwrap()),
+        1 => set_current_dir(download_dir().unwrap()),
+        2 => set_current_dir(document_dir().unwrap()),
+        3 => set_current_dir(picture_dir().unwrap()),
+        4 => set_current_dir(video_dir().unwrap()),
+        5 => set_current_dir(audio_dir().unwrap()),
+        _ => set_current_dir(current_dir().unwrap()) 
+    };
+    if wanted_directory.is_err() {
+        println!("Not a valid directory");
+    }
+    let mut dir_list: Vec<FDir> = Vec::new();
+    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
+    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
+    for item in current_directory {
+        let temp_item = item.unwrap();
+        let name = &temp_item.file_name().into_string().unwrap();
+        let is_dir = &temp_item.path().is_dir();
+        let is_dir_int: i8;
+        let path = &temp_item.path().to_str().unwrap().to_string();
+        if is_dir.to_owned() {
+            is_dir_int = 1;
+        }
+        else {
+            is_dir_int = 0;
+        }
+        dir_list.push(FDir {
+            name: String::from(name), 
+            is_dir: is_dir_int,
+            path: String::from(path)
+        });
+    }
+    return dir_list;
+}
+
+#[tauri::command]
 async fn go_home() -> Vec<FDir> {
     let _ = set_current_dir(home_dir().unwrap());
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string();
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        }
-        else {
-            is_dir_int = 0;
-        }
-        dir_list.push(FDir {
-            name: String::from(name), 
-            is_dir: is_dir_int,
-            path: String::from(path)
-        });
-    }
-    return dir_list;
-}
-
-#[tauri::command]
-async fn go_to_desktop() -> Vec<FDir> {
-    let _ = set_current_dir(desktop_dir().unwrap());
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string();
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        }
-        else {
-            is_dir_int = 0;
-        }
-        dir_list.push(FDir {
-            name: String::from(name), 
-            is_dir: is_dir_int,
-            path: String::from(path)
-        });
-    }
-    return dir_list;
-}
-
-#[tauri::command]
-async fn go_to_images() -> Vec<FDir> {
-    let _ = set_current_dir(picture_dir().unwrap());
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string();
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        }
-        else {
-            is_dir_int = 0;
-        }
-        dir_list.push(FDir {
-            name: String::from(name), 
-            is_dir: is_dir_int,
-            path: String::from(path)
-        });
-    }
-    return dir_list;
-}
-
-#[tauri::command]
-async fn go_to_downloads() -> Vec<FDir> {
-    let _ = set_current_dir(download_dir().unwrap());
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string();
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        }
-        else {
-            is_dir_int = 0;
-        }
-        dir_list.push(FDir {
-            name: String::from(name), 
-            is_dir: is_dir_int,
-            path: String::from(path)
-        });
-    }
-    return dir_list;
-}
-
-#[tauri::command]
-async fn go_to_videos() -> Vec<FDir> {
-    let _ = set_current_dir(video_dir().unwrap());
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string();
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        }
-        else {
-            is_dir_int = 0;
-        }
-        dir_list.push(FDir {
-            name: String::from(name), 
-            is_dir: is_dir_int,
-            path: String::from(path)
-        });
-    }
-    return dir_list;
-}
-
-#[tauri::command]
-async fn go_to_music() -> Vec<FDir> {
-    let _ = set_current_dir(audio_dir().unwrap());
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string();
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        }
-        else {
-            is_dir_int = 0;
-        }
-        dir_list.push(FDir {
-            name: String::from(name), 
-            is_dir: is_dir_int,
-            path: String::from(path)
-        });
-    }
-    return dir_list;
-}
-
-#[tauri::command]
-async fn go_to_devices() -> Vec<FDir> {
-    let _ = set_current_dir(video_dir().unwrap());
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
     println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
@@ -341,6 +212,21 @@ async fn search_for(file_name: String) -> Vec<FDir> {
     }
     println!("{} ms", sw.elapsed_ms());
     return dir_list;
+}
+
+#[tauri::command]
+async fn copy_paste(from_path: String) -> Vec<FDir> {
+    println!("from {} to {:?}", &from_path, current_dir().unwrap().join(&from_path.replace("/", "").replace("'", "")));
+    /*let sw = Stopwatch::start_new();
+    let copy_process = copy(&from_path, current_dir().unwrap().join(&from_path.replace("/", "")));
+    if copy_process.is_ok() {
+        println!("Copy-Paste time: {} ms", sw.elapsed_ms());
+    }
+    else {
+        println!("Fehler beim copy-paste");
+    }*/
+
+    return list_dirs().await;
 }
 
 #[tauri::command]
