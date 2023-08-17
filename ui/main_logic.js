@@ -27,7 +27,7 @@ document.addEventListener("mousedown", (e) => {
 
 // Open context menu for pasting for example
 document.addEventListener("contextmenu", (e) => {
-	e.preventDefault();
+	// e.preventDefault();
 	contextMenu.children[2].replaceWith(contextMenu.children[2].cloneNode(true));
 	contextMenu.style.display = "flex";
 	contextMenu.style.left = e.clientX + "px";

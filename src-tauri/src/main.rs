@@ -35,7 +35,7 @@ struct FDir {
 #[tauri::command]
 async fn list_dirs() -> Vec<FDir> {
     let mut dir_list: Vec<FDir> = Vec::new();
-    let current_dir = fs::read_dir(".").unwrap();
+    let current_dir = fs::read_dir(current_dir().unwrap()).unwrap();
     for item in current_dir {
         let temp_item = item.unwrap();
         let name = &temp_item.file_name().into_string().unwrap();
