@@ -27,7 +27,7 @@ document.addEventListener("mousedown", (e) => {
 
 // Open context menu for pasting for example
 document.addEventListener("contextmenu", (e) => {
-	e.preventDefault();
+	// e.preventDefault();
 	contextMenu.children[2].replaceWith(contextMenu.children[2].cloneNode(true));
 	contextMenu.style.display = "flex";
 	contextMenu.style.left = e.clientX + "px";
@@ -35,36 +35,40 @@ document.addEventListener("contextmenu", (e) => {
 	contextMenu.children[2].addEventListener("click", function() { pasteItem(); });
 });
 
-function showItems(items, currentDir) {
-	directoryList.innerHTML = "";
-	directoryCount.innerHTML = items.length;
-	const itemsLength = items.length;
-	let i = 0;
-	for (i; i < itemsLength; i++) {
-		let itemLink = document.createElement("button");
-		if (view == "wrap") {
-			itemLink.className = "item-button";
-		}
-		else {
-			itemLink.className = "item-button-list";
-		}
-		itemLink.setAttribute("onclick", "openItem('"+items[i].name+"', '"+items[i].path+"', '"+items[i].is_dir+"')");
-		let newRow = document.createElement("div");
-		newRow.className = "directory-item-entry";
-		if (items[i].is_dir == 1) {
-			newRow.innerHTML = `
-				<img class="item-icon" src="resources/folder-icon.png"/> 
-				<p>${items[i].name}</p>
-				`;
-		}
-		else {
+function showItems(items) {
+	for (let i = 0; i < 10; i++) {
+		directoryList.innerHTML = null;
+		directoryCount.innerHTML = items.length;
+		let set = new Set(items);
+		console.time("set");
+		set.forEach(item => {
+			let itemLink = document.createElement("button");
+			if (view == "wrap") {
+				itemLink.className = "item-button";
+			}
+			else {
+				itemLink.className = "item-button-list";
+			}
+			itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"')");
+			let newRow = document.createElement("div");
+			newRow.className = "directory-item-entry";
+			if (item.is_dir == 1) {
 				newRow.innerHTML = `
-				<img class="item-icon" src="resources/file-icon.png"/>	
-				<p>${items[i].name}</p>
-				`;
-		}
-		itemLink.append(newRow)
-		directoryList.append(itemLink);
+					<img class="item-icon" src="resources/folder-icon.png"/> 
+					<p>${item.name}</p>
+					`;
+			}
+			else {
+				newRow.innerHTML = `
+					<img class="item-icon" src="resources/file-icon.png"/>	
+					<p>${item.name}</p>
+					`;
+			}
+			itemLink.append(newRow)
+			directoryList.append(itemLink);
+		});
+		console.timeEnd("set");
+		delete set;
 	}
 
 	document.querySelectorAll(".item-button").forEach(item => {
