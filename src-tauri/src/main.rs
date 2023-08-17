@@ -183,18 +183,34 @@ async fn go_home() -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn search_for(file_name: String, ext: String) -> Vec<FDir> {
+async fn search_for(file_name: String) -> Vec<FDir> {
+    let file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
+    println!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext);
     let sw = Stopwatch::start_new();
-    let search: Vec<String> = SearchBuilder::default()
-        .location(current_dir().unwrap())
-        .search_input(file_name)
-        .ignore_case()
-        .ext(ext)
-        .depth(50)
-        .build()
-        .collect();
+    let search: Vec<String>;
+    if file_ext != ".".to_string().to_owned()+&file_name {
+        println!("{}{}", &file_name, &file_ext);
+        search = SearchBuilder::default()
+            .location(current_dir().unwrap())
+            .search_input(file_name.strip_suffix(&file_ext).unwrap())
+            .ignore_case()
+            .ext(file_ext)
+            .depth(25)
+            .build()
+            .collect();
+    }
+    else {
+        search = SearchBuilder::default()
+            .location(current_dir().unwrap())
+            .search_input(file_name)
+            .ignore_case()
+            .depth(25)
+            .build()
+            .collect();
+    }
     let mut dir_list: Vec<FDir> = Vec::new();
     for item in search {
+        let item = item.replace("\\", "/");
         let temp_item = &item.split("/").collect::<Vec<&str>>();
         let name = &temp_item[*&temp_item.len() - 1];
         let path = &item.replace("\\", "/"); 
@@ -210,7 +226,7 @@ async fn search_for(file_name: String, ext: String) -> Vec<FDir> {
         dir_list.push(FDir {
             name: name.to_string(), 
             is_dir: is_dir_int,
-            path: String::from(path)
+            path: path.to_string() 
         });
     }
     println!("{} ms", sw.elapsed_ms());

@@ -111,9 +111,15 @@ body {
 	align-items: center;
 	cursor: pointer;
 	padding: 10px;
+	max-height: 40px;
 	font-size: small;
 	max-width: 250px;
 	overflow: hidden;
+	word-wrap: normal;
+	white-space: nowrap;
+}
+.item-button-list > div > p {
+	padding-right: 5px;
 }
 .item-button-list:hover {
 	background-color: rgba(0, 0, 0, 0.25);
