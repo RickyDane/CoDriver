@@ -41,7 +41,7 @@ async fn list_dirs() -> Vec<FDir> {
         let name = &temp_item.file_name().into_string().unwrap();
         let is_dir = &temp_item.path().is_dir();
         let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string();
+        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -59,6 +59,7 @@ async fn list_dirs() -> Vec<FDir> {
 
 #[tauri::command]
 async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
+    println!("{}", &_path);
     let sw = Stopwatch::start_new();
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(&_path).unwrap();
@@ -69,7 +70,7 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
         let name = &temp_item.file_name().into_string().unwrap();
         let is_dir = &temp_item.path().is_dir();
         let mut is_dir_int: i8 = 0;
-        let path = &temp_item.path().to_str().unwrap().to_string();
+        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -100,7 +101,7 @@ async fn go_back() -> Vec<FDir> {
         let name = &temp_item.file_name().into_string().unwrap();
         let is_dir = &temp_item.path().is_dir();
         let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string();
+        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -138,7 +139,7 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
         let name = &temp_item.file_name().into_string().unwrap();
         let is_dir = &temp_item.path().is_dir();
         let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string();
+        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -165,7 +166,7 @@ async fn go_home() -> Vec<FDir> {
         let name = &temp_item.file_name().into_string().unwrap();
         let is_dir = &temp_item.path().is_dir();
         let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string();
+        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -196,7 +197,7 @@ async fn search_for(file_name: String, ext: String) -> Vec<FDir> {
     for item in search {
         let temp_item = &item.split("/").collect::<Vec<&str>>();
         let name = &temp_item[*&temp_item.len() - 1];
-        let path = &item; 
+        let path = &item.replace("\\", "/"); 
         let temp_file = File::open(&item);
         let is_dir = temp_file.unwrap().metadata().unwrap().is_dir();
         let is_dir_int;
@@ -242,7 +243,7 @@ async fn copy_paste(act_file_name: String, from_path: String) -> Vec<FDir> {
         counter += 1;
     }
 
-    let copy_process = copy(current_dir().unwrap().join(&from_path), final_filename); 
+    let copy_process = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/")); 
     if copy_process.is_ok() {
         println!("Copy-Paste time: {} ms", sw.elapsed_ms());
     }
@@ -257,10 +258,10 @@ async fn delete_item(act_file_name: String) -> Vec<FDir> {
     let is_dir = File::open(&act_file_name).unwrap().metadata().unwrap().is_dir();
     println!("{}", &act_file_name);
     if is_dir {
-        let _ = remove_dir_all(act_file_name);
+        let _ = remove_dir_all(act_file_name.replace("\\", "/"));
     }
     else {
-        let _ = remove_file(act_file_name);
+        let _ = remove_file(act_file_name.replace("\\", "/"));
     }
     return list_dirs().await;
 }
