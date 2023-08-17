@@ -182,12 +182,13 @@ async fn go_home() -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn search_for(file_name: String) -> Vec<FDir> {
+async fn search_for(file_name: String, ext: String) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
     let search: Vec<String> = SearchBuilder::default()
         .location(current_dir().unwrap())
         .search_input(file_name)
         .ignore_case()
+        .ext(ext)
         .depth(50)
         .build()
         .collect();
