@@ -83,6 +83,7 @@ function showItems(items) {
 					fileIcon = "resources/pdf-file.png";
 					break;
 				case ".zip":
+				case ".rar":
 				case ".tar":
 				case ".zst":
 					fileIcon = "resources/zip-file.png";
