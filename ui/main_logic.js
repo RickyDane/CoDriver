@@ -58,8 +58,42 @@ function showItems(items) {
 				`;
 		}
 		else {
+			let fileIcon = "resources/file-icon.png"; // Default
+			switch (item.extension) {
+				case ".json":
+				case ".sql":
+					fileIcon = "resources/code-file.png";
+					break;
+				case ".png":
+				case ".jpg":
+				case ".jpeg":
+				case ".webp":
+				case ".gif":
+				case ".svg":
+					fileIcon = "resources/img-file.png";
+					break;
+				case ".txt":
+					fileIcon = "resources/text-file.png";
+					break;
+				case ".docx":
+				case ".doc":
+					fileIcon = "resources/word-file.png";
+					break;
+				case ".pdf":
+					fileIcon = "resources/pdf-file.png";
+					break;
+				case ".zip":
+					fileIcon = "resources/zip-file.png";
+					break;
+				case ".xlsx":
+					fileIcon = "resources/spreadsheet-file.png";
+					break;
+				default:
+					fileIcon = "resources/file-icon.png";
+					break;
+			}
 			newRow.innerHTML = `
-				<img class="item-icon" src="resources/file-icon.png" width="48px" height="auto"/>
+				<img class="item-icon" src="${fileIcon}" width="48px" height="auto"/>
 				<p>${item.name}</p>
 				`;
 		}
