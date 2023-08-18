@@ -36,40 +36,37 @@ document.addEventListener("contextmenu", (e) => {
 });
 
 function showItems(items) {
-	for (let i = 0; i < 10; i++) {
-		directoryList.innerHTML = null;
-		directoryCount.innerHTML = items.length;
-		let set = new Set(items);
-		console.time("set");
-		set.forEach(item => {
-			let itemLink = document.createElement("button");
-			if (view == "wrap") {
-				itemLink.className = "item-button";
-			}
-			else {
-				itemLink.className = "item-button-list";
-			}
-			itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"')");
-			let newRow = document.createElement("div");
-			newRow.className = "directory-item-entry";
-			if (item.is_dir == 1) {
-				newRow.innerHTML = `
-					<img class="item-icon" src="resources/folder-icon.png"/> 
-					<p>${item.name}</p>
-					`;
-			}
-			else {
-				newRow.innerHTML = `
-					<img class="item-icon" src="resources/file-icon.png"/>	
-					<p>${item.name}</p>
-					`;
-			}
-			itemLink.append(newRow)
-			directoryList.append(itemLink);
-		});
-		console.timeEnd("set");
-		delete set;
-	}
+	directoryList.innerHTML = null;
+	directoryCount.innerHTML = items.length;
+	let set = new Set(items);
+	console.time("set");
+	set.forEach(item => {
+		let itemLink = document.createElement("button");
+		if (view == "wrap") {
+			itemLink.className = "item-button";
+		}
+		else {
+			itemLink.className = "item-button-list";
+		}
+		itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"')");
+		let newRow = document.createElement("div");
+		newRow.className = "directory-item-entry";
+		if (item.is_dir == 1) {
+			newRow.innerHTML = `
+				<img class="item-icon" src="resources/folder-icon.png" width="64px" height="auto"/> 
+				<p>${item.name}</p>
+				`;
+		}
+		else {
+			newRow.innerHTML = `
+				<img class="item-icon" src="resources/file-icon.png" width="48px" height="auto"/>
+				<p>${item.name}</p>
+				`;
+		}
+		itemLink.append(newRow)
+		directoryList.append(itemLink);
+	});
+	console.timeEnd("set");
 
 	document.querySelectorAll(".item-button").forEach(item => {
 		// Open context menu when right-clicking on file/folder
@@ -168,6 +165,7 @@ async function searchFor() {
 
 async function cancelSearch() {
 	document.querySelector(".cancel-search-button").style.display = "none";
+	document.querySelector(".search-bar-input").value = "";
 	listDirectories();
 }
 

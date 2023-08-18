@@ -85,10 +85,7 @@ body {
 	align-items: center;
 }
 .item-button > div > .item-icon {
-	display: flex;
 	margin-bottom: 20px;
-	height: 32px;
-	width: auto;
 }
 .item-button > div > p {
 	position: absolute;
@@ -110,7 +107,7 @@ body {
 	gap: 5px;
 	align-items: center;
 	cursor: pointer;
-	padding: 10px;
+	padding: 5px;
 	max-height: 40px;
 	font-size: small;
 	max-width: 250px;
@@ -131,7 +128,7 @@ body {
 	gap: 10px;
 }
 .item-button-list > div > .item-icon {
-	height: 16px;
+	height: 24px;
 	width: auto;
 }
 .go-back-button {

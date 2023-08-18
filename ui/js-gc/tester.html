@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+  <title>js-gc tester</title>
+  <script src="./index.js"></script>
+</head>
+<body>
+<script>
+  window.onload = (function(){
+    window.gc();
+    console.log(typeof window.gc);
+    console.dir(typeof window.System);
+  });
+</script>
+</body>
+</html>
