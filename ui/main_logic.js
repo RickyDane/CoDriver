@@ -27,12 +27,12 @@ document.addEventListener("mousedown", (e) => {
 
 // Open context menu for pasting for example
 document.addEventListener("contextmenu", (e) => {
-	// e.preventDefault();
-	contextMenu.children[2].replaceWith(contextMenu.children[2].cloneNode(true));
+	e.preventDefault();
+	contextMenu.children[3].replaceWith(contextMenu.children[3].cloneNode(true));
 	contextMenu.style.display = "flex";
 	contextMenu.style.left = e.clientX + "px";
 	contextMenu.style.top = e.clientY + "px";
-	contextMenu.children[2].addEventListener("click", function() { pasteItem(); });
+	contextMenu.children[3].addEventListener("click", function() { pasteItem(); });
 });
 
 function showItems(items) {
@@ -83,6 +83,8 @@ function showItems(items) {
 					fileIcon = "resources/pdf-file.png";
 					break;
 				case ".zip":
+				case ".tar":
+				case ".zst":
 					fileIcon = "resources/zip-file.png";
 					break;
 				case ".xlsx":
@@ -108,11 +110,13 @@ function showItems(items) {
 			e.preventDefault();
 			contextMenu.children[0].replaceWith(contextMenu.children[0].cloneNode(true));
 			contextMenu.children[1].replaceWith(contextMenu.children[1].cloneNode(true));
+			contextMenu.children[2].replaceWith(contextMenu.children[2].cloneNode(true));
 			contextMenu.style.display = "flex";
 			contextMenu.style.left = e.clientX + "px";
 			contextMenu.style.top = e.clientY + "px";
 			contextMenu.children[0].addEventListener("click", function() { deleteItem(item); }, {once: true});
-			contextMenu.children[1].addEventListener("click", function() { copyItem(item); }, {once: true});
+			contextMenu.children[1].addEventListener("click", function() { extractItem(item); }, {once: true});
+			contextMenu.children[2].addEventListener("click", function() { copyItem(item); }, {once: true});
 		});
 	});
 }
@@ -133,6 +137,20 @@ function copyItem(item) {
 	let tempCopyFilePath = item.getAttribute("onclick").split(",")[1].trim().split("/");
 	copyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
 	contextMenu.style.display = "none";
+}
+
+function extractItem(item) {
+	let extractFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
+	let extractFileName = extractFilePath[extractFilePath.length - 1].replace("'", "");
+	console.log(extractFilePath, extractFileName);
+	if (extractFileName != "") {
+		let fromPath = extractFilePath.toString();
+		invoke("extract_item", {fromPath})
+			.then(items => {
+				showItems(items.filter(str => !str.name.startsWith(".")));
+			});
+		contextMenu.style.display = "none";
+	}
 }
 
 function pasteItem() {

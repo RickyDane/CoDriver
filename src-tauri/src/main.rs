@@ -1,11 +1,12 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file}}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file}, io::Cursor}; 
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
 use rust_search::SearchBuilder;
 use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir};
 use stopwatch::Stopwatch;
+use std::path::PathBuf;
 
 fn main() {
     tauri::Builder::default()
@@ -19,7 +20,8 @@ fn main() {
               search_for,
               go_to_dir,
               copy_paste,
-              delete_item
+              delete_item,
+              extract_item
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -241,7 +243,7 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             is_dir_int = 0;
         }
         dir_list.push(FDir {
-            name: name.to_string(), 
+            name: name.to_string(),
             is_dir: is_dir_int,
             path: path.to_string(),
             extension: String::from(&file_ext)
@@ -297,6 +299,17 @@ async fn delete_item(act_file_name: String) -> Vec<FDir> {
     else {
         let _ = remove_file(act_file_name.replace("\\", "/"));
     }
+    return list_dirs().await;
+}
+
+#[tauri::command]
+async fn extract_item(from_path: String) -> Vec<FDir> {
+    println!("{}", &from_path);
+    let sw = Stopwatch::start_new();
+
+    let bytes: Vec<u8> = vec![];
+    let target = PathBuf::from(from_path.replace("\\", "/"));
+    let copy_process = zip_extract::extract(Cursor::new(bytes), &target, true).unwrap();
     return list_dirs().await;
 }
 
