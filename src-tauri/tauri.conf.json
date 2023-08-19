@@ -24,6 +24,14 @@
 		  "removeFile": true,
 		  "renameFile": true,
 		  "exists": true
+	  },
+	  "dialog": {
+		  "all": true,
+		  "ask": true,
+		  "confirm": true,
+		  "message": true,
+		  "open": true,
+		  "save": true
 	  }
     },
     "bundle": {

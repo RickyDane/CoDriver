@@ -33,13 +33,20 @@ document.addEventListener("contextmenu", (e) => {
 	contextMenu.style.left = e.clientX + "px";
 	contextMenu.style.top = e.clientY + "px";
 	contextMenu.children[3].addEventListener("click", function() { pasteItem(); });
+	if (copyFilePath == "") {
+		contextMenu.children[3].setAttribute("disabled", "true");
+		contextMenu.children[3].classList.add("c-item-disabled");
+	}
+	else {
+		contextMenu.children[3].removeAttribute("disabled");
+		contextMenu.children[3].classList.remove("c-item-disabled");
+	}
 });
 
 function showItems(items) {
 	directoryList.innerHTML = null;
 	directoryCount.innerHTML = items.length;
 	let set = new Set(items);
-	console.time("set");
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
 		if (view == "wrap") {
@@ -62,6 +69,15 @@ function showItems(items) {
 			switch (item.extension) {
 				case ".json":
 				case ".sql":
+				case ".js":
+				case ".css":
+				case ".scss":
+				case ".cs":
+				case ".rs":
+				case ".html":
+				case ".php":
+				case ".htm":
+				case ".py":
 					fileIcon = "resources/code-file.png";
 					break;
 				case ".png":
@@ -103,7 +119,6 @@ function showItems(items) {
 		itemLink.append(newRow)
 		directoryList.append(itemLink);
 	});
-	console.timeEnd("set");
 
 	document.querySelectorAll(".item-button").forEach(item => {
 		// Open context menu when right-clicking on file/folder
@@ -115,6 +130,17 @@ function showItems(items) {
 			contextMenu.style.display = "flex";
 			contextMenu.style.left = e.clientX + "px";
 			contextMenu.style.top = e.clientY + "px";
+			let fromPath = item.getAttribute("onclick").split(",")[1].trim().split("/");
+			let actFileName = fromPath[fromPath.length - 1].replace("'", "");
+			let extension = actFileName.split(".")[actFileName.split(".").length-1];
+			if (extension != "zip") {
+				contextMenu.children[1].setAttribute("disabled", "true");
+				contextMenu.children[1].classList.add("c-item-disabled");
+			}
+			else {
+				contextMenu.children[1].removeAttribute("disabled");
+				contextMenu.children[1].classList.remove("c-item-disabled");
+			}
 			contextMenu.children[0].addEventListener("click", function() { deleteItem(item); }, {once: true});
 			contextMenu.children[1].addEventListener("click", function() { extractItem(item); }, {once: true});
 			contextMenu.children[2].addEventListener("click", function() { copyItem(item); }, {once: true});
@@ -122,15 +148,18 @@ function showItems(items) {
 	});
 }
 
-function deleteItem(item) {
+async function deleteItem(item) {
 	let fromPath = item.getAttribute("onclick").split(",")[1].trim().split("/");
 	let actFileName = fromPath[fromPath.length - 1].replace("'", "");
-	invoke("delete_item", {actFileName})
-		.then(items => {
-			let temp_item = item.getAttribute("onclick").split(",")[1].trim().split("/");
-			contextMenu.style.display = "none";
-			showItems(items.filter(str => !str.name.startsWith(".")));
-		});
+	let isConfirm = await confirm("Wollen Sie "+actFileName+" wirklich löschen?");
+	if (isConfirm) {
+		await invoke("delete_item", {actFileName})
+			.then(items => {
+				let temp_item = item.getAttribute("onclick").split(",")[1].trim().split("/");
+				contextMenu.style.display = "none";
+				showItems(items.filter(str => !str.name.startsWith(".")));
+			});
+	}
 }
 
 function copyItem(item) {
@@ -143,7 +172,6 @@ function copyItem(item) {
 function extractItem(item) {
 	let extractFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
 	let extractFileName = extractFilePath[extractFilePath.length - 1].replace("'", "");
-	console.log(extractFilePath, extractFileName);
 	if (extractFileName != "") {
 		let fromPath = extractFilePath.toString();
 		invoke("extract_item", {fromPath})
@@ -163,6 +191,7 @@ function pasteItem() {
 				showItems(items.filter(str => !str.name.startsWith(".")));
 			});
 		copyFileName = "";
+		copyFilePath = "";
 		contextMenu.style.display = "none";
 	}
 }

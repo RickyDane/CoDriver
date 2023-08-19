@@ -228,7 +228,11 @@ body {
 	border-radius: 5px;
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.1);
 }
-.context-menu > button {
+.context-item:hover {
+	background-color: rgba(0, 0, 0, 0.25);
+	color: white;
+}
+.context-item {
 	color: white;
 	width: 100%;
 	padding: 10px;
@@ -238,8 +242,11 @@ body {
 	margin: 2px;
 	cursor: pointer;
 	text-align: left;
+	display: flex;
+	flex-flow: row;
+	justify-content: space-between;
 }
-.context-menu > button:hover {
-	background-color: rgba(0, 0, 0, 0.25);
-	color: white;
+.c-item-disabled {
+	color: grey !important;
+	background-color: rgba(0, 0, 0, 0.05);
 }
