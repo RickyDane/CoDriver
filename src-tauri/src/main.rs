@@ -1,12 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file}, io::Cursor}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file}, path::PathBuf}; 
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
 use rust_search::SearchBuilder;
 use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir};
 use stopwatch::Stopwatch;
-use std::path::PathBuf;
+use rar::Archive;
+use dialog::DialogBox;
 
 fn main() {
     tauri::Builder::default()
@@ -21,7 +22,9 @@ fn main() {
               go_to_dir,
               copy_paste,
               delete_item,
-              extract_item
+              extract_item,
+              compress_item,
+              create_folder
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -256,11 +259,11 @@ async fn search_for(file_name: String) -> Vec<FDir> {
 
 #[tauri::command]
 async fn copy_paste(act_file_name: String, from_path: String) -> Vec<FDir> {
-    println!("{} {}", &act_file_name, &from_path);
+    let is_dir = fs::metadata(&from_path).unwrap().is_dir();
     let sw = Stopwatch::start_new();
     let file_name: String = current_dir().unwrap().join(&act_file_name.replace("/", "")).to_str().unwrap().to_string();
     let temp_file_ext: String;
-    let file_ext: String;
+    let mut file_ext: String;
     let mut temp_filename: String = String::new();
 
     for i in 0..file_name.split(".").count() - 1 {
@@ -269,24 +272,29 @@ async fn copy_paste(act_file_name: String, from_path: String) -> Vec<FDir> {
 
     temp_file_ext = file_name.split(".").nth(file_name.split(".").count() - 1).unwrap().to_string();
     file_ext = ".".to_string().to_owned()+&temp_file_ext.as_str();
-    temp_filename = file_name.strip_suffix(&file_ext).unwrap().to_string();
-
-    let mut is_file_existing = File::open(&file_name).is_ok();
+    if temp_file_ext == file_name {
+        file_ext = "".to_string();    
+    } 
+    temp_filename = file_name.strip_suffix(&file_ext).unwrap_or(&file_name).to_string();
+    let mut is_file_existing = fs::metadata(&from_path).is_ok();
     let mut counter = 1;
     let mut final_filename: String = format!("{}{}", &temp_filename, file_ext);
+
     while is_file_existing {
         final_filename = format!("{}_{}{}", &temp_filename, counter, file_ext); 
-        is_file_existing = File::open(&final_filename).is_ok();
+        println!("{}", &final_filename);
+        is_file_existing = fs::metadata(&final_filename).is_ok();
         counter += 1;
+        println!("{}, {}", is_file_existing, counter);
     }
 
-    let copy_process = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/")); 
-    if copy_process.is_ok() {
-        println!("Copy-Paste time: {} ms", sw.elapsed_ms());
+    if is_dir {
+        let _ = copy_dir::copy_dir(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/"));
     }
     else {
-        println!("Fehler beim copy-paste");
+        let _ = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/")); 
     }
+    println!("Copy-Paste time: {} ms", sw.elapsed_ms());
     return list_dirs().await;
 }
 
@@ -305,54 +313,82 @@ async fn delete_item(act_file_name: String) -> Vec<FDir> {
 
 #[tauri::command]
 async fn extract_item(from_path: String) -> Vec<FDir> {
-    let fname = std::path::Path::new(&from_path);
-    let file = fs::File::open(fname).unwrap();
+    // Check file extension
+    let file_ext = ".".to_string().to_owned()+from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
 
-    let mut archive = zip::ZipArchive::new(file).unwrap();
+    println!("{} {}", &file_ext, &from_path);
 
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i).unwrap();
-        let outpath = match file.enclosed_name() {
-            Some(path) => path.to_owned(),
-            None => continue,
-        };
+    // make zip or rar unpack
+    let sw = Stopwatch::start_new();
+        if file_ext == ".zip" {
+        let fname = std::path::Path::new(&from_path);
+        let file = fs::File::open(fname).unwrap();
 
-        {
-            let comment = file.comment();
-            if !comment.is_empty() {
-                println!("File {i} comment: {comment}");
-            }
-        }
+        let mut archive = zip::ZipArchive::new(file).unwrap();
 
-        if (*file.name()).ends_with('/') {
-            println!("File {} extracted to \"{}\"", i, outpath.display());
-            fs::create_dir_all(&outpath).unwrap();
-        } else {
-            println!(
-                "File {} extracted to \"{}\" ({} bytes)",
-                i,
-                outpath.display(),
-                file.size()
-            );
-            if let Some(p) = outpath.parent() {
-                if !p.exists() {
-                    fs::create_dir_all(p).unwrap();
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i).unwrap();
+            let outpath = match file.enclosed_name() {
+                Some(path) => path.to_owned(),
+                None => continue,
+            };
+
+            {
+                let comment = file.comment();
+                if !comment.is_empty() {
+                    println!("File {i} comment: {comment}");
                 }
             }
-            let mut outfile = fs::File::create(&outpath).unwrap();
-            std::io::copy(&mut file, &mut outfile).unwrap();
-        }
 
-        // Get and Set permissions
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
+            if (*file.name()).ends_with('/') {
+                fs::create_dir_all(&outpath).unwrap();
+            } else {
+                if let Some(p) = outpath.parent() {
+                    if !p.exists() {
+                        fs::create_dir_all(p).unwrap();
+                    }
+                }
+                let mut outfile = fs::File::create(&outpath).unwrap();
+                std::io::copy(&mut file, &mut outfile).unwrap();
+            }
 
-            if let Some(mode) = file.unix_mode() {
-                fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
+            // Get and Set permissions
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+
+                if let Some(mode) = file.unix_mode() {
+                    fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
+                }
             }
         }
     }
+    else if file_ext == ".rar" {
+        let _ = Archive::extract_all(&from_path, &from_path.strip_suffix(&file_ext).unwrap(), "");
+    }
+    else if file_ext == ".7z" {
+        sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap()).expect("complete");
+    }
+    println!("Unpack time: {} ms", sw.elapsed_ms());
+    return list_dirs().await;
+}
+
+#[tauri::command]
+async fn compress_item(from_path: String) -> Vec<FDir> {
+    let sw = Stopwatch::start_new();
+    let _ = sevenz_rust::compress_to_path(&from_path, from_path.to_string()+".7z");
+    println!("Pack time: {} ms", sw.elapsed_ms());
+    return list_dirs().await;
+}
+
+#[tauri::command]
+async fn create_folder() -> Vec<FDir> {
+    let folder_name = dialog::Input::new("Gebe einen Namen für den neuen Ordner ein.")
+        .title("Neuer Ordner")
+        .show()
+        .expect("Could not display dialog box");
+    let new_folder_path = PathBuf::from(&folder_name.unwrap());
+    let _ = fs::create_dir(current_dir().unwrap().join(new_folder_path));
     return list_dirs().await;
 }
 

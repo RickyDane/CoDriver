@@ -22,6 +22,14 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 document.addEventListener("mousedown", (e) => {
 	if (!e.target.classList.contains("context-item-icon") && !e.target.classList.contains("context-item")) {
 		document.querySelector(".context-menu").style.display = "none";
+		contextMenu.children[0].setAttribute("disabled", "true");
+		contextMenu.children[0].classList.add("c-item-disabled");
+		contextMenu.children[1].setAttribute("disabled", "true");
+		contextMenu.children[1].classList.add("c-item-disabled");
+		contextMenu.children[2].setAttribute("disabled", "true");
+		contextMenu.children[2].classList.add("c-item-disabled");
+		contextMenu.children[4].classList.add("c-item-disabled");
+		contextMenu.children[4].setAttribute("disabled", "true");
 	}
 });
 
@@ -33,6 +41,9 @@ document.addEventListener("contextmenu", (e) => {
 	contextMenu.style.left = e.clientX + "px";
 	contextMenu.style.top = e.clientY + "px";
 	contextMenu.children[3].addEventListener("click", function() { pasteItem(); });
+	contextMenu.children[5].addEventListener("click", function() { createFolder(); }, {once: true});
+
+	contextMenu.children[3].classList.add("c-item-disabled");
 	if (copyFilePath == "") {
 		contextMenu.children[3].setAttribute("disabled", "true");
 		contextMenu.children[3].classList.add("c-item-disabled");
@@ -102,6 +113,7 @@ function showItems(items) {
 				case ".rar":
 				case ".tar":
 				case ".zst":
+				case ".7z":
 					fileIcon = "resources/zip-file.png";
 					break;
 				case ".xlsx":
@@ -124,16 +136,32 @@ function showItems(items) {
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", (e) => {
 			e.preventDefault();
+			// Reset so that the commands are not triggered multiple times
 			contextMenu.children[0].replaceWith(contextMenu.children[0].cloneNode(true));
 			contextMenu.children[1].replaceWith(contextMenu.children[1].cloneNode(true));
 			contextMenu.children[2].replaceWith(contextMenu.children[2].cloneNode(true));
+			contextMenu.children[4].replaceWith(contextMenu.children[4].cloneNode(true));
+			contextMenu.children[5].replaceWith(contextMenu.children[5].cloneNode(true));
+
 			contextMenu.style.display = "flex";
 			contextMenu.style.left = e.clientX + "px";
 			contextMenu.style.top = e.clientY + "px";
+
 			let fromPath = item.getAttribute("onclick").split(",")[1].trim().split("/");
 			let actFileName = fromPath[fromPath.length - 1].replace("'", "");
 			let extension = actFileName.split(".")[actFileName.split(".").length-1];
-			if (extension != "zip") {
+
+			contextMenu.children[0].removeAttribute("disabled");
+			contextMenu.children[0].classList.remove("c-item-disabled");
+			contextMenu.children[2].removeAttribute("disabled");
+			contextMenu.children[2].classList.remove("c-item-disabled");
+			contextMenu.children[4].removeAttribute("disabled");
+			contextMenu.children[4].classList.remove("c-item-disabled");
+
+			if (extension != "zip"
+				&& extension != "rar"
+				&& extension != "tar"
+				&& extension != "7z") {
 				contextMenu.children[1].setAttribute("disabled", "true");
 				contextMenu.children[1].classList.add("c-item-disabled");
 			}
@@ -144,6 +172,8 @@ function showItems(items) {
 			contextMenu.children[0].addEventListener("click", function() { deleteItem(item); }, {once: true});
 			contextMenu.children[1].addEventListener("click", function() { extractItem(item); }, {once: true});
 			contextMenu.children[2].addEventListener("click", function() { copyItem(item); }, {once: true});
+			contextMenu.children[4].addEventListener("click", function() { compressItem(item); }, {once: true});
+			contextMenu.children[5].addEventListener("click", function() { createFolder(); }, {once: true});
 		});
 	});
 }
@@ -182,6 +212,19 @@ function extractItem(item) {
 	}
 }
 
+function compressItem(item) {
+	let compressFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
+	let compressFileName = compressFilePath[compressFilePath.length - 1].replace("'", "");
+	if (compressFileName != "") {
+		let fromPath = compressFilePath.toString();
+		contextMenu.style.display = "none";
+		invoke("compress_item", {fromPath})
+			.then(items => {
+				showItems(items.filter(str => !str.name.startsWith(".")));
+			});
+	}
+}
+
 function pasteItem() {
 	if (copyFileName != "") {
 		let actFileName = copyFileName;
@@ -194,6 +237,14 @@ function pasteItem() {
 		copyFilePath = "";
 		contextMenu.style.display = "none";
 	}
+}
+
+async function createFolder() {
+	contextMenu.style.display = "none";
+	await invoke("create_folder")
+		.then(items => {
+			showItems(items.filter(str => !str.name.startsWith(".")));
+		});
 }
 
 async function listDirectories() {
