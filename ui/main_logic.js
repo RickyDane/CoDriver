@@ -241,10 +241,9 @@ function pasteItem() {
 	}
 }
 
-async function createFolder() {
-	let folderName = await window.prompt("Geben Sie einen Namen für den neuen Ordner ein.");
+function createFolder() {
 	contextMenu.style.display = "none";
-	invoke("create_folder", {folderName})
+	invoke("create_folder")
 		.then(items => {
 			showItems(items.filter(str => !str.name.startsWith(".")));
 		});

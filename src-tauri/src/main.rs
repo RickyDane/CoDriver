@@ -7,6 +7,7 @@ use rust_search::SearchBuilder;
 use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir};
 use stopwatch::Stopwatch;
 use rar::Archive;
+use dialog::DialogBox;
 
 fn main() {
     tauri::Builder::default()
@@ -381,8 +382,12 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn create_folder(folder_name: String) -> Vec<FDir> {
-    let new_folder_path = PathBuf::from(folder_name);
+async fn create_folder() -> Vec<FDir> {
+    let folder_name = dialog::Input::new("Gebe einen Namen für den neuen Ordner ein.")
+        .title("Neuer Ordner")
+        .show()
+        .expect("Could not display dialog box");
+    let new_folder_path = PathBuf::from(&folder_name.unwrap());
     let _ = fs::create_dir(current_dir().unwrap().join(new_folder_path));
     return list_dirs().await;
 }
