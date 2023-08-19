@@ -34,7 +34,8 @@ struct FDir {
     name: String,
     is_dir: i8,
     path: String,
-    extension: String
+    extension: String,
+    size: String
 }
 
 #[tauri::command]
@@ -58,7 +59,8 @@ async fn list_dirs() -> Vec<FDir> {
             name: String::from(name), 
             is_dir: is_dir_int,
             path: String::from(path),
-            extension: file_ext
+            extension: file_ext,
+            size: temp_item.metadata().unwrap().len().to_string()
         });
     }
     return dir_list;
@@ -86,7 +88,8 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
             name: name.to_owned(), 
             is_dir: is_dir_int,
             path: path.to_owned(),
-            extension: file_ext
+            extension: file_ext,
+            size: temp_item.metadata().unwrap().len().to_string()
         });
     }
     println!("{} ms", sw.elapsed_ms());
@@ -122,7 +125,8 @@ async fn go_back() -> Vec<FDir> {
             name: String::from(name), 
             is_dir: is_dir_int,
             path: String::from(path),
-            extension: file_ext
+            extension: file_ext,
+            size: temp_item.metadata().unwrap().len().to_string()
         });
     }
     return dir_list;
@@ -162,7 +166,8 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
             name: String::from(name), 
             is_dir: is_dir_int,
             path: String::from(path),
-            extension: file_ext
+            extension: file_ext,
+            size: temp_item.metadata().unwrap().len().to_string()
         });
     }
     return dir_list;
@@ -191,7 +196,8 @@ async fn go_home() -> Vec<FDir> {
             name: String::from(name), 
             is_dir: is_dir_int,
             path: String::from(path),
-            extension: file_ext
+            extension: file_ext,
+            size: temp_item.metadata().unwrap().len().to_string()
         });
     }
     return dir_list;
@@ -231,9 +237,16 @@ async fn search_for(file_name: String) -> Vec<FDir> {
         let name = &temp_item[*&temp_item.len() - 1];
         let path = &item.replace("\\", "/"); 
         let temp_file = fs::metadata(&item);
+        let file_size: String;
+        if &temp_file.is_ok() == &true {
+            file_size = String::from(fs::metadata(&item).unwrap().len().to_string());
+        }
+        else {
+            file_size = "0".to_string();
+        }
         let is_dir: bool;
-        if temp_file.is_ok() {
-            is_dir = temp_file.unwrap().is_dir();
+        if &temp_file.is_ok() == &true {
+            is_dir = *&temp_file.unwrap().is_dir();
         }
         else {
             is_dir = false;
@@ -249,7 +262,8 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             name: name.to_string(),
             is_dir: is_dir_int,
             path: path.to_string(),
-            extension: String::from(&file_ext)
+            extension: String::from(&file_ext),
+            size: file_size 
         });
     }
     println!("{} ms", sw.elapsed_ms());

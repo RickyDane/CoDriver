@@ -29,7 +29,10 @@ document.addEventListener("keyup", (e) => {
 document.addEventListener("mousedown", (e) => {
 	if (!e.target.classList.contains("context-item-icon")
 		&& !e.target.classList.contains("context-item")
-		&& !e.target.classList.contains("newfolder-input")) {
+		&& !e.target.classList.contains("newfolder-input")
+		&& !e.target.classList.contains("directory-item-entry")
+		&& !e.target.classList.contains("directory-entry"))
+	{
 		let newFolderInput = document.querySelector(".newfolder-input");
 		if (newFolderInput != null
 			&& e.target != newFolderInput
@@ -80,23 +83,16 @@ function showItems(items) {
 	let set = new Set(items);
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
-		if (view == "wrap") {
-			itemLink.className = "item-button directory-entry";
-		}
-		else {
-			itemLink.className = "item-button-list directory-entry";
-		}
 		itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"')");
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
+		let fileIcon = "resources/file-icon.png"; // Default
+		let iconSize = "48px";
 		if (item.is_dir == 1) {
-			newRow.innerHTML = `
-				<img class="item-icon" src="resources/folder-icon.png" width="64px" height="auto" loading="lazy" alt="icon"/> 
-				<p>${item.name}</p>
-				`;
+			fileIcon = "resources/folder-icon.png";
+			iconSize = "64px";	
 		}
 		else {
-			let fileIcon = "resources/file-icon.png"; // Default
 			switch (item.extension) {
 				case ".json":
 				case ".sql":
@@ -143,16 +139,32 @@ function showItems(items) {
 					fileIcon = "resources/file-icon.png";
 					break;
 			}
+
+		}
+		if (view == "wrap") {
+			itemLink.className = "item-button directory-entry";
 			newRow.innerHTML = `
-				<img class="item-icon" src="${fileIcon}" width="48px" height="auto"/>
-				<p>${item.name}</p>
+				<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="auto"/>
+				<p style="text-align: left;">${item.name}</p>
+				`;
+		}
+		else {
+			itemLink.className = "item-button-list directory-entry";
+			newRow.innerHTML = `
+				<span style="display: flex; gap: 10px; align-items: center; width: 30%;">
+					<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+					<p style="width: 30%; text-align: left;";>${item.name}</p>
+				</span>
+				<p style="width: 30%; text-align: right;">${item.path}</p>
+				<p style="width: 20%; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
 				`;
 		}
 		itemLink.append(newRow)
 		directoryList.append(itemLink);
 	});
 
-	document.querySelectorAll(".directory-entry").forEach(item => {
+	directoryList.querySelectorAll(".directory-entry").forEach(item => {
+		console.log(item);
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", (e) => {
 			e.preventDefault();
@@ -180,7 +192,6 @@ function showItems(items) {
 
 			if (extension != "zip"
 				&& extension != "rar"
-				&& extension != "tar"
 				&& extension != "7z") {
 				contextMenu.children[1].setAttribute("disabled", "true");
 				contextMenu.children[1].classList.add("c-item-disabled");
@@ -196,6 +207,7 @@ function showItems(items) {
 			contextMenu.children[5].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
 		});
 	});
+
 	document.querySelector(".explorer-container").append(directoryList);
 }
 
@@ -367,6 +379,17 @@ async function switchView() {
 		});
 		view = "wrap";
 	}
+	listDirectories();
+}
+
+function formatBytes(bytes, decimals = 2) {
+    if (!+bytes) return '0 Bytes'
+
+    const k = 1000
+    const dm = decimals < 0 ? 0 : decimals
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
 listDirectories();
