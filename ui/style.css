@@ -250,3 +250,33 @@ body {
 	color: grey !important;
 	background-color: rgba(0, 0, 0, 0.05);
 }
+
+
+.newfolder-input {
+	position: fixed;
+	top: 0;
+	left: 0;
+	margin: auto;
+	display: flex;
+	height: fit-content;
+	flex-flow: column;
+	justify-content: center;
+	align-items: center;
+	gap: 20px;
+	padding: 20px;
+	color: white;
+	width: fit-content;
+	background-color: #363945;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+	border-radius: 10px;
+	max-width: 300px;
+}
+.newfolder-input > input {
+	width: 100%;
+	padding: 10px 15px;
+	background-color: #282b34;
+	border-radius: 5px;
+	border: none;
+	z-index: 3;
+	outline: none;
+}

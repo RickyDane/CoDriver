@@ -18,9 +18,25 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	}
 });
 
-// Close context menu when click elsewhere
+document.addEventListener("keyup", (e) => {
+	if (e.keyCode === 27) {
+		document.querySelector(".newfolder-input").remove();
+	}
+});
+
+// Close context menu / new folder input when click elsewhere
 document.addEventListener("mousedown", (e) => {
-	if (!e.target.classList.contains("context-item-icon") && !e.target.classList.contains("context-item")) {
+	if (!e.target.classList.contains("context-item-icon")
+		&& !e.target.classList.contains("context-item")
+		&& !e.target.classList.contains("newfolder-input")) {
+		let newFolderInput = document.querySelector(".newfolder-input");
+		if (newFolderInput != null
+			&& e.target != newFolderInput
+			&& e.target != newFolderInput.children[0]
+			&& e.target != newFolderInput.children[1])
+		{
+			newFolderInput.remove();
+		}
 		document.querySelector(".context-menu").style.display = "none";
 		contextMenu.children[0].setAttribute("disabled", "true");
 		contextMenu.children[0].classList.add("c-item-disabled");
@@ -28,8 +44,8 @@ document.addEventListener("mousedown", (e) => {
 		contextMenu.children[1].classList.add("c-item-disabled");
 		contextMenu.children[2].setAttribute("disabled", "true");
 		contextMenu.children[2].classList.add("c-item-disabled");
-		contextMenu.children[4].classList.add("c-item-disabled");
 		contextMenu.children[4].setAttribute("disabled", "true");
+		contextMenu.children[4].classList.add("c-item-disabled");
 	}
 });
 
@@ -37,11 +53,12 @@ document.addEventListener("mousedown", (e) => {
 document.addEventListener("contextmenu", (e) => {
 	e.preventDefault();
 	contextMenu.children[3].replaceWith(contextMenu.children[3].cloneNode(true));
+	contextMenu.children[5].replaceWith(contextMenu.children[5].cloneNode(true));
 	contextMenu.style.display = "flex";
 	contextMenu.style.left = e.clientX + "px";
 	contextMenu.style.top = e.clientY + "px";
 	contextMenu.children[3].addEventListener("click", function() { pasteItem(); });
-	contextMenu.children[5].addEventListener("click", function() { createFolder(); }, {once: true});
+	contextMenu.children[5].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
 
 	contextMenu.children[3].classList.add("c-item-disabled");
 	if (copyFilePath == "") {
@@ -173,7 +190,7 @@ function showItems(items) {
 			contextMenu.children[1].addEventListener("click", function() { extractItem(item); }, {once: true});
 			contextMenu.children[2].addEventListener("click", function() { copyItem(item); }, {once: true});
 			contextMenu.children[4].addEventListener("click", function() { compressItem(item); }, {once: true});
-			contextMenu.children[5].addEventListener("click", function() { createFolder(); }, {once: true});
+			contextMenu.children[5].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
 		});
 	});
 }
@@ -241,9 +258,27 @@ function pasteItem() {
 	}
 }
 
-function createFolder() {
+function createFolderInputPrompt(e) {
+	let nameInput = document.createElement("div");
+	nameInput.className = "newfolder-input";
+	nameInput.innerHTML = `
+		<h4>Geben Sie einen Namen für den neuen Ordner ein.</h4>
+		<input type="text" placeholder="Neuer Ordner" autofocus>
+	`;
+	nameInput.style.left = e.clientX + "px";
+	nameInput.style.top = e.clientY + "px";
+	document.querySelector("body").append(nameInput);
 	contextMenu.style.display = "none";
-	invoke("create_folder")
+	nameInput.addEventListener("keyup", (e) => {
+		if (e.keyCode === 13) {
+			createFolder(nameInput.children[1].value);
+			nameInput.remove();
+		}
+	});
+}
+
+function createFolder(folderName) {
+	invoke("create_folder", {folderName})
 		.then(items => {
 			showItems(items.filter(str => !str.name.startsWith(".")));
 		});
