@@ -6,8 +6,7 @@ use std::{fs::{self, ReadDir}, clone, ffi::OsString};
 use rust_search::SearchBuilder;
 use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir};
 use stopwatch::Stopwatch;
-use rar::Archive;
-use dialog::DialogBox;
+use unrar::Archive;
 
 fn main() {
     tauri::Builder::default()
@@ -294,7 +293,7 @@ async fn copy_paste(act_file_name: String, from_path: String) -> Vec<FDir> {
     else {
         let _ = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/")); 
     }
-    println!("Copy-Paste time: {} ms", sw.elapsed_ms());
+    println!("Copy-Paste time: {:?}", sw.elapsed());
     return list_dirs().await;
 }
 
@@ -363,11 +362,21 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
             }
         }
     }
-    else if file_ext == ".rar" {
-        let _ = Archive::extract_all(&from_path, &from_path.strip_suffix(&file_ext).unwrap(), "");
-    }
+        else if file_ext == ".rar" {
+            let mut archive = Archive::new(&from_path)
+                .open_for_processing()
+                .unwrap();
+            while let Some(header) = archive.read_header().unwrap() {
+                println!("{} bytes: {}", header.entry().unpacked_size, header.entry().filename.to_string_lossy());
+                archive = if header.entry().is_file() {
+                    header.extract().unwrap()
+                } else {
+                    header.skip().unwrap()
+                }
+            }
+        }
     else if file_ext == ".7z" {
-        sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap()).expect("complete");
+        let _ = sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     }
     println!("Unpack time: {} ms", sw.elapsed_ms());
     return list_dirs().await;
@@ -376,7 +385,7 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
 #[tauri::command]
 async fn compress_item(from_path: String) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
-    let _ = sevenz_rust::compress_to_path(&from_path, from_path.to_string()+".7z");
+    let _ = sevenz_rust::compress_to_path(&from_path, from_path.to_string()+".7z").expect("complete");
     println!("Pack time: {} ms", sw.elapsed_ms());
     return list_dirs().await;
 }

@@ -4,6 +4,7 @@
 	box-sizing: border-box;
 	color: white;
 	font-family: sans-serif;
+	font-display: swap;
 }
 
 
@@ -12,8 +13,8 @@ body {
 	background-color: #363945;
 }
 .explorer-container {
-	margin: 20px;
-	margin-left: calc(200px + 50px); 
+	margin: 0px 20px 20px calc(200px + 20px);
+	width: 100%;
 }
 .header-nav {
 	display: flex;
@@ -110,7 +111,7 @@ body {
 	padding: 5px;
 	max-height: 40px;
 	font-size: small;
-	max-width: 250px;
+	width: 100%;
 	overflow: hidden;
 	word-wrap: normal;
 	white-space: nowrap;
@@ -153,6 +154,9 @@ body {
 }
 .header-nav-button:hover {
 	background-color: rgba(0, 0, 0, 0.15);
+}
+.switch-view-button {
+	min-width: 40px;
 }
 .site-nav-bar-button {
 	background-color: rgba(0, 0, 0, 0.15);
@@ -209,6 +213,7 @@ body {
 	width: 100%;
 	display: flex;
 	flex-flow: wrap;
+	gap: 5px;
 }
 
 

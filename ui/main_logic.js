@@ -3,11 +3,12 @@ const { confirm } = window.__TAURI__.dialog;
 const { message } = window.__TAURI__.dialog; 
 
 let view = "wrap";
-let directoryList = document.querySelector(".directory-list");
+let directoryList;
 let directoryCount = document.querySelector(".directory-entries-count");
 let contextMenu = document.querySelector(".context-menu");
 let copyFileName = "";
 let copyFilePath = "";
+let currentDir = "";
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
@@ -72,23 +73,25 @@ document.addEventListener("contextmenu", (e) => {
 });
 
 function showItems(items) {
-	directoryList.innerHTML = null;
-	directoryCount.innerHTML = items.length;
+	document.querySelector(".explorer-container").innerHTML = "";
+	directoryList = document.createElement("div");
+	directoryList.className = "directory-list";
+	directoryCount.innerHTML = "Objekte: " + items.length;
 	let set = new Set(items);
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
 		if (view == "wrap") {
-			itemLink.className = "item-button";
+			itemLink.className = "item-button directory-entry";
 		}
 		else {
-			itemLink.className = "item-button-list";
+			itemLink.className = "item-button-list directory-entry";
 		}
 		itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"')");
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
 		if (item.is_dir == 1) {
 			newRow.innerHTML = `
-				<img class="item-icon" src="resources/folder-icon.png" width="64px" height="auto"/> 
+				<img class="item-icon" src="resources/folder-icon.png" width="64px" height="auto" loading="lazy" alt="icon"/> 
 				<p>${item.name}</p>
 				`;
 		}
@@ -149,7 +152,7 @@ function showItems(items) {
 		directoryList.append(itemLink);
 	});
 
-	document.querySelectorAll(".item-button").forEach(item => {
+	document.querySelectorAll(".directory-entry").forEach(item => {
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", (e) => {
 			e.preventDefault();
@@ -193,6 +196,7 @@ function showItems(items) {
 			contextMenu.children[5].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
 		});
 	});
+	document.querySelector(".explorer-container").append(directoryList);
 }
 
 async function deleteItem(item) {
@@ -286,13 +290,14 @@ function createFolder(folderName) {
 
 async function listDirectories() {
 	await invoke("list_dirs")
-	.then((items) => {
-		showItems(items.filter(str => !str.name.startsWith(".")));
-	});
+		.then((items) => {
+			showItems(items.filter(str => !str.name.startsWith(".")));
+		});
 }
 
 function openItem(name, path, isDir) {
 	if (isDir == 1) {
+		directoryList.innerHTML = "Loading ...";
 		invoke("open_dir", {path, name})
 			.then((items) => {
 				showItems(items.filter(str => !str.name.startsWith(".")));
@@ -326,6 +331,7 @@ async function goToDir(directory) {
 
 async function searchFor() {
 	document.querySelector(".cancel-search-button").style.display = "block";
+	directoryList.innerHTML = "Loading ...";
 	let fileName = document.querySelector(".search-bar-input").value; 
 	await invoke("search_for", {fileName})
 		.then((items) => {

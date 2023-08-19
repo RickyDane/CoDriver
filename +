@@ -10,7 +10,7 @@
 	</head>
 	<body>
 		<div class="header-nav">
-			<div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 40%;">
+			<div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 30%;">
 				<button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i> Zurück</button>
 				<p>|</p>
 				<button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
@@ -18,7 +18,7 @@
 				<p>|</p>
 				<h5 class="directory-entries-count"></h5>
 			</div>
-			<div style="width: 20%;"></div>
+			<div style="width: 30%;"></div>
 			<div class="file-searchbar">
 				<input class="search-bar-input" type="text" placeholder="Suchergebnis"/>
 				<button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
