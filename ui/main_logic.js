@@ -213,6 +213,7 @@ function extractItem(item) {
 }
 
 function compressItem(item) {
+	message("Komprimierung gestartet.\nDas kann eine Weile dauern.\nSie werden benachrichtigt, sobald die Komprimierung abgeschlossen wurde"); 
 	let compressFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
 	let compressFileName = compressFilePath[compressFilePath.length - 1].replace("'", "");
 	if (compressFileName != "") {
@@ -221,6 +222,7 @@ function compressItem(item) {
 		invoke("compress_item", {fromPath})
 			.then(items => {
 				showItems(items.filter(str => !str.name.startsWith(".")));
+				message("Komprimierung abgeschlossen");
 			});
 	}
 }
@@ -240,8 +242,9 @@ function pasteItem() {
 }
 
 async function createFolder() {
+	let folderName = await window.prompt("Geben Sie einen Namen für den neuen Ordner ein.");
 	contextMenu.style.display = "none";
-	await invoke("create_folder")
+	invoke("create_folder", {folderName})
 		.then(items => {
 			showItems(items.filter(str => !str.name.startsWith(".")));
 		});
