@@ -83,6 +83,7 @@ document.addEventListener("contextmenu", (e) => {
 });
 
 function showItems(items) {
+	window.scrollTo(0, 0);
 	document.querySelector(".explorer-container").innerHTML = "";
 	directoryList = document.createElement("div");
 	directoryList.className = "directory-list";
@@ -220,6 +221,7 @@ function showItems(items) {
 	});
 
 	document.querySelector(".explorer-container").append(directoryList);
+	window.gc();
 }
 
 async function deleteItem(item) {

@@ -7,7 +7,7 @@
 	"withGlobalTauri": true
   },
   "package": {
-    "productName": "file-explorer",
+    "productName": "rdp-fx",
     "version": "0.1.0"
   },
   "tauri": {
@@ -43,14 +43,14 @@
       },
       "externalBin": [],
       "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
+		  "icons/32x32.png",
+		  "icons/128x128.png",
+		  "icons/128x128@2x.png",
+		  "icons/icon.icns",
+		  "icons/icon.ico"
 	  ],
-      "identifier": "com.file-explorer.dev",
-      "longDescription": "",
+      "identifier": "com.rdpFX.dev",
+      "longDescription": "A simple file explorer with nice ui and good features.",
       "macOS": {
         "entitlements": null,
         "exceptionDomain": "",
@@ -78,8 +78,8 @@
         "fullscreen": false,
         "height": 600,
         "resizable": true,
-        "title": "File Explorer",
-        "width": 1000
+        "title": "rdpFX",
+        "width": 1080
       }
     ]
   }
