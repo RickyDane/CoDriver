@@ -137,7 +137,7 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
 #[tauri::command]
 async fn open_item(path: String) {
     println!("{}", &path);
-    let _ = opener::open(path); 
+    let _ = open::that(path); 
 }
 
 #[tauri::command]
