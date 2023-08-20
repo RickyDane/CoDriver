@@ -58,6 +58,7 @@ document.addEventListener("contextmenu", (e) => {
 	e.preventDefault();
 	contextMenu.children[5].replaceWith(contextMenu.children[5].cloneNode(true));
 	contextMenu.children[0].replaceWith(contextMenu.children[0].cloneNode(true));
+	contextMenu.children[6].replaceWith(contextMenu.children[6].cloneNode(true));
 	contextMenu.style.display = "flex";
 	contextMenu.style.left = e.clientX + "px";
 	if ((contextMenu.offsetHeight + e.clientY) >= window.innerHeight) {
@@ -69,6 +70,7 @@ document.addEventListener("contextmenu", (e) => {
 		contextMenu.style.top = e.clientY + "px";
 	}
 	contextMenu.children[0].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
+	contextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
 
 	if (copyFilePath == "") {
 		contextMenu.children[5].setAttribute("disabled", "true");
@@ -180,7 +182,7 @@ function showItems(items) {
 			contextMenu.children[2].replaceWith(contextMenu.children[2].cloneNode(true));
 			contextMenu.children[3].replaceWith(contextMenu.children[3].cloneNode(true));
 			contextMenu.children[4].replaceWith(contextMenu.children[4].cloneNode(true));
-			contextMenu.children[5].replaceWith(contextMenu.children[5].cloneNode(true));
+			contextMenu.children[6].replaceWith(contextMenu.children[6].cloneNode(true));
 
 			contextMenu.style.display = "flex";
 			contextMenu.style.left = e.clientX + "px";
@@ -213,6 +215,7 @@ function showItems(items) {
 			contextMenu.children[2].addEventListener("click", function() { extractItem(item); }, {once: true});
 			contextMenu.children[3].addEventListener("click", function() { compressItem(item); }, {once: true});
 			contextMenu.children[4].addEventListener("click", function() { copyItem(item); }, {once: true});
+			contextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
 		});
 	});
 
@@ -296,6 +299,25 @@ function createFolderInputPrompt(e) {
 	nameInput.addEventListener("keyup", (e) => {
 		if (e.keyCode === 13) {
 			createFolder(nameInput.children[1].value);
+			nameInput.remove();
+		}
+	});
+}
+
+function createFileInputPrompt(e) {
+	let nameInput = document.createElement("div");
+	nameInput.className = "newfolder-input";
+	nameInput.innerHTML = `
+		<h4>Geben Sie einen Namen für das neue Dokument ein.</h4>
+		<input type="text" placeholder="Neuer Ordner" autofocus>
+	`;
+	nameInput.style.left = e.clientX + "px";
+	nameInput.style.top = e.clientY + "px";
+	document.querySelector("body").append(nameInput);
+	contextMenu.style.display = "none";
+	nameInput.addEventListener("keyup", (e) => {
+		if (e.keyCode === 13) {
+			createFile(nameInput.children[1].value);
 			nameInput.remove();
 		}
 	});
