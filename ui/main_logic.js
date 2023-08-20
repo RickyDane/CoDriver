@@ -64,7 +64,6 @@ document.addEventListener("contextmenu", (e) => {
 	contextMenu.children[3].addEventListener("click", function() { pasteItem(); });
 	contextMenu.children[5].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
 
-	contextMenu.children[3].classList.add("c-item-disabled");
 	if (copyFilePath == "") {
 		contextMenu.children[3].setAttribute("disabled", "true");
 		contextMenu.children[3].classList.add("c-item-disabled");
@@ -155,8 +154,10 @@ function showItems(items) {
 					<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
 					<p style="width: 30%; text-align: left;";>${item.name}</p>
 				</span>
-				<p style="width: 30%; text-align: right;">${item.path}</p>
-				<p style="width: 20%; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+				<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
+					<p style="width: auto; text-align: right;">${item.last_modified}</p>
+					<p style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+				</span>
 				`;
 		}
 		itemLink.append(newRow)

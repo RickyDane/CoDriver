@@ -7,6 +7,7 @@ use rust_search::SearchBuilder;
 use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir};
 use stopwatch::Stopwatch;
 use unrar::Archive;
+use chrono::prelude::{DateTime, Utc, NaiveDateTime};
 
 fn main() {
     tauri::Builder::default()
@@ -35,7 +36,8 @@ struct FDir {
     is_dir: i8,
     path: String,
     extension: String,
-    size: String
+    size: String,
+    last_modified: String
 }
 
 #[tauri::command]
@@ -49,6 +51,7 @@ async fn list_dirs() -> Vec<FDir> {
         let is_dir_int: i8;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
+        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -60,7 +63,8 @@ async fn list_dirs() -> Vec<FDir> {
             is_dir: is_dir_int,
             path: String::from(path),
             extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string()
+            size: temp_item.metadata().unwrap().len().to_string(),
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
         });
     }
     return dir_list;
@@ -81,6 +85,7 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
         let mut is_dir_int: i8 = 0;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
+        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -89,7 +94,8 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
             is_dir: is_dir_int,
             path: path.to_owned(),
             extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string()
+            size: temp_item.metadata().unwrap().len().to_string(),
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
         });
     }
     println!("{} ms", sw.elapsed_ms());
@@ -115,6 +121,7 @@ async fn go_back() -> Vec<FDir> {
         let is_dir_int: i8;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
+        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -126,7 +133,8 @@ async fn go_back() -> Vec<FDir> {
             is_dir: is_dir_int,
             path: String::from(path),
             extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string()
+            size: temp_item.metadata().unwrap().len().to_string(),
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
         });
     }
     return dir_list;
@@ -156,6 +164,7 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
         let is_dir_int: i8;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
+        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -167,7 +176,8 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
             is_dir: is_dir_int,
             path: String::from(path),
             extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string()
+            size: temp_item.metadata().unwrap().len().to_string(),
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
         });
     }
     return dir_list;
@@ -186,6 +196,7 @@ async fn go_home() -> Vec<FDir> {
         let is_dir_int: i8;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
+        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -197,7 +208,8 @@ async fn go_home() -> Vec<FDir> {
             is_dir: is_dir_int,
             path: String::from(path),
             extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string()
+            size: temp_item.metadata().unwrap().len().to_string(),
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
         });
     }
     return dir_list;
@@ -214,7 +226,7 @@ async fn search_for(file_name: String) -> Vec<FDir> {
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
             .search_input(file_name.strip_suffix(&file_ext).unwrap())
-            .ignore_case()
+            .ignore_case( )
             .ext(&file_ext)
             .depth(10)
             .build()
@@ -238,11 +250,14 @@ async fn search_for(file_name: String) -> Vec<FDir> {
         let path = &item.replace("\\", "/"); 
         let temp_file = fs::metadata(&item);
         let file_size: String;
+        let file_date: DateTime<Utc>;
         if &temp_file.is_ok() == &true {
             file_size = String::from(fs::metadata(&item).unwrap().len().to_string());
+            file_date = fs::metadata(&item).unwrap().modified().unwrap().clone().into();
         }
         else {
             file_size = "0".to_string();
+            file_date = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(61, 0).unwrap(), Utc);
         }
         let is_dir: bool;
         if &temp_file.is_ok() == &true {
@@ -263,7 +278,8 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             is_dir: is_dir_int,
             path: path.to_string(),
             extension: String::from(&file_ext),
-            size: file_size 
+            size: file_size,
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
         });
     }
     println!("{} ms", sw.elapsed_ms());
@@ -285,20 +301,20 @@ async fn copy_paste(act_file_name: String, from_path: String) -> Vec<FDir> {
 
     temp_file_ext = file_name.split(".").nth(file_name.split(".").count() - 1).unwrap().to_string();
     file_ext = ".".to_string().to_owned()+&temp_file_ext.as_str();
+
     if temp_file_ext == file_name {
         file_ext = "".to_string();    
     } 
+
     temp_filename = file_name.strip_suffix(&file_ext).unwrap_or(&file_name).to_string();
-    let mut is_file_existing = fs::metadata(&from_path).is_ok();
+    let mut is_file_existing = fs::metadata(&file_name).is_ok();
     let mut counter = 1;
     let mut final_filename: String = format!("{}{}", &temp_filename, file_ext);
 
     while is_file_existing {
         final_filename = format!("{}_{}{}", &temp_filename, counter, file_ext); 
-        println!("{}", &final_filename);
         is_file_existing = fs::metadata(&final_filename).is_ok();
         counter += 1;
-        println!("{}, {}", is_file_existing, counter);
     }
 
     if is_dir {

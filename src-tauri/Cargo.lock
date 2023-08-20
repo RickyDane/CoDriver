@@ -78,7 +78,9 @@ name = "app"
 version = "0.1.0"
 dependencies = [
  "base64 0.21.2",
+ "chrono",
  "copy_dir",
+ "dateparser",
  "dialog",
  "opener",
  "rar",
@@ -642,6 +644,18 @@ dependencies = [
  "darling_core",
  "quote",
  "syn 2.0.28",
+]
+
+[[package]]
+name = "dateparser"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18e537db44ee4822af930a9a2c9eedfcde9d47e01c6731fbf34ea01b5a7ccf7d"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "lazy_static",
+ "regex",
 ]
 
 [[package]]
