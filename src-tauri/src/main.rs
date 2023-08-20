@@ -1,10 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file}, path::PathBuf}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file}, path::PathBuf, io::BufReader}; 
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
 use rust_search::SearchBuilder;
-use tauri::api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir};
+use serde_json::Value;
+use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir}, Config};
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime};
@@ -24,7 +25,10 @@ fn main() {
               delete_item,
               extract_item,
               compress_item,
-              create_folder
+              create_folder,
+              switch_view,
+              check_app_config,
+              create_file
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -38,6 +42,34 @@ struct FDir {
     extension: String,
     size: String,
     last_modified: String
+}
+
+#[derive(serde::Serialize)]
+struct AppConfig {
+    view_mode: String,
+    last_modified: String
+}
+
+#[tauri::command]
+async fn check_app_config() -> AppConfig {
+    create_folder(app_config_dir(&Config::default()).unwrap().join("rdpFX").to_str().unwrap().to_string()).await;
+    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_reader = BufReader::new(app_config_file);
+    let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+    return AppConfig {
+        view_mode: app_config["view_mode"].to_string(),
+        last_modified: app_config["last_modified"].to_string()
+    };
+}
+
+#[tauri::command]
+async fn switch_view(view_mode: String) -> Vec<FDir> {
+    let app_config_json = AppConfig {
+        view_mode,
+        last_modified: chrono::offset::Local::now().to_string()
+    };
+    let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
+    return list_dirs().await;
 }
 
 #[tauri::command]
@@ -421,10 +453,15 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn create_folder(folder_name: String) -> Vec<FDir> {
+async fn create_folder(folder_name: String) {
     let new_folder_path = PathBuf::from(&folder_name);
     let _ = fs::create_dir(current_dir().unwrap().join(new_folder_path));
-    return list_dirs().await;
+}
+
+#[tauri::command]
+async fn create_file(file_name: String) {
+    let new_file_path = PathBuf::from(&file_name);
+    let _ = File::create(current_dir().unwrap().join(new_file_path));
 }
 
 #[allow(unused)]

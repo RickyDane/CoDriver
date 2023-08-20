@@ -2,7 +2,7 @@ const { invoke } = window.__TAURI__.tauri;
 const { confirm } = window.__TAURI__.dialog; 
 const { message } = window.__TAURI__.dialog; 
 
-let view = "wrap";
+let viewMode = "wrap";
 let directoryList;
 let directoryCount = document.querySelector(".directory-entries-count");
 let contextMenu = document.querySelector(".context-menu");
@@ -42,12 +42,12 @@ document.addEventListener("mousedown", (e) => {
 			newFolderInput.remove();
 		}
 		document.querySelector(".context-menu").style.display = "none";
-		contextMenu.children[0].setAttribute("disabled", "true");
-		contextMenu.children[0].classList.add("c-item-disabled");
 		contextMenu.children[1].setAttribute("disabled", "true");
 		contextMenu.children[1].classList.add("c-item-disabled");
 		contextMenu.children[2].setAttribute("disabled", "true");
 		contextMenu.children[2].classList.add("c-item-disabled");
+		contextMenu.children[3].setAttribute("disabled", "true");
+		contextMenu.children[3].classList.add("c-item-disabled");
 		contextMenu.children[4].setAttribute("disabled", "true");
 		contextMenu.children[4].classList.add("c-item-disabled");
 	}
@@ -56,21 +56,27 @@ document.addEventListener("mousedown", (e) => {
 // Open context menu for pasting for example
 document.addEventListener("contextmenu", (e) => {
 	e.preventDefault();
-	contextMenu.children[3].replaceWith(contextMenu.children[3].cloneNode(true));
 	contextMenu.children[5].replaceWith(contextMenu.children[5].cloneNode(true));
+	contextMenu.children[0].replaceWith(contextMenu.children[0].cloneNode(true));
 	contextMenu.style.display = "flex";
 	contextMenu.style.left = e.clientX + "px";
-	contextMenu.style.top = e.clientY + "px";
-	contextMenu.children[3].addEventListener("click", function() { pasteItem(); });
-	contextMenu.children[5].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
-
-	if (copyFilePath == "") {
-		contextMenu.children[3].setAttribute("disabled", "true");
-		contextMenu.children[3].classList.add("c-item-disabled");
+	if ((contextMenu.offsetHeight + e.clientY) >= window.innerHeight) {
+		contextMenu.style.top = null;
+		contextMenu.style.bottom = e.clientY / 2* -1 + "px";
 	}
 	else {
-		contextMenu.children[3].removeAttribute("disabled");
-		contextMenu.children[3].classList.remove("c-item-disabled");
+		contextMenu.style.bottom = null;
+		contextMenu.style.top = e.clientY + "px";
+	}
+	contextMenu.children[0].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
+
+	if (copyFilePath == "") {
+		contextMenu.children[5].setAttribute("disabled", "true");
+		contextMenu.children[5].classList.add("c-item-disabled");
+	}
+	else {
+		contextMenu.children[5].removeAttribute("disabled");
+		contextMenu.children[5].classList.remove("c-item-disabled");
 	}
 });
 
@@ -140,7 +146,7 @@ function showItems(items) {
 			}
 
 		}
-		if (view == "wrap") {
+		if (viewMode == "wrap") {
 			itemLink.className = "item-button directory-entry";
 			newRow.innerHTML = `
 				<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="auto"/>
@@ -165,7 +171,6 @@ function showItems(items) {
 	});
 
 	directoryList.querySelectorAll(".directory-entry").forEach(item => {
-		console.log(item);
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", (e) => {
 			e.preventDefault();
@@ -173,6 +178,7 @@ function showItems(items) {
 			contextMenu.children[0].replaceWith(contextMenu.children[0].cloneNode(true));
 			contextMenu.children[1].replaceWith(contextMenu.children[1].cloneNode(true));
 			contextMenu.children[2].replaceWith(contextMenu.children[2].cloneNode(true));
+			contextMenu.children[3].replaceWith(contextMenu.children[3].cloneNode(true));
 			contextMenu.children[4].replaceWith(contextMenu.children[4].cloneNode(true));
 			contextMenu.children[5].replaceWith(contextMenu.children[5].cloneNode(true));
 
@@ -184,28 +190,29 @@ function showItems(items) {
 			let actFileName = fromPath[fromPath.length - 1].replace("'", "");
 			let extension = actFileName.split(".")[actFileName.split(".").length-1];
 
-			contextMenu.children[0].removeAttribute("disabled");
-			contextMenu.children[0].classList.remove("c-item-disabled");
-			contextMenu.children[2].removeAttribute("disabled");
-			contextMenu.children[2].classList.remove("c-item-disabled");
+			contextMenu.children[1].removeAttribute("disabled");
+			contextMenu.children[1].classList.remove("c-item-disabled");
+			contextMenu.children[3].removeAttribute("disabled");
+			contextMenu.children[3].classList.remove("c-item-disabled");
 			contextMenu.children[4].removeAttribute("disabled");
 			contextMenu.children[4].classList.remove("c-item-disabled");
+
 
 			if (extension != "zip"
 				&& extension != "rar"
 				&& extension != "7z") {
-				contextMenu.children[1].setAttribute("disabled", "true");
-				contextMenu.children[1].classList.add("c-item-disabled");
+				contextMenu.children[2].setAttribute("disabled", "true");
+				contextMenu.children[2].classList.add("c-item-disabled");
 			}
 			else {
-				contextMenu.children[1].removeAttribute("disabled");
-				contextMenu.children[1].classList.remove("c-item-disabled");
+				contextMenu.children[2].removeAttribute("disabled");
+				contextMenu.children[2].classList.remove("c-item-disabled");
 			}
-			contextMenu.children[0].addEventListener("click", function() { deleteItem(item); }, {once: true});
-			contextMenu.children[1].addEventListener("click", function() { extractItem(item); }, {once: true});
-			contextMenu.children[2].addEventListener("click", function() { copyItem(item); }, {once: true});
-			contextMenu.children[4].addEventListener("click", function() { compressItem(item); }, {once: true});
-			contextMenu.children[5].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
+			contextMenu.children[0].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
+			contextMenu.children[1].addEventListener("click", function() { deleteItem(item); }, {once: true});
+			contextMenu.children[2].addEventListener("click", function() { extractItem(item); }, {once: true});
+			contextMenu.children[3].addEventListener("click", function() { compressItem(item); }, {once: true});
+			contextMenu.children[4].addEventListener("click", function() { copyItem(item); }, {once: true});
 		});
 	});
 
@@ -295,9 +302,27 @@ function createFolderInputPrompt(e) {
 }
 
 function createFolder(folderName) {
-	invoke("create_folder", {folderName})
-		.then(items => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
+	invoke("create_folder", {folderName});
+	listDirectories();
+}
+
+function createFile(fileName) {
+	invoke("create_file", {fileName});
+	listDirectories();
+}
+
+async function checkAppConfig() {
+	await invoke("check_app_config")
+		.then(appConfig => {
+			if (appConfig.view_mode.includes("column")) {
+				console.log(appConfig);
+				document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+				document.querySelectorAll(".item-button").forEach(item => {
+					item.classList.add("item-button-list");
+					item.classList.remove("item-button");
+				});
+				viewMode = "column";
+			}
 		});
 }
 
@@ -360,7 +385,7 @@ async function cancelSearch() {
 
 async function switchView() {
 	let list = document.querySelector(".directory-list");
-	if (view == "wrap") {
+	if (viewMode == "wrap") {
 		list.style.flexFlow = "column";
 		list.style.gap = "5px";
 		document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
@@ -368,7 +393,7 @@ async function switchView() {
 			item.classList.add("item-button-list");
 			item.classList.remove("item-button");
 		});
-		view = "column";
+		viewMode = "column";
 	}
 	else {
 		list.style.flexFlow = "wrap";
@@ -378,9 +403,12 @@ async function switchView() {
 			item.classList.remove("item-button-list");
 			item.classList.add("item-button");
 		});
-		view = "wrap";
+		viewMode = "wrap";
 	}
-	listDirectories();
+	await invoke("switch_view", {viewMode})
+		.then(items => {
+			showItems(items.filter(str => !str.name.startsWith(".")));
+		});
 }
 
 function formatBytes(bytes, decimals = 2) {
@@ -393,4 +421,5 @@ function formatBytes(bytes, decimals = 2) {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
+checkAppConfig();
 listDirectories();
