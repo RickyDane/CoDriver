@@ -1,6 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file}, path::PathBuf, io::BufReader}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, io::BufReader}; 
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
 use rust_search::SearchBuilder;
@@ -9,6 +9,8 @@ use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime};
+use zip::ZipWriter;
+use zip_extensions::*;
 
 fn main() {
     tauri::Builder::default()
@@ -132,12 +134,6 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
     }
     println!("{} ms", sw.elapsed_ms());
     return dir_list;
-}
-
-#[tauri::command]
-async fn open_item(path: String) {
-    println!("{}", &path);
-    let _ = open::that(path); 
 }
 
 #[tauri::command]
@@ -381,8 +377,8 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
 
     // make zip or rar unpack
     let sw = Stopwatch::start_new();
-        if file_ext == ".zip" {
-        let fname = std::path::Path::new(&from_path);
+        if file_ext == ".asjdzip" {
+        /*let fname = std::path::Path::new(&from_path);
         let file = fs::File::open(fname).unwrap();
 
         let mut archive = zip::ZipArchive::new(file).unwrap();
@@ -422,7 +418,13 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
                     fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
                 }
             }
-        }
+        }*/
+    }
+    else if file_ext == ".zip" {
+        let file = PathBuf::from(&from_path);
+        let _ = create_dir(&from_path.strip_suffix(&file_ext).unwrap());
+        let new_dir = PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap());
+        zip_extract(&file, &new_dir).unwrap();
     }
         else if file_ext == ".rar" {
             let mut archive = Archive::new(&from_path)
@@ -445,9 +447,19 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
+async fn open_item(path: String) {
+    println!("{}", &path);
+    let _ = open::that_detached(path); 
+}
+
+#[tauri::command]
 async fn compress_item(from_path: String) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
-    let _ = sevenz_rust::compress_to_path(&from_path, from_path.to_string()+".7z").expect("complete");
+    // let _ = sevenz_rust::compress_to_path(&from_path, from_path.to_string()+".7z").expect("complete");
+    let _ = File::create(from_path.to_owned()+".zip").unwrap();
+    let archive = PathBuf::from(from_path.to_owned()+".zip");
+    let source = PathBuf::from(&from_path);
+    let _ = zip_create_from_directory(&archive, &source);
     println!("Pack time: {} ms", sw.elapsed_ms());
     return list_dirs().await;
 }
