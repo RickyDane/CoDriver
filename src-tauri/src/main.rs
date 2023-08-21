@@ -1,6 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, io::BufReader}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir, DirEntry}, path::PathBuf, io::BufReader}; 
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
 use rust_search::SearchBuilder;
@@ -9,7 +9,7 @@ use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime};
-use zip::ZipWriter;
+use zip::{ZipWriter, write::FileOptions};
 use zip_extensions::*;
 
 fn main() {
@@ -377,50 +377,7 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
 
     // make zip or rar unpack
     let sw = Stopwatch::start_new();
-        if file_ext == ".asjdzip" {
-        /*let fname = std::path::Path::new(&from_path);
-        let file = fs::File::open(fname).unwrap();
-
-        let mut archive = zip::ZipArchive::new(file).unwrap();
-
-        for i in 0..archive.len() {
-            let mut file = archive.by_index(i).unwrap();
-            let outpath = match file.enclosed_name() {
-                Some(path) => path.to_owned(),
-                None => continue,
-            };
-
-            {
-                let comment = file.comment();
-                if !comment.is_empty() {
-                    println!("File {i} comment: {comment}");
-                }
-            }
-
-            if (*file.name()).ends_with('/') {
-                fs::create_dir_all(&outpath).unwrap();
-            } else {
-                if let Some(p) = outpath.parent() {
-                    if !p.exists() {
-                        fs::create_dir_all(p).unwrap();
-                    }
-                }
-                let mut outfile = fs::File::create(&outpath).unwrap();
-                std::io::copy(&mut file, &mut outfile).unwrap();
-            }
-
-            // Get and Set permissions
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-
-                if let Some(mode) = file.unix_mode() {
-                    fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
-                }
-            }
-        }*/
-    }
-    else if file_ext == ".zip" {
+    if file_ext == ".zip" {
         let file = PathBuf::from(&from_path);
         let _ = create_dir(&from_path.strip_suffix(&file_ext).unwrap());
         let new_dir = PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap());
@@ -455,11 +412,22 @@ async fn open_item(path: String) {
 #[tauri::command]
 async fn compress_item(from_path: String) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
+    let file_ext = ".".to_string().to_owned()+from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
     // let _ = sevenz_rust::compress_to_path(&from_path, from_path.to_string()+".7z").expect("complete");
-    let _ = File::create(from_path.to_owned()+".zip").unwrap();
-    let archive = PathBuf::from(from_path.to_owned()+".zip");
-    let source = PathBuf::from(&from_path);
+    let _ = File::create(from_path.strip_suffix(&file_ext).unwrap_or(&from_path).to_owned()+".zip").unwrap();
+    let source: PathBuf;
+    let archive = PathBuf::from(from_path.strip_suffix(&file_ext).unwrap_or(&from_path).to_owned()+".zip");
+    if fs::metadata(&from_path).unwrap().is_dir() {
+        source = PathBuf::from(&from_path);
+    }
+    else {
+        let file_name = &from_path.split("/").nth(&from_path.split("/").count() - 1).unwrap();
+        let _ = create_dir("compressed_dir");
+        let _ = copy(&from_path, "compressed_dir/".to_string().to_owned()+file_name);
+        source = PathBuf::from("compressed_dir");
+    }
     let _ = zip_create_from_directory(&archive, &source);
+    let _ = remove_dir_all("compressed_dir");
     println!("Pack time: {} ms", sw.elapsed_ms());
     return list_dirs().await;
 }
