@@ -245,17 +245,23 @@ function copyItem(item) {
 	contextMenu.style.display = "none";
 }
 
-function extractItem(item) {
-	let extractFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
-	let extractFileName = extractFilePath[extractFilePath.length - 1].replace("'", "");
-	if (extractFileName != "") {
-		let fromPath = extractFilePath.toString();
-		invoke("extract_item", {fromPath})
-			.then(items => {
-				showItems(items.filter(str => !str.name.startsWith(".")));
-			});
-		contextMenu.style.display = "none";
+async function extractItem(item) {
+	let compressFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
+	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
+	let isExtracting = await confirm("wollen sie " + compressFileName + " wirklich entpacken?");
+	if (isExtracting) {
+		let extractFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
+		let extractFileName = extractFilePath[extractFilePath.length - 1].replace("'", "");
+		if (extractFileName != "") {
+			let fromPath = extractFilePath.toString();
+			invoke("extract_item", {fromPath})
+				.then(items => {
+					showItems(items.filter(str => !str.name.startsWith(".")));
+					message("Entpacken erfolgreich");
+				});
+		}
 	}
+	contextMenu.style.display = "none";
 }
 
 function compressItem(item) {
