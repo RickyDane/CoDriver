@@ -9,6 +9,7 @@ let contextMenu = document.querySelector(".context-menu");
 let copyFileName = "";
 let copyFilePath = "";
 let currentDir = "";
+let IsShowDisks = false;
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
@@ -84,6 +85,7 @@ document.addEventListener("contextmenu", (e) => {
 });
 
 function showItems(items) {
+	IsShowDisks = false;
 	window.scrollTo(0, 0);
 	document.querySelector(".explorer-container").innerHTML = "";
 	directoryList = document.createElement("div");
@@ -365,6 +367,47 @@ async function checkAppConfig() {
 		});
 }
 
+async function listDisks() {
+	await invoke("list_disks")
+		.then(disks => {
+			IsShowDisks = true;
+			document.querySelector(".explorer-container").innerHTML = "";
+			directoryList = document.createElement("div");
+			directoryList.className = "directory-list";
+			disks.filter(arr => arr.name.startsWith("/dev/")).forEach(item => {
+				let itemLink = document.createElement("button");
+				itemLink.setAttribute("onclick", "openItem('"+item.name.replace('/dev/', '')+"', '"+item.path+"', '1')");
+				let newRow = document.createElement("div");
+				newRow.className = "directory-item-entry";
+				let fileIcon = "resources/disk-icon.png"; // Default
+				let iconSize = "48px";
+				if (viewMode == "wrap") {
+					itemLink.className = "item-button directory-entry";
+					newRow.innerHTML = `
+						<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="auto"/>
+						<p style="text-align: left;">${item.name.replace("/dev/", "")}</p>
+						`;
+				}
+				else {
+					itemLink.className = "item-button-list directory-entry";
+					newRow.innerHTML = `
+						<span style="display: flex; gap: 10px; align-items: center; width: 30%;">
+						<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+						<p style="width: 30%; text-align: left;";>${item.name.replace("/dev/", "")}</p>
+						</span>
+						<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
+						<p style="width: auto; text-align: right;">${item.load} Belegt</p>
+						<p style="width: 75px; text-align: right;">${item.capacity}</p>
+						</span>
+						`;
+				}
+				itemLink.append(newRow)
+				directoryList.append(itemLink);
+			});
+		});
+	document.querySelector(".explorer-container").append(directoryList);
+}
+
 async function listDirectories() {
 	await invoke("list_dirs")
 		.then((items) => {
@@ -446,7 +489,12 @@ async function switchView() {
 	}
 	await invoke("switch_view", {viewMode})
 		.then(items => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
+			if (!IsShowDisks) {
+				showItems(items.filter(str => !str.name.startsWith(".")));
+			}
+			else {
+				listDisks();
+			}
 		});
 }
 

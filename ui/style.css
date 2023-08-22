@@ -221,7 +221,7 @@ body {
 }
 .current-path {
 	background-color: rgba(0, 0, 0, 0.75);
-	position: absolute;
+	position: fixed;
 	bottom: 0;
 	right: 0; 
 	font-size: small;

@@ -82,6 +82,7 @@ dependencies = [
  "copy_dir",
  "dateparser",
  "dialog",
+ "disk_list",
  "open",
  "rar",
  "rust_search",
@@ -753,6 +754,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "disk_list"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "191160306af35a2b52257d41acf6b366474f5c2466eeb3371b5543a295e1b723"
+dependencies = [
+ "get_sys_info",
+]
+
+[[package]]
 name = "dispatch"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1145,6 +1155,20 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check 0.9.4",
+]
+
+[[package]]
+name = "get_sys_info"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbf2b05ebf9213bccd6f023fe1468d9ad0d70671bdd8567f2efbf7bd7395561f"
+dependencies = [
+ "chrono",
+ "lazy_static",
+ "libc",
+ "nom 7.1.3",
+ "readable_byte",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -1795,6 +1819,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "minimal-lexical"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
+
+[[package]]
 name = "miniz_oxide"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1852,6 +1882,16 @@ checksum = "2ad2a91a8e869eeb30b9cb3119ae87773a8f4ae617f41b1eb9c154b2905f7bd6"
 dependencies = [
  "memchr",
  "version_check 0.1.5",
+]
+
+[[package]]
+name = "nom"
+version = "7.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
+dependencies = [
+ "memchr",
+ "minimal-lexical",
 ]
 
 [[package]]
@@ -2504,7 +2544,7 @@ dependencies = [
  "chrono",
  "failure",
  "lazy_static",
- "nom",
+ "nom 4.2.3",
  "rust-crypto",
 ]
 
@@ -2522,6 +2562,12 @@ checksum = "678054eb77286b51581ba43620cc911abf02758c91f93f479767aed0f90458b2"
 dependencies = [
  "rand_core 0.3.1",
 ]
+
+[[package]]
+name = "readable_byte"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f109a3adfa6fb337078552b2f3c871aee7b3e47055ff120adadfdd3ceb6d2de7"
 
 [[package]]
 name = "redox_syscall"

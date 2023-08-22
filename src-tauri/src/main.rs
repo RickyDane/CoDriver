@@ -1,6 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir, DirEntry}, path::PathBuf, io::BufReader}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, io::BufReader}; 
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
 use rust_search::SearchBuilder;
@@ -10,6 +10,7 @@ use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime};
 use zip_extensions::*;
+use disk_list;
 
 fn main() {
     tauri::Builder::default()
@@ -30,7 +31,8 @@ fn main() {
               switch_view,
               check_app_config,
               create_file,
-              get_current_dir
+              get_current_dir,
+              list_disks
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -62,6 +64,31 @@ async fn check_app_config() -> AppConfig {
         view_mode: app_config["view_mode"].to_string(),
         last_modified: app_config["last_modified"].to_string()
     };
+}
+
+#[derive(serde::Serialize)]
+struct DisksInfo {
+    name: String,
+    format: String,
+    path: String,
+    load: String,
+    capacity: String
+}
+
+#[tauri::command]
+async fn list_disks() -> Vec<DisksInfo> {
+    let mut ls_disks = vec![];
+    let disk_list = disk_list::get_disk_list();
+    for disk in disk_list {
+        ls_disks.push(DisksInfo {
+            name: String::from(&disk[0]),
+            format: String::from(&disk[1]),
+            path: String::from(&disk[2]),
+            load: String::from(&disk[3]),
+            capacity: String::from(&disk[4])
+        });
+    }
+    return ls_disks;
 }
 
 #[tauri::command]
