@@ -378,13 +378,17 @@ async function listDisks() {
 				let itemLink = document.createElement("button");
 				itemLink.setAttribute("onclick", "openItem('"+item.name.replace('/dev/', '')+"', '"+item.path+"', '1')");
 				let newRow = document.createElement("div");
-				newRow.className = "directory-item-entry";
+				newRow.className = "directory-item-entry ";
 				let fileIcon = "resources/disk-icon.png"; // Default
 				let iconSize = "48px";
 				if (viewMode == "wrap") {
-					itemLink.className = "item-button directory-entry";
+					itemLink.className = "item-button directory-entry disk-info-entry";
 					newRow.innerHTML = `
-						<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="auto"/>
+						<img class="item-icon" style="margin-right: 10px;" src="${fileIcon}" width="${iconSize}" height="auto"/>
+						<div class="disk-info">
+							<span>${item.load}</span>
+							<span>${item.capacity}</span>
+						</div>
 						<p style="text-align: left;">${item.name.replace("/dev/", "")}</p>
 						`;
 				}
@@ -392,12 +396,12 @@ async function listDisks() {
 					itemLink.className = "item-button-list directory-entry";
 					newRow.innerHTML = `
 						<span style="display: flex; gap: 10px; align-items: center; width: 30%;">
-						<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
-						<p style="width: 30%; text-align: left;";>${item.name.replace("/dev/", "")}</p>
+							<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+							<p style="width: 30%; text-align: left;";>${item.name.replace("/dev/", "")}</p>
 						</span>
 						<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-						<p style="width: auto; text-align: right;">${item.load} Belegt</p>
-						<p style="width: 75px; text-align: right;">${item.capacity}</p>
+							<p style="width: auto; text-align: right;">${item.load} Belegt</p>
+							<p style="width: 75px; text-align: right;">${item.capacity}</p>
 						</span>
 						`;
 				}

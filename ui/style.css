@@ -310,3 +310,22 @@ body {
 	z-index: 3;
 	outline: none;
 }
+
+
+.disk-info {
+	display: flex;
+	flex-flow: column;
+	justify-content: center;
+	align-items: center;
+	margin-bottom: 20px;
+}
+.disk-info-entry {
+	display: flex;
+	flex-flow: row;
+	justify-content: center;
+	align-items: center;
+	margin-bottom: 20px;
+}
+.disk-info-icon {
+	margin: 0 !important;
+}
