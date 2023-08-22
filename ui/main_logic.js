@@ -21,6 +21,7 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 
 document.addEventListener("keyup", (e) => {
 	if (e.keyCode === 27) {
+		contextMenu.style.display = "none";
 		document.querySelector(".newfolder-input").remove();
 	}
 });
@@ -221,7 +222,15 @@ function showItems(items) {
 	});
 
 	document.querySelector(".explorer-container").append(directoryList);
+	getCurrentDir();
 	window.gc();
+}
+
+async function getCurrentDir() {
+	invoke("get_current_dir")
+		.then(path => {
+			document.querySelector(".current-path").textContent = path;
+		});
 }
 
 async function deleteItem(item) {

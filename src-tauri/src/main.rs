@@ -9,7 +9,6 @@ use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime};
-use zip::{ZipWriter, write::FileOptions};
 use zip_extensions::*;
 
 fn main() {
@@ -30,7 +29,8 @@ fn main() {
               create_folder,
               switch_view,
               check_app_config,
-              create_file
+              create_file,
+              get_current_dir
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -72,6 +72,11 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     return list_dirs().await;
+}
+
+#[tauri::command]
+async fn get_current_dir() -> String {
+    return current_dir().unwrap().as_path().to_str().unwrap().to_string();
 }
 
 #[tauri::command]

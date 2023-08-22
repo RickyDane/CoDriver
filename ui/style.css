@@ -17,6 +17,7 @@ body {
 	width: 100%;
 	max-width: 100%;
 	overflow: hidden;
+	position: relative;
 }
 .header-nav {
 	display: flex;
@@ -217,6 +218,16 @@ body {
 }
 .search-button:hover, .cancel-search-button:hover {
 	background-color: rgba(0, 0, 0, 0.1);
+}
+.current-path {
+	background-color: rgba(0, 0, 0, 0.75);
+	position: absolute;
+	bottom: 0;
+	right: 0; 
+	font-size: small;
+	border-radius: 5px 0px 0px 0px;
+	text-align: right;
+	padding: 5px;
 }
 
 
