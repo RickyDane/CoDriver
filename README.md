@@ -4,10 +4,10 @@ A simple file explorer that was born because I wanted to learn the Rust language
 It is operating system independent and trimmed for optimization.
 
 | OS      |  Support  |
-|:--------|:---------:|
-| Linux   | ✔️         |
-| macOS   | ✔️         |
-| Windows | ✔️         |
+|:--------|:----------|
+| Linux   | ✔️        |
+| macOS   | ☑️ / Fixing some bugs        |
+| Windows | ✔️        |
 | FreeBSD | Probably? |
 | OpenBSD | Probably? |
 <br>
