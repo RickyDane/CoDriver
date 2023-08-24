@@ -12,7 +12,8 @@ It is operating system independent and trimmed for optimization.
 | OpenBSD | Probably? |
 <br>
 
-The performance comes from ["rust_search"](https://crates.io/crates/rust_search).<br>So high performance is achieved purely by Rust and the speed of the disk, without path caching (which may come later).
+The performance comes from ["rust_search"](https://crates.io/crates/rust_search) and ["Tauri"](https://tauri.app/)
+<br>So high performance is achieved purely by Rust and the speed of the disk, without path caching (which may come later).
 
 ### Basic features
 - Navigate through directories as you know it
