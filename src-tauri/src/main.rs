@@ -99,7 +99,7 @@ async fn list_disks() -> Vec<DisksInfo> {
         ls_disks.push(DisksInfo {
             name: disk.fs_mounted_from,
             format: disk.fs_type,
-            path: disk.fs_mounted_on,
+            path: disk.fs_mounted_on.replace("\\", "/"),
             load: disk.avail.to_string(),
             capacity: disk.total.to_string()
         });

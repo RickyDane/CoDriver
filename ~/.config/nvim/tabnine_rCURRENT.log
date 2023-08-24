@@ -4932,3 +4932,130 @@ INFO [frontend::pro_advanced_completions_capabilities_listener] [2023-08-24:19:4
 INFO [bootstrapper::bootstrapper_lib] [2023-08-24:19:42:45 TabNine INFO] current version is Some(Version { major: 4, minor: 5, patch: 28, pre: [], build: [] }), spawned version is Some(Version { major: 4, minor: 5, patch: 28, pre: [], build: [] }), remote version is Version { major: 4, minor: 5, patch: 28, pre: [], build: [] }
 INFO [bootstrapper::bootstrapper_lib] [2023-08-24:19:42:45 TabNine INFO] don't need to upgrade
 ERROR [in_app_messaging::internal] [2023-08-24:19:42:52 TabNine ERROR] Error while fetching messages. reqwest::Error { kind: Decode, source: Error("EOF while parsing a value", line: 1, column: 0) }
+INFO [auth::capabilities] [2023-08-24:19:44:28 TabNine-deep-cloud INFO] User changed. Refreshing capabilities
+INFO [auth::capabilities] [2023-08-24:19:44:28 TabNine-deep-cloud INFO] Refreshing capabilities
+INFO [models_api_singleton] [2023-08-24:19:44:28 TabNine-deep-local INFO] Updating models API access token...
+ERROR [models_api::models_api_client] [2023-08-24:19:44:28 TabNine-deep-local ERROR] Failed to get models from cache. Error: No such file or directory (os error 2), Base cache directory: /home/dane/.config/TabNine/models_api
+INFO [models_api_singleton] [2023-08-24:19:44:29 TabNine-deep-local INFO] Updated models API access token of user: Some("Ricky Dane Perlick")
+INFO [models_api_singleton] [2023-08-24:19:44:29 TabNine-deep-local INFO] Waiting for access token to change...
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:05 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:05 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:05 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:05 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:05 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:05 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:05 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:06 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:06 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:06 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:06 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:06 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:06 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:06 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:06 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:06 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:06 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:06 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:06 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:06 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:06 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+WARN [cpu_model::user_thread] [2023-08-24:19:45:06 TabNine-deep-local WARN] An update was dropped because we couldn't acquire the lock.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:06 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:06 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:07 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:07 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:07 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:07 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:07 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:07 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:07 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:07 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:08 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:08 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:08 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:08 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:09 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:09 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:09 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:09 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:09 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:09 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:09 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:10 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:10 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:10 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:10 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:10 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:10 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:10 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:11 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:11 TabNine-deep-cloud INFO] cloud_v2_enabled is true
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-24:19:45:11 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
+INFO [snippet_suggestions::snippet_prompt] [2023-08-24:19:45:11 TabNine INFO] creating enrichment for language Rust - using: default enrichment
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:11 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-24:19:45:11 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_connection::connection_choosers] [2023-08-24:19:45:11 TabNine INFO] 'Specialized Model Chooser' found an active connection.
+INFO [lunar_transport::client] [2023-08-24:19:45:11 TabNine-deep-local INFO] Returning no lunar completions because newline is likely.
