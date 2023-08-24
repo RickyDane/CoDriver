@@ -10,7 +10,7 @@ use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime};
 use zip_extensions::*;
-use disk_list;
+use get_sys_info::{System, Platform};
 
 fn main() {
     tauri::Builder::default()
@@ -77,15 +77,31 @@ struct DisksInfo {
 
 #[tauri::command]
 async fn list_disks() -> Vec<DisksInfo> {
-    let mut ls_disks = vec![];
-    let disk_list = disk_list::get_disk_list();
+    let mut ls_disks: Vec<DisksInfo> = vec![];
+    let disk_list = System::new().mounts().unwrap_or_else(|r| {
+            println!("get mounts error:{}", r);
+            vec![]
+        });
+    #[cfg(not(target_os = "windows"))]
+    for disk in disk_list {
+        if disk.fs_mounted_from.starts_with("/dev/") || disk.fs_mounted_from.starts_with("/run/") {
+            ls_disks.push(DisksInfo {
+                name: disk.fs_mounted_on.split("/").last().unwrap_or("/").to_string(),
+                format: disk.fs_type,
+                path: disk.fs_mounted_on,
+                load: disk.avail.to_string(),
+                capacity: disk.total.to_string()
+            });
+        }
+    }
+    #[cfg(target_os = "windows")]
     for disk in disk_list {
         ls_disks.push(DisksInfo {
-            name: String::from(&disk[0]),
-            format: String::from(&disk[1]),
-            path: String::from(&disk[2]),
-            load: String::from(&disk[3]),
-            capacity: String::from(&disk[4])
+            name: disk.fs_mounted_from,
+            format: disk.fs_type,
+            path: disk.fs_mounted_on,
+            load: disk.avail.to_string(),
+            capacity: disk.total.to_string()
         });
     }
     return ls_disks;

@@ -82,7 +82,7 @@ dependencies = [
  "copy_dir",
  "dateparser",
  "dialog",
- "disk_list",
+ "get_sys_info",
  "open",
  "rar",
  "rust_search",
@@ -751,15 +751,6 @@ dependencies = [
  "libc",
  "redox_users",
  "winapi 0.3.9",
-]
-
-[[package]]
-name = "disk_list"
-version = "0.2.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "191160306af35a2b52257d41acf6b366474f5c2466eeb3371b5543a295e1b723"
-dependencies = [
- "get_sys_info",
 ]
 
 [[package]]

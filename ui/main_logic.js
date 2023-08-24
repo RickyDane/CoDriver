@@ -374,7 +374,7 @@ async function listDisks() {
 			document.querySelector(".explorer-container").innerHTML = "";
 			directoryList = document.createElement("div");
 			directoryList.className = "directory-list";
-			disks.filter(arr => arr.name.startsWith("/dev/")).forEach(item => {
+			disks.forEach(item => {
 				let itemLink = document.createElement("button");
 				itemLink.setAttribute("onclick", "openItem('"+item.name.replace('/dev/', '')+"', '"+item.path+"', '1')");
 				let newRow = document.createElement("div");
@@ -400,13 +400,14 @@ async function listDisks() {
 							<p style="width: 30%; text-align: left;";>${item.name.replace("/dev/", "")}</p>
 						</span>
 						<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-							<p style="width: auto; text-align: right;">${item.load} Belegt</p>
+							<p style="width: auto; text-align: right;">${item.load} Verfügbar</p>
 							<p style="width: 75px; text-align: right;">${item.capacity}</p>
 						</span>
 						`;
 				}
 				itemLink.append(newRow)
 				directoryList.append(itemLink);
+				document.querySelector(".current-path").textContent = "Datenträger/";
 			});
 		});
 	document.querySelector(".explorer-container").append(directoryList);
