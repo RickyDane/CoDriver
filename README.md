@@ -27,6 +27,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 
 #### Language Support
 - Right now only german
+- English coming very soon
 <br>
 
 ![image](https://github.com/RickyDane/rdpFX/assets/82893522/08c37079-ebc3-427a-b984-ca8c4db8bdf6)
