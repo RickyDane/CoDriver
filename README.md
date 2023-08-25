@@ -5,9 +5,9 @@ It is operating system independent and trimmed for optimization.
 
 | OS      |  Support  |
 |:--------|:----------|
-| Linux   | ✔️        |
-| macOS   | ☑️ / Fixing some bugs        |
-| Windows | ✔️        |
+| Linux   | ✔️         |
+| macOS   | ✔️         |
+| Windows | ✔️         |
 | FreeBSD | Probably? |
 | OpenBSD | Probably? |
 <br>
