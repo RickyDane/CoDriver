@@ -18,7 +18,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 ### Basic features
 - Navigate through directories as you know it
 - Copy & Paste files and folders
-- Delete file and folders
+- Delete files and folders
 - Create files and folders
 - Switch between "big buttons"- and list mode
 
