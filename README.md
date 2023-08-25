@@ -51,4 +51,4 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 
 
 #
-<a href="https://www.buymeacoffee.com/rdpsoft"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=rdpsoft&button_colour=BD5FFF&font_colour=ffffff&font_family=Poppins&outline_colour=000000&coffee_colour=FFDD00" /></a>
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/F1F8OL456)
