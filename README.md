@@ -3,13 +3,13 @@ A simple file explorer that was born because I wanted to learn the Rust language
 
 It is operating system independent and trimmed for optimization.
 
-| OS      |  Support  |
-|:--------|:----------|
-| Linux   | ✔️         |
-| macOS   | ✔️         |
-| Windows | ✔️         |
-| FreeBSD | Probably? |
-| OpenBSD | Probably? |
+| OS                              |  Support  |
+|:--------------------------------|:----------|
+| Linux                           | ✔️        |
+| macOS (intel / apple silicon)   | ✔️        |
+| Windows                         | ✔️        |
+| FreeBSD                         | Probably? |
+| OpenBSD                         | Probably? |
 <br>
 
 The performance comes from ["rust_search"](https://crates.io/crates/rust_search) and ["Tauri"](https://tauri.app/)
