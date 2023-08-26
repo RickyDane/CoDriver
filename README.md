@@ -35,9 +35,8 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
   - Option to choose between languages coming soon ...
 
 #### 📝 Todos:
-- English translation
+- Multiple languages
 - List filtering (filter by name, last modified, file size)
-- Switch for turning on/off to see hidden files
 <br>
 
 ## Linux / Big-Buttons mode
