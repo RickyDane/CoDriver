@@ -513,7 +513,6 @@ async fn create_file(file_name: String) {
 #[tauri::command]
 async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
-    let file_ext = ".".to_string().to_owned()+path.split(".").nth(path.split(".").count() - 1).unwrap_or("");
     let _ = fs::rename(current_dir().unwrap().join(&path.replace("\\", "/")), current_dir().unwrap().join(&new_name.replace("\\", "/")));
     println!("Rename time: {} ms", sw.elapsed_ms());
     return list_dirs().await;
