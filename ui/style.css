@@ -5,6 +5,8 @@
 	color: white;
 	font-family: sans-serif;
 	font-display: swap;
+	user-select: none;
+	outline: none;
 }
 
 
@@ -12,6 +14,8 @@ body {
 	height: 100vh;
 	background-color: #363945;
 	overflow: hidden;
+	user-select: none;
+	outline: none;
 }
 .explorer-container {
 	margin: 20px 5px 0 calc(200px + 20px);
