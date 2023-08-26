@@ -39,15 +39,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - List filtering (filter by name, last modified, file size)
 <br>
 
-## Linux / Big-Buttons mode
-![image](https://github.com/RickyDane/rdpFX/assets/82893522/08c37079-ebc3-427a-b984-ca8c4db8bdf6)
-<br><br>
-## Windows / Big-Buttons mode
-![image](https://github.com/RickyDane/rdpFX/assets/82893522/5ec44fe3-d977-4ecc-bfde-7740382cfeb5)
-## macOS / List mode
-![image](https://github.com/RickyDane/rdpFX/assets/82893522/743ff133-dda6-4f96-9864-9b8be006103e)
-
-
+![Bildschirmfoto 2023-08-26 um 15 16 02](https://github.com/RickyDane/rdpFX/assets/82893522/cc71a03b-9a90-4d06-904b-63a062094fdc)
 
 #
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/F1F8OL456)
