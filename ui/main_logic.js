@@ -352,7 +352,7 @@ function createFileInputPrompt(e) {
 	nameInput.className = "newfolder-input";
 	nameInput.innerHTML = `
 		<h4>Geben Sie einen Namen für das neue Dokument ein.</h4>
-		<input type="text" placeholder="Neuer Ordner" autofocus>
+		<input type="text" placeholder="Neues Dokument" autofocus>
 	`;
 	nameInput.style.left = e.clientX + "px";
 	nameInput.style.top = e.clientY + "px";
