@@ -685,3 +685,776 @@ INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:12:23:49 TabNine
 INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:12:23:49 TabNine-deep-cloud INFO] res is IsEnabledResponse { enabled: true, message: None }
 INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:12:23:49 TabNine-deep-cloud INFO] on prem is false
 INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:12:23:49 TabNine-deep-cloud INFO] on prem is false
+INFO [auth::capabilities] [2023-08-26:12:40:33 TabNine-deep-cloud INFO] User changed. Refreshing capabilities
+INFO [auth::capabilities] [2023-08-26:12:40:33 TabNine-deep-cloud INFO] Refreshing capabilities
+INFO [auth::capabilities] [2023-08-26:13:00:33 TabNine-deep-cloud INFO] User changed. Refreshing capabilities
+INFO [auth::capabilities] [2023-08-26:13:00:33 TabNine-deep-cloud INFO] Refreshing capabilities
+INFO [auth::capabilities] [2023-08-26:13:20:33 TabNine-deep-cloud INFO] User changed. Refreshing capabilities
+INFO [auth::capabilities] [2023-08-26:13:20:33 TabNine-deep-cloud INFO] Refreshing capabilities
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+ERROR [lunar_transport::controller] [2023-08-26:13:27:54 TabNine-deep-cloud ERROR] Kind(UnexpectedEof)
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+ERROR [lunar_transport::controller] [2023-08-26:13:27:54 TabNine-deep-cloud ERROR] Error sending to server Os { code: 32, kind: BrokenPipe, message: "Broken pipe" }
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::client] [2023-08-26:13:27:54 TabNine-deep-cloud INFO] Connection to lunar server is closed.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] TabNine Cloud authentication successful.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 301 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 330 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 358 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 385 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 414 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 442 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 469 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 500 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 524 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 547 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 582 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 635 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 644 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 677 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 712 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 747 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 777 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 809 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:27:55 TabNine-deep-cloud INFO] Round-trip time: 837 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] Round-trip time: 325 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] Round-trip time: 358 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] Round-trip time: 152 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] Round-trip time: 159 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] Round-trip time: 291 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] Round-trip time: 152 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] Round-trip time: 177 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:27 TabNine-deep-cloud INFO] Round-trip time: 277 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 307 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 197 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 222 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 142 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 148 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 238 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 271 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 456 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 164 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 215 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 254 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 287 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 159 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 163 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 367 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 155 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] Round-trip time: 172 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:28 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 153 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 211 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 241 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 155 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 331 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 367 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::client] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Returning no lunar completions because newline is likely.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 552 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 587 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 162 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 169 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 150 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 196 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 224 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 246 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 281 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 313 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 354 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 389 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 421 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 459 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 490 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:29 TabNine-deep-cloud INFO] Round-trip time: 524 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] Round-trip time: 550 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] Round-trip time: 578 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] Round-trip time: 607 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::client] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] Returning no lunar completions because newline is likely.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] Round-trip time: 162 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] Round-trip time: 163 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] Round-trip time: 161 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:30 TabNine-deep-cloud INFO] Round-trip time: 167 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 431 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 464 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 560 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 664 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 849 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 1015 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 161 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 163 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 179 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 163 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 184 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 160 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:31 TabNine-deep-cloud INFO] Round-trip time: 166 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 162 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 165 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 192 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 150 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 153 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 183 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 160 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 164 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 172 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 178 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 173 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 179 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 166 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 170 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 199 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 163 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 169 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 209 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 151 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 150 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 178 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 207 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 151 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 151 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 160 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 189 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 217 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:32 TabNine-deep-cloud INFO] Round-trip time: 151 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 180 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 185 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 217 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::client] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Returning no lunar completions because newline is likely.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 245 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 273 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 291 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 327 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 360 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 152 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 177 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 214 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 248 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 275 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 308 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 340 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:33 TabNine-deep-cloud INFO] Round-trip time: 373 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 301 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 335 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 165 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 166 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 151 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 149 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 161 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 199 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 244 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] Round-trip time: 276 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:48 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 308 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 161 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 164 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 159 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 151 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 225 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 258 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 287 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 323 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 360 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 463 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 495 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 668 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 707 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 882 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:49 TabNine-deep-cloud INFO] Round-trip time: 916 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:50 TabNine-deep-cloud INFO] Round-trip time: 1103 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:50 TabNine-deep-cloud INFO] Round-trip time: 1129 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:50 TabNine-deep-cloud INFO] Round-trip time: 1653 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:52 TabNine-deep-cloud INFO] Round-trip time: 3048 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:52 TabNine-deep-cloud INFO] Round-trip time: 3151 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:52 TabNine-deep-cloud INFO] Round-trip time: 3355 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:52 TabNine-deep-cloud INFO] Round-trip time: 3459 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] Round-trip time: 297 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] Round-trip time: 334 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] Round-trip time: 370 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] Round-trip time: 406 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] Round-trip time: 442 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] Round-trip time: 563 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] Round-trip time: 667 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] Round-trip time: 770 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:54 TabNine-deep-cloud INFO] Round-trip time: 870 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:55 TabNine-deep-cloud INFO] Round-trip time: 978 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:55 TabNine-deep-cloud INFO] Round-trip time: 1075 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:55 TabNine-deep-cloud INFO] Round-trip time: 1593 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:55 TabNine-deep-cloud INFO] Round-trip time: 1702 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:56 TabNine-deep-cloud INFO] Round-trip time: 2712 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:56 TabNine-deep-cloud INFO] Round-trip time: 2807 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:57 TabNine-deep-cloud INFO] Round-trip time: 2989 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:57 TabNine-deep-cloud INFO] Round-trip time: 3023 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:57 TabNine-deep-cloud INFO] Round-trip time: 3211 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:28:57 TabNine-deep-cloud INFO] Round-trip time: 3316 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:12 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:12 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:12 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:12 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 174 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 207 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 237 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 160 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 190 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 212 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 150 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 181 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 186 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 221 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 244 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 280 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 183 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 185 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 221 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 285 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:13 TabNine-deep-cloud INFO] Round-trip time: 159 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 159 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 221 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 159 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 163 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 160 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 165 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 157 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 157 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 163 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 138 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 137 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 126 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 127 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 188 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 129 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 129 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::client] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] Returning no lunar completions because newline is likely.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:14 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:15 TabNine-deep-cloud INFO] Round-trip time: 157 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:15 TabNine-deep-cloud INFO] Round-trip time: 162 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:15 TabNine-deep-cloud INFO] Round-trip time: 364 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:15 TabNine-deep-cloud INFO] Round-trip time: 531 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:16 TabNine-deep-cloud INFO] Round-trip time: 1382 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:17 TabNine-deep-cloud INFO] Round-trip time: 2547 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:17 TabNine-deep-cloud INFO] Round-trip time: 2793 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:17 TabNine-deep-cloud INFO] Round-trip time: 3031 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:18 TabNine-deep-cloud INFO] Round-trip time: 3265 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:18 TabNine-deep-cloud INFO] Round-trip time: 3574 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:18 TabNine-deep-cloud INFO] Round-trip time: 3903 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:25 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:25 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:25 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:25 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 200 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 317 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 342 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 444 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 478 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 584 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 686 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 929 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 159 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 160 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 225 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 257 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 159 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 161 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:26 TabNine-deep-cloud INFO] Round-trip time: 218 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 318 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 305 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 163 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 167 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 164 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 168 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 191 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 162 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 164 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 217 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 163 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 168 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 303 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:27 TabNine-deep-cloud INFO] Round-trip time: 479 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:28 TabNine-deep-cloud INFO] Round-trip time: 635 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:28 TabNine-deep-cloud INFO] Round-trip time: 663 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:32 TabNine-deep-cloud INFO] Round-trip time: 5134 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] Round-trip time: 359 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] Round-trip time: 399 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] Round-trip time: 434 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] Round-trip time: 472 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] Round-trip time: 504 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] Round-trip time: 537 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:57 TabNine-deep-cloud INFO] Round-trip time: 570 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:58 TabNine-deep-cloud INFO] Round-trip time: 1319 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:58 TabNine-deep-cloud INFO] Round-trip time: 1357 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:58 TabNine-deep-cloud INFO] Round-trip time: 1542 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:58 TabNine-deep-cloud INFO] Round-trip time: 1575 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:58 TabNine-deep-cloud INFO] Round-trip time: 1753 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:58 TabNine-deep-cloud INFO] Round-trip time: 1782 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:59 TabNine-deep-cloud INFO] Round-trip time: 1952 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:59 TabNine-deep-cloud INFO] Round-trip time: 1989 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:59 TabNine-deep-cloud INFO] Round-trip time: 2166 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:29:59 TabNine-deep-cloud INFO] Round-trip time: 2202 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:01 TabNine-deep-cloud INFO] Round-trip time: 4306 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:01 TabNine-deep-cloud INFO] Round-trip time: 4413 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:06 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:06 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:06 TabNine-deep-cloud INFO] Round-trip time: 314 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:06 TabNine-deep-cloud INFO] Round-trip time: 346 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:06 TabNine-deep-cloud INFO] Round-trip time: 380 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 521 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 557 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 672 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 707 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 805 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 836 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 161 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 162 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 213 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 244 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 277 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 309 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 338 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 369 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 410 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 449 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 144 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 148 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 184 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 217 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 255 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 155 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 156 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 170 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:07 TabNine-deep-cloud INFO] Round-trip time: 206 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 160 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 162 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 177 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 204 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 314 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 352 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 177 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 182 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 232 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 351 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 232 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 232 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 180 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 189 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 193 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 145 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 152 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 207 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 152 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:08 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:09 TabNine-deep-cloud INFO] Round-trip time: 306 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:09 TabNine-deep-cloud INFO] Round-trip time: 415 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:09 TabNine-deep-cloud INFO] Round-trip time: 603 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:09 TabNine-deep-cloud INFO] Round-trip time: 711 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:09 TabNine-deep-cloud INFO] Round-trip time: 902 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 283 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 318 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 353 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 387 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 421 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 453 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 482 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 515 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 545 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 581 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 612 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 644 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 677 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:20 TabNine-deep-cloud INFO] Round-trip time: 707 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 743 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 775 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 798 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 148 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 150 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 171 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 210 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 241 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 162 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 190 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 165 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 169 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 161 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 165 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 162 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 167 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 160 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] Round-trip time: 165 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:21 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] Round-trip time: 159 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] Round-trip time: 164 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] Round-trip time: 158 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] Round-trip time: 163 ms.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_endpoints::cloud::handlers::is_enabled] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] cloud_v2_enabled is false
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::client] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] Returning no lunar completions because newline is likely.
+INFO [lunar_endpoints::cloud::handlers::cloud_v2_handler] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] on prem is false
+INFO [lunar_transport::controller] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] Round-trip time: 164 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] Round-trip time: 168 ms.
+INFO [lunar_transport::controller] [2023-08-26:13:30:22 TabNine-deep-cloud INFO] Round-trip time: 196 ms.

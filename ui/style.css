@@ -54,10 +54,11 @@ body {
 }
 .titlebar {
 	height: 40px;
-	padding: 0 5px 0 10px;
+	padding: 0 10px;
 	background: rgba(0, 0, 0, 0.15);
 	user-select: none;
 	display: flex;
+	flex-flow: row;
 	justify-content: space-between;
 	align-items: center;
 	position: fixed;
@@ -67,13 +68,15 @@ body {
 }
 .titlebar-button {
 	display: inline-flex;
+	flex-flow: row;
 	justify-content: center;
 	align-items: center;
 	width: 30px;
 	height: 30px;
 	cursor: pointer;
 	filter: invert(100);
-	border-radius: 2px;
+	border-radius: 15px;
+	transition: 0.2s;
 }
 .titlebar-button:hover {
 	background: #5bbec3;
