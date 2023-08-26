@@ -1,6 +1,8 @@
 # rdpFX
-A simple file explorer that was born because I wanted to learn the Rust language.
+[![publish](https://github.com/RickyDane/rdpFX/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/RickyDane/rdpFX/actions/workflows/main.yml)
 
+A simple file explorer that was born because I wanted to learn the Rust language.
+<br>
 It is operating system independent and trimmed for optimization.
 
 | OS                              |  Support  |
