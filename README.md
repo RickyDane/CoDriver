@@ -4,6 +4,8 @@
 A simple file explorer that was born because I wanted to learn the Rust language.
 <br>
 It is operating system independent and trimmed for optimization.
+<br><br>
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/F1F8OL456)
 
 | OS                              |  Support  |
 |:--------------------------------|:----------|
@@ -43,6 +45,3 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 <br>
 
 ![Bildschirmfoto 2023-08-26 um 15 16 02](https://github.com/RickyDane/rdpFX/assets/82893522/cc71a03b-9a90-4d06-904b-63a062094fdc)
-
-#
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/F1F8OL456)
