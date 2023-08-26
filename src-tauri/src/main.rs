@@ -10,7 +10,7 @@ use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime};
 use zip_extensions::*;
-use get_sys_info::{System, Platform};
+// use get_sys_info::{System, Platform};
 
 fn main() {
     tauri::Builder::default()
@@ -78,8 +78,8 @@ struct DisksInfo {
 
 #[tauri::command]
 async fn list_disks() -> Vec<DisksInfo> {
-    let mut ls_disks: Vec<DisksInfo> = vec![];
-    let disk_list = System::new().mounts().unwrap_or_else(|r| {
+    let ls_disks: Vec<DisksInfo> = vec![];
+    /*let disk_list = System::new().mounts().unwrap_or_else(|r| {
             println!("get mounts error:{}", r);
             vec![]
         });
@@ -104,7 +104,7 @@ async fn list_disks() -> Vec<DisksInfo> {
             load: disk.avail.to_string(),
             capacity: disk.total.to_string()
         });
-    }
+    }*/
     return ls_disks;
 }
 
