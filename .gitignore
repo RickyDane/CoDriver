@@ -1,3 +1,10 @@
 ~/
 +
 worker.js
+.cargo
+.xwin
+.xwin-cache
+.library
+.local
+.localized
+.DS_Store
