@@ -40,6 +40,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 #### 📝 Todos:
 - Multiple languages
 - List filtering (filter by name, last modified, file size)
+- Drag and drop
 <br>
 
 ![Bildschirmfoto 2023-08-26 um 15 16 02](https://github.com/RickyDane/rdpFX/assets/82893522/cc71a03b-9a90-4d06-904b-63a062094fdc)
