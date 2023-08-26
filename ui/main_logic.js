@@ -35,7 +35,7 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 document.addEventListener("keyup", (e) => {
 	if (e.keyCode === 27) {
 		contextMenu.style.display = "none";
-		document.querySelector(".newfolder-input").remove();
+		document.querySelector(".newfolder-input")?.remove();
 	}
 });
 
@@ -64,6 +64,9 @@ document.addEventListener("mousedown", (e) => {
 		contextMenu.children[3].classList.add("c-item-disabled");
 		contextMenu.children[4].setAttribute("disabled", "true");
 		contextMenu.children[4].classList.add("c-item-disabled");
+		contextMenu.children[7].setAttribute("disabled", "true");
+		contextMenu.children[7].classList.add("c-item-disabled");
+
 	}
 });
 
@@ -204,6 +207,7 @@ function showItems(items) {
 			contextMenu.children[3].replaceWith(contextMenu.children[3].cloneNode(true));
 			contextMenu.children[4].replaceWith(contextMenu.children[4].cloneNode(true));
 			contextMenu.children[6].replaceWith(contextMenu.children[6].cloneNode(true));
+			contextMenu.children[7].replaceWith(contextMenu.children[7].cloneNode(true));
 
 			contextMenu.style.display = "flex";
 			contextMenu.style.left = e.clientX + "px";
@@ -219,6 +223,8 @@ function showItems(items) {
 			contextMenu.children[3].classList.remove("c-item-disabled");
 			contextMenu.children[4].removeAttribute("disabled");
 			contextMenu.children[4].classList.remove("c-item-disabled");
+			contextMenu.children[7].removeAttribute("disabled");
+			contextMenu.children[7].classList.remove("c-item-disabled");
 
 
 			if (extension != "zip"
@@ -237,6 +243,7 @@ function showItems(items) {
 			contextMenu.children[3].addEventListener("click", function() { compressItem(item); }, {once: true});
 			contextMenu.children[4].addEventListener("click", function() { copyItem(item); }, {once: true});
 			contextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
+			contextMenu.children[7].addEventListener("click", function() { renameElementInputPrompt(e, item); }, {once: true});
 		});
 	});
 
@@ -359,6 +366,29 @@ function createFileInputPrompt(e) {
 	});
 }
 
+function renameElementInputPrompt(e, item) {
+	let tempFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
+	let tempRenameFilePath = item.getAttribute("onclick").split(",")[1].trim().split("/");
+	let tempFileName = tempRenameFilePath[tempRenameFilePath.length - 1].replace("'", "");
+
+	let nameInput = document.createElement("div");
+	nameInput.className = "newfolder-input";
+	nameInput.innerHTML = `
+		<h4>Geben Sie einen neuen Namen für das Dokument ein.</h4>
+		<input type="text" placeholder="document.txt" value="${tempFileName}" autofocus>
+		`;
+	nameInput.style.left = e.clientX + "px";
+	nameInput.style.top = e.clientY + "px";
+	document.querySelector("body").append(nameInput);
+	contextMenu.style.display = "none";
+	nameInput.addEventListener("keyup", (e) => {
+		if (e.keyCode === 13) {
+			renameElement(tempFilePath, nameInput.children[1].value);
+			nameInput.remove();
+		}
+	});
+}
+
 function createFolder(folderName) {
 	invoke("create_folder", {folderName});
 	listDirectories();
@@ -366,6 +396,11 @@ function createFolder(folderName) {
 
 function createFile(fileName) {
 	invoke("create_file", {fileName});
+	listDirectories();
+}
+
+function renameElement(path, newName) {
+	invoke("rename_element", {path, newName});
 	listDirectories();
 }
 

@@ -59,7 +59,7 @@ body {
 .titlebar {
 	height: 40px;
 	padding: 0 10px;
-	background: rgba(0, 0, 0, 0.15);
+	background: #2e313b;
 	user-select: none;
 	display: flex;
 	flex-flow: row;
@@ -69,6 +69,7 @@ body {
 	top: 0;
 	left: 0;
 	right: 0;
+	z-index: 99;
 }
 .titlebar-button {
 	display: inline-flex;

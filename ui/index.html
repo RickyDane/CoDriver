@@ -9,29 +9,29 @@
 		<meta charset="utf-8"/>
 	</head>
 	<body>
-		<div class="header-nav">
-			<div data-tauri-drag-region class="titlebar">
-				<div class="titlebar-title">
-					<p>rdpFX</p>
+		<div data-tauri-drag-region class="titlebar">
+			<div class="titlebar-title">
+				<p>rdpFX</p>
+			</div>
+			<div class="titlebar-buttons" id="titlebar-maximize">
+				<div class="titlebar-button" id="titlebar-minimize">
+					<img
+					src="https://api.iconify.design/mdi:window-minimize.svg"
+					alt="minimize"
+					/>
 				</div>
-				<div class="titlebar-buttons" id="titlebar-maximize">
-					<div class="titlebar-button" id="titlebar-minimize">
-						<img
-						src="https://api.iconify.design/mdi:window-minimize.svg"
-						alt="minimize"
-						/>
-					</div>
-					<div class="titlebar-button" id="titlebar-maximize">
-						<img
-						src="https://api.iconify.design/mdi:window-maximize.svg"
-						alt="maximize"
-						/>
-					</div>
-					<div class="titlebar-button" id="titlebar-close">
-						<img src="https://api.iconify.design/mdi:close.svg" alt="close" />
-					</div>
+				<div class="titlebar-button" id="titlebar-maximize">
+					<img
+					src="https://api.iconify.design/mdi:window-maximize.svg"
+					alt="maximize"
+					/>
+				</div>
+				<div class="titlebar-button" id="titlebar-close">
+					<img src="https://api.iconify.design/mdi:close.svg" alt="close" />
 				</div>
 			</div>
+		</div>
+		<div class="header-nav">
 			<div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 50%;">
 				<button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i> Back</button>
 				<p>|</p>
@@ -68,6 +68,7 @@
 			<button class="context-item">Copy<i class="fa-solid fa-copy"></i></button>	
 			<button class="context-item" onclick="pasteItem()">Paste<i class="fa-solid fa-paste"></i></button>
 			<button class="context-item">New file<i class="fa-solid fa-file"></i></button>
+			<button class="context-item">Rename<i class="fa-solid fa-file-signature"></i></button>
 			<!--<button class="context-item">Open in Terminal<i class="fa-solid fa-terminal"></i></button>-->
 		</div>
 		<div class="current-path">...</div>

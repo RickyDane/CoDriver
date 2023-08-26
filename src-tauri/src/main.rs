@@ -33,7 +33,8 @@ fn main() {
               create_file,
               get_current_dir,
               list_disks,
-              open_in_terminal
+              open_in_terminal,
+              rename_element
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -507,6 +508,15 @@ async fn create_folder(folder_name: String) {
 async fn create_file(file_name: String) {
     let new_file_path = PathBuf::from(&file_name);
     let _ = File::create(current_dir().unwrap().join(new_file_path));
+}
+
+#[tauri::command]
+async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
+    let sw = Stopwatch::start_new();
+    let file_ext = ".".to_string().to_owned()+path.split(".").nth(path.split(".").count() - 1).unwrap_or("");
+    let _ = fs::rename(current_dir().unwrap().join(&path.replace("\\", "/")), current_dir().unwrap().join(&new_name.replace("\\", "/")));
+    println!("Rename time: {} ms", sw.elapsed_ms());
+    return list_dirs().await;
 }
 
 #[allow(unused)]
