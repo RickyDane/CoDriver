@@ -20,6 +20,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - Copy & Paste files and folders
 - Delete files and folders
 - Create files and folders
+- Rename files and folders
 - Switch between "big buttons"- and list mode
 
 ### Advanced features
