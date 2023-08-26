@@ -31,8 +31,8 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
   - 7zip
 
 #### Language Support
-- Right now only german
-- English coming very soon
+- English
+  - Option to choose between languages coming soon ...
 
 #### 📝 Todos:
 - English translation
