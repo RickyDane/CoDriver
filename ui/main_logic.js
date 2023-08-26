@@ -104,10 +104,10 @@ function showItems(items) {
 	document.querySelector(".explorer-container").innerHTML = "";
 	directoryList = document.createElement("div");
 	directoryList.className = "directory-list";
-	directoryCount.innerHTML = "Objects: " + items.length;
 	if (!IsShowHiddenFiles) {
 		items = items.filter(str => !str.name.startsWith("."));
 	}
+	directoryCount.innerHTML = "Objects: " + items.length;
 	let set = new Set(items);
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
