@@ -78,12 +78,13 @@ struct DisksInfo {
 
 #[tauri::command]
 async fn list_disks() -> Vec<DisksInfo> {
-    #[cfg(target_family = "unix")]
     let mut ls_disks: Vec<DisksInfo> = vec![];
+    #[cfg(not(target_os = "macos"))]
     let disk_list = System::new().mounts().unwrap_or_else(|r| {
             println!("get mounts error:{}", r);
             vec![]
         });
+    #[cfg(not(target_os = "macos"))]
     #[cfg(not(target_os = "windows"))]
     for disk in disk_list {
         if disk.fs_mounted_from.starts_with("/dev/") || disk.fs_mounted_from.starts_with("/run/") {
@@ -96,6 +97,7 @@ async fn list_disks() -> Vec<DisksInfo> {
             });
         }
     }
+    #[cfg(not(target_os = "macos"))]
     #[cfg(target_os = "windows")]
     for disk in disk_list {
         ls_disks.push(DisksInfo {
