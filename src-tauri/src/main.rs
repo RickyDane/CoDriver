@@ -1,6 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, io::BufReader}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, io::BufReader, process::Command}; 
 #[allow(unused_imports)]
 use std::{fs::{self, ReadDir}, clone, ffi::OsString};
 use rust_search::SearchBuilder;
@@ -32,7 +32,8 @@ fn main() {
               check_app_config,
               create_file,
               get_current_dir,
-              list_disks
+              list_disks,
+              open_in_terminal
             ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -257,6 +258,19 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
         });
     }
     return dir_list;
+}
+
+#[tauri::command]
+async fn open_in_terminal() {
+    #[cfg(target_os = "linux")]
+    // Open the terminal on linux pc
+    let _ = Command::new("gnome-terminal").arg(current_dir().unwrap()).spawn();
+    #[cfg(target_os = "windows")]
+    // Open the terminal on windows pc
+    let _ = Command::new("cmd").arg("/c").arg("start").arg(current_dir().unwrap()).spawn();
+    #[cfg(target_os = "macos")]
+    // Open the terminal on mac
+    let _ = Command::new("open").arg(current_dir().unwrap()).spawn();
 }
 
 #[tauri::command]

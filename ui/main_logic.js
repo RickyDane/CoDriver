@@ -58,9 +58,10 @@ document.addEventListener("mousedown", (e) => {
 // Open context menu for pasting for example
 document.addEventListener("contextmenu", (e) => {
 	e.preventDefault();
-	contextMenu.children[5].replaceWith(contextMenu.children[5].cloneNode(true));
 	contextMenu.children[0].replaceWith(contextMenu.children[0].cloneNode(true));
+	contextMenu.children[5].replaceWith(contextMenu.children[5].cloneNode(true));
 	contextMenu.children[6].replaceWith(contextMenu.children[6].cloneNode(true));
+	contextMenu.children[7].replaceWith(contextMenu.children[7].cloneNode(true));
 	contextMenu.style.display = "flex";
 	contextMenu.style.left = e.clientX + "px";
 	if ((contextMenu.offsetHeight + e.clientY) >= window.innerHeight) {
@@ -73,6 +74,7 @@ document.addEventListener("contextmenu", (e) => {
 	}
 	contextMenu.children[0].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
 	contextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
+	contextMenu.children[7].addEventListener("click", function() { openInTerminal(); }, {once: true});
 
 	if (copyFilePath == "") {
 		contextMenu.children[5].setAttribute("disabled", "true");
@@ -90,7 +92,7 @@ function showItems(items) {
 	document.querySelector(".explorer-container").innerHTML = "";
 	directoryList = document.createElement("div");
 	directoryList.className = "directory-list";
-	directoryCount.innerHTML = "Objekte: " + items.length;
+	directoryCount.innerHTML = "Objects: " + items.length;
 	let set = new Set(items);
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
@@ -374,6 +376,7 @@ async function listDisks() {
 			document.querySelector(".explorer-container").innerHTML = "";
 			directoryList = document.createElement("div");
 			directoryList.className = "directory-list";
+			directoryCount.innerHTML = "Objects: " + disks.length;
 			disks.forEach(item => {
 				let itemLink = document.createElement("button");
 				itemLink.setAttribute("onclick", "openItem('"+item.name.replace('/dev/', '')+"', '"+item.path+"', '1')");
@@ -381,6 +384,9 @@ async function listDisks() {
 				newRow.className = "directory-item-entry ";
 				let fileIcon = "resources/disk-icon.png"; // Default
 				let iconSize = "48px";
+					if (item.name == "") {
+						item.name = "/";
+					}
 				if (viewMode == "wrap") {
 					itemLink.className = "item-button directory-entry disk-info-entry";
 					newRow.innerHTML = `
@@ -389,7 +395,7 @@ async function listDisks() {
 							<span>${item.load}</span>
 							<span>${item.capacity}</span>
 						</div>
-						<p style="text-align: left;">${item.name.replace("/dev/", "")}</p>
+						<p style="text-align: left;">${item.name}</p>
 						`;
 				}
 				else {
@@ -397,7 +403,7 @@ async function listDisks() {
 					newRow.innerHTML = `
 						<span style="display: flex; gap: 10px; align-items: center; width: 30%;">
 							<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
-							<p style="width: 30%; text-align: left;";>${item.name.replace("/dev/", "")}</p>
+							<p style="width: 30%; text-align: left;";>${item.name}</p>
 						</span>
 						<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
 							<p style="width: auto; text-align: right;">${item.load} Verfügbar</p>
@@ -407,7 +413,7 @@ async function listDisks() {
 				}
 				itemLink.append(newRow)
 				directoryList.append(itemLink);
-				document.querySelector(".current-path").textContent = "Datenträger/";
+				document.querySelector(".current-path").textContent = "Disks/";
 			});
 		});
 	document.querySelector(".explorer-container").append(directoryList);
@@ -451,6 +457,13 @@ async function goToDir(directory) {
 	await invoke("go_to_dir", {directory})
 		.then((items) => {
 			showItems(items.filter(str => !str.name.startsWith(".")));
+		});
+}
+
+async function openInTerminal() {
+	await invoke("open_in_terminal")
+		.then((items) => {
+			showItems(items.filter(str =>!str.name.startsWith(".")));
 		});
 }
 

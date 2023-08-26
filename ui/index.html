@@ -11,7 +11,7 @@
 	<body>
 		<div class="header-nav">
 			<div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 40%;">
-				<button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i> Zurück</button>
+				<button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i> Back</button>
 				<p>|</p>
 				<button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
 				<button onclick="switchView()" class="header-nav-button switch-view-button"><i class="fa-solid fa-list"></i></button>
@@ -20,7 +20,7 @@
 			</div>
 			<div style="width: 20%;"></div>
 			<div class="file-searchbar">
-				<input class="search-bar-input" type="text" placeholder="Suchergebnis"/>
+				<input class="search-bar-input" type="text" placeholder="Searchinput"/>
 				<button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
 				<button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
 			</div>
@@ -29,23 +29,23 @@
 			<div class="site-nav-bar">
 				<button class="site-nav-bar-button" onclick="goToDir(0)"><i class="fa-solid fa-desktop"></i> Desktop</button>
 				<button class="site-nav-bar-button" onclick="goToDir(1)"><i class="fa-solid fa-download"></i> Downloads</button>
-				<button class="site-nav-bar-button" onclick="goToDir(2)"><i class="fa-solid fa-file"></i> Dokumente</button>
-				<button class="site-nav-bar-button" onclick="goToDir(3)"><i class="fa-solid fa-image"></i> Bilder</button>
+				<button class="site-nav-bar-button" onclick="goToDir(2)"><i class="fa-solid fa-file"></i> Dokuments</button>
+				<button class="site-nav-bar-button" onclick="goToDir(3)"><i class="fa-solid fa-image"></i> Pictures</button>
 				<button class="site-nav-bar-button" onclick="goToDir(4)"><i class="fa-solid fa-video"></i> Videos</button>
-				<button class="site-nav-bar-button" onclick="goToDir(5)"><i class="fa-solid fa-music"></i> Musik</button>
-				<button class="site-nav-bar-button" onclick="listDisks()"><i class="fa-solid fa-hard-drive"></i> Rechner</button>
+				<button class="site-nav-bar-button" onclick="goToDir(5)"><i class="fa-solid fa-music"></i> Music</button>
+				<button class="site-nav-bar-button" onclick="listDisks()"><i class="fa-solid fa-hard-drive"></i> Disks</button>
 			</div>
 			<div class="explorer-container"></div>
 		</div>
 		<div class="context-menu" style="display: none;">
-			<button class="context-item">Neuer Ordner<i class="fa-solid fa-folder"></i></button>
-			<button class="context-item">In den Papierkorb <i class="fa-solid fa-trash"></i></button>	
-			<button class="context-item">Entpacken <i class="fa-solid fa-box-open"></i></button>	
-			<button class="context-item">Komprimieren<i class="fa-solid fa-box"></i></button>
-			<button class="context-item">Kopieren<i class="fa-solid fa-copy"></i></button>	
-			<button class="context-item" onclick="pasteItem()">Einfügen<i class="fa-solid fa-paste"></i></button>
-			<button class="context-item">Neues Dokument<i class="fa-solid fa-file"></i></button>
-			<!-- <buton class="context-item">Neue Datei</button> -->
+			<button class="context-item">New folder<i class="fa-solid fa-folder"></i></button>
+			<button class="context-item">Delete<i class="fa-solid fa-trash"></i></button>	
+			<button class="context-item">Unpack<i class="fa-solid fa-box-open"></i></button>	
+			<button class="context-item">Compress<i class="fa-solid fa-box"></i></button>
+			<button class="context-item">Copy<i class="fa-solid fa-copy"></i></button>	
+			<button class="context-item" onclick="pasteItem()">Paste<i class="fa-solid fa-paste"></i></button>
+			<button class="context-item">New file<i class="fa-solid fa-file"></i></button>
+			<button class="context-item">Open in Terminal<i class="fa-solid fa-terminal"></i></button>
 		</div>
 		<div class="current-path">...</div>
 	</body>
