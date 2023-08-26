@@ -1,6 +1,17 @@
 const { invoke } = window.__TAURI__.tauri;
 const { confirm } = window.__TAURI__.dialog; 
-const { message } = window.__TAURI__.dialog; 
+const { message } = window.__TAURI__.dialog;
+const { appWindow } = window.__TAURI__.window;
+
+document
+  .getElementById('titlebar-minimize')
+  .addEventListener('click', () => appWindow.minimize());
+document
+  .getElementById('titlebar-maximize')
+  .addEventListener('click', () => appWindow.toggleMaximize());
+document
+  .getElementById('titlebar-close')
+  .addEventListener('click', () => appWindow.close());
 
 let viewMode = "wrap";
 let directoryList;
@@ -10,6 +21,7 @@ let copyFileName = "";
 let copyFilePath = "";
 let currentDir = "";
 let IsShowDisks = false;
+let IsShowHiddenFiles = false;
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
@@ -93,6 +105,9 @@ function showItems(items) {
 	directoryList = document.createElement("div");
 	directoryList.className = "directory-list";
 	directoryCount.innerHTML = "Objects: " + items.length;
+	if (!IsShowHiddenFiles) {
+		items = items.filter(str => !str.name.startsWith("."));
+	}
 	let set = new Set(items);
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
@@ -286,7 +301,7 @@ function compressItem(item) {
 		contextMenu.style.display = "none";
 		invoke("compress_item", {fromPath})
 			.then(items => {
-				showItems(items.filter(str => !str.name.startsWith(".")));
+				showItems(items);
 				message("Komprimierung abgeschlossen");
 			});
 	}
@@ -298,7 +313,7 @@ function pasteItem() {
 		let fromPath = copyFilePath.toString();
 		invoke("copy_paste", {actFileName, fromPath})
 			.then(items => {
-				showItems(items.filter(str => !str.name.startsWith(".")));
+				showItems(items);
 			});
 		copyFileName = "";
 		copyFilePath = "";
@@ -422,7 +437,7 @@ async function listDisks() {
 async function listDirectories() {
 	await invoke("list_dirs")
 		.then((items) => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
+			showItems(items);
 		});
 }
 
@@ -431,7 +446,7 @@ function openItem(name, path, isDir) {
 		directoryList.innerHTML = "Loading ...";
 		invoke("open_dir", {path, name})
 			.then((items) => {
-				showItems(items.filter(str => !str.name.startsWith(".")));
+				showItems(items);
 			});
 	}
 	else {
@@ -442,28 +457,28 @@ function openItem(name, path, isDir) {
 async function goHome() {
 	await invoke("go_home")
 		.then((items) => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
+			showItems(items);
 		});
 }
 
 async function goBack() {
 	await invoke("go_back")
 		.then((items) => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
+			showItems(items);
 		});
 }
 
 async function goToDir(directory) {
 	await invoke("go_to_dir", {directory})
 		.then((items) => {
-			showItems(items.filter(str => !str.name.startsWith(".")));
+			showItems(items);
 		});
 }
 
 async function openInTerminal() {
 	await invoke("open_in_terminal")
 		.then((items) => {
-			showItems(items.filter(str =>!str.name.startsWith(".")));
+			showItems(items);
 		});
 }
 
@@ -515,6 +530,19 @@ async function switchView() {
 			}
 		});
 }
+
+function switchHiddenFiles() {
+	if (IsShowHiddenFiles) {
+		IsShowHiddenFiles = false;
+		document.querySelector(".switch-hidden-files-button").innerHTML = `<i class="fa-solid fa-eye-slash"></i>`;
+	}
+	else {
+		IsShowHiddenFiles = true;
+		document.querySelector(".switch-hidden-files-button").innerHTML = `<i class="fa-solid fa-eye"></i>`;
+	}
+	listDirectories();
+}
+
 
 function formatBytes(bytes, decimals = 2) {
     if (!+bytes) return '0 Bytes'

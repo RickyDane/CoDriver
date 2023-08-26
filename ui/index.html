@@ -10,15 +10,38 @@
 	</head>
 	<body>
 		<div class="header-nav">
-			<div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 40%;">
+			<div data-tauri-drag-region class="titlebar">
+				<div class="titlebar-title">
+					<p>rdpFX</p>
+				</div>
+				<div class="titlebar-buttons" id="titlebar-maximize">
+					<div class="titlebar-button" id="titlebar-minimize">
+						<img
+						src="https://api.iconify.design/mdi:window-minimize.svg"
+						alt="minimize"
+						/>
+					</div>
+					<div class="titlebar-button" id="titlebar-maximize">
+						<img
+						src="https://api.iconify.design/mdi:window-maximize.svg"
+						alt="maximize"
+						/>
+					</div>
+					<div class="titlebar-button" id="titlebar-close">
+						<img src="https://api.iconify.design/mdi:close.svg" alt="close" />
+					</div>
+				</div>
+			</div>
+			<div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 50%;">
 				<button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i> Back</button>
 				<p>|</p>
 				<button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
 				<button onclick="switchView()" class="header-nav-button switch-view-button"><i class="fa-solid fa-list"></i></button>
+				<button onclick="switchHiddenFiles()" class="header-nav-button switch-hidden-files-button"><i class="fa-solid fa-eye-slash"></i></button>
 				<p>|</p>
 				<h5 class="directory-entries-count"></h5>
 			</div>
-			<div style="width: 20%;"></div>
+			<div style="width: 5%;"></div>
 			<div class="file-searchbar">
 				<input class="search-bar-input" type="text" placeholder="Searchinput"/>
 				<button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
