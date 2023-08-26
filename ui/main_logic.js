@@ -73,7 +73,7 @@ document.addEventListener("contextmenu", (e) => {
 	contextMenu.children[0].replaceWith(contextMenu.children[0].cloneNode(true));
 	contextMenu.children[5].replaceWith(contextMenu.children[5].cloneNode(true));
 	contextMenu.children[6].replaceWith(contextMenu.children[6].cloneNode(true));
-	contextMenu.children[7].replaceWith(contextMenu.children[7].cloneNode(true));
+	// contextMenu.children[7].replaceWith(contextMenu.children[7].cloneNode(true));
 	contextMenu.style.display = "flex";
 	contextMenu.style.left = e.clientX + "px";
 	if ((contextMenu.offsetHeight + e.clientY) >= window.innerHeight) {
@@ -86,7 +86,7 @@ document.addEventListener("contextmenu", (e) => {
 	}
 	contextMenu.children[0].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
 	contextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
-	contextMenu.children[7].addEventListener("click", function() { openInTerminal(); }, {once: true});
+	// contextMenu.children[7].addEventListener("click", function() { openInTerminal(); }, {once: true});
 
 	if (copyFilePath == "") {
 		contextMenu.children[5].setAttribute("disabled", "true");
