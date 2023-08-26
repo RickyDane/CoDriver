@@ -53,7 +53,8 @@
       },
       "externalBin": [],
       "icon": [
-		    "icons/rdpX-Logo-shadow.png"
+		    "icons/rdpX-Logo-shadow.png",
+		    "icons/rdpX-Logo-shadow.ico"
 	    ],
       "identifier": "com.rdpFX.dev",
       "longDescription": "A simple file explorer with nice ui and good features.",
