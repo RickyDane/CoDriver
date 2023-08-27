@@ -15,7 +15,7 @@ It is operating system independent and trimmed for optimization.
 <br>
 
 The performance comes from ["rust_search"](https://crates.io/crates/rust_search) and ["Tauri"](https://tauri.app/)
-<br>So high performance is achieved purely by Rust and the speed of the disk, without path caching (which may come later).
+<br>So high performance is achieved purely by Rust, the speed of the disk and the power of the cpu, without path caching (which may come later).
 
 ### Basic features
 - Navigate through directories as you know it
