@@ -54,5 +54,4 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 ![2023-08-27-08-14-02](https://github.com/RickyDane/rdpFX/assets/82893522/237b28a0-d667-4bea-91a9-a43cb9277c49)
 
 #
-patreon.com/user?u=32283501
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/F1F8OL456)
