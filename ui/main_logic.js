@@ -624,11 +624,11 @@ function openSettings() {
 	document.querySelector(".settings-ui").style.display = "block";
 }
 
-function saveConfigPaths() {
+async function saveConfigPaths() {
 	configuredPathOne = document.querySelector(".configured-path-one-input").value;
 	configuredPathTwo = document.querySelector(".configured-path-two-input").value;
 	configuredPathThree = document.querySelector(".configured-path-three-input").value;
-	invoke("save_config_paths", {configuredPathOne, configuredPathTwo, configuredPathThree})
+	await invoke("save_config_paths", {configuredPathOne, configuredPathTwo, configuredPathThree})
 		.then(() => {
 			checkAppConfig();
 			closeSettings();

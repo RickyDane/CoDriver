@@ -11,6 +11,7 @@ use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime};
 use zip_extensions::*;
 use get_sys_info::{System, Platform};
+use dialog::DialogBox;
 
 fn main() {
     tauri::Builder::default()
@@ -140,9 +141,9 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
     let app_config_json = AppConfig {
         view_mode,
         last_modified: chrono::offset::Local::now().to_string(),
-        configured_path_one: app_config["configured_path_one"].to_string().replace('"', "").trim().to_string(),
-        configured_path_two: app_config["configured_path_two"].to_string().replace('"', "").trim().to_string(), 
-        configured_path_three: app_config["configured_path_three"].to_string().replace('"', "").trim().to_string()
+        configured_path_one: app_config["configured_path_one"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
+        configured_path_two: app_config["configured_path_two"].to_string().replace('"', "").replace("\\", "/").trim().to_string(), 
+        configured_path_three: app_config["configured_path_three"].to_string().replace('"', "").replace("\\", "/").trim().to_string()
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     return list_dirs().await;
@@ -183,12 +184,20 @@ async fn list_dirs() -> Vec<FDir> {
     return dir_list;
 }
 
+fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
+    dialog::Message::new("It was no directory found")
+    .title("No directory found")
+    .show()
+    .expect("Error opening dialog");
+    return fs::read_dir(current_dir().unwrap()).unwrap();
+}
+
 #[tauri::command]
 async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
     println!("{}", &_path.contains('"'));
     let sw = Stopwatch::start_new();
     let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(&_path.replace('"', "")).unwrap();
+    let current_directory = fs::read_dir(&_path.replace('"', "")).unwrap_or_else(alert_not_found_dir);
     let _ = set_current_dir(_path);
     println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
     for item in current_directory {
@@ -550,9 +559,9 @@ async fn save_config_paths(configured_path_one: String, configured_path_two: Str
     let app_config_json = AppConfig {
         view_mode: app_config["view_mode"].to_string().replace('"', ""),
         last_modified: chrono::offset::Local::now().to_string(),
-        configured_path_one,
-        configured_path_two, 
-        configured_path_three 
+        configured_path_one: configured_path_one.replace("\\", "/"),
+        configured_path_two: configured_path_two.replace("\\", "/"), 
+        configured_path_three: configured_path_three.replace("\\", "/") 
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
 }
