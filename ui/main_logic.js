@@ -590,4 +590,5 @@ function formatBytes(bytes, decimals = 2) {
 }
 
 checkAppConfig();
-listDirectories();
+// listDirectories();
+listDisks();
