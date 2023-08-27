@@ -151,7 +151,7 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
 
 #[tauri::command]
 async fn get_current_dir() -> String {
-    return current_dir().unwrap().as_path().to_str().unwrap().to_string();
+    return current_dir().unwrap().as_path().to_str().unwrap().to_string().replace("\\", "/");
 }
 
 #[tauri::command]

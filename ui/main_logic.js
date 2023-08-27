@@ -19,13 +19,21 @@ let directoryCount = document.querySelector(".directory-entries-count");
 let contextMenu = document.querySelector(".context-menu");
 let copyFileName = "";
 let copyFilePath = "";
-let currentDir = "";
+let CurrentDir = "";
 let IsShowDisks = false;
 let IsShowHiddenFiles = false;
 let IsAltDown = false;
 let ConfiguredPathOne = "";
 let ConfiguredPathTwo = "";
 let ConfiguredPathThree = "";
+let IsTabs = false;
+let TabCount = 1;
+let CurrentActiveTab = 1;
+let TabOnePath;
+let TabTwoPath;
+let TabThreePath;
+let TabFourPath;
+let TabFivePath;
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
@@ -106,6 +114,7 @@ document.addEventListener("contextmenu", (e) => {
 });
 
 document.onkeydown = (e) => {
+	// Shortcut for jumping to configured directory
     if(event.keyCode == 18){
         IsAltDown = true;
     }
@@ -130,6 +139,63 @@ document.onkeydown = (e) => {
 		}
 		openItem("ConfigPath3", ConfiguredPathThree, 1);
     }
+
+	// Check if ctrl + t is pressed to open new tab
+	if (e.ctrlKey && e.keyCode == 84) {
+		if (IsTabs == false) {
+			IsTabs = true;
+			document.querySelector(".explorer-container").style.marginTop = "60px";
+			document.querySelector(".tab-header").style.display = "flex";
+			let tab = document.createElement("div");
+			tab.className = "fx-tab fx-tab-1";
+			tab.innerHTML = `
+				<h5>Tab 1<h5>
+				<h4><i class="fa-solid fa-xmark"></i></h4>
+				`;
+			tab.addEventListener("click", () => {
+				switchToTab(1);
+			});
+			document.querySelector(".tab-header").append(tab);
+			TabCount++;
+			createTab(TabCount);
+			let currentTab = document.querySelector(".fx-tab-1");
+			if (currentTab != null) {
+				currentTab.children[0].innerHTML = CurrentDir.split("/")[CurrentDir.split("/").length-1];
+			}
+		}
+		else if (TabCount < 5) {
+			TabCount = 1;
+			let isAlreadyTabNo = true;
+			while (isAlreadyTabNo) {
+				if (document.querySelector(".fx-tab-"+TabCount) == null) {
+					isAlreadyTabNo = false;
+				}
+				else {
+					TabCount++;
+				}
+			}
+			createTab(TabCount);
+		}
+	}
+
+	// Remove current active tab when pressing ctrl + w
+	if (e.ctrlKey && e.keyCode == 87) {
+		if (IsTabs == true) {
+			document.querySelector(".tab-container-"+CurrentActiveTab).remove();
+			document.querySelector(".fx-tab-"+CurrentActiveTab).remove();
+			if (TabCount == 2) {
+				IsTabs = false;
+				document.querySelector(".tab-header").style.display = "none";
+				TabCount = 1;
+				switchToTab(1);
+				document.querySelector(".explorer-container").style.marginTop = "20px";
+				return;
+			}
+			TabCount--;
+			console.log(CurrentActiveTab, TabCount);
+		}
+	}
+
 } 
 
 document.onkeyup = (e) => {
@@ -141,10 +207,15 @@ document.onkeyup = (e) => {
 	}
 }
 
-function showItems(items) {
+async function showItems(items) {
+	await getCurrentDir();
 	IsShowDisks = false;
 	window.scrollTo(0, 0);
-	document.querySelector(".explorer-container").innerHTML = "";
+	document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";
+	let currentTab = document.querySelector(".fx-tab-"+CurrentActiveTab);
+	if (currentTab != null) {
+		currentTab.children[0].innerHTML = CurrentDir.split("/")[CurrentDir.split("/").length-1];
+	}
 	directoryList = document.createElement("div");
 	directoryList.className = "directory-list";
 	if (!IsShowHiddenFiles) {
@@ -287,14 +358,14 @@ function showItems(items) {
 		});
 	});
 
-	document.querySelector(".explorer-container").append(directoryList);
-	getCurrentDir();
+	document.querySelector(".tab-container-"+CurrentActiveTab).append(directoryList);
 	window.gc();
 }
 
 async function getCurrentDir() {
-	invoke("get_current_dir")
+	await invoke("get_current_dir")
 		.then(path => {
+			CurrentDir = path;
 			document.querySelector(".current-path").textContent = path;
 		});
 }
@@ -465,10 +536,14 @@ async function listDisks() {
 	await invoke("list_disks")
 		.then(disks => {
 			IsShowDisks = true;
-			document.querySelector(".explorer-container").innerHTML = "";
+			document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";
 			directoryList = document.createElement("div");
 			directoryList.className = "directory-list";
 			directoryCount.innerHTML = "Objects: " + disks.length;
+			let currentTab = document.querySelector(".fx-tab-"+CurrentActiveTab);
+			if (currentTab != null) {
+				currentTab.children[0].innerHTML = "Disks";
+			}
 			disks.forEach(item => {
 				let itemLink = document.createElement("button");
 				itemLink.setAttribute("onclick", "openItem('"+item.name.replace('/dev/', '')+"', '"+item.path+"', '1')");
@@ -508,7 +583,7 @@ async function listDisks() {
 				document.querySelector(".current-path").textContent = "Disks/";
 			});
 		});
-	document.querySelector(".explorer-container").append(directoryList);
+	document.querySelector(".tab-container-"+CurrentActiveTab).append(directoryList);
 }
 
 async function listDirectories() {
@@ -553,10 +628,7 @@ async function goToDir(directory) {
 }
 
 async function openInTerminal() {
-	await invoke("open_in_terminal")
-		.then((items) => {
-			showItems(items);
-		});
+	await invoke("open_in_terminal");
 }
 
 async function searchFor() {
@@ -639,6 +711,43 @@ function closeSettings() {
 	document.querySelector(".settings-ui").style.display = "none";
 }
 
+function createTab(tabCount) {
+	let tab = document.createElement("div");
+	tab.className = "fx-tab fx-tab-"+tabCount;
+	tab.innerHTML = `
+		<h5>Tab ${tabCount}<h5>
+		<h4><i class="fa-solid fa-xmark"></i></h4>
+		`;
+	tab.addEventListener("click", () => {
+		switchToTab(tabCount);
+	});
+	let explorerContainer = document.createElement("div");
+	explorerContainer.className = "explorer-container tab-container-"+tabCount;
+	explorerContainer.style.marginTop = "60px";
+	document.querySelector(".main-container").append(explorerContainer);
+	document.querySelector(".tab-header").append(tab);
+	switchToTab(tabCount);
+	console.log(tabCount, CurrentActiveTab, TabCount);
+}
+
+function switchToTab(tabNo) {
+	CurrentActiveTab = tabNo;
+	document.querySelectorAll(".explorer-container").forEach(container => {
+		container.style.display = "none";
+	});
+	document.querySelectorAll(".fx-tab").forEach(tab => {
+		tab.classList.remove("active-tab");
+	});
+	let currentTab = document.querySelector(".fx-tab-"+tabNo);
+	if (currentTab != null) {
+		currentTab.classList.add("active-tab");
+		document.querySelector(".tab-container-"+tabNo).style.display = "block";
+	}
+	else {
+		switchToTab(tabNo+1);
+	}
+}
+
 function formatBytes(bytes, decimals = 2) {
     if (!+bytes) return '0 Bytes'
 
@@ -651,4 +760,4 @@ function formatBytes(bytes, decimals = 2) {
 
 checkAppConfig();
 // listDirectories();
-listDisks();
+listDisks()

@@ -15,16 +15,10 @@
 			</div>
 			<div class="titlebar-buttons" id="titlebar-maximize">
 				<div class="titlebar-button" id="titlebar-minimize">
-					<img
-					src="https://api.iconify.design/mdi:window-minimize.svg"
-					alt="minimize"
-					/>
+					<img src="https://api.iconify.design/mdi:window-minimize.svg" alt="minimize"/>
 				</div>
 				<div class="titlebar-button" id="titlebar-maximize">
-					<img
-					src="https://api.iconify.design/mdi:window-maximize.svg"
-					alt="maximize"
-					/>
+					<img src="https://api.iconify.design/mdi:window-maximize.svg" alt="maximize"/>
 				</div>
 				<div class="titlebar-button" id="titlebar-close">
 					<img src="https://api.iconify.design/mdi:close.svg" alt="close" />
@@ -49,7 +43,7 @@
 				<button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
 			</div>
 		</div>
-		<div style="display: flex; flex-flow: row; margin-top: 80px;">
+		<div class="main-container" style="display: flex; flex-flow: row; margin-top: 80px;">
 			<div class="site-nav-bar">
 				<button class="site-nav-bar-button" onclick="goToDir(0)"><i class="fa-solid fa-desktop"></i> Desktop</button>
 				<button class="site-nav-bar-button" onclick="goToDir(1)"><i class="fa-solid fa-download"></i> Downloads</button>
@@ -59,7 +53,8 @@
 				<button class="site-nav-bar-button" onclick="goToDir(5)"><i class="fa-solid fa-music"></i> Music</button>
 				<button class="site-nav-bar-button" onclick="listDisks()"><i class="fa-solid fa-hard-drive"></i> Disks</button>
 			</div>
-			<div class="explorer-container"></div>
+			<div class="tab-header"></div>
+			<div class="explorer-container tab-container-1"></div>
 		</div>
 		<div class="context-menu" style="display: none;">
 			<button class="context-item">New folder<i class="fa-solid fa-folder"></i></button>
@@ -72,7 +67,6 @@
 			<button class="context-item">Rename<i class="fa-solid fa-file-signature"></i></button>
 			<!--<button class="context-item">Open in Terminal<i class="fa-solid fa-terminal"></i></button>-->
 		</div>
-		<!-- Settings ui for configuring 3 paths -->
 		<div class="settings-ui">
 			<div class="settings-ui-header">
 				<h2>Settings</h2>
