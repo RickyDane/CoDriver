@@ -22,6 +22,10 @@ let copyFilePath = "";
 let currentDir = "";
 let IsShowDisks = false;
 let IsShowHiddenFiles = false;
+let IsAltDown = false;
+let ConfiguredPathOne = "";
+let ConfiguredPathTwo = "";
+let ConfiguredPathThree = "";
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
@@ -100,6 +104,42 @@ document.addEventListener("contextmenu", (e) => {
 		contextMenu.children[5].classList.remove("c-item-disabled");
 	}
 });
+
+document.onkeydown = (e) => {
+    if(event.keyCode == 18){
+        IsAltDown = true;
+    }
+    if (IsAltDown == true && e.keyCode == 49)
+    {
+		if (ConfiguredPathOne == "") {
+			return;
+		}
+		openItem("ConfigPath1", ConfiguredPathOne, 1);
+    }
+	if (IsAltDown == true && e.keyCode == 50)
+    {
+		if (ConfiguredPathTwo == "") {
+			return;
+		}
+		openItem("ConfigPath2", ConfiguredPathTwo, 1);
+    }
+	if (IsAltDown == true && e.keyCode == 51)
+	{
+		if (ConfiguredPathThree == "") {
+			return;
+		}
+		openItem("ConfigPath3", ConfiguredPathThree, 1);
+    }
+} 
+
+document.onkeyup = (e) => {
+	if (e.keyCode == 18){
+		IsAltDown = false;
+	}
+	if (e.keyCode == 71){
+		IsGDown = false;
+	}
+}
 
 function showItems(items) {
 	IsShowDisks = false;
@@ -408,7 +448,6 @@ async function checkAppConfig() {
 	await invoke("check_app_config")
 		.then(appConfig => {
 			if (appConfig.view_mode.includes("column")) {
-				console.log(appConfig);
 				document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
 				document.querySelectorAll(".item-button").forEach(item => {
 					item.classList.add("item-button-list");
@@ -416,6 +455,9 @@ async function checkAppConfig() {
 				});
 				viewMode = "column";
 			}
+			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
+			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
+			document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
 		});
 }
 
@@ -555,7 +597,7 @@ async function switchView() {
 		});
 		viewMode = "wrap";
 	}
-	await invoke("switch_view", {viewMode})
+	await invoke("switch_view", {viewMode, ConfiguredPathOne, ConfiguredPathTwo, ConfiguredPathThree})
 		.then(items => {
 			if (!IsShowDisks) {
 				showItems(items.filter(str => !str.name.startsWith(".")));
@@ -578,6 +620,24 @@ function switchHiddenFiles() {
 	listDirectories();
 }
 
+function openSettings() {
+	document.querySelector(".settings-ui").style.display = "block";
+}
+
+function saveConfigPaths() {
+	configuredPathOne = document.querySelector(".configured-path-one-input").value;
+	configuredPathTwo = document.querySelector(".configured-path-two-input").value;
+	configuredPathThree = document.querySelector(".configured-path-three-input").value;
+	invoke("save_config_paths", {configuredPathOne, configuredPathTwo, configuredPathThree})
+		.then(() => {
+			checkAppConfig();
+			closeSettings();
+	  	});
+}
+
+function closeSettings() {
+	document.querySelector(".settings-ui").style.display = "none";
+}
 
 function formatBytes(bytes, decimals = 2) {
     if (!+bytes) return '0 Bytes'

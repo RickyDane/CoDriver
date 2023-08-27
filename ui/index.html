@@ -38,6 +38,7 @@
 				<button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
 				<button onclick="switchView()" class="header-nav-button switch-view-button"><i class="fa-solid fa-list"></i></button>
 				<button onclick="switchHiddenFiles()" class="header-nav-button switch-hidden-files-button"><i class="fa-solid fa-eye-slash"></i></button>
+				<button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
 				<p>|</p>
 				<h5 class="directory-entries-count"></h5>
 			</div>
@@ -70,6 +71,22 @@
 			<button class="context-item">New file<i class="fa-solid fa-file"></i></button>
 			<button class="context-item">Rename<i class="fa-solid fa-file-signature"></i></button>
 			<!--<button class="context-item">Open in Terminal<i class="fa-solid fa-terminal"></i></button>-->
+		</div>
+		<!-- Settings ui for configuring 3 paths -->
+		<div class="settings-ui">
+			<div class="settings-ui-header">
+				<h2>Settings</h2>
+			</div>
+			<br>
+			<div class="settings-ui-body">
+				<h4>Configured path 1</h4>
+				<input type="text" class="settings-ui-input configured-path-one-input" placeholder="/home/user" />
+				<h4>Configured path 2</h4>
+				<input type="text" class="settings-ui-input configured-path-two-input" placeholder="/home/user/folder1" />
+				<h4>Configured path 3</h4>
+				<input type="text" class="settings-ui-input configured-path-three-input" placeholder="/home/user/folder2" />
+			</div>
+			<button class="button" onclick="saveConfigPaths()">Save</button>
 		</div>
 		<div class="current-path">...</div>
 	</body>

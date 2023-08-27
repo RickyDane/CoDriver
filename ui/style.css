@@ -91,6 +91,43 @@ body {
 	font-weight: 0;
 	font-style: italic;
 }
+.settings-ui {
+	display: none;
+	position: fixed;
+	width: 50%;
+	height: fit-content;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: #2e313b;
+	z-index: 3;
+	margin: auto;
+	padding: 20px;
+	border-radius: 10px;
+	box-shadow: 0px 0px 15px 1px rgba(0, 0, 0, 0.3);
+}
+
+
+.settings-ui-body {
+	display: flex;
+	flex-flow: column;
+	gap: 10px;
+}
+.settings-ui > button {
+	float: right;
+	margin-top: 20px;
+	font-size: 16px;
+}
+.settings-ui-input {
+	width: 100%;
+	padding: 10px 15px;
+	background-color: #282b34;
+	border-radius: 5px;
+	border: none;
+	z-index: 3;
+	outline: none;
+}
 
 
 /* Custom controls*/
