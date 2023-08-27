@@ -498,7 +498,7 @@ async function listDisks() {
 							<p style="width: 30%; text-align: left;";>${item.name}</p>
 						</span>
 						<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-							<p style="width: auto; text-align: right;">${item.load} Verfügbar</p>
+							<p style="width: auto; text-align: right;">${item.load} Available</p>
 							<p style="width: 75px; text-align: right;">${item.capacity}</p>
 						</span>
 						`;
