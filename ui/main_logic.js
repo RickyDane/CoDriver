@@ -150,7 +150,7 @@ document.onkeydown = (e) => {
 				document.querySelectorAll(".explorer-container").forEach(item => {
 					item.style.marginTop = "60px";
 				});
-				createTab(1);
+				createTab(1, true);
 				TabCount++;
 			}
 			let checkTab = document.querySelector(".fx-tab-"+tabCounter);
@@ -158,42 +158,24 @@ document.onkeydown = (e) => {
 				tabCounter++;
 				checkTab = document.querySelector(".fx-tab-"+tabCounter);
 			}
-			createTab(tabCounter);
+			createTab(tabCounter, false);
 			TabCount++;
 		}
 	}
 
 	// Remove current active tab when pressing ctrl + w
 	if (e.ctrlKey && e.keyCode == 87) {
-		console.log(TabCount, CurrentActiveTab);
-		if (IsTabs == true) {
-			if (TabCount == 2) {
-				IsTabs = false;
-				document.querySelector(".tab-container-"+CurrentActiveTab).remove();
-				document.querySelector(".tab-header").style.display = "none";
-				document.querySelectorAll(".fx-tab").forEach(item => {
-					item.remove();
-				});
-				document.querySelectorAll(".explorer-container").forEach(item => {
-					item.style.marginTop = "20px";
-				});
-				tabCounter = 1;
-				let checkTab = document.querySelector(".tab-container-"+tabCounter);
-				while (checkTab == null) {
-					tabCounter++;
-					checkTab = document.querySelector(".tab-container-"+tabCounter);
-				}
-				switchToTab(tabCounter);
-				TabCount = 0;
-			}
-			else {
-				document.querySelector(".tab-container-"+CurrentActiveTab).remove();
-				document.querySelector(".fx-tab-"+CurrentActiveTab).remove();
-				let switchTabNo = document.querySelectorAll(".fx-tab").length;
-				switchToTab(switchTabNo);
-				TabCount--;
-			}
-		}
+		closeTab();
+	}
+
+	// New folder input prompt when alt + 7 is pressed
+	if (e.altKey && e.keyCode == 55) {
+		createFolderInputPrompt();
+	}
+
+	// New file input prompt when alt + 6 is pressed
+	if (e.altKey && e.keyCode == 54) {
+		createFileInputPrompt();
 	}
 } 
 
@@ -210,6 +192,7 @@ async function showItems(items) {
 	await getCurrentDir();
 	IsShowDisks = false;
 	// Check which tab is currently active and write CurrentDir to TabOnePath and so on
+	// Todo: Make more "dynamic friendly"
 	switch (CurrentActiveTab) {
 		case 1:
 			TabOnePath = CurrentDir;
@@ -259,6 +242,7 @@ async function showItems(items) {
 				case ".css":
 				case ".scss":
 				case ".cs":
+				case ".c":
 				case ".rs":
 				case ".html":
 				case ".php":
@@ -456,15 +440,24 @@ function pasteItem() {
 	}
 }
 
-function createFolderInputPrompt(e) {
+function createFolderInputPrompt(e = null) {
+	document.querySelectorAll(".newfolder-input").forEach(item => {
+		item.remove();
+	});
 	let nameInput = document.createElement("div");
 	nameInput.className = "newfolder-input";
 	nameInput.innerHTML = `
 		<h4>Geben Sie einen Namen für den neuen Ordner ein.</h4>
 		<input type="text" placeholder="Neuer Ordner" autofocus>
 	`;
-	nameInput.style.left = e.clientX + "px";
-	nameInput.style.top = e.clientY + "px";
+	if (e == null) {
+		nameInput.style.left = "50%"; 
+		nameInput.style.top = "50%";
+	}
+	else {
+		nameInput.style.left = e.clientX + "px";
+		nameInput.style.top = e.clientY + "px";
+	}
 	document.querySelector("body").append(nameInput);
 	contextMenu.style.display = "none";
 	nameInput.addEventListener("keyup", (e) => {
@@ -476,14 +469,23 @@ function createFolderInputPrompt(e) {
 }
 
 function createFileInputPrompt(e) {
+	document.querySelectorAll(".newfolder-input").forEach(item => {
+		item.remove();
+	});
 	let nameInput = document.createElement("div");
 	nameInput.className = "newfolder-input";
 	nameInput.innerHTML = `
 		<h4>Geben Sie einen Namen für das neue Dokument ein.</h4>
 		<input type="text" placeholder="Neues Dokument" autofocus>
 	`;
-	nameInput.style.left = e.clientX + "px";
-	nameInput.style.top = e.clientY + "px";
+	if (e == null) {
+		nameInput.style.left = "50%"; 
+		nameInput.style.top = "50%";
+	}
+	else {
+		nameInput.style.left = e.clientX + "px";
+		nameInput.style.top = e.clientY + "px";
+	}
 	document.querySelector("body").append(nameInput);
 	contextMenu.style.display = "none";
 	nameInput.addEventListener("keyup", (e) => {
@@ -607,16 +609,16 @@ async function listDirectories() {
 		});
 }
 
-function openItem(name, path, isDir) {
+async function openItem(name, path, isDir) {
 	if (isDir == 1) {
-		directoryList.innerHTML = "Loading ...";
-		invoke("open_dir", {path, name})
+		document.querySelector('.tab-container-'+CurrentActiveTab).innerHTML = "";
+		await invoke("open_dir", {path, name})
 			.then((items) => {
 				showItems(items);
 			});
 	}
 	else {
-		invoke("open_item", {path});
+		await invoke("open_item", {path});
 	}
 }
 
@@ -725,15 +727,26 @@ function closeSettings() {
 	document.querySelector(".settings-ui").style.display = "none";
 }
 
-function createTab(tabCount) {
+function createTab(tabCount, isInitial) {
 	let tab = document.createElement("div");
 	tab.className = "fx-tab fx-tab-"+tabCount;
+	if (isInitial) {
+		var tabName = CurrentDir.split("/")[CurrentDir.split("/").length - 1];
+	}
+	else {
+		var tabName = "New tab";
+	}
 	tab.innerHTML = `
-		<h5>New tab<h5>
+		<h5>${tabName}<h5>
 		<h4><i class="fa-solid fa-xmark"></i></h4>
 		`;
 	tab.addEventListener("click", () => {
 		switchToTab(tabCount);
+	});
+	tab.children[1].addEventListener("click", () => {
+		console.log(tabCount);
+		switchToTab(tabCount);
+		closeTab();
 	});
 	if (tabCount != 1 || document.querySelector(".tab-container-1") == null) {
 		let explorerContainer = document.createElement("div");
@@ -745,6 +758,37 @@ function createTab(tabCount) {
 	CurrentActiveTab = tabCount;
 	switchToTab(tabCount);
 	listDisks();
+}
+
+function closeTab() {
+	if (IsTabs == true) {
+		if (TabCount == 2) {
+			IsTabs = false;
+			document.querySelector(".tab-container-"+CurrentActiveTab).remove();
+			document.querySelector(".tab-header").style.display = "none";
+			document.querySelectorAll(".fx-tab").forEach(item => {
+				item.remove();
+			});
+			document.querySelectorAll(".explorer-container").forEach(item => {
+				item.style.marginTop = "20px";
+			});
+			tabCounter = 1;
+			let checkTab = document.querySelector(".tab-container-"+tabCounter);
+			while (checkTab == null) {
+				tabCounter++;
+				checkTab = document.querySelector(".tab-container-"+tabCounter);
+			}
+			switchToTab(tabCounter);
+			TabCount = 0;
+		}
+		else {
+			document.querySelector(".tab-container-"+CurrentActiveTab).remove();
+			document.querySelector(".fx-tab-"+CurrentActiveTab).remove();
+			let switchTabNo = document.querySelectorAll(".fx-tab").length;
+			switchToTab(switchTabNo);
+			TabCount--;
+		}
+	}
 }
 
 async function switchToTab(tabNo) {
@@ -779,7 +823,9 @@ async function switchToTab(tabNo) {
 			break;
 	}
 	let currentDir = CurrentDir.toString();
-	await invoke("switch_to_directory", {currentDir});
+	if (currentDir != null) {
+		await invoke("switch_to_directory", {currentDir});
+	}
 	document.querySelector(".current-path").textContent = CurrentDir;
 }
 
