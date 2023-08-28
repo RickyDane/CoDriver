@@ -36,8 +36,9 @@ fn main() {
               list_disks,
               open_in_terminal,
               rename_element,
-              save_config_paths
-            ])
+              save_config_paths,
+              switch_to_directory
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -132,6 +133,11 @@ async fn list_disks() -> Vec<DisksInfo> {
     return ls_disks;
 }
 
+#[tauri::command]
+async fn switch_to_directory(current_dir: String) {
+    println!("Switching to directory: {}", &current_dir);
+    set_current_dir(current_dir).unwrap();
+}
 #[tauri::command]
 async fn switch_view(view_mode: String) -> Vec<FDir> {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();

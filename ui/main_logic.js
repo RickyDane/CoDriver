@@ -19,7 +19,7 @@ let directoryCount = document.querySelector(".directory-entries-count");
 let contextMenu = document.querySelector(".context-menu");
 let copyFileName = "";
 let copyFilePath = "";
-let CurrentDir = "";
+let CurrentDir = "Disks";
 let IsShowDisks = false;
 let IsShowHiddenFiles = false;
 let IsAltDown = false;
@@ -27,7 +27,7 @@ let ConfiguredPathOne = "";
 let ConfiguredPathTwo = "";
 let ConfiguredPathThree = "";
 let IsTabs = false;
-let TabCount = 1;
+let TabCount = 0;
 let CurrentActiveTab = 1;
 let TabOnePath;
 let TabTwoPath;
@@ -142,60 +142,59 @@ document.onkeydown = (e) => {
 
 	// Check if ctrl + t is pressed to open new tab
 	if (e.ctrlKey && e.keyCode == 84) {
-		if (IsTabs == false) {
-			IsTabs = true;
-			document.querySelector(".explorer-container").style.marginTop = "60px";
-			document.querySelector(".tab-header").style.display = "flex";
-			let tab = document.createElement("div");
-			tab.className = "fx-tab fx-tab-1";
-			tab.innerHTML = `
-				<h5>Tab 1<h5>
-				<h4><i class="fa-solid fa-xmark"></i></h4>
-				`;
-			tab.addEventListener("click", () => {
-				switchToTab(1);
-			});
-			document.querySelector(".tab-header").append(tab);
+		if (TabCount < 5) {
+			let tabCounter = 1;
+			if (IsTabs == false) {
+				IsTabs = true;
+				document.querySelector(".tab-header").style.display = "flex";
+				document.querySelectorAll(".explorer-container").forEach(item => {
+					item.style.marginTop = "60px";
+				});
+				createTab(1);
+				TabCount++;
+			}
+			let checkTab = document.querySelector(".fx-tab-"+tabCounter);
+			while (checkTab != null) {
+				tabCounter++;
+				checkTab = document.querySelector(".fx-tab-"+tabCounter);
+			}
+			createTab(tabCounter);
 			TabCount++;
-			createTab(TabCount);
-			let currentTab = document.querySelector(".fx-tab-1");
-			if (currentTab != null) {
-				currentTab.children[0].innerHTML = CurrentDir.split("/")[CurrentDir.split("/").length-1];
-			}
-		}
-		else if (TabCount < 5) {
-			TabCount = 1;
-			let isAlreadyTabNo = true;
-			while (isAlreadyTabNo) {
-				if (document.querySelector(".fx-tab-"+TabCount) == null) {
-					isAlreadyTabNo = false;
-				}
-				else {
-					TabCount++;
-				}
-			}
-			createTab(TabCount);
 		}
 	}
 
 	// Remove current active tab when pressing ctrl + w
 	if (e.ctrlKey && e.keyCode == 87) {
+		console.log(TabCount, CurrentActiveTab);
 		if (IsTabs == true) {
-			document.querySelector(".tab-container-"+CurrentActiveTab).remove();
-			document.querySelector(".fx-tab-"+CurrentActiveTab).remove();
 			if (TabCount == 2) {
 				IsTabs = false;
+				document.querySelector(".tab-container-"+CurrentActiveTab).remove();
 				document.querySelector(".tab-header").style.display = "none";
-				TabCount = 1;
-				switchToTab(1);
-				document.querySelector(".explorer-container").style.marginTop = "20px";
-				return;
+				document.querySelectorAll(".fx-tab").forEach(item => {
+					item.remove();
+				});
+				document.querySelectorAll(".explorer-container").forEach(item => {
+					item.style.marginTop = "20px";
+				});
+				tabCounter = 1;
+				let checkTab = document.querySelector(".tab-container-"+tabCounter);
+				while (checkTab == null) {
+					tabCounter++;
+					checkTab = document.querySelector(".tab-container-"+tabCounter);
+				}
+				switchToTab(tabCounter);
+				TabCount = 0;
 			}
-			TabCount--;
-			console.log(CurrentActiveTab, TabCount);
+			else {
+				document.querySelector(".tab-container-"+CurrentActiveTab).remove();
+				document.querySelector(".fx-tab-"+CurrentActiveTab).remove();
+				let switchTabNo = document.querySelectorAll(".fx-tab").length;
+				switchToTab(switchTabNo);
+				TabCount--;
+			}
 		}
 	}
-
 } 
 
 document.onkeyup = (e) => {
@@ -210,6 +209,24 @@ document.onkeyup = (e) => {
 async function showItems(items) {
 	await getCurrentDir();
 	IsShowDisks = false;
+	// Check which tab is currently active and write CurrentDir to TabOnePath and so on
+	switch (CurrentActiveTab) {
+		case 1:
+			TabOnePath = CurrentDir;
+			break;
+		case 2:
+			TabTwoPath = CurrentDir;
+			break;
+		case 3:
+			TabThreePath = CurrentDir;
+			break;
+		case 4:
+			TabFourPath = CurrentDir;
+			break;
+		case 5:
+			TabFivePath = CurrentDir;
+			break;
+	}
 	window.scrollTo(0, 0);
 	document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";
 	let currentTab = document.querySelector(".fx-tab-"+CurrentActiveTab);
@@ -293,9 +310,9 @@ async function showItems(items) {
 		else {
 			itemLink.className = "item-button-list directory-entry";
 			newRow.innerHTML = `
-				<span style="display: flex; gap: 10px; align-items: center; width: 30%;">
+				<span style="display: flex; gap: 10px; align-items: center; width: 50%;">
 					<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
-					<p style="width: 30%; text-align: left;";>${item.name}</p>
+					<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
 					<p style="width: auto; text-align: right;">${item.last_modified}</p>
@@ -505,13 +522,13 @@ function createFolder(folderName) {
 	listDirectories();
 }
 
-function createFile(fileName) {
-	invoke("create_file", {fileName});
+async function createFile(fileName) {
+	await invoke("create_file", {fileName});
 	listDirectories();
 }
 
-function renameElement(path, newName) {
-	invoke("rename_element", {path, newName});
+async function renameElement(path, newName) {
+	await invoke("rename_element", {path, newName});
 	listDirectories();
 }
 
@@ -541,9 +558,6 @@ async function listDisks() {
 			directoryList.className = "directory-list";
 			directoryCount.innerHTML = "Objects: " + disks.length;
 			let currentTab = document.querySelector(".fx-tab-"+CurrentActiveTab);
-			if (currentTab != null) {
-				currentTab.children[0].innerHTML = "Disks";
-			}
 			disks.forEach(item => {
 				let itemLink = document.createElement("button");
 				itemLink.setAttribute("onclick", "openItem('"+item.name.replace('/dev/', '')+"', '"+item.path+"', '1')");
@@ -715,22 +729,25 @@ function createTab(tabCount) {
 	let tab = document.createElement("div");
 	tab.className = "fx-tab fx-tab-"+tabCount;
 	tab.innerHTML = `
-		<h5>Tab ${tabCount}<h5>
+		<h5>New tab<h5>
 		<h4><i class="fa-solid fa-xmark"></i></h4>
 		`;
 	tab.addEventListener("click", () => {
 		switchToTab(tabCount);
 	});
-	let explorerContainer = document.createElement("div");
-	explorerContainer.className = "explorer-container tab-container-"+tabCount;
-	explorerContainer.style.marginTop = "60px";
-	document.querySelector(".main-container").append(explorerContainer);
+	if (tabCount != 1 || document.querySelector(".tab-container-1") == null) {
+		let explorerContainer = document.createElement("div");
+		explorerContainer.className = "explorer-container tab-container-"+tabCount;
+		explorerContainer.style.marginTop = "60px";
+		document.querySelector(".main-container").append(explorerContainer);
+	}
 	document.querySelector(".tab-header").append(tab);
+	CurrentActiveTab = tabCount;
 	switchToTab(tabCount);
-	console.log(tabCount, CurrentActiveTab, TabCount);
+	listDisks();
 }
 
-function switchToTab(tabNo) {
+async function switchToTab(tabNo) {
 	CurrentActiveTab = tabNo;
 	document.querySelectorAll(".explorer-container").forEach(container => {
 		container.style.display = "none";
@@ -738,14 +755,32 @@ function switchToTab(tabNo) {
 	document.querySelectorAll(".fx-tab").forEach(tab => {
 		tab.classList.remove("active-tab");
 	});
-	let currentTab = document.querySelector(".fx-tab-"+tabNo);
-	if (currentTab != null) {
-		currentTab.classList.add("active-tab");
-		document.querySelector(".tab-container-"+tabNo).style.display = "block";
+	let currentTabContainer = document.querySelector(".tab-container-"+tabNo);
+	if (currentTabContainer != null) {
+		let currentTab = document.querySelector(".fx-tab-"+tabNo);
+		currentTab?.classList.add("active-tab");
+		currentTabContainer.style.display = "block";
 	}
-	else {
-		switchToTab(tabNo+1);
+	switch (CurrentActiveTab) {
+		case 1:
+			CurrentDir = TabOnePath;
+			break;
+		case 2:
+			CurrentDir = TabTwoPath;
+			break;
+		case 3:
+			CurrentDir = TabThreePath;
+			break;
+		case 4:
+			CurrentDir = TabFourPath;
+			break;
+		case 5:
+			CurrentDir = TabFivePath;
+			break;
 	}
+	let currentDir = CurrentDir.toString();
+	await invoke("switch_to_directory", {currentDir});
+	document.querySelector(".current-path").textContent = CurrentDir;
 }
 
 function formatBytes(bytes, decimals = 2) {

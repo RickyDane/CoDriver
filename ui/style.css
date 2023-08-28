@@ -160,7 +160,8 @@ body {
 
 /* Custom controls*/
 .active-tab {
-	border-bottom: 2px solid rgba(0, 0, 0, 0.5);
+	border-bottom: 3px solid rgba(0, 0, 0, 0.3);
+	background-color: rgba(0, 0, 0, 0.3);
 }
 .button {
 	padding: 10px 15px;
