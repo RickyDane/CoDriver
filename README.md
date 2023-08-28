@@ -40,6 +40,9 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - English
   - Option to choose between languages coming soon ...
 
+#### Known issues:
+- Permissions on windows are a little bit strange
+
 #### 📝 Todos:
 - Multiple languages
 - List filtering (filter by name, last modified, file size)
