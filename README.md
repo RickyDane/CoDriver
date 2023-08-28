@@ -15,7 +15,7 @@ It is operating system independent and trimmed for optimization.
 <br>
 
 The performance comes from ["rust_search"](https://crates.io/crates/rust_search) and ["Tauri"](https://tauri.app/)
-<br>So high performance is achieved purely by Rust and the speed of the disk, without path caching (which may come later).
+<br>So high performance is achieved purely by Rust, the speed of the disk and the power of the cpu, without path caching (which may come later).
 
 ### Basic features
 - Navigate through directories as you know it
@@ -36,8 +36,6 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
   - Configure the paths yourself in the settings<br><br>
   ![image](https://github.com/RickyDane/rdpFX/assets/82893522/fb1594c6-ae75-4710-bd19-c3109a62e8ad)
 
-
-
 #### Language Support
 - English
   - Option to choose between languages coming soon ...
@@ -46,11 +44,13 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - Multiple languages
 - List filtering (filter by name, last modified, file size)
 - Drag and drop
+- Tabs
+- New logo / icon
 <br>
 
 ![Bildschirmfoto 2023-08-26 um 15 16 02](https://github.com/RickyDane/rdpFX/assets/82893522/cc71a03b-9a90-4d06-904b-63a062094fdc)
 
-# Speed comparison
+## Speed comparison
 ![2023-08-27-08-14-02](https://github.com/RickyDane/rdpFX/assets/82893522/237b28a0-d667-4bea-91a9-a43cb9277c49)
 
 #
