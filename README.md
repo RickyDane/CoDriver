@@ -36,8 +36,6 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
   - Configure the paths yourself in the settings<br><br>
   ![image](https://github.com/RickyDane/rdpFX/assets/82893522/fb1594c6-ae75-4710-bd19-c3109a62e8ad)
 
-
-
 #### Language Support
 - English
   - Option to choose between languages coming soon ...
