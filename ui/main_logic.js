@@ -289,16 +289,13 @@ async function showItems(items) {
 			}
 
 		}
-		if (viewMode == "wrap") {
-			itemLink.className = "item-button directory-entry";
-			newRow.innerHTML = `
+		itemLink.className = "item-link";
+		newRow.innerHTML = `
+			<div class="item-button directory-entry">
 				<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="auto"/>
 				<p style="text-align: left;">${item.name}</p>
-				`;
-		}
-		else {
-			itemLink.className = "item-button-list directory-entry";
-			newRow.innerHTML = `
+			</div>
+			<div class="item-button-list directory-entry">
 				<span style="display: flex; gap: 10px; align-items: center; width: 50%;">
 					<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
 					<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
@@ -307,8 +304,8 @@ async function showItems(items) {
 					<p style="width: auto; text-align: right;">${item.last_modified}</p>
 					<p style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
 				</span>
-				`;
-		}
+			</div>
+			`;
 		itemLink.append(newRow)
 		directoryList.append(itemLink);
 	});
@@ -544,15 +541,12 @@ async function checkAppConfig() {
 		.then(appConfig => {
 			if (appConfig.view_mode.includes("column")) {
 				document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
-				document.querySelectorAll(".item-button").forEach(item => {
-					item.classList.add("item-button-list");
-					item.classList.remove("item-button");
-				});
 				viewMode = "column";
 				document.querySelector(".list-column-header").style.display = "flex";
 				document.querySelector(".explorer-container").style.marginTop = "45px";
 				document.querySelector(".explorer-container").style.height = "calc(100vh - 127px)";
 				document.querySelector(".explorer-container").style.paddingBottom = "10px";
+				document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
 			}
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
@@ -579,29 +573,28 @@ async function listDisks() {
 					if (item.name == "") {
 						item.name = "/";
 					}
-				if (viewMode == "wrap") {
-					itemLink.className = "item-button directory-entry disk-info-entry";
-					newRow.innerHTML = `
-						<img class="item-icon" style="margin-right: 10px;" src="${fileIcon}" width="${iconSize}" height="auto"/>
-						<div class="disk-info">
-							<span>${item.load}</span>
-							<span>${item.capacity}</span>
-						</div>
-						<p style="text-align: left;">${item.name}</p>
-						`;
+				itemLink.className = "item-link";
+				newRow.innerHTML = `
+				<div class="item-button directory-entry">
+					<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="auto"/>
+					<p style="text-align: left;">${item.name}</p>
+				</div>
+				<div class="item-button-list directory-entry">
+					<span style="display: flex; gap: 10px; align-items: center; width: 50%;">
+						<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+						<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+					</span>
+					<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
+						<p style="width: auto; text-align: right;">${item.last_modified}</p>
+						<p style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+					</span>
+				</div>
+				`;
+				if (viewMode == "column") {
+					document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
 				}
 				else {
-					itemLink.className = "item-button-list directory-entry";
-					newRow.innerHTML = `
-						<span style="display: flex; gap: 10px; align-items: center; width: 30%;">
-							<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
-							<p style="width: 30%; text-align: left;";>${item.name}</p>
-						</span>
-						<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-							<p style="width: auto; text-align: right;">${item.load} Available</p>
-							<p style="width: 75px; text-align: right;">${item.capacity}</p>
-						</span>
-						`;
+					document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "none");
 				}
 				itemLink.append(newRow)
 				directoryList.append(itemLink);
@@ -673,50 +666,53 @@ async function cancelSearch() {
 }
 
 async function switchView() {
-	let list = document.querySelector(".directory-list");
 	if (viewMode == "wrap") {
-		list.style.flexFlow = "column";
-		list.style.gap = "5px";
-		document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
-		document.querySelectorAll(".item-button").forEach(item => {
-			item.classList.add("item-button-list");
-			item.classList.remove("item-button");
+		document.querySelectorAll(".directory-list").forEach(list => {
+			list.style.flexFlow = "column";
+			list.style.gap = "5px";
 		});
+		document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+		document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
+		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "flex");
 		viewMode = "column";
 		document.querySelector(".list-column-header").style.display = "flex";
 		if (!IsTabs){ 
 			document.querySelectorAll(".explorer-container").forEach(item => {
 				item.style.marginTop = "45px";
+				item.style.height = "calc(100vh - 127px)";
 			});
 		}
 		else {
 			document.querySelectorAll(".explorer-container").forEach(item => {
 				item.style.marginTop = "85px";
+				item.style.height = "calc(100vh - 157px)";
 			});		
 		}
 	}
 	else {
-		list.style.flexFlow = "wrap";
-		list.style.gap = "0";
-		document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
-		document.querySelectorAll(".item-button-list").forEach(item => {
-			item.classList.remove("item-button-list");
-			item.classList.add("item-button");
+		document.querySelectorAll(".directory-list").forEach(list => {
+			list.style.flexFlow = "wrap";
+			list.style.gap = "0px";
 		});
+		document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
+		document.querySelectorAll(".item-button").forEach(item => item.style.display = "flex");
+		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "none");
 		viewMode = "wrap";
 		document.querySelector(".list-column-header").style.display = "none";
 		if (!IsTabs){ 
 			document.querySelectorAll(".explorer-container").forEach(item => {
 				item.style.marginTop = "20px";
+				item.style.height = "calc(100vh - 100px)";
 			});
 		}
 		else {
 			document.querySelectorAll(".explorer-container").forEach(item => {
 				item.style.marginTop = "60px";
+				item.style.height = "calc(100vh - 140px)";
 			});
 		}
 	}
-	await invoke("switch_view", {viewMode, ConfiguredPathOne, ConfiguredPathTwo, ConfiguredPathThree})
+	/*await invoke("switch_view", {viewMode, ConfiguredPathOne, ConfiguredPathTwo, ConfiguredPathThree})
 		.then(items => {
 			if (!IsShowDisks) {
 				showItems(items.filter(str => !str.name.startsWith(".")));
@@ -724,7 +720,7 @@ async function switchView() {
 			else {
 				listDisks();
 			}
-		});
+		});*/
 }
 
 function switchHiddenFiles() {
