@@ -34,6 +34,8 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - Navigate to a directory using the shortcut LAlt + 1 / 2 / 3 | (macOS option + 1 / 2 / 3)
   - Configure the paths yourself in the settings<br><br>
   ![image](https://github.com/RickyDane/rdpFX/assets/82893522/fb1594c6-ae75-4710-bd19-c3109a62e8ad)
+- Create file with LAlt + 6
+- Create folder with LAlt + 7
 
 #### Language Support
 - English
