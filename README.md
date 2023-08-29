@@ -10,8 +10,6 @@ It is operating system independent and trimmed for optimization.
 | Linux                           | ✔️        |
 | macOS (intel / apple silicon)   | ✔️        |
 | Windows                         | ✔️        |
-| FreeBSD                         | Probably? |
-| OpenBSD                         | Probably? |
 <br>
 
 The performance comes from ["rust_search"](https://crates.io/crates/rust_search) and ["Tauri"](https://tauri.app/)
@@ -24,6 +22,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - Create files and folders
 - Rename files and folders
 - Switch between "big buttons"- and list mode
+- Open and close tabs with ctrl + t / ctrl + w
 
 ### Advanced features
 - Compress files and folders
@@ -47,7 +46,6 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - Multiple languages
 - List filtering (filter by name, last modified, file size)
 - Drag and drop
-- Tabs
 - New logo / icon
 <br>
 
