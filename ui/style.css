@@ -120,6 +120,26 @@ body {
 	gap: 5px;
 	box-shadow: 0px 0px 15px 1px rgba(0, 0, 0, 0.15);
 }
+.list-column-header {
+	display: none;
+	flex-flow: row;
+	justify-content: space-between;
+	align-items: centerflex;
+	position: fixed;
+	top: 100px;
+	left: 200px;
+	width: calc(100% - 200px);
+	color: white;
+	padding: 10px 25px;
+	background-color: #2e313a;
+	z-index: 2;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+}
+.list-column-header-button {
+	background-color: transparent;
+	border: none;
+	font-weight: bold;
+}
 
 
 .fx-tab {

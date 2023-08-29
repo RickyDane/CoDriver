@@ -19,7 +19,7 @@ let directoryCount = document.querySelector(".directory-entries-count");
 let contextMenu = document.querySelector(".context-menu");
 let copyFileName = "";
 let copyFilePath = "";
-let CurrentDir = "Disks";
+let CurrentDir = "/Home";
 let IsShowDisks = false;
 let IsShowHiddenFiles = false;
 let IsAltDown = false;
@@ -148,7 +148,12 @@ document.onkeydown = (e) => {
 				IsTabs = true;
 				document.querySelector(".tab-header").style.display = "flex";
 				document.querySelectorAll(".explorer-container").forEach(item => {
-					item.style.marginTop = "60px";
+					if (viewMode == "column") {
+						item.style.marginTop = "85px";
+					}
+					else {
+						item.style.marginTop = "60px";
+					}
 				});
 				createTab(1, true);
 				TabCount++;
@@ -412,7 +417,7 @@ async function extractItem(item) {
 }
 
 function compressItem(item) {
-	message("Komprimierung gestartet.\nDas kann eine Weile dauern.\nSie werden benachrichtigt, sobald die Komprimierung abgeschlossen wurde"); 
+	message("Compressing started.\nThis can take some time.\nYou will be notified once the process is finished.");
 	let compressFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
 	let compressFileName = compressFilePath[compressFilePath.length - 1].replace("'", "");
 	if (compressFileName != "") {
@@ -544,6 +549,10 @@ async function checkAppConfig() {
 					item.classList.remove("item-button");
 				});
 				viewMode = "column";
+				document.querySelector(".list-column-header").style.display = "flex";
+				document.querySelector(".explorer-container").style.marginTop = "45px";
+				document.querySelector(".explorer-container").style.height = "calc(100vh - 127px)";
+				document.querySelector(".explorer-container").style.paddingBottom = "10px";
 			}
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
@@ -674,6 +683,17 @@ async function switchView() {
 			item.classList.remove("item-button");
 		});
 		viewMode = "column";
+		document.querySelector(".list-column-header").style.display = "flex";
+		if (!IsTabs){ 
+			document.querySelectorAll(".explorer-container").forEach(item => {
+				item.style.marginTop = "45px";
+			});
+		}
+		else {
+			document.querySelectorAll(".explorer-container").forEach(item => {
+				item.style.marginTop = "85px";
+			});		
+		}
 	}
 	else {
 		list.style.flexFlow = "wrap";
@@ -684,6 +704,17 @@ async function switchView() {
 			item.classList.add("item-button");
 		});
 		viewMode = "wrap";
+		document.querySelector(".list-column-header").style.display = "none";
+		if (!IsTabs){ 
+			document.querySelectorAll(".explorer-container").forEach(item => {
+				item.style.marginTop = "20px";
+			});
+		}
+		else {
+			document.querySelectorAll(".explorer-container").forEach(item => {
+				item.style.marginTop = "60px";
+			});
+		}
 	}
 	await invoke("switch_view", {viewMode, ConfiguredPathOne, ConfiguredPathTwo, ConfiguredPathThree})
 		.then(items => {
@@ -731,7 +762,7 @@ function createTab(tabCount, isInitial) {
 	let tab = document.createElement("div");
 	tab.className = "fx-tab fx-tab-"+tabCount;
 	if (isInitial) {
-		var tabName = CurrentDir.split("/")[CurrentDir.split("/").length - 1];
+		var tabName = CurrentDir.split("/")[CurrentDir.split("/").length - 1] ?? "Home";
 	}
 	else {
 		var tabName = "New tab";
@@ -751,27 +782,41 @@ function createTab(tabCount, isInitial) {
 	if (tabCount != 1 || document.querySelector(".tab-container-1") == null) {
 		let explorerContainer = document.createElement("div");
 		explorerContainer.className = "explorer-container tab-container-"+tabCount;
-		explorerContainer.style.marginTop = "60px";
+		if (viewMode == "wrap") {
+			explorerContainer.style.marginTop = "55px";
+			explorerContainer.style.height = "calc(100vh - 130px)";
+			explorerContainer.style.paddingBottom = "20px";
+		}
+		else {
+			explorerContainer.style.marginTop = "85px";
+			explorerContainer.style.height = "calc(100vh - 157px)";
+			explorerContainer.style.paddingBottom = "20px";
+		}
+		document.querySelector(".list-column-header").style.top = "140px";
 		document.querySelector(".main-container").append(explorerContainer);
 	}
 	document.querySelector(".tab-header").append(tab);
 	CurrentActiveTab = tabCount;
 	switchToTab(tabCount);
-	listDisks();
+	listDirectories();
 }
 
 function closeTab() {
 	if (IsTabs == true) {
 		if (TabCount == 2) {
 			IsTabs = false;
-			document.querySelector(".tab-container-"+CurrentActiveTab).remove();
 			document.querySelector(".tab-header").style.display = "none";
-			document.querySelectorAll(".fx-tab").forEach(item => {
-				item.remove();
-			});
+			document.querySelectorAll(".tab-container-"+CurrentActiveTab).forEach(item => item.remove());
+			document.querySelectorAll(".fx-tab").forEach(item => item.remove());
 			document.querySelectorAll(".explorer-container").forEach(item => {
-				item.style.marginTop = "20px";
+				if (viewMode == "wrap") {
+					item.style.marginTop = "20px";
+				}
+				else {
+					item.style.marginTop = "45px";
+				}
 			});
+			document.querySelector(".list-column-header").style.top = "100px";
 			tabCounter = 1;
 			let checkTab = document.querySelector(".tab-container-"+tabCounter);
 			while (checkTab == null) {
@@ -782,12 +827,13 @@ function closeTab() {
 			TabCount = 0;
 		}
 		else {
-			document.querySelector(".tab-container-"+CurrentActiveTab).remove();
-			document.querySelector(".fx-tab-"+CurrentActiveTab).remove();
+			document.querySelectorAll(".tab-container-"+CurrentActiveTab).forEach(item => item.remove());
+			document.querySelectorAll(".fx-tab-"+CurrentActiveTab).forEach(item => item.remove());
 			let switchTabNo = document.querySelectorAll(".fx-tab").length;
 			switchToTab(switchTabNo);
 			TabCount--;
 		}
+		console.log("CurrentActiveTab: ", CurrentActiveTab, "TabCount: ", TabCount, "CurrentDir: ", CurrentDir);
 	}
 }
 
@@ -822,7 +868,7 @@ async function switchToTab(tabNo) {
 			CurrentDir = TabFivePath;
 			break;
 	}
-	let currentDir = CurrentDir.toString();
+	let currentDir = CurrentDir?.toString();
 	if (currentDir != null) {
 		await invoke("switch_to_directory", {currentDir});
 	}
@@ -840,5 +886,5 @@ function formatBytes(bytes, decimals = 2) {
 }
 
 checkAppConfig();
-// listDirectories();
-listDisks()
+ listDirectories();
+// listDisks()
