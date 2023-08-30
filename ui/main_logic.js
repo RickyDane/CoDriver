@@ -293,7 +293,7 @@ async function showItems(items) {
 			}
 
 		}
-		itemLink.className = "item-link";
+		itemLink.className = "item-link directory-entry";
 		let itemButton = document.createElement("div");
 		itemButton.innerHTML = `
 			<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="auto"/>
