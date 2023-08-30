@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "rdpFX",
-    "version": "0.1.5-pre"
+    "version": "0.1.6"
   },
   "tauri": {
     "allowlist": {
