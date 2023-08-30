@@ -150,7 +150,7 @@ document.onkeydown = (e) => {
 				document.querySelectorAll(".explorer-container").forEach(item => {
 					if (viewMode == "column") {
 						item.style.marginTop = "85px";
-						item.style.height = "calc(100vh - 127px)";
+						item.style.height = "calc(100vh - 167px)";
 						item.style.paddingBottom = "10px";
 					}
 					else {
@@ -789,7 +789,7 @@ function createTab(tabCount, isInitial) {
 		}
 		else {
 			explorerContainer.style.marginTop = "85px";
-			explorerContainer.style.height = "calc(100vh - 157px)";
+			explorerContainer.style.height = "calc(100vh - 167px)";
 			explorerContainer.style.paddingBottom = "10px";
 		}
 		document.querySelector(".list-column-header").style.top = "140px";
