@@ -150,9 +150,13 @@ document.onkeydown = (e) => {
 				document.querySelectorAll(".explorer-container").forEach(item => {
 					if (viewMode == "column") {
 						item.style.marginTop = "85px";
+						item.style.height = "calc(100vh - 167px)";
+						item.style.paddingBottom = "12px";
 					}
 					else {
 						item.style.marginTop = "60px";
+						item.style.height = "calc(100vh - 137px)";
+						item.style.paddingBottom = "20px";
 					}
 				});
 				createTab(1, true);
@@ -780,8 +784,8 @@ function createTab(tabCount, isInitial) {
 		let explorerContainer = document.createElement("div");
 		explorerContainer.className = "explorer-container tab-container-"+tabCount;
 		if (viewMode == "wrap") {
-			explorerContainer.style.marginTop = "55px";
-			explorerContainer.style.height = "calc(100vh - 130px)";
+			explorerContainer.style.marginTop = "45px";
+			explorerContainer.style.height = "calc(100vh - 137px)";
 			explorerContainer.style.paddingBottom = "20px";
 		}
 		else {
