@@ -468,7 +468,7 @@ function createFolderInputPrompt(e = null) {
 	let nameInput = document.createElement("div");
 	nameInput.className = "newfolder-input";
 	nameInput.innerHTML = `
-		<h4>Geben Sie einen Namen für den neuen Ordner ein.</h4>
+		<h4>Type in a name for your new folder.</h4>
 		<input type="text" placeholder="Neuer Ordner" autofocus>
 	`;
 	if (e == null) {
@@ -496,7 +496,7 @@ function createFileInputPrompt(e) {
 	let nameInput = document.createElement("div");
 	nameInput.className = "newfolder-input";
 	nameInput.innerHTML = `
-		<h4>Geben Sie einen Namen für das neue Dokument ein.</h4>
+		<h4>Type in a name for your new file.</h4>
 		<input type="text" placeholder="Neues Dokument" autofocus>
 	`;
 	if (e == null) {
