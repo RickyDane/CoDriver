@@ -150,12 +150,12 @@ document.onkeydown = (e) => {
 				document.querySelectorAll(".explorer-container").forEach(item => {
 					if (viewMode == "column") {
 						item.style.marginTop = "85px";
-						item.style.height = "calc(100vh - 167px)";
-						item.style.paddingBottom = "12px";
+						item.style.height = "calc(100vh - 127px)";
+						item.style.paddingBottom = "10px";
 					}
 					else {
-						item.style.marginTop = "60px";
-						item.style.height = "calc(100vh - 137px)";
+						item.style.marginTop = "55px";
+						item.style.height = "calc(100vh - 127px)";
 						item.style.paddingBottom = "20px";
 					}
 				});
@@ -178,12 +178,12 @@ document.onkeydown = (e) => {
 	}
 
 	// New folder input prompt when alt + 7 is pressed
-	if (e.altKey && e.keyCode == 55) {
+	if (e.ctrlKey && e.keyCode == 55) {
 		createFolderInputPrompt();
 	}
 
 	// New file input prompt when alt + 6 is pressed
-	if (e.altKey && e.keyCode == 54) {
+	if (e.ctrlKey && e.keyCode == 54) {
 		createFileInputPrompt();
 	}
 } 
@@ -562,7 +562,6 @@ async function checkAppConfig() {
 				document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
 				viewMode = "column";
 				document.querySelector(".list-column-header").style.display = "flex";
-
 			}
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
@@ -784,14 +783,14 @@ function createTab(tabCount, isInitial) {
 		let explorerContainer = document.createElement("div");
 		explorerContainer.className = "explorer-container tab-container-"+tabCount;
 		if (viewMode == "wrap") {
-			explorerContainer.style.marginTop = "45px";
-			explorerContainer.style.height = "calc(100vh - 137px)";
+			explorerContainer.style.marginTop = "55px";
+			explorerContainer.style.height = "calc(100vh - 127px)";
 			explorerContainer.style.paddingBottom = "20px";
 		}
 		else {
 			explorerContainer.style.marginTop = "85px";
 			explorerContainer.style.height = "calc(100vh - 157px)";
-			explorerContainer.style.paddingBottom = "20px";
+			explorerContainer.style.paddingBottom = "10px";
 		}
 		document.querySelector(".list-column-header").style.top = "140px";
 		document.querySelector(".main-container").append(explorerContainer);
@@ -812,9 +811,13 @@ function closeTab() {
 			document.querySelectorAll(".explorer-container").forEach(item => {
 				if (viewMode == "wrap") {
 					item.style.marginTop = "20px";
+					item.style.height = "calc(100vh - 100px)";
+					item.style.paddingBottom = "20px";
 				}
 				else {
 					item.style.marginTop = "45px";
+					item.style.height = "calc(100vh - 127px)";
+					item.style.paddingBottom = "10px";
 				}
 			});
 			document.querySelector(".list-column-header").style.top = "100px";
