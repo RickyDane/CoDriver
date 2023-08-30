@@ -236,6 +236,7 @@ body {
 .item-button-list {
 	display: flex;
 	flex-flow: row;
+	justify-content: space-between;
 	background-color: rgba(0, 0, 0, 0.15);
 	border: none;
 	border-radius: 5px;
