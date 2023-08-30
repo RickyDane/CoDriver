@@ -54,14 +54,21 @@
 				<button class="site-nav-bar-button" onclick="listDisks()"><i class="fa-solid fa-hard-drive"></i> Disks</button>
 			</div>
 			<div class="tab-header"></div>
+			<div class="list-column-header">
+				<button class="list-column-header-button" style="margin-left: 20px;" onclick="sortByName()">Name</button>
+				<div style="display: flex; flex-flow: row; justify-content: flex-end;">
+					<button class="list-column-header-button" onclick="sortByDate()" style="width: 150px; text-align: center;">Last modified</button>
+					<button class="list-column-header-button" onclick="sortBySize()" style="width: 75px; text-align: center;">Size</button>
+				</div>
+			</div>
 			<div class="explorer-container tab-container-1"></div>
 		</div>
 		<div class="context-menu" style="display: none;">
 			<button class="context-item">New folder<i class="fa-solid fa-folder"></i></button>
-			<button class="context-item">Delete<i class="fa-solid fa-trash"></i></button>	
-			<button class="context-item">Unpack<i class="fa-solid fa-box-open"></i></button>	
+			<button class="context-item">Delete<i class="fa-solid fa-trash"></i></button>
+			<button class="context-item">Unpack<i class="fa-solid fa-box-open"></i></button>
 			<button class="context-item">Compress<i class="fa-solid fa-box"></i></button>
-			<button class="context-item">Copy<i class="fa-solid fa-copy"></i></button>	
+			<button class="context-item">Copy<i class="fa-solid fa-copy"></i></button>
 			<button class="context-item" onclick="pasteItem()">Paste<i class="fa-solid fa-paste"></i></button>
 			<button class="context-item">New file<i class="fa-solid fa-file"></i></button>
 			<button class="context-item">Rename<i class="fa-solid fa-file-signature"></i></button>

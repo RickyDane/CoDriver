@@ -120,6 +120,26 @@ body {
 	gap: 5px;
 	box-shadow: 0px 0px 15px 1px rgba(0, 0, 0, 0.15);
 }
+.list-column-header {
+	display: none;
+	flex-flow: row;
+	justify-content: space-between;
+	align-items: centerflex;
+	position: fixed;
+	top: 100px;
+	left: 200px;
+	width: calc(100% - 200px);
+	color: white;
+	padding: 10px 25px;
+	background-color: #2e313a;
+	z-index: 2;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+}
+.list-column-header-button {
+	background-color: transparent;
+	border: none;
+	font-weight: bold;
+}
 
 
 .fx-tab {
@@ -172,6 +192,7 @@ body {
 	cursor: pointer;
 }
 .item-button {
+	position: relative;
 	border: none;
 	background-color: rgba(0, 0, 0, 0.15);
 	border-radius: 5px;
@@ -199,10 +220,10 @@ body {
 	justify-content: center;
 	align-items: center;
 }
-.item-button > div > .item-icon {
+.item-button > .item-icon {
 	margin-bottom: 20px;
 }
-.item-button > div > p {
+.item-button > p {
 	position: absolute;
 	bottom: 0;
 	left: 0;
@@ -215,6 +236,7 @@ body {
 .item-button-list {
 	display: flex;
 	flex-flow: row;
+	justify-content: space-between;
 	background-color: rgba(0, 0, 0, 0.15);
 	border: none;
 	border-radius: 5px;
@@ -230,7 +252,7 @@ body {
 	word-wrap: normal;
 	white-space: nowrap;
 }
-.item-button-list > div > p {
+.item-button-list > p {
 	padding-right: 5px;
 	overflow: hidden;
 }
@@ -244,7 +266,7 @@ body {
 	align-items: center;
 	gap: 10px;
 }
-.item-button-list > div > .item-icon {
+.item-button-list > .item-icon {
 	height: 24px;
 	width: 24px;
 }
@@ -252,6 +274,10 @@ body {
 	width: 100%;
 	max-width: 100%;
 	overflow: hidden;
+}
+.item-link {
+	background-color: transparent;
+	border: none;
 }
 
 
