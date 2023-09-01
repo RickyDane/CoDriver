@@ -12,21 +12,22 @@
 		<div data-tauri-drag-region class="titlebar">
 			<div class="titlebar-title">
 				<p>rdpFX</p>
+				<div class="tab-header"></div>
 			</div>
 			<div class="titlebar-buttons" id="titlebar-maximize">
 				<div class="titlebar-button" id="titlebar-minimize">
-					<img src="https://api.iconify.design/mdi:window-minimize.svg" alt="minimize"/>
+					<i class="fa-solid fa-window-minimize"></i>
 				</div>
 				<div class="titlebar-button" id="titlebar-maximize">
-					<img src="https://api.iconify.design/mdi:window-maximize.svg" alt="maximize"/>
+					<i class="fa-regular fa-window-maximize"></i>
 				</div>
 				<div class="titlebar-button" id="titlebar-close">
-					<img src="https://api.iconify.design/mdi:close.svg" alt="close" />
+					<i class="fa-solid fa-xmark"></i>
 				</div>
 			</div>
 		</div>
 		<div class="header-nav">
-			<div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 50%;">
+			<div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 65%;">
 				<button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i> Back</button>
 				<p>|</p>
 				<button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
@@ -36,14 +37,13 @@
 				<p>|</p>
 				<h5 class="directory-entries-count"></h5>
 			</div>
-			<div style="width: 5%;"></div>
 			<div class="file-searchbar">
 				<input class="search-bar-input" type="text" placeholder="Searchinput"/>
 				<button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
 				<button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
 			</div>
 		</div>
-		<div class="main-container" style="display: flex; flex-flow: row; margin-top: 80px;">
+		<div class="main-container">
 			<div class="site-nav-bar">
 				<button class="site-nav-bar-button" onclick="goToDir(0)"><i class="fa-solid fa-desktop"></i> Desktop</button>
 				<button class="site-nav-bar-button" onclick="goToDir(1)"><i class="fa-solid fa-download"></i> Downloads</button>
@@ -51,13 +51,15 @@
 				<button class="site-nav-bar-button" onclick="goToDir(3)"><i class="fa-solid fa-image"></i> Pictures</button>
 				<button class="site-nav-bar-button" onclick="goToDir(4)"><i class="fa-solid fa-video"></i> Videos</button>
 				<button class="site-nav-bar-button" onclick="goToDir(5)"><i class="fa-solid fa-music"></i> Music</button>
-				<!--<button class="site-nav-bar-button" onclick="listDisks()"><i class="fa-solid fa-hard-drive"></i> Disks</button>-->
+				<button class="site-nav-bar-button" onclick="listDisks()"><i class="fa-solid fa-hard-drive"></i> Disks</button>
+				<!-- Future ftp - integration -->
+				<!--<button class="site-nav-bar-button" onclick="OpenFavFTP()"><i class="fa-solid fa-network-wired"></i> FTP</button>-->
 			</div>
-			<div class="tab-header"></div>
 			<div class="list-column-header">
 				<button class="list-column-header-button" style="margin-left: 20px;" onclick="sortByName()">Name</button>
 				<div style="display: flex; flex-flow: row; justify-content: flex-end;">
-					<button class="list-column-header-button" onclick="sortByDate()" style="width: 150px; text-align: center;">Last modified</button>
+					<button class="list-column-header-button disk-list-column-header" onclick="sortByLoad()">Available</button>
+					<button class="list-column-header-button normal-list-column-header" onclick="sortByDate()">Last modified</button>
 					<button class="list-column-header-button" onclick="sortBySize()" style="width: 75px; text-align: center;">Size</button>
 				</div>
 			</div>

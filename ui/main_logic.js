@@ -149,13 +149,12 @@ document.onkeydown = (e) => {
 				document.querySelector(".tab-header").style.display = "flex";
 				document.querySelectorAll(".explorer-container").forEach(item => {
 					if (viewMode == "column") {
-						item.style.marginTop = "85px";
-						item.style.height = "calc(100vh - 167px)";
+						item.style.marginTop = "35px";
+						item.style.height = "calc(100vh - 147px)";
 						item.style.paddingBottom = "10px";
 					}
 					else {
-						item.style.marginTop = "55px";
-						item.style.height = "calc(100vh - 127px)";
+						item.style.height = "calc(100vh - 97px)";
 						item.style.paddingBottom = "20px";
 					}
 				});
@@ -221,16 +220,21 @@ async function showItems(items) {
 	}
 	window.scrollTo(0, 0);
 	document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";
+	document.querySelector(".normal-list-column-header").style.display = "flex";
+	document.querySelector(".disk-list-column-header").style.display = "none";
 	let currentTab = document.querySelector(".fx-tab-"+CurrentActiveTab);
 	if (currentTab != null) {
 		currentTab.children[0].innerHTML = CurrentDir.split("/")[CurrentDir.split("/").length-1];
 	}
+	delete currentTab;
 	directoryList = document.createElement("div");
-	directoryList.className = "directory-list";
+	directoryList.className = "directory-list"
+	let hiddenItemsLength = items.filter(str => str.name.startsWith(".")).length;
 	if (!IsShowHiddenFiles) {
 		items = items.filter(str => !str.name.startsWith("."));
 	}
-	directoryCount.innerHTML = "Objects: " + items.length;
+	directoryCount.innerHTML = "Objects: " + items.length + " / " + hiddenItemsLength;
+	delete hiddenItemsLength;
 	let set = new Set(items);
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
@@ -293,6 +297,7 @@ async function showItems(items) {
 			}
 
 		}
+		delete items;
 		itemLink.className = "item-link directory-entry";
 		let itemButton = document.createElement("div");
 		itemButton.innerHTML = `
@@ -561,7 +566,11 @@ async function checkAppConfig() {
 			if (appConfig.view_mode.includes("column")) {
 				document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
 				viewMode = "column";
+				let firstContainer = document.querySelector(".explorer-container");
 				document.querySelector(".list-column-header").style.display = "flex";
+				firstContainer.style.marginTop = "35px";
+				firstContainer.style.height = "calc(100vh - 147px)";
+				firstContainer.style.paddingBottom = "10px";
 			}
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
@@ -573,6 +582,8 @@ async function listDisks() {
 	await invoke("list_disks")
 		.then(disks => {
 			IsShowDisks = true;
+			document.querySelector(".disk-list-column-header").style.display = "block";
+			document.querySelector(".normal-list-column-header").style.display = "none";
 			document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";
 			directoryList = document.createElement("div");
 			directoryList.className = "directory-list";
@@ -580,37 +591,41 @@ async function listDisks() {
 			let currentTab = document.querySelector(".fx-tab-"+CurrentActiveTab);
 			disks.forEach(item => {
 				let itemLink = document.createElement("button");
-				itemLink.setAttribute("onclick", "openItem('"+item.name.replace('/dev/', '')+"', '"+item.path+"', '1')");
+				itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '1')");
 				let newRow = document.createElement("div");
-				newRow.className = "directory-item-entry ";
-				let fileIcon = "resources/disk-icon.png"; // Default
-				let iconSize = "48px";
-					if (item.name == "") {
-						item.name = "/";
-					}
-				itemLink.className = "item-link";
-				newRow.innerHTML = `
-				<div class="item-button directory-entry">
-					<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="auto"/>
+				newRow.className = "directory-item-entry";
+				itemLink.className = "item-link directory-entry";
+				let itemButton = document.createElement("div");
+				if (item.name == "") {
+					item.name = "/";
+				}
+				itemButton.innerHTML = `
+					<img class="item-icon" src="resources/disk-icon.png" width="48" height="auto"/>
 					<p style="text-align: left;">${item.name}</p>
-				</div>
-				<div class="item-button-list directory-entry">
+					`;
+				itemButton.className = "item-button directory-entry";
+				let itemButtonList = document.createElement("div");
+				itemButtonList.innerHTML = `
 					<span style="display: flex; gap: 10px; align-items: center; width: 50%;">
-						<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
-						<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+					<img class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
+					<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 					</span>
 					<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-						<p style="width: auto; text-align: right;">${item.last_modified}</p>
-						<p style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+					<p style="width: auto; text-align: right;">${item.load}</p>
+					<p style="width: 75px; text-align: right;">${item.capacity}</p>
 					</span>
-				</div>
-				`;
+					`;
+				itemButtonList.className = "item-button-list directory-entry";
 				if (viewMode == "column") {
-					document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
+					itemButton.style.display = "none";
+					directoryList.style.flexFlow = "column";
 				}
 				else {
-					document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "none");
+					itemButtonList.style.display = "none";
+					directoryList.style.flexFlow = "wrap";
 				}
+				newRow.append(itemButton);
+				newRow.append(itemButtonList);
 				itemLink.append(newRow)
 				directoryList.append(itemLink);
 				document.querySelector(".current-path").textContent = "Disks/";
@@ -690,18 +705,10 @@ async function switchView() {
 		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "flex");
 		viewMode = "column";
 		document.querySelector(".list-column-header").style.display = "flex";
-		if (!IsTabs){ 
-			document.querySelectorAll(".explorer-container").forEach(item => {
-				item.style.marginTop = "45px";
-				item.style.height = "calc(100vh - 127px)";
-			});
-		}
-		else {
-			document.querySelectorAll(".explorer-container").forEach(item => {
-				item.style.marginTop = "85px";
-				item.style.height = "calc(100vh - 157px)";
-			});		
-		}
+		document.querySelectorAll(".explorer-container").forEach(item => {
+			item.style.marginTop = "35px";
+			item.style.height = "calc(100vh - 137px)";
+		});		
 	}
 	else {
 		document.querySelectorAll(".directory-list").forEach(list => {
@@ -712,19 +719,12 @@ async function switchView() {
 		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "none");
 		viewMode = "wrap";
 		document.querySelector(".list-column-header").style.display = "none";
-		if (!IsTabs){ 
-			document.querySelectorAll(".explorer-container").forEach(item => {
-				item.style.marginTop = "20px";
-				item.style.height = "calc(100vh - 100px)";
-			});
-		}
-		else {
-			document.querySelectorAll(".explorer-container").forEach(item => {
-				item.style.marginTop = "60px";
-				item.style.height = "calc(100vh - 140px)";
-			});
-		}
+		document.querySelectorAll(".explorer-container").forEach(item => {
+			item.style.height = "calc(100vh - 100px)";
+			item.style.marginTop = "0";
+		});
 	}
+	await invoke("switch_view", {viewMode});
 }
 
 function switchHiddenFiles() {
@@ -744,14 +744,11 @@ function openSettings() {
 }
 
 async function saveConfigPaths() {
-	configuredPathOne = document.querySelector(".configured-path-one-input").value;
-	configuredPathTwo = document.querySelector(".configured-path-two-input").value;
-	configuredPathThree = document.querySelector(".configured-path-three-input").value;
+	ConfiguredPathOne = configuredPathOne = document.querySelector(".configured-path-one-input").value;
+	ConfiguredPathTwo = configuredPathTwo = document.querySelector(".configured-path-two-input").value;
+	ConfiguredPathThree = configuredPathThree = document.querySelector(".configured-path-three-input").value;
+	closeSettings();
 	await invoke("save_config_paths", {configuredPathOne, configuredPathTwo, configuredPathThree})
-		.then(() => {
-			checkAppConfig();
-			closeSettings();
-	  	});
 }
 
 function closeSettings() {
@@ -768,8 +765,8 @@ function createTab(tabCount, isInitial) {
 		var tabName = "New tab";
 	}
 	tab.innerHTML = `
-		<h5>${tabName}<h5>
-		<h4><i class="fa-solid fa-xmark"></i></h4>
+		<p>${tabName}<p>
+		<p><i class="fa-solid fa-xmark close-tab-button"></i></p>
 		`;
 	tab.addEventListener("click", () => {
 		switchToTab(tabCount);
@@ -783,16 +780,14 @@ function createTab(tabCount, isInitial) {
 		let explorerContainer = document.createElement("div");
 		explorerContainer.className = "explorer-container tab-container-"+tabCount;
 		if (viewMode == "wrap") {
-			explorerContainer.style.marginTop = "55px";
-			explorerContainer.style.height = "calc(100vh - 127px)";
+			explorerContainer.style.height = "calc(100vh - 100px)";
 			explorerContainer.style.paddingBottom = "20px";
 		}
 		else {
-			explorerContainer.style.marginTop = "85px";
-			explorerContainer.style.height = "calc(100vh - 167px)";
+			explorerContainer.style.marginTop = "35px";
+			explorerContainer.style.height = "calc(100vh - 147px)";
 			explorerContainer.style.paddingBottom = "10px";
 		}
-		document.querySelector(".list-column-header").style.top = "140px";
 		document.querySelector(".main-container").append(explorerContainer);
 	}
 	document.querySelector(".tab-header").append(tab);
@@ -810,17 +805,15 @@ function closeTab() {
 			document.querySelectorAll(".fx-tab").forEach(item => item.remove());
 			document.querySelectorAll(".explorer-container").forEach(item => {
 				if (viewMode == "wrap") {
-					item.style.marginTop = "20px";
 					item.style.height = "calc(100vh - 100px)";
 					item.style.paddingBottom = "20px";
 				}
 				else {
-					item.style.marginTop = "45px";
-					item.style.height = "calc(100vh - 127px)";
+					item.style.marginTop = "35px";
+					item.style.height = "calc(100vh - 137px)";
 					item.style.paddingBottom = "10px";
 				}
 			});
-			document.querySelector(".list-column-header").style.top = "100px";
 			tabCounter = 1;
 			let checkTab = document.querySelector(".tab-container-"+tabCounter);
 			while (checkTab == null) {
@@ -889,8 +882,6 @@ function formatBytes(bytes, decimals = 2) {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-(async () => {
-	await listDirectories();
-	await checkAppConfig();
-});
+listDirectories();
+checkAppConfig();
 // listDisks()

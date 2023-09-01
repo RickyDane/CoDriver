@@ -5,7 +5,7 @@
 	color: white;
 	font-family: sans-serif;
 	font-display: swap;
-	user-select: none;
+	user-select: none !important;
 	outline: none;
 }
 
@@ -18,13 +18,19 @@ body {
 	outline: none;
 }
 .explorer-container {
-	margin: 20px 5px 0 calc(200px + 20px);
+	margin: 0 5px 0 calc(200px + 20px);
 	padding: 20px 20px 20px 0;
 	width: 100%;
-	height: calc(100vh - 100px);
+	height: calc(100vh - 110px);
 	max-width: 100%;
 	overflow: auto;
 	position: relative;
+	user-select: none;
+}
+.main-container {
+	margin-top: 110px;
+	display: flex;
+	flex-flow: row;
 }
 .header-nav {
 	display: flex;
@@ -33,7 +39,7 @@ body {
 	align-items: center;
 	gap: 10px;
 	position: fixed;
-	top: 40px;
+	top: 50px;
 	background-color: #363945;
 	width: 100%;
 	height: 60px;
@@ -44,7 +50,7 @@ body {
 .site-nav-bar {
 	background-color: #363945;
 	position: fixed;
-	top: 100px;
+	top: 110px;
 	left: 0;
 	bottom: 0;
 	width: 200px;
@@ -57,7 +63,7 @@ body {
 	gap: 5px;
 }
 .titlebar {
-	height: 40px;
+	height: 50px;
 	padding: 0 10px;
 	background: #2e313b;
 	user-select: none;
@@ -79,17 +85,24 @@ body {
 	width: 30px;
 	height: 30px;
 	cursor: pointer;
-	filter: invert(100);
 	border-radius: 15px;
 	transition: 0.2s;
+	background-color: #363945;
+	font-size: small;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.05);
 }
 .titlebar-button:hover {
-	background: #5bbec3;
+	background-color: rgb(20, 20, 20);
 }
 .titlebar-title {
 	font-size: 12px;
 	font-weight: 0;
 	font-style: italic;
+	display: flex;
+	flex-flow: row;
+	align-items: center;
+	gap: 20px;
+	padding-left: 10px;
 }
 .settings-ui {
 	display: none;
@@ -111,12 +124,6 @@ body {
 	display: none;
 	flex-flow: row;
 	justify-content: flex-start;
-	position: fixed;
-	left: 200px;
-	top: 100px;
-	width: calc(100% - 200px);
-	height: 40px;
-	padding: 5px;
 	gap: 5px;
 	box-shadow: 0px 0px 15px 1px rgba(0, 0, 0, 0.15);
 }
@@ -124,13 +131,13 @@ body {
 	display: none;
 	flex-flow: row;
 	justify-content: space-between;
-	align-items: centerflex;
+	align-items: center;
 	position: fixed;
-	top: 100px;
+	top: 110px;
 	left: 200px;
 	width: calc(100% - 200px);
 	color: white;
-	padding: 10px 25px;
+	padding: 10px;
 	background-color: #2e313a;
 	z-index: 2;
 	border-bottom: 1px solid rgba(0, 0, 0, 0.15);
@@ -139,21 +146,54 @@ body {
 	background-color: transparent;
 	border: none;
 	font-weight: bold;
+	min-width: 110px;
+}
+.disk-list-column-header {
+	display: none;
+	text-align: right !important;
+}
+.normal-list-column-header {
+	text-align: right !important;
 }
 
 
 .fx-tab {
-	width: 100%;
-	background: rgba(0, 0, 0, 0.2);
-	padding: 5px 10px;
+	position: relative;
+	width: 150px;
+	height: 40px;
+	background-color: #2e313a;
+	padding: 10px 15px;
 	border-radius: 5px;
 	cursor: pointer;
 	display: flex;
 	flex-flow: row;
 	justify-content: space-between;
+	align-items: center;
+	font-style: normal;
+	font-size: small;
+	padding-right: 30px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	border: 1px solid #363945;
 }
 .fx-tab:hover {
 	background: rgba(0, 0, 0, 0.3);
+}
+.active-tab {
+	background-color: #363945;
+	font-weight: bolder;
+}
+.fx-tab > p {
+	max-width: calc(100% - 10px);
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.close-tab-button {
+	position: absolute;
+	right: 20px;
+	top: 0;
+	bottom: 0;
+	margin: auto;
 }
 
 
@@ -179,10 +219,6 @@ body {
 
 
 /* Custom controls*/
-.active-tab {
-	border-bottom: 3px solid rgba(0, 0, 0, 0.3);
-	background-color: rgba(0, 0, 0, 0.3);
-}
 .button {
 	padding: 10px 15px;
 	color: white;
@@ -336,7 +372,7 @@ body {
 .file-searchbar > input {
 	width: 100%;
 	padding: 10px 15px;
-	background-color: #282b34;
+	background-color: #2e313b;
 	border-radius: 5px;
 	border: none;
 	z-index: 3;
@@ -346,7 +382,7 @@ body {
 	margin-left: -2px;
 	padding: 10px 10px 10px 12px;
 	border: none;
-	background-color: #282b34;
+	background-color: #2e313b;
 	cursor: pointer;
 	z-index: 2;
 }
