@@ -363,6 +363,7 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             .search_input(file_name.strip_suffix(&file_ext).unwrap())
             .ignore_case( )
             .ext(&file_ext)
+            .hidden()
             .build()
             .collect();
     }
@@ -371,6 +372,7 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             .location(current_dir().unwrap())
             .search_input(file_name)
             .ignore_case()
+            .hidden()
             .build()
             .collect();
     }
