@@ -400,11 +400,10 @@ async function getCurrentDir() {
 async function deleteItem(item) {
 	let fromPath = item.getAttribute("onclick").split(",")[1].trim().split("/");
 	let actFileName = fromPath[fromPath.length - 1].replace("'", "");
-	let isConfirm = await confirm("Wollen Sie "+actFileName+" wirklich löschen?");
+	let isConfirm = confirm("Wollen Sie "+actFileName+" wirklich löschen?");
 	if (isConfirm) {
 		await invoke("delete_item", {actFileName})
 			.then(items => {
-				let temp_item = item.getAttribute("onclick").split(",")[1].trim().split("/");
 				contextMenu.style.display = "none";
 				showItems(items.filter(str => !str.name.startsWith(".")));
 			});
@@ -421,7 +420,7 @@ function copyItem(item) {
 async function extractItem(item) {
 	let compressFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
-	let isExtracting = await confirm("wollen sie " + compressFileName + " wirklich entpacken?");
+	let isExtracting = confirm("wollen sie " + compressFileName + " wirklich entpacken?");
 	if (isExtracting) {
 		let extractFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
 		let extractFileName = extractFilePath[extractFilePath.length - 1].replace("'", "");
@@ -744,9 +743,9 @@ function openSettings() {
 }
 
 async function saveConfigPaths() {
-	ConfiguredPathOne = configuredPathOne = document.querySelector(".configured-path-one-input").value;
-	ConfiguredPathTwo = configuredPathTwo = document.querySelector(".configured-path-two-input").value;
-	ConfiguredPathThree = configuredPathThree = document.querySelector(".configured-path-three-input").value;
+	let configuredPathOne = ConfiguredPathOne = document.querySelector(".configured-path-one-input").value;
+	let configuredPathTwo = ConfiguredPathTwo = document.querySelector(".configured-path-two-input").value;
+	let configuredPathThree = ConfiguredPathThree = document.querySelector(".configured-path-three-input").value;
 	closeSettings();
 	await invoke("save_config_paths", {configuredPathOne, configuredPathTwo, configuredPathThree})
 }
@@ -766,15 +765,10 @@ function createTab(tabCount, isInitial) {
 	}
 	tab.innerHTML = `
 		<p>${tabName}<p>
-		<button class="close-tab-button"><i class="fa-solid fa-xmark"></i></button>
+		<button class="close-tab-button" onclick="closeTab()"><i class="fa-solid fa-xmark"></i></button>
 		`;
-	tab.addEventListener("click", () => {
+	tab.children[0].addEventListener("click", () => {
 		switchToTab(tabCount);
-	});
-	tab.children[1].addEventListener("click", () => {
-		console.log(tabCount);
-		switchToTab(tabCount);
-		closeTab();
 	});
 	if (tabCount != 1 || document.querySelector(".tab-container-1") == null) {
 		let explorerContainer = document.createElement("div");
@@ -814,7 +808,7 @@ function closeTab() {
 					item.style.paddingBottom = "10px";
 				}
 			});
-			tabCounter = 1;
+			let tabCounter = 1;
 			let checkTab = document.querySelector(".tab-container-"+tabCounter);
 			while (checkTab == null) {
 				tabCounter++;

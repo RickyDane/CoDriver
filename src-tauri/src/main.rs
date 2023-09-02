@@ -265,16 +265,19 @@ async fn go_back() -> Vec<FDir> {
 #[tauri::command]
 fn go_to_dir(directory: u8) -> Vec<FDir> {
     let wanted_directory = match directory {
-        0 => set_current_dir(desktop_dir().unwrap()),
-        1 => set_current_dir(download_dir().unwrap()),
-        2 => set_current_dir(document_dir().unwrap()),
-        3 => set_current_dir(picture_dir().unwrap()),
-        4 => set_current_dir(video_dir().unwrap()),
-        5 => set_current_dir(audio_dir().unwrap()),
+        0 => set_current_dir(desktop_dir().unwrap_or_default()),
+        1 => set_current_dir(download_dir().unwrap_or_default()),
+        2 => set_current_dir(document_dir().unwrap_or_default()),
+        3 => set_current_dir(picture_dir().unwrap_or_default()),
+        4 => set_current_dir(video_dir().unwrap_or_default()),
+        5 => set_current_dir(audio_dir().unwrap_or_default()),
         _ => set_current_dir(current_dir().unwrap()) 
     };
     if wanted_directory.is_err() {
         println!("Not a valid directory");
+    }
+    else {
+        println!("{:?}", current_dir().unwrap());
     }
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
