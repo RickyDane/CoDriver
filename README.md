@@ -33,7 +33,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
   - 7zip
 - Navigate to a directory using the shortcut LAlt + 1 / 2 / 3 | (macOS option + 1 / 2 / 3)
   - Configure the paths yourself in the settings<br><br>
-  ![image](https://github.com/RickyDane/rdpFX/assets/82893522/fb1594c6-ae75-4710-bd19-c3109a62e8ad)
+  ![image](https://github.com/RickyDane/rdpFX/assets/82893522/37a3390a-0648-4300-a44c-14cbb4d77b0c)
 - Create file with Ctrl + 6
 - Create folder with Ctrl + 7
 
@@ -55,7 +55,8 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - Favorites
 <br>
 
-![Bildschirmfoto 2023-08-26 um 15 16 02](https://github.com/RickyDane/rdpFX/assets/82893522/cc71a03b-9a90-4d06-904b-63a062094fdc)
+![image](https://github.com/RickyDane/rdpFX/assets/82893522/f86024a6-47e3-42ee-9a49-75459aa75247)
+
 
 ## Speed comparison
 ![2023-08-27-08-14-02](https://github.com/RickyDane/rdpFX/assets/82893522/237b28a0-d667-4bea-91a9-a43cb9277c49)
