@@ -40,4 +40,4 @@ jobs:
           prerelease: false
       - name: Notifying the lord
         run:
-          curl -H ta:tada -d "Publish of binaries finished" http://daneserver.hoptop.org:5234/rdpfx-published
+          curl -H ta:tada -d "Publish of binaries finished" http://daneserver.hopto.org:5234/rdpfx-published
