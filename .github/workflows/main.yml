@@ -38,3 +38,6 @@ jobs:
           releaseBody: '# Updates'
           releaseDraft: true
           prerelease: false
+      - name: Notifying the lord
+        run:
+          curl -d "Publish of binaries finished" http://daneserver.hoptop.org:5234/rdpfx-published
