@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-20.04, windows-latest]
+        platform: [self-hosted, ubuntu-20.04, windows-latest]
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -37,7 +37,6 @@ jobs:
           releaseName: 'rdpFX v__VERSION__'
           releaseBody: '# Updates'
           releaseDraft: true
-          prerelease: false
-      - name: Notifying the lord
-        run:
-          curl -H ta:tada -d "Publish of binaries finished" http://daneserver.hopto.org:5234/rdpfx-published
+          prerelease: false  
+      - name: Notifying
+        run: curl -H ta:tada -d "Publish of binaries finished" http://daneserver.hopto.org:5234/rdpfx-published
