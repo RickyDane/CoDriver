@@ -125,7 +125,6 @@ body {
 	flex-flow: row;
 	justify-content: flex-start;
 	gap: 5px;
-	box-shadow: 0px 0px 15px 1px rgba(0, 0, 0, 0.15);
 }
 .list-column-header {
 	display: none;
@@ -162,7 +161,7 @@ body {
 	width: 150px;
 	height: 40px;
 	background-color: #2e313a;
-	padding: 10px 15px;
+	padding: 5px 5px 5px 15px;
 	border-radius: 5px;
 	cursor: pointer;
 	display: flex;
@@ -171,7 +170,6 @@ body {
 	align-items: center;
 	font-style: normal;
 	font-size: small;
-	padding-right: 30px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	border: 1px solid #363945;
@@ -182,6 +180,7 @@ body {
 .active-tab {
 	background-color: #363945;
 	font-weight: bolder;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
 }
 .fx-tab > p {
 	max-width: calc(100% - 10px);
@@ -189,11 +188,16 @@ body {
 	text-overflow: ellipsis;
 }
 .close-tab-button {
-	position: absolute;
-	right: 20px;
-	top: 0;
-	bottom: 0;
-	margin: auto;
+	height: 30px;
+	width: 30px;
+	border: none;
+	background-color: transparent;
+	cursor: pointer;
+	border-radius: 5px;
+	transition: 0.2s ease;
+}
+.close-tab-button:hover {
+	background: rgba(0, 0, 0, 0.2);
 }
 
 
