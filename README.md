@@ -17,10 +17,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 
 ### Basic features
 - Navigate through directories as you know it
-- Copy & Paste files and folders
-- Delete files and folders
-- Create files and folders
-- Rename files and folders
+- Copy & Paste, delete, create and rename files and folders
 - Switch between "big buttons"- and list mode
 - Open and close tabs with ctrl + t / ctrl + w
 
