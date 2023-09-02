@@ -766,7 +766,7 @@ function createTab(tabCount, isInitial) {
 	}
 	tab.innerHTML = `
 		<p>${tabName}<p>
-		<p><i class="fa-solid fa-xmark close-tab-button"></i></p>
+		<button class="close-tab-button"><i class="fa-solid fa-xmark"></i></button>
 		`;
 	tab.addEventListener("click", () => {
 		switchToTab(tabCount);
