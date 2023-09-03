@@ -764,7 +764,7 @@ function createTab(tabCount, isInitial) {
 		var tabName = "New tab";
 	}
 	tab.innerHTML = `
-		<p>${tabName}<p>
+		<p>${tabName}</p>
 		<button class="close-tab-button" onclick="closeTab()"><i class="fa-solid fa-xmark"></i></button>
 		`;
 	tab.children[0].addEventListener("click", () => {
