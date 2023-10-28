@@ -400,8 +400,8 @@ async function getCurrentDir() {
 async function deleteItem(item) {
 	let fromPath = item.getAttribute("onclick").split(",")[1].trim().split("/");
 	let actFileName = fromPath[fromPath.length - 1].replace("'", "");
-	let isConfirm = confirm("Wollen Sie "+actFileName+" wirklich löschen?");
-	if (isConfirm) {
+	let isConfirm = await confirm("Do you really want to delete "+actFileName+"?");
+	if (isConfirm == true) {
 		await invoke("delete_item", {actFileName})
 			.then(items => {
 				contextMenu.style.display = "none";
@@ -420,8 +420,8 @@ function copyItem(item) {
 async function extractItem(item) {
 	let compressFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
-	let isExtracting = confirm("wollen sie " + compressFileName + " wirklich entpacken?");
-	if (isExtracting) {
+	let isExtracting = await confirm("Do you want to unpack " + compressFileName + "?");
+	if (isExtracting == true) {
 		let extractFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
 		let extractFileName = extractFilePath[extractFilePath.length - 1].replace("'", "");
 		if (extractFileName != "") {
@@ -429,7 +429,7 @@ async function extractItem(item) {
 			invoke("extract_item", {fromPath})
 				.then(items => {
 					showItems(items.filter(str => !str.name.startsWith(".")));
-					message("Entpacken erfolgreich");
+					message("Unpack complete");
 				});
 		}
 	}
@@ -473,7 +473,7 @@ function createFolderInputPrompt(e = null) {
 	nameInput.className = "newfolder-input";
 	nameInput.innerHTML = `
 		<h4>Type in a name for your new folder.</h4>
-		<input type="text" placeholder="Neuer Ordner" autofocus>
+		<input type="text" placeholder="New folder" autofocus>
 	`;
 	if (e == null) {
 		nameInput.style.left = "50%"; 
@@ -501,7 +501,7 @@ function createFileInputPrompt(e) {
 	nameInput.className = "newfolder-input";
 	nameInput.innerHTML = `
 		<h4>Type in a name for your new file.</h4>
-		<input type="text" placeholder="Neues Dokument" autofocus>
+		<input type="text" placeholder="New document" autofocus>
 	`;
 	if (e == null) {
 		nameInput.style.left = "50%"; 
@@ -773,7 +773,7 @@ function createTab(tabCount, isInitial) {
 		<p>${tabName}</p>
 		<button class="close-tab-button" onclick="closeTab()"><i class="fa-solid fa-xmark"></i></button>
 		`;
-	tab.children[0].addEventListener("click", () => {
+	tab.addEventListener("click", () => {
 		switchToTab(tabCount);
 	});
 	if (tabCount != 1 || document.querySelector(".tab-container-1") == null) {
