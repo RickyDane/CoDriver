@@ -11,7 +11,6 @@
 	<body>
 		<div data-tauri-drag-region class="titlebar">
 			<div class="titlebar-title">
-				<p>rdpFX</p>
 				<div class="tab-header"></div>
 			</div>
 			<div class="titlebar-buttons" id="titlebar-maximize">
@@ -82,14 +81,16 @@
 			</div>
 			<br>
 			<div class="settings-ui-body">
-				<h4>Configured path 1</h4>
+				<p>Configure up to 3 paths to switch to in an instant</p>
 				<input type="text" class="settings-ui-input configured-path-one-input" placeholder="/home/user" />
-				<h4>Configured path 2</h4>
 				<input type="text" class="settings-ui-input configured-path-two-input" placeholder="/home/user/folder1" />
-				<h4>Configured path 3</h4>
 				<input type="text" class="settings-ui-input configured-path-three-input" placeholder="/home/user/folder2" />
+				<input type="checkbox" class="settings-ui-checkbox" value="false" /> 
 			</div>
-			<button class="button" onclick="saveConfigPaths()">Save</button>
+			<span class="settings-ui-body-buttons">
+				<button class="button" onclick="closeSettings()">Cancel</button>
+				<button class="button" onclick="saveConfigPaths()">Save</button>
+			</span>
 		</div>
 		<div class="current-path">...</div>
 	</body>

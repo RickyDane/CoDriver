@@ -599,7 +599,13 @@ async function listDisks() {
 					item.name = "/";
 				}
 				itemButton.innerHTML = `
-					<img class="item-icon" src="resources/disk-icon.png" width="48" height="auto"/>
+					<span class="disk-item-button">
+						<img class="item-icon" src="resources/disk-icon.png" width="48" height="auto"/>
+						<span>
+							<span style="display: flex; gap: 10px; align-items: center;">${item.load}</span>
+							<span style="display: flex; gap: 10px; align-items: center;">${item.capacity}</span>
+						</span>
+					</span>
 					<p style="text-align: left;">${item.name}</p>
 					`;
 				itemButton.className = "item-button directory-entry";
@@ -876,6 +882,6 @@ function formatBytes(bytes, decimals = 2) {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-listDirectories();
+// listDirectories();
 checkAppConfig();
-// listDisks()
+listDisks()
