@@ -36,7 +36,7 @@ fn main() {
               list_disks,
               open_in_terminal,
               rename_element,
-              save_config_paths,
+              save_config,
               switch_to_directory
         ])
         .run(tauri::generate_context!())
@@ -59,7 +59,8 @@ struct AppConfig {
     last_modified: String,
     configured_path_one: String,
     configured_path_two: String,
-    configured_path_three: String
+    configured_path_three: String,
+    is_open_in_terminal: String
 }
 
 #[tauri::command]
@@ -72,7 +73,8 @@ async fn check_app_config() -> AppConfig {
             last_modified: chrono::offset::Local::now().to_string(),
             configured_path_one: "".to_string(), 
             configured_path_two: "".to_string(),
-            configured_path_three: "".to_string()
+            configured_path_three: "".to_string(),
+            is_open_in_terminal: "0".to_string()
         };
         let _ = serde_json::to_writer_pretty(File::create(config_dir().unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     }
@@ -85,7 +87,8 @@ async fn check_app_config() -> AppConfig {
         last_modified: app_config["last_modified"].to_string(),
         configured_path_one: app_config["configured_path_one"].to_string().replace('"', ""),
         configured_path_two: app_config["configured_path_two"].to_string().replace('"', ""),
-        configured_path_three: app_config["configured_path_three"].to_string().replace('"', "")
+        configured_path_three: app_config["configured_path_three"].to_string().replace('"', ""),
+        is_open_in_terminal: app_config["is_open_in_terminal"].to_string()
     };
 }
 
@@ -149,7 +152,8 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         last_modified: chrono::offset::Local::now().to_string(),
         configured_path_one: app_config["configured_path_one"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         configured_path_two: app_config["configured_path_two"].to_string().replace('"', "").replace("\\", "/").trim().to_string(), 
-        configured_path_three: app_config["configured_path_three"].to_string().replace('"', "").replace("\\", "/").trim().to_string()
+        configured_path_three: app_config["configured_path_three"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
+        is_open_in_terminal: app_config["is_open_in_terminal"].to_string().replace('"', "").replace("\\", "/").trim().to_string()
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     return list_dirs().await;
@@ -563,7 +567,7 @@ async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn save_config_paths(configured_path_one: String, configured_path_two: String, configured_path_three: String) {
+async fn save_config(configured_path_one: String, configured_path_two: String, configured_path_three: String, is_open_in_terminal: String) {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
@@ -572,7 +576,8 @@ async fn save_config_paths(configured_path_one: String, configured_path_two: Str
         last_modified: chrono::offset::Local::now().to_string(),
         configured_path_one: configured_path_one.replace("\\", "/"),
         configured_path_two: configured_path_two.replace("\\", "/"), 
-        configured_path_three: configured_path_three.replace("\\", "/") 
+        configured_path_three: configured_path_three.replace("\\", "/"),
+        is_open_in_terminal: is_open_in_terminal.replace("\\", ""),
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
 }

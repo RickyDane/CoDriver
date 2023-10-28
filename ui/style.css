@@ -212,6 +212,12 @@ body {
 	gap: 10px;
 	justify-content: flex-end;
 }
+.settings-ui-body-buttons > button {
+	display: flex;
+	flex-flow: row;
+	align-items: center;
+	gap: 10px;
+}
 .settings-ui > button {
 	float: right;
 	margin-top: 20px;

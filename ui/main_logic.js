@@ -101,7 +101,6 @@ document.addEventListener("contextmenu", (e) => {
 	}
 	contextMenu.children[0].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
 	contextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
-	// contextMenu.children[7].addEventListener("click", function() { openInTerminal(); }, {once: true});
 
 	if (copyFilePath == "") {
 		contextMenu.children[5].setAttribute("disabled", "true");
@@ -571,6 +570,16 @@ async function checkAppConfig() {
 				firstContainer.style.height = "calc(100vh - 147px)";
 				firstContainer.style.paddingBottom = "10px";
 			}
+
+			if (appConfig.is_open_in_terminal.includes("1")) {
+				document.querySelector(".openin-terminal-checkbox").checked = true;
+				document.querySelector(".context-open-in-terminal").style.display = "flex";
+			}
+			else {
+				document.querySelector(".openin-terminal-checkbox").checked = false;
+				document.querySelector(".context-open-in-terminal").style.display = "none";
+			}
+
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
 			document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
@@ -682,6 +691,7 @@ async function goToDir(directory) {
 
 async function openInTerminal() {
 	await invoke("open_in_terminal");
+	contextMenu.style.display = "none";
 }
 
 async function searchFor() {
@@ -748,12 +758,21 @@ function openSettings() {
 	document.querySelector(".settings-ui").style.display = "block";
 }
 
-async function saveConfigPaths() {
+async function saveConfig() {
 	let configuredPathOne = ConfiguredPathOne = document.querySelector(".configured-path-one-input").value;
 	let configuredPathTwo = ConfiguredPathTwo = document.querySelector(".configured-path-two-input").value;
 	let configuredPathThree = ConfiguredPathThree = document.querySelector(".configured-path-three-input").value;
+	let isOpenInTerminal = document.querySelector(".openin-terminal-checkbox").checked;
 	closeSettings();
-	await invoke("save_config_paths", {configuredPathOne, configuredPathTwo, configuredPathThree})
+	// check if isOpenInTerminal is true and make it to string
+	if (isOpenInTerminal == true) {
+		isOpenInTerminal = "1";
+	}
+	else {
+		isOpenInTerminal = "0";
+	}
+	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal});
+	checkAppConfig();
 }
 
 function closeSettings() {
