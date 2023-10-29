@@ -919,12 +919,18 @@ function goDown() {
 function goToOtherPane() {
 	if (SelectedItemPaneSide == "left") {
 		SelectedItemPaneSide = "right";
+		document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+		document.querySelector(".dual-pane-left").style.boxShadow = "none";
 	}
 	else if (SelectedItemPaneSide == "right") {
 		SelectedItemPaneSide = "left";
+		document.querySelector(".dual-pane-right").style.boxShadow = "none";
+		document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
 	}
 	else {
 		SelectedItemPaneSide = "left";
+		document.querySelector(".dual-pane-right").style.boxShadow = "none";
+		document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
 	}
 	goUp();
 }
@@ -1011,6 +1017,7 @@ async function switchToDualPane() {
 		}
 		viewMode = "column";
 		IsDualPaneEnabled = true;
+		document.querySelector(".file-searchbar").style.display = "none";
 		document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
 		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "flex");
 		document.querySelector(".non-dual-pane-container").style.display = "none";
@@ -1027,6 +1034,7 @@ async function switchToDualPane() {
 		IsTabsEnabled = true;
 		IsDualPaneEnabled = false;
 		viewMode = "wrap";
+		document.querySelector(".file-searchbar").style.display = "flex";
 		document.querySelectorAll(".item-button").forEach(item => item.style.display = "flex");
 		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "none");
 		document.querySelector(".non-dual-pane-container").style.display = "block";
