@@ -33,6 +33,7 @@
 				<button onclick="switchView()" class="header-nav-button switch-view-button"><i class="fa-solid fa-list"></i></button>
 				<button onclick="switchHiddenFiles()" class="header-nav-button switch-hidden-files-button"><i class="fa-solid fa-eye-slash"></i></button>
 				<button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
+				<button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i class="fa-solid fa-table-columns"></i></button>
 				<p>|</p>
 				<h5 class="directory-entries-count"></h5>
 			</div>
@@ -62,7 +63,11 @@
 					<button class="list-column-header-button" onclick="sortBySize()" style="width: 75px; text-align: center;">Size</button>
 				</div>
 			</div>
-			<div class="explorer-container tab-container-1"></div>
+			<div class="explorer-container tab-container-1 non-dual-pane-container"></div>
+			<div class="dual-pane-container">
+				<div class="dual-pane-left"></div>
+				<div class="dual-pane-right"></div>
+			</div>
 		</div>
 		<div class="context-menu" style="display: none;">
 			<button class="context-item">New folder<i class="fa-solid fa-folder"></i></button>
@@ -90,6 +95,10 @@
 				<span style="display: flex; gap: 10px; margin-top: 5px;">
 					<input id="open-in-terminal-checkbox" type="checkbox" class="settings-ui-checkbox openin-terminal-checkbox" />
 					<label for="open-in-terminal-checkbox">Enable "Open in terminal" (Experimental)</p>
+				</span>
+				<span style="display: flex; gap: 10px; margin-top: 5px;">
+					<input id="show-dual-pane" type="checkbox" class="settings-ui-checkbox show-dual-pane-checkbox" />
+					<label for="show-dual-pane">Enable "Dual pane" view (Experimental)</p>
 				</span>
 			</div>
 			<br><br>

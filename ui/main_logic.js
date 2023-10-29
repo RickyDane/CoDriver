@@ -34,6 +34,10 @@ let TabTwoPath;
 let TabThreePath;
 let TabFourPath;
 let TabFivePath;
+let IsTabsEnabled = true;
+let IsDualPaneEnabled = false;
+let LeftDualPanePath = "";
+let RightDualPanePath = "";
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
@@ -114,75 +118,82 @@ document.addEventListener("contextmenu", (e) => {
 
 document.onkeydown = (e) => {
 	// Shortcut for jumping to configured directory
-    if(event.keyCode == 18){
-        IsAltDown = true;
-    }
-    if (IsAltDown == true && e.keyCode == 49)
-    {
+	if(event.keyCode == 18){
+		IsAltDown = true;
+	}
+	if (IsAltDown == true && e.keyCode == 49)
+	{
 		if (ConfiguredPathOne == "") {
 			return;
 		}
 		openItem("ConfigPath1", ConfiguredPathOne, 1);
-    }
+	}
 	if (IsAltDown == true && e.keyCode == 50)
-    {
+	{
 		if (ConfiguredPathTwo == "") {
 			return;
 		}
 		openItem("ConfigPath2", ConfiguredPathTwo, 1);
-    }
+	}
 	if (IsAltDown == true && e.keyCode == 51)
 	{
 		if (ConfiguredPathThree == "") {
 			return;
 		}
 		openItem("ConfigPath3", ConfiguredPathThree, 1);
-    }
+	}
 
-	// Check if ctrl + t or is pressed to open new tab
-	if ((e.ctrlKey || e.keyCode == 91) && e.keyCode == 84) {
-		if (TabCount < 5) {
-			let tabCounter = 1;
-			if (IsTabs == false) {
-				IsTabs = true;
-				document.querySelector(".tab-header").style.display = "flex";
-				document.querySelectorAll(".explorer-container").forEach(item => {
-					if (viewMode == "column") {
-						item.style.marginTop = "35px";
-						item.style.height = "calc(100vh - 147px)";
-						item.style.paddingBottom = "10px";
-					}
-					else {
-						item.style.height = "calc(100vh - 97px)";
-						item.style.paddingBottom = "20px";
-					}
-				});
-				createTab(1, true);
+	if (IsTabsEnabled == true) {
+
+		// Check if ctrl + t or is pressed to open new tab
+		if ((e.ctrlKey || e.keyCode == 91) && e.keyCode == 84) {
+			if (TabCount < 5) {
+				let tabCounter = 1;
+				if (IsTabs == false) {
+					IsTabs = true;
+					document.querySelector(".tab-header").style.display = "flex";
+					document.querySelectorAll(".explorer-container").forEach(item => {
+						if (viewMode == "column") {
+							item.style.marginTop = "35px";
+							item.style.height = "calc(100vh - 147px)";
+							item.style.paddingBottom = "10px";
+						}
+						else {
+							item.style.height = "calc(100vh - 97px)";
+							item.style.paddingBottom = "20px";
+						}
+					});
+					createTab(1, true);
+					TabCount++;
+				}
+				let checkTab = document.querySelector(".fx-tab-"+tabCounter);
+				while (checkTab != null) {
+					tabCounter++;
+					checkTab = document.querySelector(".fx-tab-"+tabCounter);
+				}
+				createTab(tabCounter, false);
 				TabCount++;
 			}
-			let checkTab = document.querySelector(".fx-tab-"+tabCounter);
-			while (checkTab != null) {
-				tabCounter++;
-				checkTab = document.querySelector(".fx-tab-"+tabCounter);
-			}
-			createTab(tabCounter, false);
-			TabCount++;
 		}
-	}
 
-	// Remove current active tab when pressing ctrl + w
-	if (e.ctrlKey && e.keyCode == 87) {
-		closeTab();
-	}
+		// Remove current active tab when pressing ctrl + w
+		if (e.ctrlKey && e.keyCode == 87) {
+			closeTab();
+		}
 
-	// New folder input prompt when alt + 7 is pressed
-	if (e.ctrlKey && e.keyCode == 55) {
-		createFolderInputPrompt();
-	}
+		// New folder input prompt when alt + 7 is pressed
+		if (e.ctrlKey && e.keyCode == 55) {
+			createFolderInputPrompt();
+		}
 
-	// New file input prompt when alt + 6 is pressed
-	if (e.ctrlKey && e.keyCode == 54) {
-		createFileInputPrompt();
+		// New file input prompt when alt + 6 is pressed
+		if (e.ctrlKey && e.keyCode == 54) {
+			createFileInputPrompt();
+		}
+
+		if (e.keyCode == 116 && IsTabsEnabled == false) {
+			confirm("Current selection will be copied over");
+		}
 	}
 } 
 
@@ -195,7 +206,7 @@ document.onkeyup = (e) => {
 	}
 }
 
-async function showItems(items) {
+async function showItems(items, dualPaneSide) {
 	await getCurrentDir();
 	IsShowDisks = false;
 	// Check which tab is currently active and write CurrentDir to TabOnePath and so on
@@ -217,17 +228,38 @@ async function showItems(items) {
 			TabFivePath = CurrentDir;
 			break;
 	}
+
 	window.scrollTo(0, 0);
-	document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";
+	if (IsTabsEnabled == true) {
+		document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";
+	}
+	if (IsDualPaneEnabled == true) {
+		if (dualPaneSide == "left") {
+			document.querySelector(".dual-pane-left").innerHTML = "";
+		}
+		else if (dualPaneSide == "right") {
+			document.querySelector(".dual-pane-right").innerHTML = "";
+		}
+		else {
+			document.querySelector(".dual-pane-left").innerHTML = "";
+			document.querySelector(".dual-pane-right").innerHTML = "";
+		}
+	}
 	document.querySelector(".normal-list-column-header").style.display = "flex";
 	document.querySelector(".disk-list-column-header").style.display = "none";
+
 	let currentTab = document.querySelector(".fx-tab-"+CurrentActiveTab);
 	if (currentTab != null) {
 		currentTab.children[0].innerHTML = CurrentDir.split("/")[CurrentDir.split("/").length-1];
 	}
 	delete currentTab;
 	directoryList = document.createElement("div");
-	directoryList.className = "directory-list"
+	if (IsDualPaneEnabled == true) {
+		directoryList.className = "directory-list-dual-pane";
+	}
+	else {
+		directoryList.className = "directory-list";
+	}
 	let hiddenItemsLength = items.filter(str => str.name.startsWith(".")).length;
 	if (!IsShowHiddenFiles) {
 		items = items.filter(str => !str.name.startsWith("."));
@@ -237,7 +269,7 @@ async function showItems(items) {
 	let set = new Set(items);
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
-		itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"')");
+		itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"', '"+dualPaneSide+"')");
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
 		let fileIcon = "resources/file-icon.png"; // Default
@@ -319,14 +351,10 @@ async function showItems(items) {
 		if (viewMode == "column") {
 			itemButton.style.display = "none";
 			directoryList.style.flexFlow = "column";
-			if (!IsTabs) {
-			}
 		}
 		else {
 			itemButtonList.style.display = "none";
 			directoryList.style.flexFlow = "wrap";
-			if (!IsTabs) {
-			}
 		}
 		newRow.append(itemButton);
 		newRow.append(itemButtonList);
@@ -384,8 +412,25 @@ async function showItems(items) {
 			contextMenu.children[7].addEventListener("click", function() { renameElementInputPrompt(e, item); }, {once: true});
 		});
 	});
-	document.querySelector(".tab-container-"+CurrentActiveTab).append(directoryList);
-	window.gc();
+	if (IsTabsEnabled == true) {
+		document.querySelector(".tab-container-"+CurrentActiveTab).append(directoryList);
+	}
+	if (IsDualPaneEnabled == true) {
+		if (dualPaneSide == "left") {
+			document.querySelector(".dual-pane-left").append(directoryList);
+			LeftDualPanePath = CurrenDir;
+		}
+		else if (dualPaneSide == "right") {
+			document.querySelector(".dual-pane-right").append(directoryList);
+			RightDualPanePath = CurrenDir;
+		}
+		else {
+			document.querySelector(".dual-pane-left").append(directoryList);
+			document.querySelector(".dual-pane-right").append(directoryList.cloneNode(true));
+		}
+	}
+	console.log(dualPaneSide);
+	delete directoryList;
 }
 
 async function getCurrentDir() {
@@ -450,11 +495,22 @@ function compressItem(item) {
 	}
 }
 
-function pasteItem() {
-	if (copyFileName != "") {
+function pasteItem(dualPaneSide) {
+	if (IsDualPaneEnabled == true && dualPaneSide) {
 		let actFileName = copyFileName;
 		let fromPath = copyFilePath.toString();
-		invoke("copy_paste", {actFileName, fromPath})
+		await invoke("copy_paste", {actFileName, fromPath})
+			.then(items => {
+				showItems(items, dualPaneSide);
+			});
+		copyFileName = "";
+		copyFilePath = "";
+		contextMenu.style.display = "none";
+	}
+	else if (copyFileName != "") {
+		let actFileName = copyFileName;
+		let fromPath = copyFilePath.toString();
+		await invoke("copy_paste", {actFileName, fromPath})
 			.then(items => {
 				showItems(items);
 			});
@@ -580,6 +636,15 @@ async function checkAppConfig() {
 				document.querySelector(".context-open-in-terminal").style.display = "none";
 			}
 
+			if (appConfig.is_dual_pane_enabled.includes("1")) {
+				document.querySelector(".show-dual-pane-checkbox").checked = true;
+				document.querySelector(".switch-dualpane-view-button").style.display = "block";
+			}
+			else {
+				document.querySelector(".show-dual-pane-checkbox").checked = false;
+				document.querySelector(".switch-dualpane-view-button").style.display = "none";
+			}
+
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
 			document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
@@ -655,12 +720,12 @@ async function listDirectories() {
 		});
 }
 
-async function openItem(name, path, isDir) {
+async function openItem(name, path, isDir, dualPaneSide) {
 	if (isDir == 1) {
 		document.querySelector('.tab-container-'+CurrentActiveTab).innerHTML = "";
 		await invoke("open_dir", {path, name})
 			.then((items) => {
-				showItems(items);
+				showItems(items, dualPaneSide);
 			});
 	}
 	else {
@@ -711,35 +776,57 @@ async function cancelSearch() {
 }
 
 async function switchView() {
-	if (viewMode == "wrap") {
-		document.querySelectorAll(".directory-list").forEach(list => {
-			list.style.flexFlow = "column";
-		});
-		document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
-		document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
-		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "flex");
-		viewMode = "column";
-		document.querySelector(".list-column-header").style.display = "flex";
-		document.querySelectorAll(".explorer-container").forEach(item => {
-			item.style.marginTop = "35px";
-			item.style.height = "calc(100vh - 137px)";
-		});		
+	if (IsDualPaneEnabled == false) {
+		if (viewMode == "wrap") {
+			document.querySelectorAll(".directory-list").forEach(list => {
+				list.style.flexFlow = "column";
+			});
+			document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+			document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
+			document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "flex");
+			viewMode = "column";
+			document.querySelector(".list-column-header").style.display = "flex";
+			document.querySelectorAll(".explorer-container").forEach(item => {
+				item.style.marginTop = "35px";
+				item.style.height = "calc(100vh - 137px)";
+			});		
+		}
+		else {
+			document.querySelectorAll(".directory-list").forEach(list => {
+				list.style.flexFlow = "wrap";
+			});
+			document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
+			document.querySelectorAll(".item-button").forEach(item => item.style.display = "flex");
+			document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "none");
+			viewMode = "wrap";
+			document.querySelector(".list-column-header").style.display = "none";
+			document.querySelectorAll(".explorer-container").forEach(item => {
+				item.style.height = "calc(100vh - 100px)";
+				item.style.marginTop = "0";
+			});
+		}
+		await invoke("switch_view", {viewMode});
 	}
-	else {
-		document.querySelectorAll(".directory-list").forEach(list => {
-			list.style.flexFlow = "wrap";
-		});
-		document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
-		document.querySelectorAll(".item-button").forEach(item => item.style.display = "flex");
-		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "none");
-		viewMode = "wrap";
-		document.querySelector(".list-column-header").style.display = "none";
-		document.querySelectorAll(".explorer-container").forEach(item => {
-			item.style.height = "calc(100vh - 100px)";
-			item.style.marginTop = "0";
-		});
+}
+
+async function switchToDualPane() {
+	// disable tab functionality and show two panels side by side
+	IsTabsEnabled = false;
+	viewMode = "column";
+	if (viewMode == "column") {
+		await switchView();
 	}
-	await invoke("switch_view", {viewMode});
+	viewMode = "column";
+	IsDualPaneEnabled = true;
+	document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
+	document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "flex");
+	document.querySelector(".non-dual-pane-container").style.display = "none";
+	document.querySelector(".dual-pane-container").style.display = "flex";
+	await invoke("list_dirs")
+		.then((items) => {
+			showItems(items, "left");
+			showItems(items, "right");
+		});
 }
 
 function switchHiddenFiles() {
@@ -763,15 +850,24 @@ async function saveConfig() {
 	let configuredPathTwo = ConfiguredPathTwo = document.querySelector(".configured-path-two-input").value;
 	let configuredPathThree = ConfiguredPathThree = document.querySelector(".configured-path-three-input").value;
 	let isOpenInTerminal = document.querySelector(".openin-terminal-checkbox").checked;
+	let isDualPaneEnabled = document.querySelector(".show-dual-pane-checkbox").checked;
 	closeSettings();
-	// check if isOpenInTerminal is true and make it to string
+
 	if (isOpenInTerminal == true) {
 		isOpenInTerminal = "1";
 	}
 	else {
 		isOpenInTerminal = "0";
 	}
-	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal});
+
+	if (isDualPaneEnabled == true) {
+		isDualPaneEnabled = "1";
+	}
+	else {
+		isDualPaneEnabled = "0";
+	}
+
+	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal, isDualPaneEnabled});
 	checkAppConfig();
 }
 
