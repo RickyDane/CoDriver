@@ -208,11 +208,25 @@ document.onkeydown = async (e) => {
 	}
 	// check if arrow up is pressed
 	if (e.keyCode == 38) {
+		e.preventDefault();
+		e.stopPropagation();
 		goUp();
 	}
 	// check if arrow down is pressed
 	if (e.keyCode == 40) {
+		e.preventDefault();
+		e.stopPropagation();
 		goDown();
+	}
+	// check if return is pressed
+	if (e.keyCode == 13) {
+		openSelectedItem();
+	}
+	// check if tab is pressed
+	if (e.keyCode == 9) {
+		e.preventDefault();
+		e.stopPropagation();
+		goToOtherPane();
 	}
 } 
 
@@ -286,9 +300,11 @@ async function showItems(items, dualPaneSide) {
 	directoryCount.innerHTML = "Objects: " + items.length + " / " + hiddenItemsLength;
 	delete hiddenItemsLength;
 	let set = new Set(items);
+	let counter = 0;
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
-		itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"', '"+dualPaneSide+"', this)");
+		itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"', '"+dualPaneSide+"', this, "+counter+")");
+		counter++;
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
 		let fileIcon = "resources/file-icon.png"; // Default
@@ -429,8 +445,6 @@ async function showItems(items, dualPaneSide) {
 			contextMenu.children[4].addEventListener("click", function() { copyItem(item); }, {once: true});
 			contextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
 			contextMenu.children[7].addEventListener("click", function() { renameElementInputPrompt(e, item); }, {once: true});
-
-			SelectedItemP
 		});
 	});
 	if (IsTabsEnabled == true) {
@@ -440,12 +454,12 @@ async function showItems(items, dualPaneSide) {
 		if (dualPaneSide == "left") {
 			document.querySelector(".dual-pane-left").append(directoryList);
 			LeftDualPanePath = CurrentDir;
-			LeftPaneItemCollection = directoryList.cloneNode(true);
+			LeftPaneItemCollection = directoryList;
 		}
 		else if (dualPaneSide == "right") {
 			document.querySelector(".dual-pane-right").append(directoryList);
 			RightDualPanePath = CurrentDir;
-			RightPaneItemCollection = directoryList.cloneNode(true);
+			RightPaneItemCollection = directoryList;
 		}
 		else {
 			document.querySelector(".dual-pane-left").append(directoryList);
@@ -683,6 +697,16 @@ async function checkAppConfig() {
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
 			document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
+			document.querySelector(".launch-path-input").value = appConfig.launch_path;
+
+			if (appConfig.launch_path.length >= 1) {
+				let path = appConfig.launch_path;
+				let name = "launch";
+				invoke("open_dir", {path, name})
+					.then((items) => {
+						showItems(items);
+					});
+			}
 		});
 }
 
@@ -756,16 +780,17 @@ async function listDirectories() {
 }
 
 async function openItem(name, path, isDir, dualPaneSide = "", element = null) {
-	if (element != null && SelectedElement != element) {
+	// Select item for dualpane
+	if (element != null && SelectedElement != element && IsDualPaneEnabled == true) {
 		if (SelectedElement != null) {
 			SelectedElement.style.backgroundColor = "transparent";
 		}
 		SelectedElement = element;
-		SelectedElement.style.backgroundColor = "grey";
+		SelectedElement.style.backgroundColor = "rgba(45, 45, 55)";
 		SelectedItemPath = path;
 		SelectedItemPaneSide = dualPaneSide;
 	}
-	else if (isDir == 1) {
+	else if (isDir == 1) { // Open directory
 		document.querySelector('.tab-container-'+CurrentActiveTab).innerHTML = "";
 		await invoke("open_dir", {path, name})
 			.then((items) => {
@@ -778,7 +803,7 @@ async function openItem(name, path, isDir, dualPaneSide = "", element = null) {
 				}
 			});
 	}
-	else {
+	else { // Open element with default application
 		await invoke("open_item", {path});
 	}
 }
@@ -806,18 +831,96 @@ async function goBack() {
 				showItems(items);
 			}
 		});
+	SelectedElement = null;
 }
 
 function goUp() {
-	SelectedElement.style.backgroundColor = "transparent";
-	if (SelectedItemPaneSide == "left") {
-		console.log(SelectedElement);
-		console.log(Array.from(LeftPaneItemCollection).indexOf(SelectedElement));	
+	let element = null;
+	if (SelectedElement != null) {
+		SelectedElement.style.backgroundColor = "transparent";
+		let selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
+		if (SelectedItemPaneSide == "left") {
+			if ((parseInt(selectedItemIndex) - 1) < 0) {
+				element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+			}
+			else {
+				element = LeftPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)-1];
+			}
+		}
+		else if (SelectedItemPaneSide == "right") {
+			if ((parseInt(selectedItemIndex) - 1) < 0) {
+				element = RightPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)-1];
+			}
+			else {
+				element = RightPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)-1];
+			}
+		}
+	}
+	else {
+		if (SelectedItemPaneSide == "left") {
+			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+		}
+		else if (SelectedItemPaneSide == "right") {
+			element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
+		}
+	}
+	if (element != SelectedElement) {
+		element.onclick();
 	}
 }
 
 function goDown() {
+	let element = null;
+	if (SelectedElement != null) {
+		SelectedElement.style.backgroundColor = "transparent";
+		let selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
+		if (SelectedItemPaneSide == "left") {
+			if ((parseInt(selectedItemIndex) + 1) > LeftPaneItemCollection.querySelectorAll(".item-link").length - 1) {
+				element = LeftPaneItemCollection.querySelectorAll(".item-link")[LeftPaneItemCollection.querySelectorAll(".item-link").length - 1];
+			}
+			else {
+				element = LeftPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)+1];
+			}
+		}
+		else if (SelectedItemPaneSide == "right") {
+			if ((parseInt(selectedItemIndex) + 1) > RightPaneItemCollection.querySelectorAll(".item-link").length - 1) {
+				element = RightPaneItemCollection.querySelectorAll(".item-link")[RightPaneItemCollection.querySelectorAll(".item-link").length - 1];
+			}
+			else {
+				element = RightPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)+1];
+			}
+		}
+	}
+	else {
+		if (SelectedItemPaneSide == "left") {
+			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+		}
+		else if (SelectedItemPaneSide == "right") {
+			element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
+		}
+	}
+	if (element != SelectedElement) {
+		element.onclick();
+	}
+}
 
+function goToOtherPane() {
+	if (SelectedItemPaneSide == "left") {
+		SelectedItemPaneSide = "right";
+		goUp();
+	}
+	else if (SelectedItemPaneSide == "right") {
+		SelectedItemPaneSide = "left";
+		goUp();
+	}
+	else {
+		SelectedItemPaneSide = "left";
+		goUp();
+	}
+}
+
+function openSelectedItem() {
+	SelectedElement.onclick();
 }
 
 async function goToDir(directory, dualPaneSide = "") {
@@ -889,23 +992,41 @@ async function switchView() {
 }
 
 async function switchToDualPane() {
-	// disable tab functionality and show two panels side by side
-	IsTabsEnabled = false;
-	viewMode = "column";
-	if (viewMode == "column") {
-		await switchView();
+	if (IsDualPaneEnabled == false) {
+		// disable tab functionality and show two panels side by side
+		IsTabsEnabled = false;
+		viewMode = "column";
+		if (viewMode == "column") {
+			await switchView();
+		}
+		viewMode = "column";
+		IsDualPaneEnabled = true;
+		document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
+		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "flex");
+		document.querySelector(".non-dual-pane-container").style.display = "none";
+		document.querySelector(".dual-pane-container").style.display = "flex";
+		document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
+		await invoke("list_dirs")
+			.then((items) => {
+				showItems(items, "left");
+				showItems(items, "right");
+			});
 	}
-	viewMode = "column";
-	IsDualPaneEnabled = true;
-	document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
-	document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "flex");
-	document.querySelector(".non-dual-pane-container").style.display = "none";
-	document.querySelector(".dual-pane-container").style.display = "flex";
-	await invoke("list_dirs")
-		.then((items) => {
-			showItems(items, "left");
-			showItems(items, "right");
-		});
+	else {
+		// disable tab functionality and show two panels side by side
+		IsTabsEnabled = true;
+		IsDualPaneEnabled = false;
+		viewMode = "wrap";
+		document.querySelectorAll(".item-button").forEach(item => item.style.display = "flex");
+		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "none");
+		document.querySelector(".non-dual-pane-container").style.display = "block";
+		document.querySelector(".dual-pane-container").style.display = "none";
+		document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-solid fa-table-columns"></i>`;
+		await invoke("list_dirs")
+			.then((items) => {
+				showItems(items);
+			});	
+	}
 }
 
 function switchHiddenFiles() {
@@ -930,6 +1051,7 @@ async function saveConfig() {
 	let configuredPathThree = ConfiguredPathThree = document.querySelector(".configured-path-three-input").value;
 	let isOpenInTerminal = document.querySelector(".openin-terminal-checkbox").checked;
 	let isDualPaneEnabled = document.querySelector(".show-dual-pane-checkbox").checked;
+	let launchPath = document.querySelector(".launch-path-input").value;
 	closeSettings();
 
 	if (isOpenInTerminal == true) {
@@ -946,7 +1068,7 @@ async function saveConfig() {
 		isDualPaneEnabled = "0";
 	}
 
-	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal, isDualPaneEnabled});
+	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal, isDualPaneEnabled, launchPath});
 	checkAppConfig();
 }
 
@@ -1078,4 +1200,4 @@ function formatBytes(bytes, decimals = 2) {
 
 // listDirectories();
 checkAppConfig();
-listDisks()
+// listDisks()

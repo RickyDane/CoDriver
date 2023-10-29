@@ -81,16 +81,16 @@
 			<button class="context-item context-open-in-terminal" onclick="openInTerminal()">Open in Terminal<i class="fa-solid fa-terminal"></i></button>
 		</div>
 		<div class="settings-ui">
-			<div class="settings-ui-header">
-				<h2>Settings</h2>
-			</div>
+			<div class="settings-ui-header">Settings</div>
 			<br>
 			<div class="settings-ui-body">
-				<p>Configure up to 3 paths to switch to in an instant.<br>(Alt + 1, 2, 3)</p>
-				<br>
+				<p>Configure up to 3 paths to switch to in an instant (Alt + 1, 2, 3)</p>
 				<input type="text" class="settings-ui-input configured-path-one-input" placeholder="/home/user" />
 				<input type="text" class="settings-ui-input configured-path-two-input" placeholder="/home/user/folder1" />
 				<input type="text" class="settings-ui-input configured-path-three-input" placeholder="/home/user/folder2" />
+				<br>
+				<p>Path to launch at start</p>
+				<input type="text" class="settings-ui-input launch-path-input" placeholder="/home" />
 				<br>
 				<span style="display: flex; gap: 10px; margin-top: 5px;">
 					<input id="open-in-terminal-checkbox" type="checkbox" class="settings-ui-checkbox openin-terminal-checkbox" />

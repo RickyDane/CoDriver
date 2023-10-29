@@ -137,8 +137,9 @@ body {
 .settings-ui {
 	display: none;
 	position: fixed;
-	width: 50%;
+	width: 70%;
 	height: fit-content;
+	max-height: 70vh;
 	top: 0;
 	left: 0;
 	right: 0;
@@ -146,9 +147,25 @@ body {
 	background: #2e313b;
 	z-index: 3;
 	margin: auto;
-	padding: 20px;
 	border-radius: 10px;
 	box-shadow: 0px 0px 15px 1px rgba(0, 0, 0, 0.3);
+	overflow: auto;
+}
+.settings-ui-header {
+	background-color: #363945;
+	position: sticky;
+	top: 0;
+	padding: 20px;
+	font-size: x-large;
+	font-weight: bold;
+	z-index: 4;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
+}
+.settings-ui-body {
+	padding: 20px;
+}
+.settings-ui-body-buttons {
+	padding: 20px;
 }
 .tab-header {
 	display: none;
