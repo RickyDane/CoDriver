@@ -30,14 +30,17 @@ body {
 .dual-pane-container {
 	margin-left: 200px;
 	width: 100%;
+	max-width: 100%;
 	height: calc(100vh - 110px);
 	display: none;
 	flex-flow: row;
 	justify-content: center;
+	overflow: hidden;
 }
 .dual-pane-left {
 	border-right: 2px solid #2e313b;
 	width: 50%;
+	max-width: 50%;
 	padding: 20px;
 	min-height: 100vh - 110px;
 	overflow: auto;
@@ -49,7 +52,6 @@ body {
 	overflow: auto;
 }
 .dual-pane-left > div > button, .dual-pane-right > div > button {
-	min-width: 100%;
 	width: 100%;
 }
 .dual-pane-left > div, .dual-pane-right > div {
@@ -370,6 +372,7 @@ body {
 .item-link {
 	background-color: transparent;
 	border: none;
+	border-radius: 5px;
 }
 .disk-item-button {
 	display: flex;

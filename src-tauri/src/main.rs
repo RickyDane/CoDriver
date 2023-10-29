@@ -433,10 +433,16 @@ async fn search_for(file_name: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn copy_paste(act_file_name: String, from_path: String) -> Vec<FDir> {
+async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
     let is_dir = fs::metadata(&from_path).unwrap().is_dir();
     let sw = Stopwatch::start_new();
-    let file_name: String = current_dir().unwrap().join(&act_file_name.replace("/", "")).to_str().unwrap().to_string();
+    let file_name: String;
+    if is_for_dual_pane == "1" {
+        file_name = act_file_name;
+    }
+    else {
+        file_name = current_dir().unwrap().join(&act_file_name).to_str().unwrap().to_string();
+    }
     let temp_file_ext: String;
     let mut file_ext: String;
     let mut temp_filename: String = String::new();
@@ -464,10 +470,20 @@ async fn copy_paste(act_file_name: String, from_path: String) -> Vec<FDir> {
     }
 
     if is_dir {
-        let _ = copy_dir::copy_dir(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/"));
+        if is_for_dual_pane == "1" {
+            let _ = copy_dir::copy_dir(&from_path, final_filename.replace("\\", "/"));
+        }
+        else { 
+            let _ = copy_dir::copy_dir(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/"));
+        }
     }
     else {
-        let _ = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/")); 
+        if is_for_dual_pane == "1" {
+            let _ = copy(&from_path, final_filename.replace("\\", "/"));
+        }
+        else {
+            let _ = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/"));
+        }
     }
     println!("Copy-Paste time: {:?}", sw.elapsed());
     return list_dirs().await;
