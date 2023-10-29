@@ -155,9 +155,12 @@ body {
 	background-color: #363945;
 	position: sticky;
 	top: 0;
-	padding: 20px;
-	font-size: x-large;
-	font-weight: bold;
+	padding: 15px 20px;
+	font-size: large;
+	display: flex;
+	flex-flow: row;
+	align-items: center;
+	gap: 20px;
 	z-index: 4;
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
 }

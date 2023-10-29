@@ -149,7 +149,6 @@ document.onkeydown = async (e) => {
 	}
 
 	if (IsTabsEnabled == true) {
-
 		// Check if ctrl + t or is pressed to open new tab
 		if ((e.ctrlKey || e.keyCode == 91) && e.keyCode == 84) {
 			if (TabCount < 5) {
@@ -196,6 +195,9 @@ document.onkeydown = async (e) => {
 			createFileInputPrompt();
 		}
 	}
+
+	/* Shortcuts for dual pane view */
+
 	if (IsDualPaneEnabled && e.keyCode == 116 && IsTabsEnabled == false) {
 		let isToCopy = await confirm("Current selection will be copied over");
 		if (isToCopy == true) {
@@ -204,6 +206,8 @@ document.onkeydown = async (e) => {
 	}
 	// check if backspace is pressed
 	if (e.keyCode == 8) {
+		e.preventDefault();
+		e.stopPropagation();
 		goBack();	
 	}
 	// check if arrow up is pressed
@@ -220,6 +224,8 @@ document.onkeydown = async (e) => {
 	}
 	// check if return is pressed
 	if (e.keyCode == 13) {
+		e.preventDefault();
+		e.stopPropagation();
 		openSelectedItem();
 	}
 	// check if tab is pressed
@@ -227,6 +233,12 @@ document.onkeydown = async (e) => {
 		e.preventDefault();
 		e.stopPropagation();
 		goToOtherPane();
+	}
+	// check if del is pressed
+	if (e.keyCode == 46) {
+		e.preventDefault();
+		e.stopPropagation();
+		deleteItem(SelectedElement);
 	}
 } 
 
@@ -849,7 +861,7 @@ function goUp() {
 		}
 		else if (SelectedItemPaneSide == "right") {
 			if ((parseInt(selectedItemIndex) - 1) < 0) {
-				element = RightPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)-1];
+				element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
 			}
 			else {
 				element = RightPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)-1];
@@ -907,16 +919,14 @@ function goDown() {
 function goToOtherPane() {
 	if (SelectedItemPaneSide == "left") {
 		SelectedItemPaneSide = "right";
-		goUp();
 	}
 	else if (SelectedItemPaneSide == "right") {
 		SelectedItemPaneSide = "left";
-		goUp();
 	}
 	else {
 		SelectedItemPaneSide = "left";
-		goUp();
 	}
+	goUp();
 }
 
 function openSelectedItem() {

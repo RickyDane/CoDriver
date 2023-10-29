@@ -1,8 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, io::BufReader, process::Command}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::{Command, Stdio}, thread}; 
 #[allow(unused_imports)]
-use std::{fs::{self, ReadDir}, clone, ffi::OsString};
+use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
+use std::fs::{self, ReadDir};
 use rust_search::SearchBuilder;
 use serde_json::Value;
 use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config};
@@ -11,7 +12,7 @@ use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
 use get_sys_info::{System, Platform};
-use dialog::DialogBox;
+use dialog::{DialogBox, backends::Backend, Message};
 
 fn main() {
     tauri::Builder::default()
@@ -473,7 +474,7 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
         counter += 1;
     }
 
-    if is_dir {
+    /*if is_dir {
         if is_for_dual_pane == "1" {
             let _ = copy_dir::copy_dir(&from_path, final_filename.replace("\\", "/"));
         }
@@ -488,7 +489,44 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
         else {
             let _ = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/"));
         }
+    }*/
+
+    /* Copy file byte by byte */
+
+    let line_file = File::open(&from_path).unwrap();
+    let mut reader = BufReader::with_capacity(102400, line_file);
+
+    let mut buffer = Vec::new();
+    reader.read_to_end(&mut buffer).expect("Failed to read file");
+
+    let mut line_count = 0.0;
+    for (_num, &_byte) in buffer.iter().enumerate() {
+        line_count += 1.0;
     }
+
+    let file = File::open(&from_path).unwrap();
+    let file = BufReader::with_capacity(102400, file);
+    let new_file = File::create(&final_filename).unwrap();
+    let mut new_file = BufWriter::new(new_file);
+
+    let mut reader = BufReader::with_capacity(102400, file);
+
+    let mut buffer = Vec::new();
+    reader.read_to_end(&mut buffer).expect("Failed to read file");
+
+    let mut counter = 0;
+    for (num, &byte) in buffer.iter().enumerate() {
+        let progress = num as f64;
+        new_file.write(&[byte]).unwrap();
+        if counter % 10000000 == 0 {
+            let percentage = (100.0/line_count) * progress;
+            println!("{} %", &percentage.to_string());
+            if percentage >= 50.0 {
+            }
+        }
+        counter += 1;
+    }
+
     println!("Copy-Paste time: {:?}", sw.elapsed());
     return list_dirs().await;
 }
