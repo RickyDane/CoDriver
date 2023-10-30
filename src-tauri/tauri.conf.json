@@ -13,8 +13,9 @@
   "tauri": {
     "allowlist": {
 	  "window": {
-        "all": false,
+        "all": true,
         "close": true,
+		"create": true,
         "hide": true,
         "show": true,
         "maximize": true,

@@ -196,49 +196,49 @@ document.onkeydown = async (e) => {
 		}
 	}
 
-	/* Shortcuts for dual pane view */
-
-	if (IsDualPaneEnabled && e.keyCode == 116 && IsTabsEnabled == false) {
-		let isToCopy = await confirm("Current selection will be copied over");
-		if (isToCopy == true) {
-			pasteItem();
+	if (IsDualPaneEnabled) {
+		if (e.keyCode == 116 && IsTabsEnabled == false) {
+			let isToCopy = await confirm("Current selection will be copied over");
+			if (isToCopy == true) {
+				pasteItem();
+			}
 		}
-	}
-	// check if backspace is pressed
-	if (e.keyCode == 8) {
-		e.preventDefault();
-		e.stopPropagation();
-		goBack();	
-	}
-	// check if arrow up is pressed
-	if (e.keyCode == 38) {
-		e.preventDefault();
-		e.stopPropagation();
-		goUp();
-	}
-	// check if arrow down is pressed
-	if (e.keyCode == 40) {
-		e.preventDefault();
-		e.stopPropagation();
-		goDown();
-	}
-	// check if return is pressed
-	if (e.keyCode == 13) {
-		e.preventDefault();
-		e.stopPropagation();
-		openSelectedItem();
-	}
-	// check if tab is pressed
-	if (e.keyCode == 9) {
-		e.preventDefault();
-		e.stopPropagation();
-		goToOtherPane();
-	}
-	// check if del is pressed
-	if (e.keyCode == 46) {
-		e.preventDefault();
-		e.stopPropagation();
-		deleteItem(SelectedElement);
+		// check if backspace is pressed
+		if (e.keyCode == 8) {
+			e.preventDefault();
+			e.stopPropagation();
+			goBack();	
+		}
+		// check if arrow up is pressed
+		if (e.keyCode == 38) {
+			e.preventDefault();
+			e.stopPropagation();
+			goUp();
+		}
+		// check if arrow down is pressed
+		if (e.keyCode == 40) {
+			e.preventDefault();
+			e.stopPropagation();
+			goDown();
+		}
+		// check if return is pressed
+		if (e.keyCode == 13) {
+			e.preventDefault();
+			e.stopPropagation();
+			openSelectedItem();
+		}
+		// check if tab is pressed
+		if (e.keyCode == 9) {
+			e.preventDefault();
+			e.stopPropagation();
+			goToOtherPane();
+		}
+		// check if del is pressed
+		if (e.keyCode == 46) {
+			e.preventDefault();
+			e.stopPropagation();
+			deleteItem(SelectedElement);
+		}
 	}
 } 
 
@@ -843,24 +843,22 @@ async function goBack() {
 				showItems(items);
 			}
 		});
-	SelectedElement = null;
 }
 
 function goUp() {
 	let element = null;
 	if (SelectedElement != null) {
-		SelectedElement.style.backgroundColor = "transparent";
 		let selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
 		if (SelectedItemPaneSide == "left") {
-			if ((parseInt(selectedItemIndex) - 1) < 0) {
+			if ((parseInt(selectedItemIndex)) <= 0) {
 				element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
 			}
-			else {
+			else { 
 				element = LeftPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)-1];
 			}
 		}
 		else if (SelectedItemPaneSide == "right") {
-			if ((parseInt(selectedItemIndex) - 1) < 0) {
+			if ((parseInt(selectedItemIndex) - 1) <= 0) {
 				element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
 			}
 			else {
@@ -869,6 +867,8 @@ function goUp() {
 		}
 	}
 	else {
+		SelectedElement = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+		SelectedItemPaneSide = "left";
 		if (SelectedItemPaneSide == "left") {
 			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
 		}
@@ -877,6 +877,7 @@ function goUp() {
 		}
 	}
 	if (element != SelectedElement) {
+		SelectedElement.style.backgroundColor = "transparent";
 		element.onclick();
 	}
 }
@@ -884,10 +885,9 @@ function goUp() {
 function goDown() {
 	let element = null;
 	if (SelectedElement != null) {
-		SelectedElement.style.backgroundColor = "transparent";
 		let selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
 		if (SelectedItemPaneSide == "left") {
-			if ((parseInt(selectedItemIndex) + 1) > LeftPaneItemCollection.querySelectorAll(".item-link").length - 1) {
+			if ((parseInt(selectedItemIndex) + 1) >= LeftPaneItemCollection.querySelectorAll(".item-link").length - 1) {
 				element = LeftPaneItemCollection.querySelectorAll(".item-link")[LeftPaneItemCollection.querySelectorAll(".item-link").length - 1];
 			}
 			else {
@@ -895,7 +895,7 @@ function goDown() {
 			}
 		}
 		else if (SelectedItemPaneSide == "right") {
-			if ((parseInt(selectedItemIndex) + 1) > RightPaneItemCollection.querySelectorAll(".item-link").length - 1) {
+			if ((parseInt(selectedItemIndex) + 1) >= RightPaneItemCollection.querySelectorAll(".item-link").length - 1) {
 				element = RightPaneItemCollection.querySelectorAll(".item-link")[RightPaneItemCollection.querySelectorAll(".item-link").length - 1];
 			}
 			else {
@@ -912,6 +912,7 @@ function goDown() {
 		}
 	}
 	if (element != SelectedElement) {
+		SelectedElement.style.backgroundColor = "transparent";
 		element.onclick();
 	}
 }
@@ -1017,6 +1018,7 @@ async function switchToDualPane() {
 		}
 		viewMode = "column";
 		IsDualPaneEnabled = true;
+		document.querySelector(".site-nav-bar").style.display = "none";
 		document.querySelector(".file-searchbar").style.display = "none";
 		document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
 		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "flex");
@@ -1034,6 +1036,7 @@ async function switchToDualPane() {
 		IsTabsEnabled = true;
 		IsDualPaneEnabled = false;
 		viewMode = "wrap";
+		document.querySelector(".site-nav-bar").style.display = "flex";
 		document.querySelector(".file-searchbar").style.display = "flex";
 		document.querySelectorAll(".item-button").forEach(item => item.style.display = "flex");
 		document.querySelectorAll(".item-button-list").forEach(item => item.style.display = "none");

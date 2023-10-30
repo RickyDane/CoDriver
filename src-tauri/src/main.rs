@@ -6,13 +6,13 @@ use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
 use rust_search::SearchBuilder;
 use serde_json::Value;
-use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config};
+use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config, Window, window};
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
 use get_sys_info::{System, Platform};
-use dialog::DialogBox;
+use dialog::{DialogBox, backends::Dialog};
 
 fn main() {
     tauri::Builder::default()
@@ -438,7 +438,8 @@ async fn search_for(file_name: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
+async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String, test_window: Window) -> Vec<FDir> {
+    println!("Copying starting ...");
     let is_dir = fs::metadata(&from_path).unwrap().is_dir();
     let sw = Stopwatch::start_new();
     let file_name: String;
@@ -491,7 +492,7 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
         }
     }
 
-    /* Copy file byte by byte -> To play around with later ... */
+    /* Copy file byte by byte -> To play around with later ...*/ 
 
     /*let line_file = File::open(&from_path).unwrap();
     let mut reader = BufReader::new(line_file);
@@ -507,7 +508,6 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
     let mut new_file = BufWriter::new(new_file);
 
     let mut reader = BufReader::new(file);
-
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer).expect("Failed to read file");
 
@@ -518,13 +518,16 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
         if counter % 10000000 == 0 {
             let percentage = (100.0/line_count) * progress;
             println!("{} %", &percentage.to_string());
-            if percentage >= 50.0 {
-            }
+            print!("{}[2J", 27 as char);
         }
         counter += 1;
     }*/
 
-    println!("Copy-Paste time: {:?}", sw.elapsed());
+    println!("Copy-Paste time: {:?}", &sw.elapsed());
+    dialog::Message::new(format!("Copying process done in {:?}", sw.elapsed()))
+        .title("Information")
+        .show()
+        .expect("Did not go as planned");
     return list_dirs().await;
 }
 
