@@ -490,6 +490,7 @@ async function showItems(items, dualPaneSide) {
 		else {
 			document.querySelector(".dual-pane-left").append(directoryList);
 			document.querySelector(".dual-pane-right").append(directoryList.cloneNode(true));
+			LeftDualPanePath = RightDualPanePath = CurrentDir;
 		}
 	}
 	delete directoryList;
@@ -500,6 +501,15 @@ async function getCurrentDir() {
 		.then(path => {
 			CurrentDir = path;
 			document.querySelector(".current-path").textContent = path;
+		});
+}
+
+async function setCurrentDir(currentDir, dualPaneSide) {
+	console.log(CurrentDir, LeftDualPanePath, RightDualPanePath);
+	await invoke("set_dir", {currentDir})
+		.then(() => {
+			CurrentDir = currentDir;
+			document.querySelector(".current-path").textContent = currentDir;
 		});
 }
 
@@ -562,9 +572,10 @@ async function pasteItem() {
 	if (IsDualPaneEnabled == true) {
 		let actFileName = SelectedItemPath.split("/")[SelectedItemPath.split("/").length - 1].replace("'", "");
 		let fromPath = SelectedItemPath;
+		let isForDualPane = "1"
 		if (SelectedItemPaneSide == "left") {
 			actFileName = RightDualPanePath+"/"+actFileName;
-			let isForDualPane = "1"
+			await invoke("set_dir", {currentDir: RightDualPanePath});
 			await invoke("copy_paste", {actFileName, fromPath, isForDualPane})
 				.then(items => {
 					showItems(items, "right");
@@ -572,7 +583,7 @@ async function pasteItem() {
 		}
 		else if (SelectedItemPaneSide == "right") {
 			actFileName = LeftDualPanePath+"/"+actFileName;
-			let isForDualPane = "1"
+			await invoke("set_dir", {currentDir: LeftDualPanePath});
 			await invoke("copy_paste", {actFileName, fromPath, isForDualPane})
 				.then(items => {
 					showItems(items, "left");
@@ -994,11 +1005,13 @@ function goToOtherPane() {
 		SelectedItemPaneSide = "right";
 		document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
 		document.querySelector(".dual-pane-left").style.boxShadow = "none";
+		setCurrentDir(RightDualPanePath, "right");
 	}
 	else if (SelectedItemPaneSide == "right") {
 		SelectedItemPaneSide = "left";
 		document.querySelector(".dual-pane-right").style.boxShadow = "none";
 		document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+		setCurrentDir(LeftDualPanePath, "left");
 	}
 	else {
 		SelectedItemPaneSide = "left";

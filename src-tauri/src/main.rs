@@ -6,13 +6,13 @@ use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
 use rust_search::SearchBuilder;
 use serde_json::Value;
-use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config, Window, window};
+use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config, Window};
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
 use get_sys_info::{System, Platform};
-use dialog::{DialogBox, backends::Dialog};
+use dialog::DialogBox;
 
 fn main() {
     tauri::Builder::default()
@@ -34,6 +34,7 @@ fn main() {
               check_app_config,
               create_file,
               get_current_dir,
+              set_dir,
               list_disks,
               open_in_terminal,
               rename_element,
@@ -171,6 +172,12 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
 #[tauri::command]
 async fn get_current_dir() -> String {
     return current_dir().unwrap().as_path().to_str().unwrap().to_string().replace("\\", "/");
+}
+
+#[tauri::command]
+async fn set_dir(current_dir: String) {
+    println!("Current dir: {}", &current_dir);
+    let _ = set_current_dir(current_dir);
 }
 
 #[tauri::command]
