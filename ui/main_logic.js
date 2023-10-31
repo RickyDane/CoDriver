@@ -43,6 +43,7 @@ let SelectedItemPath = "";
 let SelectedItemPaneSide = "";
 let LeftPaneItemCollection = [];
 let RightPaneItemCollection = [];
+let IsSettingsOpen = false;
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
@@ -131,21 +132,21 @@ document.onkeydown = async (e) => {
 		if (ConfiguredPathOne == "") {
 			return;
 		}
-		openItem("ConfigPath1", ConfiguredPathOne, 1);
+		openItem("ConfigPath1", ConfiguredPathOne, 1, SelectedItemPaneSide, null, true);
 	}
 	if (IsAltDown == true && e.keyCode == 50)
 	{
 		if (ConfiguredPathTwo == "") {
 			return;
 		}
-		openItem("ConfigPath2", ConfiguredPathTwo, 1);
+		openItem("ConfigPath2", ConfiguredPathTwo, 1, SelectedItemPaneSide, null, true);
 	}
 	if (IsAltDown == true && e.keyCode == 51)
 	{
 		if (ConfiguredPathThree == "") {
 			return;
 		}
-		openItem("ConfigPath3", ConfiguredPathThree, 1);
+		openItem("ConfigPath3", ConfiguredPathThree, 1, SelectedItemPaneSide, null, true);
 	}
 
 	if (IsTabsEnabled == true) {
@@ -196,7 +197,7 @@ document.onkeydown = async (e) => {
 		}
 	}
 
-	if (IsDualPaneEnabled) {
+	if (IsDualPaneEnabled == true && IsSettingsOpen == false) {
 		if (e.keyCode == 116 && IsTabsEnabled == false) {
 			let isToCopy = await confirm("Current selection will be copied over");
 			if (isToCopy == true) {
@@ -791,7 +792,17 @@ async function listDirectories() {
 		});
 }
 
-async function openItem(name, path, isDir, dualPaneSide = "", element = null) {
+async function openItem(name, path, isDir, dualPaneSide = "", element = null, shortcut = false) {
+	if (SelectedElement == null) {
+		if (dualPaneSide == "left") {
+			document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+			document.querySelector(".dual-pane-right").style.boxShadow = "none";
+		}
+		else {
+			document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+			document.querySelector(".dual-pane-left").style.boxShadow = "none";
+		}
+	}
 	// Select item for dualpane
 	if (element != null && SelectedElement != element && IsDualPaneEnabled == true) {
 		if (SelectedElement != null) {
@@ -802,16 +813,12 @@ async function openItem(name, path, isDir, dualPaneSide = "", element = null) {
 		SelectedItemPath = path;
 		SelectedItemPaneSide = dualPaneSide;
 	}
-	else if (isDir == 1) { // Open directory
+	else if (isDir == 1 || shortcut ==  true) { // Open directory
 		document.querySelector('.tab-container-'+CurrentActiveTab).innerHTML = "";
 		await invoke("open_dir", {path, name})
 			.then((items) => {
 				if (dualPaneSide != "") {
 					showItems(items, dualPaneSide);
-				}
-				else {
-					showItems(items, "left");
-					showItems(items, "right");
 				}
 			});
 	}
@@ -847,22 +854,27 @@ async function goBack() {
 
 function goUp() {
 	let element = null;
+	let selectedItemIndex = 0;
 	if (SelectedElement != null) {
-		let selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
+		selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
 		if (SelectedItemPaneSide == "left") {
 			if ((parseInt(selectedItemIndex)) <= 0) {
+				selectedItemIndex = 0;
 				element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
 			}
-			else { 
-				element = LeftPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)-1];
+			else {
+				selectedItemIndex = parseInt(selectedItemIndex) - 1;
+				element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 			}
 		}
 		else if (SelectedItemPaneSide == "right") {
 			if ((parseInt(selectedItemIndex) - 1) <= 0) {
+				selectedItemIndex = 0;
 				element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
 			}
 			else {
-				element = RightPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)-1];
+				selectedItemIndex = parseInt(selectedItemIndex) - 1;
+				element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 			}
 		}
 	}
@@ -870,9 +882,11 @@ function goUp() {
 		SelectedElement = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
 		SelectedItemPaneSide = "left";
 		if (SelectedItemPaneSide == "left") {
+			selectedItemIndex = 0;
 			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
 		}
 		else if (SelectedItemPaneSide == "right") {
+			selectedItemIndex = 0;
 			element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
 		}
 	}
@@ -880,41 +894,70 @@ function goUp() {
 		SelectedElement.style.backgroundColor = "transparent";
 		element.onclick();
 	}
+	if (SelectedItemPaneSide == "left") {
+		if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-left").scrollTop < 100) { 
+			document.querySelector(".dual-pane-left").scrollTop -= 36;
+		}
+	}
+	else if (SelectedItemPaneSide == "right") {
+		if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-right").scrollTop < 100) { 
+			document.querySelector(".dual-pane-right").scrollTop -= 36;
+		}
+	}
+	console.log("Current item: ", selectedItemIndex);
 }
 
 function goDown() {
 	let element = null;
+	let selectedItemIndex = 0;
 	if (SelectedElement != null) {
-		let selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
+		selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
 		if (SelectedItemPaneSide == "left") {
 			if ((parseInt(selectedItemIndex) + 1) >= LeftPaneItemCollection.querySelectorAll(".item-link").length - 1) {
-				element = LeftPaneItemCollection.querySelectorAll(".item-link")[LeftPaneItemCollection.querySelectorAll(".item-link").length - 1];
+				selectedItemIndex = LeftPaneItemCollection.querySelectorAll(".item-link").length - 1;
+				element = LeftPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)];
 			}
 			else {
-				element = LeftPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)+1];
+				selectedItemIndex = parseInt(selectedItemIndex)+1
+				element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 			}
 		}
 		else if (SelectedItemPaneSide == "right") {
 			if ((parseInt(selectedItemIndex) + 1) >= RightPaneItemCollection.querySelectorAll(".item-link").length - 1) {
-				element = RightPaneItemCollection.querySelectorAll(".item-link")[RightPaneItemCollection.querySelectorAll(".item-link").length - 1];
+				selectedItemIndex = RightPaneItemCollection.querySelectorAll(".item-link").length - 1;
+				element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 			}
 			else {
-				element = RightPaneItemCollection.querySelectorAll(".item-link")[parseInt(selectedItemIndex)+1];
+				selectedItemIndex = parseInt(selectedItemIndex) + 1;
+				element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 			}
 		}
 	}
 	else {
 		if (SelectedItemPaneSide == "left") {
 			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+			selectedItemIndex = 0;
 		}
 		else if (SelectedItemPaneSide == "right") {
 			element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
+			selectedItemIndex = 0;
 		}
 	}
 	if (element != SelectedElement) {
 		SelectedElement.style.backgroundColor = "transparent";
 		element.onclick();
 	}
+	if (SelectedItemPaneSide == "left") {
+		if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-left").scrollTop > window.innerHeight - 200) {
+			document.querySelector(".dual-pane-left").scrollTop += 36;
+		}
+	}
+	else if (SelectedItemPaneSide == "right") {
+		if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-right").scrollTop > window.innerHeight - 200) {
+			document.querySelector(".dual-pane-right").scrollTop += 36;
+		}
+	}
+	console.log("Current item: ", selectedItemIndex);
 }
 
 function goToOtherPane() {
@@ -1064,6 +1107,7 @@ function switchHiddenFiles() {
 
 function openSettings() {
 	document.querySelector(".settings-ui").style.display = "block";
+	IsSettingsOpen = true;
 }
 
 async function saveConfig() {
@@ -1095,6 +1139,7 @@ async function saveConfig() {
 
 function closeSettings() {
 	document.querySelector(".settings-ui").style.display = "none";
+	IsSettingsOpen = false;
 }
 
 function createTab(tabCount, isInitial) {
