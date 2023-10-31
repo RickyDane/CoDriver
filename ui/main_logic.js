@@ -107,7 +107,7 @@ document.addEventListener("contextmenu", (e) => {
 	contextMenu.style.left = e.clientX + "px";
 	if ((contextMenu.offsetHeight + e.clientY) >= window.innerHeight) {
 		contextMenu.style.top = null;
-		contextMenu.style.bottom = e.clientY / 2* -1 + "px";
+		contextMenu.style.bottom = e.clientY / 2 * -1 + "px";
 	}
 	else {
 		contextMenu.style.bottom = null;
@@ -202,7 +202,10 @@ document.onkeydown = async (e) => {
 	}
 
 	if (IsDualPaneEnabled == true && IsDisableShortcuts == false) {
+		// check if f5 is pressed
 		if (e.keyCode == 116 && IsTabsEnabled == false) {
+			e.preventDefault();
+			e.stopPropagation();
 			let isToCopy = await confirm("Current selection will be copied over");
 			if (isToCopy == true) {
 				pasteItem();
@@ -250,8 +253,28 @@ document.onkeydown = async (e) => {
 			e.stopPropagation();
 			openSearchBar();
 		}
+		// check if ctrl + r is pressed
+		if (e.ctrlKey && e.keyCode == 82) {
+			e.preventDefault();
+			e.stopPropagation();
+			refreshView();
+		}
 	}
 } 
+
+// check for click in on of the dual pane containers and set directory accordingly
+document.querySelector(".dual-pane-left").addEventListener("click", () => {
+	setCurrentDir(LeftDualPanePath);
+});
+document.querySelector(".dual-pane-left").addEventListener("contextmenu", () => {
+	setCurrentDir(LeftDualPanePath);
+});
+document.querySelector(".dual-pane-right").addEventListener("click", () => {
+	setCurrentDir(RightDualPanePath);
+});
+document.querySelector(".dual-pane-right").addEventListener("contextmenu", () => {
+	setCurrentDir(RightDualPanePath);
+});
 
 document.onkeyup = (e) => {
 	if (e.keyCode == 18){
@@ -393,7 +416,7 @@ async function showItems(items, dualPaneSide) {
 		itemLink.className = "item-link directory-entry";
 		let itemButton = document.createElement("div");
 		itemButton.innerHTML = `
-			<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="auto"/>
+			<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" style="object-fit: cover;"/>
 			<p style="text-align: left;">${item.name}</p>
 		`;
 		itemButton.className = "item-button directory-entry";
@@ -505,11 +528,10 @@ async function getCurrentDir() {
 }
 
 async function setCurrentDir(currentDir, dualPaneSide) {
-	console.log(CurrentDir, LeftDualPanePath, RightDualPanePath);
 	await invoke("set_dir", {currentDir})
 		.then(() => {
 			CurrentDir = currentDir;
-			document.querySelector(".current-path").textContent = currentDir;
+			document.querySelector(".current-path").textContent = CurrentDir;
 		});
 }
 
@@ -725,13 +747,16 @@ async function checkAppConfig() {
 			if (appConfig.is_dual_pane_enabled.includes("1")) {
 				document.querySelector(".show-dual-pane-checkbox").checked = true;
 				document.querySelector(".switch-dualpane-view-button").style.display = "block";
-				if (IsDualPaneEnabled == false) {
-					switchToDualPane();
-				}
 			}
 			else {
 				document.querySelector(".show-dual-pane-checkbox").checked = false;
 				document.querySelector(".switch-dualpane-view-button").style.display = "none";
+			}
+
+			if (appConfig.is_dual_pane_active.includes("1")) {
+				if (IsDualPaneEnabled == false) {
+					switchToDualPane();
+				}
 			}
 
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
@@ -815,8 +840,18 @@ async function listDisks() {
 async function listDirectories() {
 	await invoke("list_dirs")
 		.then((items) => {
-			showItems(items);
+			if (IsDualPaneEnabled == true) {
+				showItems(items, SelectedItemPaneSide);
+			}
+			else {
+				showItems(items);
+			}
+			console.log("View reloaded");
 		});
+}
+
+async function refreshView() {
+	listDirectories();
 }
 
 async function openItem(name, path, isDir, dualPaneSide = "", element = null, shortcut = false) {
@@ -1044,7 +1079,7 @@ async function openInTerminal() {
 
 async function searchFor() {
 	document.querySelector(".cancel-search-button").style.display = "block";
-	directoryList.innerHTML = "Loading ...";
+	directoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" />`;
 	let fileName = document.querySelector(".search-bar-input").value; 
 	await invoke("search_for", {fileName})
 		.then((items) => {
@@ -1122,6 +1157,7 @@ async function switchToDualPane() {
 		document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
 		document.querySelector(".go-back-button").style.display = "none";
 		document.querySelector(".nav-seperator-1").style.display = "none";
+		document.querySelector(".switch-view-button").style.display = "none";
 		await saveConfig(false);
 		await invoke("list_dirs")
 			.then((items) => {
@@ -1146,6 +1182,7 @@ async function switchToDualPane() {
 		document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-solid fa-table-columns"></i>`;
 		document.querySelector(".go-back-button").style.display = "block";
 		document.querySelector(".nav-seperator-1").style.display = "block";
+		document.querySelector(".switch-view-button").style.display = "block";
 		await saveConfig(false);
 		await invoke("list_dirs")
 			.then((items) => {
@@ -1178,6 +1215,7 @@ async function saveConfig(isToReload = true) {
 	let isOpenInTerminal = document.querySelector(".openin-terminal-checkbox").checked;
 	let isDualPaneEnabled = document.querySelector(".show-dual-pane-checkbox").checked;
 	let launchPath = document.querySelector(".launch-path-input").value;
+	let isDualPaneActive = IsDualPaneEnabled;
 	closeSettings();
 
 	if (isOpenInTerminal == true) {
@@ -1194,7 +1232,14 @@ async function saveConfig(isToReload = true) {
 		isDualPaneEnabled = "0";
 	}
 
-	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal, isDualPaneEnabled, launchPath, isDualPaneEnabled});
+	if (isDualPaneActive == true) {
+		isDualPaneActive = "1";
+	}
+	else {
+		isDualPaneActive = "0";
+	}
+
+	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal, isDualPaneEnabled, launchPath, isDualPaneEnabled, isDualPaneActive});
 	if (isToReload == true) {
 		checkAppConfig();
 	}
