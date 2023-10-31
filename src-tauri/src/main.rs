@@ -6,13 +6,13 @@ use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
 use rust_search::SearchBuilder;
 use serde_json::Value;
-use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config, Window, window};
+use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config, Window};
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
 use get_sys_info::{System, Platform};
-use dialog::{DialogBox, backends::Dialog};
+use dialog::DialogBox;
 
 fn main() {
     tauri::Builder::default()
@@ -34,6 +34,7 @@ fn main() {
               check_app_config,
               create_file,
               get_current_dir,
+              set_dir,
               list_disks,
               open_in_terminal,
               rename_element,
@@ -63,7 +64,8 @@ struct AppConfig {
     configured_path_three: String,
     is_open_in_terminal: String,
     is_dual_pane_enabled: String,
-    launch_path: String
+    launch_path: String,
+    is_dual_pane_active: String
 }
 
 #[tauri::command]
@@ -79,7 +81,8 @@ async fn check_app_config() -> AppConfig {
             configured_path_three: "".to_string(),
             is_open_in_terminal: "0".to_string(),
             is_dual_pane_enabled: "0".to_string(),
-            launch_path: "".to_string()
+            launch_path: "".to_string(),
+            is_dual_pane_active: "0".to_string()
         };
         let _ = serde_json::to_writer_pretty(File::create(config_dir().unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     }
@@ -95,7 +98,8 @@ async fn check_app_config() -> AppConfig {
         configured_path_three: app_config["configured_path_three"].to_string().replace('"', ""),
         is_open_in_terminal: app_config["is_open_in_terminal"].to_string(),
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string(),
-        launch_path: app_config["launch_path"].to_string().replace('"', "")
+        launch_path: app_config["launch_path"].to_string().replace('"', ""),
+        is_dual_pane_active: app_config["is_dual_pane_active"].to_string()
     };
 }
 
@@ -162,7 +166,8 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         configured_path_three: app_config["configured_path_three"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         is_open_in_terminal: app_config["is_open_in_terminal"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        launch_path: app_config["launch_path"].to_string().replace('"', "").replace("\\", "/").trim().to_string()
+        launch_path: app_config["launch_path"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
+        is_dual_pane_active: app_config["is_dual_pane_active"].to_string().replace('"', "").replace("\\", "/").trim().to_string()
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     return list_dirs().await;
@@ -171,6 +176,12 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
 #[tauri::command]
 async fn get_current_dir() -> String {
     return current_dir().unwrap().as_path().to_str().unwrap().to_string().replace("\\", "/");
+}
+
+#[tauri::command]
+async fn set_dir(current_dir: String) {
+    println!("Current dir: {}", &current_dir);
+    let _ = set_current_dir(current_dir);
 }
 
 #[tauri::command]
@@ -204,7 +215,7 @@ async fn list_dirs() -> Vec<FDir> {
 }
 
 fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
-    dialog::Message::new("It was no directory found")
+    dialog::Message::new("No directory found or unable to open due to missing permissions")
     .title("No directory found")
     .show()
     .expect("Error opening dialog");
@@ -438,7 +449,7 @@ async fn search_for(file_name: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String, test_window: Window) -> Vec<FDir> {
+async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
     println!("Copying starting ...");
     let is_dir = fs::metadata(&from_path).unwrap().is_dir();
     let sw = Stopwatch::start_new();
@@ -507,10 +518,6 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
     let new_file = File::create(&final_filename).unwrap();
     let mut new_file = BufWriter::new(new_file);
 
-    let mut reader = BufReader::new(file);
-    let mut buffer = Vec::new();
-    reader.read_to_end(&mut buffer).expect("Failed to read file");
-
     let mut counter = 0;
     for (num, &byte) in buffer.iter().enumerate() {
         let progress = num as f64;
@@ -559,23 +566,23 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
         let new_dir = PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap());
         zip_extract(&file, &new_dir).unwrap();
     }
-        else if file_ext == ".rar" {
-            let mut archive = Archive::new(&from_path)
-                .open_for_processing()
-                .unwrap();
-            while let Some(header) = archive.read_header().unwrap() {
-                println!("{} bytes: {}", header.entry().unpacked_size, header.entry().filename.to_string_lossy());
-                archive = if header.entry().is_file() {
-                    header.extract().unwrap()
-                } else {
-                    header.skip().unwrap()
-                }
+    else if file_ext == ".rar" {
+        let mut archive = Archive::new(&from_path)
+            .open_for_processing()
+            .unwrap();
+        while let Some(header) = archive.read_header().unwrap() {
+            println!("{} bytes: {}", header.entry().unpacked_size, header.entry().filename.to_string_lossy());
+            archive = if header.entry().is_file() {
+                header.extract().unwrap()
+            } else {
+                header.skip().unwrap()
             }
         }
+    }
     else if file_ext == ".7z" {
         let _ = sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     }
-    println!("Unpack time: {} ms", sw.elapsed_ms());
+    println!("# Debug: Unpack time: {} ms", sw.elapsed_ms());
     return list_dirs().await;
 }
 
@@ -604,7 +611,7 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
     }
     let _ = zip_create_from_directory(&archive, &source);
     let _ = remove_dir_all("compressed_dir");
-    println!("Pack time: {} ms", sw.elapsed_ms());
+    println!("# Debug: Pack time: {} ms", sw.elapsed_ms());
     return list_dirs().await;
 }
 
@@ -624,7 +631,7 @@ async fn create_file(file_name: String) {
 async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
     let _ = fs::rename(current_dir().unwrap().join(&path.replace("\\", "/")), current_dir().unwrap().join(&new_name.replace("\\", "/")));
-    println!("Rename time: {} ms", sw.elapsed_ms());
+    println!("# Debug: Rename time: {} ms", sw.elapsed_ms());
     return list_dirs().await;
 }
 
@@ -635,7 +642,8 @@ async fn save_config(
     configured_path_three: String,
     is_open_in_terminal: String,
     is_dual_pane_enabled: String,
-    launch_path: String) {
+    launch_path: String,
+    is_dual_pane_active: String) {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
@@ -647,7 +655,8 @@ async fn save_config(
         configured_path_three: configured_path_three.replace("\\", "/"),
         is_open_in_terminal: is_open_in_terminal.replace("\\", ""),
         is_dual_pane_enabled: is_dual_pane_enabled.replace("\\", ""),
-        launch_path: launch_path.replace("\\", "/")
+        launch_path: launch_path.replace("\\", "/"),
+        is_dual_pane_active: is_dual_pane_active.replace("\\", "")
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
 }

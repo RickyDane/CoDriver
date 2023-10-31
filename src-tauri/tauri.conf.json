@@ -1,95 +1,102 @@
 {
-  "build": {
-    "beforeBuildCommand": "",
-    "beforeDevCommand": "",
-    "devPath": "../ui",
-    "distDir": "../ui",
-	"withGlobalTauri": true
-  },
-  "package": {
-    "productName": "rdpFX",
-    "version": "0.1.8"
-  },
-  "tauri": {
-    "allowlist": {
-	  "window": {
-        "all": true,
-        "close": true,
-		"create": true,
-        "hide": true,
-        "show": true,
-        "maximize": true,
-        "minimize": true,
-        "unmaximize": true,
-        "unminimize": true,
-        "startDragging": true
-      },
-	  "fs": {
-		  "all": true,
-		  "readFile": true,
-		  "writeFile": true,
-		  "readDir": true,
-		  "copyFile": true,
-		  "createDir": true,
-		  "removeDir": true,
-		  "removeFile": true,
-		  "renameFile": true,
-		  "exists": true
-	  },
-	  "dialog": {
-		  "all": true,
-		  "ask": true,
-		  "confirm": true,
-		  "message": true,
-		  "open": true,
-		  "save": true
-	  }
-    },
-    "bundle": {
-      "active": true,
-      "category": "DeveloperTool",
-      "copyright": "",
-      "deb": {
-        "depends": []
-      },
-      "externalBin": [],
-      "icon": [
-		    "icons/rdpX-Logo-shadow.png",
-		    "icons/rdpX-Logo-shadow.ico"
-	    ],
-      "identifier": "com.rdpFX.dev",
-      "longDescription": "A simple file explorer with nice ui and good features.",
-      "macOS": {
-        "entitlements": null,
-        "exceptionDomain": "",
-        "frameworks": [],
-        "providerShortName": null,
-        "signingIdentity": null
-      },
-      "resources": [],
-      "shortDescription": "",
-      "targets": "all",
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampUrl": ""
-      }
-    },
-    "security": {
-      "csp": null
-    },
-    "updater": {
-      "active": false
-    },
-    "windows": [
-      {
-		"decorations": false,
-        "fullscreen": false,
-        "height": 600,
-        "resizable": true,
-        "title": "rdpFX",
-        "width": 1080
-      }
-    ]
-  }
+	"build": {
+		"beforeBuildCommand": "",
+		"beforeDevCommand": "",
+		"devPath": "../ui",
+		"distDir": "../ui",
+		"withGlobalTauri": true
+	},
+	"package": {
+		"productName": "rdpFX",
+		"version": "0.1.8"
+	},
+	"tauri": {
+		"allowlist": {
+			"window": {
+				"all": true,
+				"close": true,
+				"create": true,
+				"hide": true,
+				"show": true,
+				"maximize": true,
+				"minimize": true,
+				"unmaximize": true,
+				"unminimize": true,
+				"startDragging": true
+			},
+			"path": {
+				"all": true
+			},
+			"fs": {
+				"all": true,
+				"readFile": true,
+				"writeFile": true,
+				"readDir": true,
+				"copyFile": true,
+				"createDir": true,
+				"removeDir": true,
+				"removeFile": true,
+				"renameFile": true,
+				"exists": true
+			},
+			"dialog": {
+				"all": true,
+				"ask": true,
+				"confirm": true,
+				"message": true,
+				"open": true,
+				"save": true
+			},
+			"protocol": {
+				"asset": true,
+				"assetScope": ["**"]
+			}
+		},
+		"bundle": {
+			"active": true,
+			"category": "DeveloperTool",
+			"copyright": "",
+			"deb": {
+				"depends": []
+			},
+			"externalBin": [],
+			"icon": [
+				"icons/rdpX-Logo-shadow.png",
+				"icons/rdpX-Logo-shadow.ico"
+			],
+			"identifier": "com.rdpFX.dev",
+			"longDescription": "A simple file explorer with nice ui and good features.",
+			"macOS": {
+				"entitlements": null,
+				"exceptionDomain": "",
+				"frameworks": [],
+				"providerShortName": null,
+				"signingIdentity": null
+			},
+			"resources": [],
+			"shortDescription": "",
+			"targets": "all",
+			"windows": {
+				"certificateThumbprint": null,
+				"digestAlgorithm": "sha256",
+				"timestampUrl": ""
+			}
+		},
+		"security": {
+			"csp": null
+		},
+		"updater": {
+			"active": false
+		},
+		"windows": [
+			{
+				"decorations": false,
+				"fullscreen": false,
+				"height": 600,
+				"resizable": true,
+				"title": "rdpFX",
+				"width": 1080
+			}
+		]
+	}
 }
