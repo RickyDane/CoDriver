@@ -27,6 +27,35 @@ body {
 	position: relative;
 	user-select: none;
 }
+.dual-pane-container {
+	width: 100%;
+	max-width: 100%;
+	height: calc(100vh - 110px);
+	display: none;
+	flex-flow: row;
+	justify-content: center;
+	overflow: hidden;
+}
+.dual-pane-left {
+	border-right: 2px solid #2e313b;
+	width: 50%;
+	max-width: 50%;
+	padding: 20px;
+	min-height: 100vh - 110px;
+	overflow: auto;
+}
+.dual-pane-right {
+	border-left: 2px solid #2e313b;
+	width: 50%;
+	padding: 20px;
+	overflow: auto;
+}
+.dual-pane-left > div > button, .dual-pane-right > div > button {
+	width: 100%;
+}
+.dual-pane-left > div, .dual-pane-right > div {
+	gap: 2px;
+}
 .main-container {
 	margin-top: 110px;
 	display: flex;
@@ -107,18 +136,43 @@ body {
 .settings-ui {
 	display: none;
 	position: fixed;
-	width: 50%;
+	width: 70%;
 	height: fit-content;
+	max-height: 70vh;
 	top: 0;
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background: #2e313b;
+	background: #363945;
 	z-index: 3;
 	margin: auto;
-	padding: 20px;
 	border-radius: 10px;
 	box-shadow: 0px 0px 15px 1px rgba(0, 0, 0, 0.3);
+	overflow: auto;
+}
+.settings-ui-header {
+	background-color: #363945;
+	position: sticky;
+	top: 0;
+	padding: 15px 20px;
+	font-size: large;
+	display: flex;
+	flex-flow: row;
+	align-items: center;
+	gap: 20px;
+	z-index: 4;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
+}
+.settings-ui-body {
+	padding: 20px;
+	position: relative;
+}
+.settings-ui-body-buttons {
+	padding: 20px;
+	background-color: #363945;
+	position: absolute;
+	bottom: 0;
+	right: 0;
 }
 .tab-header {
 	display: none;
@@ -211,6 +265,12 @@ body {
 	flex-flow: row;
 	gap: 10px;
 	justify-content: flex-end;
+}
+.settings-ui-body-buttons > button {
+	display: flex;
+	flex-flow: row;
+	align-items: center;
+	gap: 10px;
 }
 .settings-ui > button {
 	float: right;
@@ -336,6 +396,7 @@ body {
 .item-link {
 	background-color: transparent;
 	border: none;
+	border-radius: 5px;
 }
 .disk-item-button {
 	display: flex;
@@ -423,6 +484,36 @@ body {
 .search-button:hover, .cancel-search-button:hover {
 	background-color: rgba(0, 0, 0, 0.1);
 }
+.search-bar-container {
+	display: none;
+	flex-flow: column;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+	width: 300px;
+	height: fit-content;
+	background: #363945;
+	padding: 10px;
+	border-radius: 5px;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+}
+.text-input {
+	padding: 10px 15px;
+	background-color: #2e313b;
+	border-radius: 5px;
+	border: none;
+	z-index: 3;
+	outline: none;
+	width: 100%;
+}
+.search-bar-text {
+	margin-bottom: 10px;
+}
+
+
 .current-path {
 	background-color: rgba(0, 0, 0, 0.75);
 	position: fixed;
@@ -442,6 +533,11 @@ body {
 	display: flex;
 	flex-flow: wrap;
 	gap: 5px;
+}
+.directory-list-dual-pane {
+	display: flex;
+	flex-flow: column;
+	align-items: center;
 }
 
 

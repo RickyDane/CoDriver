@@ -8,13 +8,14 @@
   },
   "package": {
     "productName": "rdpFX",
-    "version": "0.1.72"
+    "version": "0.1.8"
   },
   "tauri": {
     "allowlist": {
 	  "window": {
-        "all": false,
+        "all": true,
         "close": true,
+		"create": true,
         "hide": true,
         "show": true,
         "maximize": true,
