@@ -204,7 +204,7 @@ async fn list_dirs() -> Vec<FDir> {
 }
 
 fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
-    dialog::Message::new("It was no directory found")
+    dialog::Message::new("No directory found or unable to open due to missing permissions")
     .title("No directory found")
     .show()
     .expect("Error opening dialog");

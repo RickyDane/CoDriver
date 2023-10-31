@@ -323,6 +323,7 @@ async function showItems(items, dualPaneSide) {
 	directoryCount.innerHTML = "Objects: " + items.length + " / " + hiddenItemsLength;
 	delete hiddenItemsLength;
 	let set = new Set(items);
+	delete items;
 	let counter = 0;
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
@@ -355,6 +356,9 @@ async function showItems(items, dualPaneSide) {
 				case ".png":
 				case ".jpg":
 				case ".jpeg":
+					fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
+					iconSize = "100%";
+					break;
 				case ".webp":
 				case ".gif":
 				case ".svg":
@@ -386,7 +390,6 @@ async function showItems(items, dualPaneSide) {
 			}
 
 		}
-		delete items;
 		itemLink.className = "item-link directory-entry";
 		let itemButton = document.createElement("div");
 		itemButton.innerHTML = `
@@ -711,7 +714,9 @@ async function checkAppConfig() {
 			if (appConfig.is_dual_pane_enabled.includes("1")) {
 				document.querySelector(".show-dual-pane-checkbox").checked = true;
 				document.querySelector(".switch-dualpane-view-button").style.display = "block";
-				switchToDualPane();
+				if (IsDualPaneEnabled == false) {
+					switchToDualPane();
+				}
 			}
 			else {
 				document.querySelector(".show-dual-pane-checkbox").checked = false;
@@ -1102,6 +1107,8 @@ async function switchToDualPane() {
 		document.querySelector(".non-dual-pane-container").style.display = "none";
 		document.querySelector(".dual-pane-container").style.display = "flex";
 		document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
+		document.querySelector(".go-back-button").style.display = "none";
+		document.querySelector(".nav-seperator-1").style.display = "none";
 		await saveConfig(false);
 		await invoke("list_dirs")
 			.then((items) => {
@@ -1124,6 +1131,8 @@ async function switchToDualPane() {
 		document.querySelector(".non-dual-pane-container").style.display = "block";
 		document.querySelector(".dual-pane-container").style.display = "none";
 		document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-solid fa-table-columns"></i>`;
+		document.querySelector(".go-back-button").style.display = "block";
+		document.querySelector(".nav-seperator-1").style.display = "block";
 		await saveConfig(false);
 		await invoke("list_dirs")
 			.then((items) => {
