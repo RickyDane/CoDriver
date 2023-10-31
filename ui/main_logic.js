@@ -503,7 +503,6 @@ async function getCurrentDir() {
 async function deleteItem(item) {
 	let fromPath = item.getAttribute("onclick").split(",")[1].trim().split("/");
 	let SelectedItemPaneSide = item.getAttribute("onclick").split(",")[3].trim().replace("'", "").replace("'", "");
-	console.log(SelectedItemPaneSide);
 	let actFileName = fromPath[fromPath.length - 1].replace("'", "");
 	let isConfirm = await confirm("Do you really want to delete "+actFileName+"?");
 	if (isConfirm == true) {
@@ -672,7 +671,8 @@ function renameElementInputPrompt(e, item) {
 }
 
 function createFolder(folderName) {
-	invoke("create_folder", {folderName});
+	let isDualPaneEnabled = IsDualPaneEnabled;
+	invoke("create_folder", {folderName, isDualPaneEnabled});
 	listDirectories();
 }
 
@@ -808,7 +808,7 @@ async function openItem(name, path, isDir, dualPaneSide = "", element = null, sh
 		document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
 		document.querySelector(".dual-pane-right").style.boxShadow = "none";
 	}
-	else {
+	else if (dualPaneSide == "right") {
 		document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
 		document.querySelector(".dual-pane-left").style.boxShadow = "none";
 	}
@@ -826,8 +826,11 @@ async function openItem(name, path, isDir, dualPaneSide = "", element = null, sh
 		document.querySelector('.tab-container-'+CurrentActiveTab).innerHTML = "";
 		await invoke("open_dir", {path, name})
 			.then((items) => {
-				if (dualPaneSide != "") {
+				if (IsDualPaneEnabled == true && dualPaneSide != "") {
 					showItems(items, dualPaneSide);
+				}
+				else {
+					showItems(items);
 				}
 			});
 	}
@@ -1099,6 +1102,7 @@ async function switchToDualPane() {
 		document.querySelector(".non-dual-pane-container").style.display = "none";
 		document.querySelector(".dual-pane-container").style.display = "flex";
 		document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
+		await saveConfig(false);
 		await invoke("list_dirs")
 			.then((items) => {
 				showItems(items, "left");
@@ -1120,6 +1124,7 @@ async function switchToDualPane() {
 		document.querySelector(".non-dual-pane-container").style.display = "block";
 		document.querySelector(".dual-pane-container").style.display = "none";
 		document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-solid fa-table-columns"></i>`;
+		await saveConfig(false);
 		await invoke("list_dirs")
 			.then((items) => {
 				showItems(items);
@@ -1144,7 +1149,7 @@ function openSettings() {
 	IsDisableShortcuts = true;
 }
 
-async function saveConfig() {
+async function saveConfig(isToReload = true) {
 	let configuredPathOne = ConfiguredPathOne = document.querySelector(".configured-path-one-input").value;
 	let configuredPathTwo = ConfiguredPathTwo = document.querySelector(".configured-path-two-input").value;
 	let configuredPathThree = ConfiguredPathThree = document.querySelector(".configured-path-three-input").value;
@@ -1168,7 +1173,9 @@ async function saveConfig() {
 	}
 
 	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal, isDualPaneEnabled, launchPath, isDualPaneEnabled});
-	checkAppConfig();
+	if (isToReload == true) {
+		checkAppConfig();
+	}
 }
 
 function closeSettings() {
