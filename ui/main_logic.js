@@ -43,7 +43,9 @@ let SelectedItemPath = "";
 let SelectedItemPaneSide = "";
 let LeftPaneItemCollection = [];
 let RightPaneItemCollection = [];
-let IsSettingsOpen = false;
+let IsDisableShortcuts = false;
+let LeftPaneItemIndex = 0;
+let RightPaneItemIndex = 0;
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
@@ -58,6 +60,8 @@ document.addEventListener("keyup", (e) => {
 	if (e.keyCode === 27) {
 		contextMenu.style.display = "none";
 		document.querySelector(".newfolder-input")?.remove();
+		closeSearchBar();
+		closeSettings();
 	}
 });
 
@@ -197,7 +201,7 @@ document.onkeydown = async (e) => {
 		}
 	}
 
-	if (IsDualPaneEnabled == true && IsSettingsOpen == false) {
+	if (IsDualPaneEnabled == true && IsDisableShortcuts == false) {
 		if (e.keyCode == 116 && IsTabsEnabled == false) {
 			let isToCopy = await confirm("Current selection will be copied over");
 			if (isToCopy == true) {
@@ -239,6 +243,12 @@ document.onkeydown = async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 			deleteItem(SelectedElement);
+		}
+		// check if strg + f is pressed
+		if (e.ctrlKey && e.keyCode == 70) {
+			e.preventDefault();
+			e.stopPropagation();
+			openSearchBar();
 		}
 	}
 } 
@@ -701,6 +711,7 @@ async function checkAppConfig() {
 			if (appConfig.is_dual_pane_enabled.includes("1")) {
 				document.querySelector(".show-dual-pane-checkbox").checked = true;
 				document.querySelector(".switch-dualpane-view-button").style.display = "block";
+				switchToDualPane();
 			}
 			else {
 				document.querySelector(".show-dual-pane-checkbox").checked = false;
@@ -793,15 +804,13 @@ async function listDirectories() {
 }
 
 async function openItem(name, path, isDir, dualPaneSide = "", element = null, shortcut = false) {
-	if (SelectedElement == null) {
-		if (dualPaneSide == "left") {
-			document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
-			document.querySelector(".dual-pane-right").style.boxShadow = "none";
-		}
-		else {
-			document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
-			document.querySelector(".dual-pane-left").style.boxShadow = "none";
-		}
+	if (dualPaneSide == "left") {
+		document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+		document.querySelector(".dual-pane-right").style.boxShadow = "none";
+	}
+	else {
+		document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+		document.querySelector(".dual-pane-left").style.boxShadow = "none";
 	}
 	// Select item for dualpane
 	if (element != null && SelectedElement != element && IsDualPaneEnabled == true) {
@@ -852,13 +861,17 @@ async function goBack() {
 		});
 }
 
-function goUp() {
+function goUp(isSwitched = false) {
 	let element = null;
 	let selectedItemIndex = 0;
 	if (SelectedElement != null) {
 		selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
 		if (SelectedItemPaneSide == "left") {
-			if ((parseInt(selectedItemIndex)) <= 0) {
+			if (LeftPaneItemIndex > 0 && isSwitched == true) {
+				selectedItemIndex = LeftPaneItemIndex;
+				element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
+			}
+			else if ((parseInt(selectedItemIndex)) <= 0) {
 				selectedItemIndex = 0;
 				element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
 			}
@@ -866,9 +879,14 @@ function goUp() {
 				selectedItemIndex = parseInt(selectedItemIndex) - 1;
 				element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 			}
+			LeftPaneItemIndex = selectedItemIndex;
 		}
 		else if (SelectedItemPaneSide == "right") {
-			if ((parseInt(selectedItemIndex) - 1) <= 0) {
+			if (RightPaneItemIndex > 0 && isSwitched == true) {
+				selectedItemIndex = RightPaneItemIndex;
+				element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
+			}
+			else if ((parseInt(selectedItemIndex) - 1) <= 0) {
 				selectedItemIndex = 0;
 				element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
 			}
@@ -876,6 +894,7 @@ function goUp() {
 				selectedItemIndex = parseInt(selectedItemIndex) - 1;
 				element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 			}
+			RightPaneItemIndex = selectedItemIndex;
 		}
 	}
 	else {
@@ -884,6 +903,7 @@ function goUp() {
 		if (SelectedItemPaneSide == "left") {
 			selectedItemIndex = 0;
 			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+			LeftPaneItemIndex = selectedItemIndex;
 		}
 		else if (SelectedItemPaneSide == "right") {
 			selectedItemIndex = 0;
@@ -904,7 +924,6 @@ function goUp() {
 			document.querySelector(".dual-pane-right").scrollTop -= 36;
 		}
 	}
-	console.log("Current item: ", selectedItemIndex);
 }
 
 function goDown() {
@@ -921,6 +940,7 @@ function goDown() {
 				selectedItemIndex = parseInt(selectedItemIndex)+1
 				element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 			}
+			LeftPaneItemIndex = selectedItemIndex;
 		}
 		else if (SelectedItemPaneSide == "right") {
 			if ((parseInt(selectedItemIndex) + 1) >= RightPaneItemCollection.querySelectorAll(".item-link").length - 1) {
@@ -931,6 +951,7 @@ function goDown() {
 				selectedItemIndex = parseInt(selectedItemIndex) + 1;
 				element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 			}
+			RightPaneItemIndex = selectedItemIndex;
 		}
 	}
 	else {
@@ -976,19 +997,18 @@ function goToOtherPane() {
 		document.querySelector(".dual-pane-right").style.boxShadow = "none";
 		document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
 	}
-	goUp();
+	goUp(true);
 }
 
 function openSelectedItem() {
 	SelectedElement.onclick();
 }
 
-async function goToDir(directory, dualPaneSide = "") {
+async function goToDir(directory) {
 	await invoke("go_to_dir", {directory})
 		.then((items) => {
 			if (IsDualPaneEnabled == true) {
-				showItems(items, "left");
-				showItems(items, "right");
+				showItems(items, SelectedItemPaneSide);
 			}
 			else {
 				showItems(items);
@@ -1009,6 +1029,17 @@ async function searchFor() {
 		.then((items) => {
 			showItems(items);
 		});
+}
+
+function openSearchBar() {
+	document.querySelector(".search-bar-container").style.display = "flex";
+	document.querySelector(".dualpane-search-input").focus();
+	IsDisableShortcuts = true;	
+}
+
+function closeSearchBar() {
+	document.querySelector(".search-bar-container").style.display = "none";
+	IsDisableShortcuts = false;
 }
 
 async function cancelSearch() {
@@ -1073,6 +1104,9 @@ async function switchToDualPane() {
 				showItems(items, "left");
 				showItems(items, "right");
 			});
+		document.querySelectorAll(".explorer-container").forEach(item => {
+			item.style.display = "none";
+		});
 	}
 	else {
 		// disable tab functionality and show two panels side by side
@@ -1107,7 +1141,7 @@ function switchHiddenFiles() {
 
 function openSettings() {
 	document.querySelector(".settings-ui").style.display = "block";
-	IsSettingsOpen = true;
+	IsDisableShortcuts = true;
 }
 
 async function saveConfig() {
@@ -1133,13 +1167,13 @@ async function saveConfig() {
 		isDualPaneEnabled = "0";
 	}
 
-	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal, isDualPaneEnabled, launchPath});
+	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal, isDualPaneEnabled, launchPath, isDualPaneEnabled});
 	checkAppConfig();
 }
 
 function closeSettings() {
 	document.querySelector(".settings-ui").style.display = "none";
-	IsSettingsOpen = false;
+	IsDisableShortcuts = false;
 }
 
 function createTab(tabCount, isInitial) {
@@ -1252,6 +1286,10 @@ async function switchToTab(tabNo) {
 		await invoke("switch_to_directory", {currentDir});
 	}
 	document.querySelector(".current-path").textContent = CurrentDir;
+
+	if (IsDualPaneEnabled == true) {
+		switchToDualPane();
+	}
 }
 
 function formatBytes(bytes, decimals = 2) {

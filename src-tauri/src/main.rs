@@ -629,7 +629,13 @@ async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn save_config(configured_path_one: String, configured_path_two: String, configured_path_three: String, is_open_in_terminal: String, is_dual_pane_enabled: String, launch_path: String) {
+async fn save_config(
+    configured_path_one: String,
+    configured_path_two: String,
+    configured_path_three: String,
+    is_open_in_terminal: String,
+    is_dual_pane_enabled: String,
+    launch_path: String) {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();

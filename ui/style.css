@@ -484,6 +484,36 @@ body {
 .search-button:hover, .cancel-search-button:hover {
 	background-color: rgba(0, 0, 0, 0.1);
 }
+.search-bar-container {
+	display: none;
+	flex-flow: column;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+	width: 300px;
+	height: fit-content;
+	background: #363945;
+	padding: 10px;
+	border-radius: 5px;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+}
+.text-input {
+	padding: 10px 15px;
+	background-color: #2e313b;
+	border-radius: 5px;
+	border: none;
+	z-index: 3;
+	outline: none;
+	width: 100%;
+}
+.search-bar-text {
+	margin-bottom: 10px;
+}
+
+
 .current-path {
 	background-color: rgba(0, 0, 0, 0.75);
 	position: fixed;
