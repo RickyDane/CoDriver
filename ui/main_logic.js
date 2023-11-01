@@ -288,6 +288,7 @@ document.onkeyup = (e) => {
 async function showItems(items, dualPaneSide) {
 	await getCurrentDir();
 	IsShowDisks = false;
+
 	// Check which tab is currently active and write CurrentDir to TabOnePath and so on
 	// Todo: Make more "dynamic friendly"
 	switch (CurrentActiveTab) {
@@ -379,11 +380,11 @@ async function showItems(items, dualPaneSide) {
 				case ".png":
 				case ".jpg":
 				case ".jpeg":
+				case ".gif":
+				case ".webp":
 					fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
 					iconSize = "100%";
 					break;
-				case ".webp":
-				case ".gif":
 				case ".svg":
 					fileIcon = "resources/img-file.png";
 					break;
@@ -416,14 +417,15 @@ async function showItems(items, dualPaneSide) {
 		itemLink.className = "item-link directory-entry";
 		let itemButton = document.createElement("div");
 		itemButton.innerHTML = `
-			<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" style="object-fit: cover;"/>
+			<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" style="object-fit: cover;" loading="lazy"/>
 			<p style="text-align: left;">${item.name}</p>
 		`;
+		delete fileIcon;
 		itemButton.className = "item-button directory-entry";
 		let itemButtonList = document.createElement("div");
 		itemButtonList.innerHTML = `
 			<span style="display: flex; gap: 10px; align-items: center; width: 50%;">
-				<img class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+				<img class="item-icon" src="${fileIcon}" width="24px" height="24px" loading="lazy"/>
 				<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 			</span>
 			<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
@@ -763,6 +765,7 @@ async function checkAppConfig() {
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
 			document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
 			document.querySelector(".launch-path-input").value = appConfig.launch_path;
+			document.querySelector(".search-depth-input").value = parseInt(appConfig.search_depth);
 
 			if (appConfig.launch_path.length >= 1) {
 				let path = appConfig.launch_path;
@@ -1216,6 +1219,7 @@ async function saveConfig(isToReload = true) {
 	let isDualPaneEnabled = document.querySelector(".show-dual-pane-checkbox").checked;
 	let launchPath = document.querySelector(".launch-path-input").value;
 	let isDualPaneActive = IsDualPaneEnabled;
+	let searchDepth = parseInt(document.querySelector(".search-depth-input").value);
 	closeSettings();
 
 	if (isOpenInTerminal == true) {
@@ -1239,7 +1243,17 @@ async function saveConfig(isToReload = true) {
 		isDualPaneActive = "0";
 	}
 
-	await invoke("save_config", {configuredPathOne, configuredPathTwo, configuredPathThree, isOpenInTerminal, isDualPaneEnabled, launchPath, isDualPaneEnabled, isDualPaneActive});
+	await invoke("save_config", {
+		configuredPathOne,
+		configuredPathTwo,
+		configuredPathThree,
+		isOpenInTerminal,
+		isDualPaneEnabled,
+		launchPath,
+		isDualPaneEnabled,
+		isDualPaneActive,
+		searchDepth
+	});
 	if (isToReload == true) {
 		checkAppConfig();
 	}

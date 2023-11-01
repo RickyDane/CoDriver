@@ -65,7 +65,8 @@ struct AppConfig {
     is_open_in_terminal: String,
     is_dual_pane_enabled: String,
     launch_path: String,
-    is_dual_pane_active: String
+    is_dual_pane_active: String,
+    search_depth: i32
 }
 
 #[tauri::command]
@@ -82,12 +83,12 @@ async fn check_app_config() -> AppConfig {
             is_open_in_terminal: "0".to_string(),
             is_dual_pane_enabled: "0".to_string(),
             launch_path: "".to_string(),
-            is_dual_pane_active: "0".to_string()
+            is_dual_pane_active: "0".to_string(),
+            search_depth: 0 
         };
         let _ = serde_json::to_writer_pretty(File::create(config_dir().unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     }
     let app_config_file = File::open(config_dir().unwrap().join("rdpFX/app_config.json")).unwrap();
-
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     return AppConfig {
@@ -99,7 +100,8 @@ async fn check_app_config() -> AppConfig {
         is_open_in_terminal: app_config["is_open_in_terminal"].to_string(),
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string(),
         launch_path: app_config["launch_path"].to_string().replace('"', ""),
-        is_dual_pane_active: app_config["is_dual_pane_active"].to_string()
+        is_dual_pane_active: app_config["is_dual_pane_active"].to_string(),
+        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap()
     };
 }
 
@@ -167,7 +169,8 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         is_open_in_terminal: app_config["is_open_in_terminal"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         launch_path: app_config["launch_path"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        is_dual_pane_active: app_config["is_dual_pane_active"].to_string().replace('"', "").replace("\\", "/").trim().to_string()
+        is_dual_pane_active: app_config["is_dual_pane_active"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
+        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap() 
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     return list_dirs().await;
@@ -227,7 +230,7 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
     println!("{}", &_path.contains('"'));
     let sw = Stopwatch::start_new();
     let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(&_path.replace('"', "")).unwrap_or_else(alert_not_found_dir);
+    let current_directory = fs::read_dir(&_path.replace('"', "")).expect("Unable to open directory");
     let _ = set_current_dir(_path);
     println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
     for item in current_directory {
@@ -379,6 +382,12 @@ async fn go_home() -> Vec<FDir> {
 
 #[tauri::command]
 async fn search_for(file_name: String) -> Vec<FDir> {
+    let app_config_file = File::open(config_dir().unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_reader = BufReader::new(app_config_file);
+    let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+    let search_depth = app_config["search_depth"].to_string().parse::<i32>().unwrap_or(1000) as usize;
+    println!("{}", search_depth);
+
     let mut file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
     println!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext);
     let sw = Stopwatch::start_new();
@@ -389,8 +398,10 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             .location(current_dir().unwrap())
             .search_input(file_name.strip_suffix(&file_ext).unwrap())
             .ignore_case( )
+            .depth(search_depth.clone())
             .ext(&file_ext)
             .hidden()
+            .limit(10000)
             .build()
             .collect();
     }
@@ -399,7 +410,9 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             .location(current_dir().unwrap())
             .search_input(file_name)
             .ignore_case()
+            .depth(search_depth)
             .hidden()
+            .limit(10000)
             .build()
             .collect();
     }
@@ -444,7 +457,10 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
         });
     }
-    println!("{} ms", sw.elapsed_ms());
+
+    println!("# Debug: {} ms", sw.elapsed_ms());
+    println!("# Debug: {} items found", dir_list.len());
+
     return dir_list;
 }
 
@@ -643,7 +659,8 @@ async fn save_config(
     is_open_in_terminal: String,
     is_dual_pane_enabled: String,
     launch_path: String,
-    is_dual_pane_active: String) {
+    is_dual_pane_active: String,
+    search_depth: i32) {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
@@ -656,7 +673,8 @@ async fn save_config(
         is_open_in_terminal: is_open_in_terminal.replace("\\", ""),
         is_dual_pane_enabled: is_dual_pane_enabled.replace("\\", ""),
         launch_path: launch_path.replace("\\", "/"),
-        is_dual_pane_active: is_dual_pane_active.replace("\\", "")
+        is_dual_pane_active: is_dual_pane_active.replace("\\", ""),
+        search_depth: search_depth
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
 }
