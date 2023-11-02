@@ -72,6 +72,8 @@ struct AppConfig {
 #[tauri::command]
 async fn check_app_config() -> AppConfig {
     create_folder(config_dir().unwrap().join("rdpFX").to_str().unwrap().to_string()).await;
+
+    // If config doesn't exist, create it
     if fs::metadata(config_dir().unwrap().join("rdpFX/app_config.json")).is_err() {
         let _ = File::create(config_dir().unwrap().join("rdpFX/app_config.json"));
         let app_config_json = AppConfig {
@@ -84,13 +86,15 @@ async fn check_app_config() -> AppConfig {
             is_dual_pane_enabled: "0".to_string(),
             launch_path: "".to_string(),
             is_dual_pane_active: "0".to_string(),
-            search_depth: 0 
+            search_depth: 10 
         };
         let _ = serde_json::to_writer_pretty(File::create(config_dir().unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     }
+
     let app_config_file = File::open(config_dir().unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+
     return AppConfig {
         view_mode: app_config["view_mode"].to_string(),
         last_modified: app_config["last_modified"].to_string(),
@@ -122,10 +126,11 @@ async fn list_disks() -> Vec<DisksInfo> {
             println!("get mounts error:{}", r);
             vec![]
         });
+
     #[cfg(not(target_os = "macos"))]
     #[cfg(not(target_os = "windows"))]
     for disk in disk_list {
-        if disk.fs_mounted_from.starts_with("/dev/") || disk.fs_mounted_from.starts_with("/run/") {
+        if disk.fs_mounted_from.starts_with("/dev/sda") || disk.fs_mounted_from.starts_with("/dev/nvme") {
             ls_disks.push(DisksInfo {
                 name: disk.fs_mounted_on.split("/").last().unwrap_or("/").to_string(),
                 format: disk.fs_type,
@@ -134,7 +139,9 @@ async fn list_disks() -> Vec<DisksInfo> {
                 capacity: disk.total.to_string()
             });
         }
+        println!("{:?}", &disk.fs_mounted_from);
     }
+
     #[cfg(not(target_os = "macos"))]
     #[cfg(target_os = "windows")]
     for disk in disk_list {
@@ -146,6 +153,7 @@ async fn list_disks() -> Vec<DisksInfo> {
             capacity: disk.total.to_string()
         });
     }
+
     return ls_disks;
 }
 
