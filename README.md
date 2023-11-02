@@ -30,7 +30,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
   - 7zip
 - Navigate to a directory using the shortcut LAlt + 1 / 2 / 3 | (macOS option + 1 / 2 / 3)
   - Configure the paths yourself in the settings<br><br>
-  ![image](https://github.com/RickyDane/rdpFX/assets/82893522/37a3390a-0648-4300-a44c-14cbb4d77b0c)
+  ![grafik](https://github.com/RickyDane/rdpFX/assets/82893522/4abddf7c-c057-4ba8-9a8c-f61ac7447a23)
 - Create file with Ctrl + 6
 - Create folder with Ctrl + 7
 
