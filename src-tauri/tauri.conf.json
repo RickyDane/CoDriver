@@ -49,7 +49,11 @@
 			},
 			"protocol": {
 				"asset": true,
-				"assetScope": ["**"]
+				"assetScope": {
+					"allow": ["**"],
+					"requireLiteralLeadingDot": false
+				},
+				"all": true
 			}
 		},
 		"bundle": {
