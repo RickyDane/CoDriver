@@ -65,7 +65,7 @@
 			},
 			"externalBin": [],
 			"icon": [
-				"icons/rdpX-Logo-shadow.png",
+				"icons/icon.png",
 				"icons/rdpX-Logo-shadow.ico"
 			],
 			"identifier": "com.rdpFX.dev",

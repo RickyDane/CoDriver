@@ -16,6 +16,7 @@ body {
 	overflow: hidden;
 	user-select: none;
 	outline: none;
+	border-radius: 20px;
 }
 .explorer-container {
 	margin: 0 5px 0 calc(200px + 20px);
@@ -40,14 +41,14 @@ body {
 	border-right: 2px solid #2e313b;
 	width: 50%;
 	max-width: 50%;
-	padding: 20px;
+	padding: 10px;
 	min-height: 100vh - 110px;
 	overflow: auto;
 }
 .dual-pane-right {
 	border-left: 2px solid #2e313b;
 	width: 50%;
-	padding: 20px;
+	padding: 10px;
 	overflow: auto;
 }
 .dual-pane-left > div > button, .dual-pane-right > div > button {
@@ -75,6 +76,7 @@ body {
 	padding: 0px 20px 0px 10px;
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
 	z-index: 3;
+	border-bottom: 1px solid #2e313b;
 }
 .site-nav-bar {
 	background-color: #363945;
@@ -90,6 +92,7 @@ body {
 	padding: 10px;
 	z-index: 2;
 	gap: 5px;
+	border-right: 1px solid #2e313b;
 }
 .titlebar {
 	height: 50px;
@@ -151,7 +154,7 @@ body {
 	overflow: auto;
 }
 .settings-ui-header {
-	background-color: #363945;
+	background-color: rgba(46, 49, 59, 1);
 	position: sticky;
 	top: 0;
 	padding: 15px 20px;
@@ -162,6 +165,7 @@ body {
 	gap: 20px;
 	z-index: 4;
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
+	border-bottom: 1px solid #2e313b;
 }
 .settings-ui-body {
 	padding: 20px;
@@ -255,6 +259,9 @@ body {
 }
 
 
+.settings-ui {
+	border: 1px solid #282b34;
+}
 .settings-ui-body {
 	display: flex;
 	flex-flow: column;
@@ -280,7 +287,7 @@ body {
 .settings-ui-input {
 	width: 100%;
 	padding: 10px 15px;
-	background-color: #282b34;
+	background-color: #2e313b;
 	border-radius: 5px;
 	border: 1px solid rgba(0, 0, 0, 0.25);
 	z-index: 3;
@@ -407,14 +414,48 @@ body {
 	overflow: hidden;
 }
 .disk-item-button {
+	positon: relative;
+	display: flex;
+	flex-flow: column;
+	justify-content: space-between;
+}
+.disk-item-top {
 	display: flex;
 	flex-flow: row;
-	justify-content: space-between;
 	gap: 10px;
 	margin-bottom: 20px;
 }
+.disk-item-bot {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	padding: 5px;
+	background-color: #282b34;
+	height: 24px;
+}
+.disk-item-bot > p {
+	position: absolute;
+	left: 6px;
+	right: 0;
+	bottom: 3px;
+	font-size: 14px;
+	z-index: 3;
+}
+.disk-item-usage-bar {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 100%;
+	background-color: rgba(35, 35, 35, 0.5);
+	z-index: 2;
+	border-right: 1px solid rgba(255, 255, 255, 0.25);
+}
 
 
+/* Menu buttons */
 .go-back-button {
 	background-color: transparent;
 	color: white;
@@ -444,6 +485,7 @@ body {
 .site-nav-bar-button {
 	background-color: rgba(0, 0, 0, 0.15);
 	border: none;
+	border-right: 1px solid #2e313b;
 	width: 100%;
 	text-align: left;
 	border-radius: 5px;
@@ -458,6 +500,12 @@ body {
 }
 .site-nav-bar-button:hover {
 	background-color: rgba(0, 0, 0, 0.25);
+}
+.horizontal-seperator {
+	width: 90%;
+	height: 1px;
+	background-color: #2e313b;
+	margin: 2px 0px;
 }
 
 
@@ -538,9 +586,9 @@ body {
 	width: 100%;
 	max-width: 100%;
 	overflow: hidden;
-	display: flex;
-	flex-flow: wrap;
-	gap: 5px;
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(auto-fit, 160px);
 }
 .directory-list-dual-pane {
 	display: flex;

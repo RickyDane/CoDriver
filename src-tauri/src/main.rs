@@ -114,7 +114,7 @@ struct DisksInfo {
     name: String,
     format: String,
     path: String,
-    load: String,
+    avail: String,
     capacity: String
 }
 
@@ -135,11 +135,10 @@ async fn list_disks() -> Vec<DisksInfo> {
                 name: disk.fs_mounted_on.split("/").last().unwrap_or("/").to_string(),
                 format: disk.fs_type,
                 path: disk.fs_mounted_on,
-                load: disk.avail.to_string(),
+                avail: disk.avail.to_string(),
                 capacity: disk.total.to_string()
             });
         }
-        println!("{:?}", &disk.fs_mounted_from);
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -149,7 +148,7 @@ async fn list_disks() -> Vec<DisksInfo> {
             name: disk.fs_mounted_from,
             format: disk.fs_type,
             path: disk.fs_mounted_on.replace("\\", "/"),
-            load: disk.avail.to_string(),
+            avail: disk.avail.to_string(),
             capacity: disk.total.to_string()
         });
     }

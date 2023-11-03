@@ -413,7 +413,7 @@ async function showItems(items, dualPaneSide = "") {
 					break;
 				case ".docx":
 				case ".doc":
-					fileIcon = "resources/word-file.png";
+fileIcon = "resources/word-file.png";
 					break;
 				case ".pdf":
 					fileIcon = "resources/pdf-file.png";
@@ -570,7 +570,7 @@ async function deleteItem(item) {
 	let fromPath = item.getAttribute("onclick").split(",")[1].trim().split("/");
 	let SelectedItemPaneSide = item.getAttribute("onclick").split(",")[3].trim().replace("'", "").replace("'", "");
 	let actFileName = fromPath[fromPath.length - 1].replace("'", "");
-	let isConfirm = confirm("Do you really want to delete "+actFileName+"?");
+	let isConfirm = await confirm("Do you really want to delete "+actFileName+"?");
 	if (isConfirm == true) {
 		await invoke("delete_item", {actFileName})
 			.then(items => {
@@ -840,13 +840,18 @@ async function listDisks() {
 				}
 				itemButton.innerHTML = `
 					<span class="disk-item-button">
-						<img class="item-icon" src="resources/disk-icon.png" width="48" height="auto"/>
-						<span>
-							<span style="display: flex; gap: 10px; align-items: center;">${item.load}</span>
-							<span style="display: flex; gap: 10px; align-items: center;">${item.capacity}</span>
+						<div class="disk-item-top">
+							<img class="item-icon" src="resources/disk-icon.png" width="48" height="auto"/>
+							<span>
+								<span style="display: flex; gap: 10px; align-items: center;">${item.avail}</span>
+								<span style="display: flex; gap: 10px; align-items: center;">${item.capacity}</span>
+							</span>
+						</div>
+						<span class="disk-item-bot">
+							<div class="disk-item-usage-bar" style="width: ${evalCurrentLoad(item.avail, item.capacity)}%;"></div>	
+							<p style="text-align: left;">${item.name}</p>
 						</span>
 					</span>
-					<p style="text-align: left;">${item.name}</p>
 					`;
 				itemButton.className = "item-button directory-entry";
 				let itemButtonList = document.createElement("div");
@@ -856,7 +861,7 @@ async function listDisks() {
 					<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 					</span>
 					<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-					<p style="width: auto; text-align: right;">${item.load}</p>
+					<p style="width: auto; text-align: right;">${item.avail}</p>
 					<p style="width: 75px; text-align: right;">${item.capacity}</p>
 					</span>
 					`;
@@ -884,6 +889,7 @@ async function listDirectories() {
 		.then((items) => {
 			if (IsDualPaneEnabled == true) {
 				showItems(items, SelectedItemPaneSide);
+				goUp(false, true);
 			}
 			else {
 				showItems(items);
@@ -914,12 +920,13 @@ async function openItem(name, path, isDir, dualPaneSide = "", element = null, sh
 		SelectedItemPath = path;
 		SelectedItemPaneSide = dualPaneSide;
 	}
-	else if (isDir == 1 || (isDir == 11 && shortcut ==  true)) { // Open directory
+	else if (isDir == 1 || (isDir == 11 && shortcut == true)) { // Open directory
 		document.querySelector('.tab-container-'+CurrentActiveTab).innerHTML = "";
 		await invoke("open_dir", {path, name})
-			.then((items) => {
+			.then(async (items) => {
 				if (IsDualPaneEnabled == true && dualPaneSide != "") {
-					showItems(items, dualPaneSide);
+					await showItems(items, dualPaneSide);
+					goUp(false, true);
 				}
 				else {
 					showItems(items);
@@ -946,10 +953,10 @@ async function goHome() {
 
 async function goBack() {
 	await invoke("go_back")
-		.then((items) => {
+		.then(async (items) => {
 			if (IsDualPaneEnabled == true) {
-				showItems(items, SelectedItemPaneSide);
-				goUp();
+				await showItems(items, SelectedItemPaneSide);
+				goUp(false, true);
 			}
 			else {
 				showItems(items);
@@ -957,69 +964,84 @@ async function goBack() {
 		});
 }
 
-function goUp(isSwitched = false) {
+function goUp(isSwitched = false, toFirst = false) {
 	let element = null;
 	let selectedItemIndex = 0;
-	if (SelectedElement != null) {
-		selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
-		if (SelectedItemPaneSide == "left") {
-			if (LeftPaneItemIndex > 0 && isSwitched == true) {
-				selectedItemIndex = LeftPaneItemIndex;
-				element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
+	if (toFirst == false) {
+		if (SelectedElement != null) {
+			selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
+			if (SelectedItemPaneSide == "left") {
+				if (LeftPaneItemIndex > 0 && isSwitched == true) {
+					selectedItemIndex = LeftPaneItemIndex;
+					element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
+				}
+				else if ((parseInt(selectedItemIndex)) <= 0) {
+					selectedItemIndex = 0;
+					element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+				}
+				else {
+					selectedItemIndex = parseInt(selectedItemIndex) - 1;
+					element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
+				}
+				LeftPaneItemIndex = selectedItemIndex;
 			}
-			else if ((parseInt(selectedItemIndex)) <= 0) {
+			else if (SelectedItemPaneSide == "right") {
+				if (RightPaneItemIndex > 0 && isSwitched == true) {
+					selectedItemIndex = RightPaneItemIndex;
+					element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
+				}
+				else if ((parseInt(selectedItemIndex) - 1) <= 0) {
+					selectedItemIndex = 0;
+					element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
+				}
+				else {
+					selectedItemIndex = parseInt(selectedItemIndex) - 1;
+					element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
+				}
+				RightPaneItemIndex = selectedItemIndex;
+			}
+			SelectedElement.style.backgroundColor = "rgba(45, 45, 55)";
+		}
+		else {
+			SelectedElement = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+			SelectedItemPaneSide = "left";
+			if (SelectedItemPaneSide == "left") {
 				selectedItemIndex = 0;
 				element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+				LeftPaneItemIndex = selectedItemIndex;
 			}
-			else {
-				selectedItemIndex = parseInt(selectedItemIndex) - 1;
-				element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
-			}
-			LeftPaneItemIndex = selectedItemIndex;
-		}
-		else if (SelectedItemPaneSide == "right") {
-			if (RightPaneItemIndex > 0 && isSwitched == true) {
-				selectedItemIndex = RightPaneItemIndex;
-				element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
-			}
-			else if ((parseInt(selectedItemIndex) - 1) <= 0) {
+			else if (SelectedItemPaneSide == "right") {
 				selectedItemIndex = 0;
 				element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
 			}
-			else {
-				selectedItemIndex = parseInt(selectedItemIndex) - 1;
-				element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
-			}
-			RightPaneItemIndex = selectedItemIndex;
 		}
-		SelectedElement.style.backgroundColor = "rgba(45, 45, 55)";
-	}
-	else {
-		SelectedElement = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
-		SelectedItemPaneSide = "left";
+		if (element != SelectedElement && element != null) {
+			SelectedElement.style.backgroundColor = "transparent";
+			element.onclick();
+		}
 		if (SelectedItemPaneSide == "left") {
-			selectedItemIndex = 0;
-			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
-			LeftPaneItemIndex = selectedItemIndex;
+			if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-left").scrollTop < 100) { 
+				document.querySelector(".dual-pane-left").scrollTop -= 36;
+			}
 		}
 		else if (SelectedItemPaneSide == "right") {
-			selectedItemIndex = 0;
+			if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-right").scrollTop < 100) { 
+				document.querySelector(".dual-pane-right").scrollTop -= 36;
+			}
+		}
+	}
+	else {
+		if (SelectedItemPaneSide == "left") {
+			LeftPaneItemIndex = 0;
+			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+			SelectedElement = element;
+		}
+		else {
+			RightPaneItemIndex = 0;
 			element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
+			SelectedElement = element;
 		}
-	}
-	if (element != SelectedElement && element != null) {
-		SelectedElement.style.backgroundColor = "transparent";
-		element.onclick();
-	}
-	if (SelectedItemPaneSide == "left") {
-		if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-left").scrollTop < 100) { 
-			document.querySelector(".dual-pane-left").scrollTop -= 36;
-		}
-	}
-	else if (SelectedItemPaneSide == "right") {
-		if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-right").scrollTop < 100) { 
-			document.querySelector(".dual-pane-right").scrollTop -= 36;
-		}
+		SelectedElement.style.backgroundColor = "rgba(45, 45, 55)";
 	}
 }
 
@@ -1121,6 +1143,14 @@ async function searchFor() {
 		.then((items) => {
 			showItems(items);
 		});
+}
+
+document.querySelector(".dualpane-search-input").addEventListener("change", () => {
+	searchForFilter();
+});
+async function searchForFilter() {
+	let fileName = document.querySelector(".dualpane-search-input").value;
+	searchFor(fileName);
 }
 
 function openSearchBar() {
@@ -1410,6 +1440,14 @@ async function switchToTab(tabNo) {
 	if (IsDualPaneEnabled == true) {
 		switchToDualPane();
 	}
+}
+
+function evalCurrentLoad(available, total) {
+	available = parseFloat(available.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
+	total = parseFloat(total.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
+	let result = 100 - (100 / total) * available;
+	console.log(available, total, result);
+	return result.toFixed(0);
 }
 
 function formatBytes(bytes, decimals = 2) {
