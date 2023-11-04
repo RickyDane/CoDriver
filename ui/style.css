@@ -41,14 +41,14 @@ body {
 	border-right: 2px solid #2e313b;
 	width: 50%;
 	max-width: 50%;
-	padding: 10px;
+	padding: 5px;
 	min-height: 100vh - 110px;
 	overflow: auto;
 }
 .dual-pane-right {
 	border-left: 2px solid #2e313b;
 	width: 50%;
-	padding: 10px;
+	padding: 5px;
 	overflow: auto;
 }
 .dual-pane-left > div > button, .dual-pane-right > div > button {
@@ -403,6 +403,9 @@ body {
 	height: 24px;
 	width: 24px;
 }
+.dual-pane-list-item {
+	padding: 2px;	
+}
 .directory-item-entry {
 	width: 100%;
 	max-width: 100%;
@@ -586,9 +589,10 @@ body {
 	width: 100%;
 	max-width: 100%;
 	overflow: hidden;
-	display: grid;
-	gap: 10px;
-	grid-template-columns: repeat(auto-fit, 160px);
+	display: flex;
+	flex-flow: wrap;
+	gap: 5px;
+	align-content: stretch;
 }
 .directory-list-dual-pane {
 	display: flex;

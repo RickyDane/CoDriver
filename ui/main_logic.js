@@ -51,6 +51,7 @@ let RightPaneItemCollection = [];
 let IsDisableShortcuts = false;
 let LeftPaneItemIndex = 0;
 let RightPaneItemIndex = 0;
+let IsPopUpOpen = false;
 
 
 /* Upper right search bar logic */
@@ -151,21 +152,21 @@ document.onkeydown = async (e) => {
 		if (ConfiguredPathOne == "") {
 			return;
 		}
-		openItem("ConfigPath1", ConfiguredPathOne, 1, SelectedItemPaneSide, null, true);
+		openItem(1, SelectedItemPaneSide, null, true, ConfiguredPathOne);
 	}
 	if (IsAltDown == true && e.keyCode == 50)
 	{
 		if (ConfiguredPathTwo == "") {
 			return;
 		}
-		openItem("ConfigPath2", ConfiguredPathTwo, 1, SelectedItemPaneSide, null, true);
+		openItem(1, SelectedItemPaneSide, null, true, ConfiguredPathTwo);
 	}
 	if (IsAltDown == true && e.keyCode == 51)
 	{
 		if (ConfiguredPathThree == "") {
 			return;
 		}
-		openItem("ConfigPath3", ConfiguredPathThree, 1, SelectedItemPaneSide, null, true);
+		openItem(1, SelectedItemPaneSide, null, true, ConfiguredPathThree);
 	}
 
 	if (IsTabsEnabled == true) {
@@ -217,7 +218,7 @@ document.onkeydown = async (e) => {
 		createFileInputPrompt();
 	}
 
-	if (IsDualPaneEnabled == true && IsDisableShortcuts == false) {
+	if (IsDualPaneEnabled == true && IsDisableShortcuts == false && IsPopUpOpen == false) {
 		// check if f5 is pressed
 		if (e.keyCode == 116 && IsTabsEnabled == false) {
 			e.preventDefault();
@@ -246,7 +247,7 @@ document.onkeydown = async (e) => {
 			goDown();
 		}
 		// check if return is pressed
-		if (e.keyCode == 13) {
+		if (!IsAltDown && e.keyCode == 13) {
 			e.preventDefault();
 			e.stopPropagation();
 			openSelectedItem();
@@ -274,6 +275,10 @@ document.onkeydown = async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 			refreshView();
+		}
+		// check if alt + enter is pressed
+		if (IsAltDown && e.keyCode == 13) {
+			renameElementInputPrompt(null, SelectedElement);	
 		}
 	}
 } 
@@ -371,8 +376,11 @@ async function showItems(items, dualPaneSide = "") {
 	let counter = 0;
 	set.forEach(item => {
 		let itemLink = document.createElement("button");
-		itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '"+item.is_dir+"', '"+dualPaneSide+"', this, "+counter+")");
-		counter++;
+		itemLink.setAttribute("onclick", "openItem('"+item.is_dir+"', '"+dualPaneSide+"', this)");
+		itemLink.setAttribute("itempath", item.path);
+		itemLink.setAttribute("itemindex", counter++);
+		itemLink.setAttribute("itempaneside", dualPaneSide);
+
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
 		let fileIcon = "resources/file-icon.png"; // Default
@@ -413,7 +421,7 @@ async function showItems(items, dualPaneSide = "") {
 					break;
 				case ".docx":
 				case ".doc":
-fileIcon = "resources/word-file.png";
+					fileIcon = "resources/word-file.png";
 					break;
 				case ".pdf":
 					fileIcon = "resources/pdf-file.png";
@@ -453,7 +461,12 @@ fileIcon = "resources/word-file.png";
 				<p style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
 			</span>
 		`;
-		itemButtonList.className = "item-button-list directory-entry";
+		if (dualPaneSide != null && dualPaneSide != "") {
+			itemButtonList.className = "item-button-list directory-entry dual-pane-list-item";
+		}
+		else {
+			itemButtonList.className = "item-button-list directory-entry";
+		}
 		if (ViewMode == "column") {
 			itemButton.style.display = "none";
 			DirectoryList.style.flexFlow = "column";
@@ -567,9 +580,9 @@ async function setCurrentDir(currentDir, dualPaneSide) {
 }
 
 async function deleteItem(item) {
-	let fromPath = item.getAttribute("onclick").split(",")[1].trim().split("/");
-	let SelectedItemPaneSide = item.getAttribute("onclick").split(",")[3].trim().replace("'", "").replace("'", "");
-	let actFileName = fromPath[fromPath.length - 1].replace("'", "");
+	let fromPath = item.getAttribute("itempath");
+	let SelectedItemPaneSide = item.getAttribute("itempaneside");
+	let actFileName = fromPath.split("/")[fromPath.split("/").length-1];
 	let isConfirm = await confirm("Do you really want to delete "+actFileName+"?");
 	if (isConfirm == true) {
 		await invoke("delete_item", {actFileName})
@@ -726,24 +739,35 @@ function closeInputDialog() {
 }
 
 function renameElementInputPrompt(e, item) {
-	let tempFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
-	let tempRenameFilePath = item.getAttribute("onclick").split(",")[1].trim().split("/");
+	let tempFilePath = item.getAttribute("itempath");
+	let tempRenameFilePath = item.getAttribute("itempath").split("/");
 	let tempFileName = tempRenameFilePath[tempRenameFilePath.length - 1].replace("'", "");
-
 	let nameInput = document.createElement("div");
+
 	nameInput.className = "newfolder-input";
 	nameInput.innerHTML = `
 		<h4>Geben Sie einen neuen Namen für das Dokument ein.</h4>
-		<input type="text" placeholder="document.txt" value="${tempFileName}" autofocus>
+		<input type="text" placeholder="document.txt" value="${tempFileName}" required pattern="[0-9]" autofocus>
 		`;
-	nameInput.style.left = e.clientX + "px";
-	nameInput.style.top = e.clientY + "px";
+	if (e != null) {
+		nameInput.style.left = e.clientX + "px";
+		nameInput.style.top = e.clientY + "px";
+	}
+	else {
+		nameInput.style.left = "50%";
+		nameInput.style.top = "50%";
+	}
 	document.querySelector("body").append(nameInput);
 	ContextMenu.style.display = "none";
-	nameInput.addEventListener("keyup", (e) => {
+	IsDisableShortcuts = true;
+	IsPopUpOpen = true;
+	nameInput.children[1].focus();
+	nameInput.addEventListener("keydown", (e) => {
 		if (e.keyCode === 13) {
 			renameElement(tempFilePath, nameInput.children[1].value);
 			nameInput.remove();
+			IsDisableShortcuts = false;
+			IsPopUpOpen = false;
 		}
 	});
 }
@@ -795,19 +819,19 @@ async function checkAppConfig() {
 				document.querySelector(".switch-dualpane-view-button").style.display = "none";
 			}
 
-			if (appConfig.is_dual_pane_active.includes("1")) {
-				if (IsDualPaneEnabled == false) {
-					switchToDualPane();
-				}
-			}
-
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
 			document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
 			document.querySelector(".launch-path-input").value = appConfig.launch_path;
 			document.querySelector(".search-depth-input").value = parseInt(appConfig.search_depth);
 
-			if (appConfig.launch_path.length >= 1) {
+
+			if (appConfig.is_dual_pane_active.includes("1")) {
+				if (IsDualPaneEnabled == false) {
+					switchToDualPane();
+				}
+			}
+			else if (appConfig.launch_path.length >= 1) {
 				let path = appConfig.launch_path;
 				let name = "launch";
 				invoke("open_dir", {path, name})
@@ -830,7 +854,7 @@ async function listDisks() {
 			DirectoryCount.innerHTML = "Objects: " + disks.length;
 			disks.forEach(item => {
 				let itemLink = document.createElement("button");
-				itemLink.setAttribute("onclick", "openItem('"+item.name+"', '"+item.path+"', '1')");
+				itemLink.setAttribute("onclick", "openItem('1')");
 				let newRow = document.createElement("div");
 				newRow.className = "directory-item-entry";
 				itemLink.className = "item-link directory-entry";
@@ -901,7 +925,11 @@ async function refreshView() {
 	listDirectories();
 }
 
-async function openItem(name, path, isDir, dualPaneSide = "", element = null, shortcut = false) {
+async function openItem(isDir, dualPaneSide = "", element = null, shortcut = false, shortcutPath = null) {
+	let path = element?.getAttribute("itempath");
+	if (shortcut == true) {
+		path = shortcutPath;
+	}
 	if (dualPaneSide == "left") {
 		document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
 		document.querySelector(".dual-pane-right").style.boxShadow = "none";
@@ -969,7 +997,7 @@ function goUp(isSwitched = false, toFirst = false) {
 	let selectedItemIndex = 0;
 	if (toFirst == false) {
 		if (SelectedElement != null) {
-			selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
+			selectedItemIndex = SelectedElement.getAttribute("itemindex");
 			if (SelectedItemPaneSide == "left") {
 				if (LeftPaneItemIndex > 0 && isSwitched == true) {
 					selectedItemIndex = LeftPaneItemIndex;
@@ -1003,8 +1031,6 @@ function goUp(isSwitched = false, toFirst = false) {
 			SelectedElement.style.backgroundColor = "rgba(45, 45, 55)";
 		}
 		else {
-			SelectedElement = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
-			SelectedItemPaneSide = "left";
 			if (SelectedItemPaneSide == "left") {
 				selectedItemIndex = 0;
 				element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
@@ -1013,12 +1039,15 @@ function goUp(isSwitched = false, toFirst = false) {
 			else if (SelectedItemPaneSide == "right") {
 				selectedItemIndex = 0;
 				element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
+				RightPaneItemIndex = selectedItemIndex;
 			}
 		}
 		if (element != SelectedElement && element != null) {
 			SelectedElement.style.backgroundColor = "transparent";
 			element.onclick();
 		}
+
+		/* Scroll logic */
 		if (SelectedItemPaneSide == "left") {
 			if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-left").scrollTop < 100) { 
 				document.querySelector(".dual-pane-left").scrollTop -= 36;
@@ -1031,17 +1060,19 @@ function goUp(isSwitched = false, toFirst = false) {
 		}
 	}
 	else {
-		if (SelectedItemPaneSide == "left") {
-			LeftPaneItemIndex = 0;
-			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
-			SelectedElement = element;
-		}
-		else {
+		if (SelectedItemPaneSide == "right") {
 			RightPaneItemIndex = 0;
 			element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
 			SelectedElement = element;
 		}
-		SelectedElement.style.backgroundColor = "rgba(45, 45, 55)";
+		else {
+			LeftPaneItemIndex = 0;
+			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+			SelectedElement = element;
+		}
+		if (SelectedElement != null) {
+			SelectedElement.style.backgroundColor = "rgba(45, 45, 55)";
+		}
 	}
 }
 
@@ -1049,7 +1080,7 @@ function goDown() {
 	let element = null;
 	let selectedItemIndex = 0;
 	if (SelectedElement != null) {
-		selectedItemIndex = SelectedElement.getAttribute("onclick").split(",")[5].replace(")", "");
+		selectedItemIndex = SelectedElement.getAttribute("itemindex");
 		if (SelectedItemPaneSide == "left") {
 			if ((parseInt(selectedItemIndex) + 1) >= LeftPaneItemCollection.querySelectorAll(".item-link").length - 1) {
 				selectedItemIndex = LeftPaneItemCollection.querySelectorAll(".item-link").length - 1;
@@ -1077,16 +1108,20 @@ function goDown() {
 		if (SelectedItemPaneSide == "left") {
 			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
 			selectedItemIndex = 0;
+			LeftPaneItemIndex = selectedItemIndex;
 		}
 		else if (SelectedItemPaneSide == "right") {
 			element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
 			selectedItemIndex = 0;
+			RightPaneItemIndex = selectedItemIndex;
 		}
 	}
 	if (element != SelectedElement) {
 		SelectedElement.style.backgroundColor = "transparent";
 		element.onclick();
 	}
+
+	/* Scroll logic */
 	if (SelectedItemPaneSide == "left") {
 		if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-left").scrollTop > window.innerHeight - 200) {
 			document.querySelector(".dual-pane-left").scrollTop += 36;
@@ -1100,16 +1135,13 @@ function goDown() {
 }
 
 function goToOtherPane() {
-	if (SelectedItemPaneSide == "left") {
-		SelectedItemPaneSide = "right";
-		setCurrentDir(RightDualPanePath, "right");
-	}
-	else if (SelectedItemPaneSide == "right") {
+	if (SelectedItemPaneSide == "right") {
 		SelectedItemPaneSide = "left";
 		setCurrentDir(LeftDualPanePath, "left");
 	}
 	else {
-		SelectedItemPaneSide = "left";
+		SelectedItemPaneSide = "right";
+		setCurrentDir(RightDualPanePath, "right");
 	}
 	goUp(true);
 }
@@ -1226,16 +1258,17 @@ async function switchToDualPane() {
 		document.querySelector(".switch-view-button").style.display = "none";
 		await saveConfig(false);
 		await invoke("list_dirs")
-			.then((items) => {
-				showItems(items, "left");
-				showItems(items, "right");
+			.then(async (items) => {
+				await showItems(items, "left");
+				await showItems(items, "right");
+				goUp(false, true);
 			});
 		document.querySelectorAll(".explorer-container").forEach(item => {
 			item.style.display = "none";
 		});
 	}
 	else {
-		// disable tab functionality and show two panels side by side
+		// enables tab functionality and show shows just one directory container 
 		IsTabsEnabled = true;
 		IsDualPaneEnabled = false;
 		ViewMode = "wrap";
@@ -1251,8 +1284,9 @@ async function switchToDualPane() {
 		document.querySelector(".switch-view-button").style.display = "block";
 		await saveConfig(false);
 		await invoke("list_dirs")
-			.then((items) => {
-				showItems(items);
+			.then(async (items) => {
+				await showItems(items);
+				goUp(false, true);
 			});	
 	}
 }
@@ -1397,57 +1431,56 @@ function closeTab() {
 			switchToTab(switchTabNo);
 			TabCount--;
 		}
+		}
 	}
-}
 
-async function switchToTab(tabNo) {
-	CurrentActiveTab = tabNo;
-	document.querySelectorAll(".explorer-container").forEach(container => {
-		container.style.display = "none";
-	});
-	document.querySelectorAll(".fx-tab").forEach(tab => {
-		tab.classList.remove("active-tab");
-	});
-	let currentTabContainer = document.querySelector(".tab-container-"+tabNo);
-	if (currentTabContainer != null) {
-		let currentTab = document.querySelector(".fx-tab-"+tabNo);
-		currentTab?.classList.add("active-tab");
-		currentTabContainer.style.display = "block";
-	}
-	switch (CurrentActiveTab) {
-		case 1:
-			CurrentDir = TabOnePath;
-			break;
-		case 2:
-			CurrentDir = TabTwoPath;
-			break;
-		case 3:
-			CurrentDir = TabThreePath;
-			break;
-		case 4:
-			CurrentDir = TabFourPath;
-			break;
-		case 5:
-			CurrentDir = TabFivePath;
-			break;
-	}
-	let currentDir = CurrentDir?.toString();
-	if (currentDir != null) {
-		await invoke("switch_to_directory", {currentDir});
-	}
-	document.querySelector(".current-path").textContent = CurrentDir;
+	async function switchToTab(tabNo) {
+		CurrentActiveTab = tabNo;
+		document.querySelectorAll(".explorer-container").forEach(container => {
+			container.style.display = "none";
+		});
+		document.querySelectorAll(".fx-tab").forEach(tab => {
+			tab.classList.remove("active-tab");
+		});
+		let currentTabContainer = document.querySelector(".tab-container-"+tabNo);
+		if (currentTabContainer != null) {
+			let currentTab = document.querySelector(".fx-tab-"+tabNo);
+			currentTab?.classList.add("active-tab");
+			currentTabContainer.style.display = "block";
+		}
+		switch (CurrentActiveTab) {
+			case 1:
+				CurrentDir = TabOnePath;
+				break;
+			case 2:
+				CurrentDir = TabTwoPath;
+				break;
+			case 3:
+				CurrentDir = TabThreePath;
+				break;
+			case 4:
+				CurrentDir = TabFourPath;
+				break;
+			case 5:
+				CurrentDir = TabFivePath;
+				break;
+		}
+		let currentDir = CurrentDir?.toString();
+		if (currentDir != null) {
+			await invoke("switch_to_directory", {currentDir});
+		}
+		document.querySelector(".current-path").textContent = CurrentDir;
 
-	if (IsDualPaneEnabled == true) {
-		switchToDualPane();
+		if (IsDualPaneEnabled == true) {
+			switchToDualPane();
+		}
 	}
-}
 
-function evalCurrentLoad(available, total) {
-	available = parseFloat(available.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
-	total = parseFloat(total.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
-	let result = 100 - (100 / total) * available;
-	console.log(available, total, result);
-	return result.toFixed(0);
+	function evalCurrentLoad(available, total) {
+		available = parseFloat(available.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
+		total = parseFloat(total.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
+		let result = 100 - (100 / total) * available;
+		return result.toFixed(0);
 }
 
 function formatBytes(bytes, decimals = 2) {

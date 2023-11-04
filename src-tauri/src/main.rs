@@ -554,10 +554,6 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
     }*/
 
     println!("Copy-Paste time: {:?}", &sw.elapsed());
-    dialog::Message::new(format!("Copying process done in {:?}", sw.elapsed()))
-        .title("Information")
-        .show()
-        .expect("Did not go as planned");
     return list_dirs().await;
 }
 
