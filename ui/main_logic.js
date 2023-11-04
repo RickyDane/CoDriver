@@ -1168,13 +1168,18 @@ async function openInTerminal() {
 }
 
 async function searchFor() {
-	document.querySelector(".cancel-search-button").style.display = "block";
-	DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" />`;
 	let fileName = document.querySelector(".search-bar-input").value; 
-	await invoke("search_for", {fileName})
-		.then((items) => {
-			showItems(items);
-		});
+	if (fileName.length >= 2) {
+		document.querySelector(".cancel-search-button").style.display = "block";
+		DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" />`;
+		await invoke("search_for", {fileName})
+			.then((items) => {
+				showItems(items);
+			});
+	}
+	else {
+		alert("Type in a minimum of 2 characters");
+	}
 }
 
 document.querySelector(".dualpane-search-input").addEventListener("change", () => {
