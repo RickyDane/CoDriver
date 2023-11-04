@@ -1063,15 +1063,13 @@ function goUp(isSwitched = false, toFirst = false) {
 		if (SelectedItemPaneSide == "right") {
 			RightPaneItemIndex = 0;
 			element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
-			SelectedElement = element;
 		}
 		else {
 			LeftPaneItemIndex = 0;
 			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
-			SelectedElement = element;
 		}
-		if (SelectedElement != null) {
-			SelectedElement.style.backgroundColor = "rgba(45, 45, 55)";
+		if (element != null) {
+			element.onclick();
 		}
 	}
 }
