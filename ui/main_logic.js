@@ -53,6 +53,12 @@ let LeftPaneItemIndex = 0;
 let RightPaneItemIndex = 0;
 let IsPopUpOpen = false;
 
+/* endregion */
+
+/* Colors  */
+let PrimaryColor = "#3f4352";
+let SecondaryColor = "rgb(56, 59, 71)";
+let SelectedColor = "rgb(45, 45, 45)";
 
 /* Upper right search bar logic */
 
@@ -746,7 +752,7 @@ function renameElementInputPrompt(e, item) {
 
 	nameInput.className = "newfolder-input";
 	nameInput.innerHTML = `
-		<h4>Geben Sie einen neuen Namen für das Dokument ein.</h4>
+		<h4>Type in a new name for this item.</h4>
 		<input type="text" placeholder="document.txt" value="${tempFileName}" required pattern="[0-9]" autofocus>
 		`;
 	if (e != null) {
@@ -944,11 +950,11 @@ async function openItem(isDir, dualPaneSide = "", element = null, shortcut = fal
 			SelectedElement.style.backgroundColor = "transparent";
 		}
 		SelectedElement = element;
-		SelectedElement.style.backgroundColor = "rgba(45, 45, 55)";
+		SelectedElement.style.backgroundColor = SelectedColor;
 		SelectedItemPath = path;
 		SelectedItemPaneSide = dualPaneSide;
 	}
-	else if (isDir == 1 || (isDir == 11 && shortcut == true)) { // Open directory
+	else if (isDir == 1 || (isDir == 1 && shortcut == true)) { // Open directory
 		document.querySelector('.tab-container-'+CurrentActiveTab).innerHTML = "";
 		await invoke("open_dir", {path, name})
 			.then(async (items) => {
@@ -997,13 +1003,13 @@ function goUp(isSwitched = false, toFirst = false) {
 	let selectedItemIndex = 0;
 	if (toFirst == false) {
 		if (SelectedElement != null) {
-			selectedItemIndex = SelectedElement.getAttribute("itemindex");
 			if (SelectedItemPaneSide == "left") {
+				selectedItemIndex = LeftPaneItemIndex;
 				if (LeftPaneItemIndex > 0 && isSwitched == true) {
 					selectedItemIndex = LeftPaneItemIndex;
 					element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 				}
-				else if ((parseInt(selectedItemIndex)) <= 0) {
+				else if ((parseInt(selectedItemIndex)) < 1) {
 					selectedItemIndex = 0;
 					element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
 				}
@@ -1014,11 +1020,12 @@ function goUp(isSwitched = false, toFirst = false) {
 				LeftPaneItemIndex = selectedItemIndex;
 			}
 			else if (SelectedItemPaneSide == "right") {
+				selectedItemIndex = RightPaneItemIndex;
 				if (RightPaneItemIndex > 0 && isSwitched == true) {
 					selectedItemIndex = RightPaneItemIndex;
 					element = RightPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
 				}
-				else if ((parseInt(selectedItemIndex) - 1) <= 0) {
+				else if ((parseInt(selectedItemIndex) - 1) < 1) {
 					selectedItemIndex = 0;
 					element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
 				}
@@ -1028,7 +1035,7 @@ function goUp(isSwitched = false, toFirst = false) {
 				}
 				RightPaneItemIndex = selectedItemIndex;
 			}
-			SelectedElement.style.backgroundColor = "rgba(45, 45, 55)";
+			SelectedElement.style.backgroundColor = SelectedColor;
 		}
 		else {
 			if (SelectedItemPaneSide == "left") {
@@ -1217,8 +1224,8 @@ async function switchView() {
 			ViewMode = "column";
 			document.querySelector(".list-column-header").style.display = "flex";
 			document.querySelectorAll(".explorer-container").forEach(item => {
-				item.style.marginTop = "35px";
-				item.style.height = "calc(100vh - 137px)";
+				item.style.marginTop = "39px";
+				item.style.height = "calc(100vh - 139px)";
 			});		
 		}
 		else {
@@ -1289,7 +1296,6 @@ async function switchToDualPane() {
 		await invoke("list_dirs")
 			.then(async (items) => {
 				await showItems(items);
-				goUp(false, true);
 			});	
 	}
 }

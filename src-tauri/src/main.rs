@@ -6,7 +6,7 @@ use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
 use rust_search::SearchBuilder;
 use serde_json::Value;
-use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config, Window};
+use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config};
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
@@ -224,6 +224,7 @@ async fn list_dirs() -> Vec<FDir> {
     return dir_list;
 }
 
+#[allow(dead_code)]
 fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
     dialog::Message::new("No directory found or unable to open due to missing permissions")
     .title("No directory found")

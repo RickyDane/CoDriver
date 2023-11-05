@@ -8,7 +8,7 @@
 	},
 	"package": {
 		"productName": "rdpFX",
-		"version": "0.1.81"
+		"version": "0.1.9"
 	},
 	"tauri": {
 		"allowlist": {
@@ -102,7 +102,7 @@
 				"height": 600,
 				"resizable": true,
 				"title": "rdpFX",
-				"width": 1080
+				"width": 1050
 			}
 		]
 	}
