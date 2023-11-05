@@ -39,7 +39,7 @@
 				<h5 class="directory-entries-count"></h5>
 			</div>
 			<div class="file-searchbar">
-				<input class="search-bar-input" type="text" placeholder="Searchinput"/>
+				<input class="search-bar-input text-input" type="text" placeholder="Searchinput"/>
 				<button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
 				<button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
 			</div>
@@ -88,15 +88,15 @@
 			<div class="settings-ui-header"><i class="fa-solid fa-gears"></i><p>Settings</p></div>
 			<div class="settings-ui-body">
 				<p>Configure up to 3 paths to switch to in an instant (Alt + 1, 2, 3)</p>
-				<input type="text" class="settings-ui-input configured-path-one-input" placeholder="/home/user" />
-				<input type="text" class="settings-ui-input configured-path-two-input" placeholder="/home/user/folder1" />
-				<input type="text" class="settings-ui-input configured-path-three-input" placeholder="/home/user/folder2" />
+				<input type="text" class="settings-ui-input text-input configured-path-one-input" placeholder="/home/user" />
+				<input type="text" class="settings-ui-input text-input configured-path-two-input" placeholder="/home/user/folder1" />
+				<input type="text" class="settings-ui-input text-input configured-path-three-input" placeholder="/home/user/folder2" />
 				<p>Search depth (higher = slower) | Standard: 10</p>
-				<input style="width: 100px;" type="number" class="settings-ui-input search-depth-input" placeholder="0 = off" />
+				<input style="width: 100px;" type="number" class="settings-ui-input number-input search-depth-input" placeholder="0 = off" />
 				<p>Max count of items to find (higher = slower) | Standard: 1000</p>
-				<input style="width: 100px;" type="number" class="settings-ui-input max-items-input" placeholder="0 = off" />
+				<input style="width: 100px;" type="number" class="settings-ui-input number-input max-items-input" placeholder="0 = off" />
 				<p>Path to launch at start</p>
-				<input type="text" class="settings-ui-input launch-path-input" placeholder="/home" />
+				<input type="text" class="settings-ui-input text-input launch-path-input" placeholder="/home" />
 				<span style="display: flex; gap: 10px; margin-top: 5px;">
 					<input id="open-in-terminal-checkbox" type="checkbox" class="settings-ui-checkbox openin-terminal-checkbox" />
 					<label for="open-in-terminal-checkbox">Enable "Open in terminal" (Experimental)</p>
@@ -115,6 +115,25 @@
 			<div class="search-bar">
 				<p class="search-bar-text">Start typing ...</p>
 				<input class="dualpane-search-input text-input" type="text" placeholder="Input"/>
+			</div>
+		</div>
+		<div class="search-full-container">
+			<div class="search-full-container-header"><i class="fa-solid fa-magnifying-glass"></i><p>Full - Search</p></div>
+			<div class="search-full-container-body">
+				<p>Search input</p>
+				<input class="full-dualpane-search-input text-input" type="text" placeholder="example.txt"/>
+				<p>Max count of search results (0 = off)</p>
+				<input style="width: 100px;" type="number" class="number-input full-search-max-items-input" placeholder="1000" />
+				<p>Search depth (0 = off)</p>
+				<input style="width: 100px;" type="number" class="number-input full-search-search-depth-input" placeholder="10" />
+				<div class="search-full-container-body-buttons">
+					<button class="button" onclick="closeFullSearchContainer()"><i class="fa-solid fa-ban"></i>Cancel</button>
+					<button class="button" onclick="searchFor(true)">
+						<i class="fa-solid fa-magnifying-glass"></i>
+						<span>Start</span>
+						<img style="display: none;" class="fullsearch-loader" src="resources/preloader.gif" width="16px" height="auto" />
+					</button>
+				</div>
 			</div>
 		</div>
 		<div class="current-path">...</div>

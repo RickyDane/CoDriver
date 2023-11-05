@@ -52,22 +52,39 @@ let IsDisableShortcuts = false;
 let LeftPaneItemIndex = 0;
 let RightPaneItemIndex = 0;
 let IsPopUpOpen = false;
+let SettingsSearchDepth = 10;
+let SettingsMaxItems = 1000;
+let IsFullSearching = false;
+let ArrCopyItems = [];
 
 /* endregion */
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
 let SecondaryColor = "rgb(56, 59, 71)";
-let SelectedColor = "rgb(45, 45, 45)";
+let SelectedColor = "rgba(0, 0, 0, 0.25)";
 
 /* Upper right search bar logic */
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
-		searchFor();
+		let fileName = document.querySelector(".search-bar-input").value;
+		searchFor(fileName);
 	}
 	else if (e.keyCode === 27) {
 		cancelSearch();
+	}
+});
+
+document.querySelector(".full-dualpane-search-input").addEventListener("keyup", (e) => {
+	if (e.keyCode === 13 && !IsFullSearching) {
+		IsFullSearching = true;
+		let fileName = document.querySelector(".full-dualpane-search-input").value;
+		let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
+		maxItems = maxItems >= 1 ? maxItems : 100;
+		let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
+		searchDepth = searchDepth >= 1 ? searchDepth : 10;
+		searchFor(fileName, maxItems, searchDepth);
 	}
 });
 
@@ -78,6 +95,7 @@ document.addEventListener("keyup", (e) => {
 		closeSearchBar();
 		closeSettings();
 		closeInputDialog();
+		closeFullSearchContainer();
 	}
 });
 
@@ -286,6 +304,12 @@ document.onkeydown = async (e) => {
 		if (IsAltDown && e.keyCode == 13) {
 			renameElementInputPrompt(null, SelectedElement);	
 		}
+		// check if alt + f7 is pressed
+		if (e.keyCode == 119) {
+			e.preventDefault();
+			e.stopPropagation();
+			openFullSearchContainer();
+		}
 	}
 } 
 
@@ -347,9 +371,11 @@ async function showItems(items, dualPaneSide = "") {
 	if (IsDualPaneEnabled == true) {
 		if (dualPaneSide == "left") {
 			document.querySelector(".dual-pane-left").innerHTML = "";
+			document.querySelector(".dual-pane-left").scrollTop = 0;
 		}
 		else if (dualPaneSide == "right") {
 			document.querySelector(".dual-pane-right").innerHTML = "";
+			document.querySelector(".dual-pane-right").scrollTop = 0;
 		}
 		else {
 			document.querySelector(".dual-pane-left").innerHTML = "";
@@ -830,8 +856,8 @@ async function checkAppConfig() {
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
 			document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
 			document.querySelector(".launch-path-input").value = appConfig.launch_path;
-			document.querySelector(".search-depth-input").value = parseInt(appConfig.search_depth);
-			document.querySelector(".max-items-input").value = parseInt(appConfig.max_items);
+			document.querySelector(".search-depth-input").value = SettingsSearchDepth = parseInt(appConfig.search_depth);
+			document.querySelector(".max-items-input").value = SettingsMaxItems = parseInt(appConfig.max_items);
 
 
 			if (appConfig.is_dual_pane_active.includes("1")) {
@@ -1058,12 +1084,12 @@ function goUp(isSwitched = false, toFirst = false) {
 
 		/* Scroll logic */
 		if (SelectedItemPaneSide == "left") {
-			if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-left").scrollTop < 100) { 
+			if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-left").scrollTop < 10) { 
 				document.querySelector(".dual-pane-left").scrollTop -= 36;
 			}
 		}
 		else if (SelectedItemPaneSide == "right") {
-			if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-right").scrollTop < 100) { 
+			if ((parseInt(selectedItemIndex) * 36) - document.querySelector(".dual-pane-right").scrollTop < 10) { 
 				document.querySelector(".dual-pane-right").scrollTop -= 36;
 			}
 		}
@@ -1174,19 +1200,41 @@ async function openInTerminal() {
 	ContextMenu.style.display = "none";
 }
 
-async function searchFor() {
-	let fileName = document.querySelector(".search-bar-input").value; 
+async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth = SettingsSearchDepth) {
+	document.querySelector(".fullsearch-loader").style.display = "block";
 	if (fileName.length >= 2) {
 		document.querySelector(".cancel-search-button").style.display = "block";
-		DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" />`;
-		await invoke("search_for", {fileName})
-			.then((items) => {
-				showItems(items);
+		if (IsDualPaneEnabled == false) {
+			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" />`;
+		}
+		await invoke("search_for", {fileName, maxItems, searchDepth})
+			.then(async (items) => {
+				if (IsDualPaneEnabled == true) {
+					await showItems(items, SelectedItemPaneSide);
+				}
+				else {
+					await showItems(items);
+				}
 			});
 	}
 	else {
 		alert("Type in a minimum of 2 characters");
 	}
+	IsFullSearching = false;
+	document.querySelector(".fullsearch-loader").style.display = "none";
+}
+
+function openFullSearchContainer() {
+	document.querySelector(".search-full-container").style.display = "flex";
+	document.querySelector(".full-dualpane-search-input").focus();
+	IsPopUpOpen = true;
+	IsDisableShortcuts = true;
+}
+
+function closeFullSearchContainer() {
+	document.querySelector(".search-full-container").style.display = "none";
+	IsPopUpOpen = false;
+	IsDisableShortcuts = false;
 }
 
 document.querySelector(".dualpane-search-input").addEventListener("change", () => {

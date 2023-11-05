@@ -394,12 +394,15 @@ async fn go_home() -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn search_for(file_name: String) -> Vec<FDir> {
-    let app_config_file = File::open(config_dir().unwrap().join("rdpFX/app_config.json")).unwrap();
-    let app_config_reader = BufReader::new(app_config_file);
-    let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
-    let search_depth = app_config["search_depth"].to_string().parse::<i32>().unwrap_or(1000) as usize;
-    let max_items = app_config["max_items"].to_string().parse::<i32>().unwrap_or(1000) as usize;
+async fn search_for(file_name: String, max_items: i32, search_depth: i32) -> Vec<FDir> {
+    let mut search_depth = search_depth as usize;
+    let mut max_items = max_items as usize;
+    if search_depth == 0 {
+        search_depth = 999999 as usize;
+    }
+    if max_items == 0 {
+        max_items = 999999 as usize;
+    }
     println!("{}", search_depth);
 
     let mut file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");

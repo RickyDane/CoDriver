@@ -14,10 +14,12 @@
 
 :root {
 	--primaryColor: #3f4352;
-	--secondaryColor: rgb(56, 59, 71);
-	--transparentColor: var(--secondaryColor);
+	--secondaryColor: rgba(56, 59, 71, 1);
+	--tertiaryColor: #363946;
+	--transparentColor: rgba(0, 0, 0, 0.15);
 	--transparentColorActive: rgba(0, 0, 0, 0.25);
 	--textColor: white;
+	--fontSize: 12px;
 }
 
 
@@ -49,17 +51,17 @@ body {
 	overflow: hidden;
 }
 .dual-pane-left {
-	border-right: 2px solid var(--secondaryColor);
+	border-right: 2px solid var(--transparentColor);
 	width: 50%;
 	max-width: 50%;
-	padding: 5px;
+	padding: 15px;
 	min-height: 100vh - 110px;
 	overflow: auto;
 }
 .dual-pane-right {
-	border-left: 2px solid var(--secondaryColor);
+	border-left: 2px solid var(--transparentColor);
 	width: 50%;
-	padding: 5px;
+	padding: 15px;
 	overflow: auto;
 }
 .dual-pane-left > div > button, .dual-pane-right > div > button {
@@ -108,7 +110,7 @@ body {
 .titlebar {
 	height: 50px;
 	padding: 0 10px;
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	user-select: none;
 	display: flex;
 	flex-flow: row;
@@ -166,7 +168,7 @@ body {
 	padding: 10px 0px;
 	background-color: var(--secondaryColor);
 	z-index: 2;
-	border-bottom: 1px solid var(--transparentColorActive);
+	border-bottom: 1px solid var(--secondaryColorActive);
 }
 .list-column-header-button {
 	background-color: transparent;
@@ -187,7 +189,7 @@ body {
 	position: relative;
 	width: 150px;
 	height: 40px;
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	padding: 5px 5px 5px 15px;
 	border-radius: 5px;
 	cursor: pointer;
@@ -202,7 +204,7 @@ body {
 	border: 1px solid var(--primaryColor);
 }
 .fx-tab:hover {
-	background-color: var(--transparentColorActive);
+	background-color: var(--secondaryColorActive);
 }
 .active-tab {
 	background-color: var(--primaryColor);
@@ -256,7 +258,7 @@ body {
 	display: flex;
 	flex-flow: column;
 	gap: 10px;
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	height: 50px;
 	padding-left: 20px;
 	font-size: large;
@@ -285,12 +287,6 @@ body {
 	gap: 10px;
 	justify-content: flex-end;
 }
-.settings-ui-body-buttons > button {
-	display: flex;
-	flex-flow: row;
-	align-items: center;
-	gap: 10px;
-}
 .settings-ui > button {
 	float: right;
 	margin-top: 20px;
@@ -299,7 +295,7 @@ body {
 .settings-ui-input {
 	width: 100%;
 	padding: 10px 15px;
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	border-radius: 5px;
 	border: 1px solid rgba(0, 0, 0, 0.25);
 	z-index: 3;
@@ -318,17 +314,21 @@ body {
 .button {
 	padding: 10px 15px;
 	color: var(--textColor);
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	border: none;
 	border-radius: 5px;
 	cursor: pointer;
+	display: flex;
+	flex-flow: row;
+	gap: 10px;
+	align-items: center;
 }
 .button:hover {
 	background: var(--transparentColorActive);
 }
 .item-button {
 	position: relative;
-	background-color: var(--secondaryColor);
+	background-color: var(--primaryColor);
 	border-radius: 5px;
 	cursor: pointer;
 	text-align: left;
@@ -360,16 +360,19 @@ body {
 	align-items: center;
 }
 .item-button > .item-icon {
-	margin-bottom: 20px;
+	margin-bottom: 30px;
+}
+.item-icon {
+	border-radius: 4px;
 }
 .item-button > p {
 	position: absolute;
 	bottom: 0;
 	left: 0;
 	right: 0;
-	background-color: var(--transparentColorActive);
+	background-color: var(--tertiaryColor);
 	padding: 5px;
-	font-size: small;
+	font-size: var(--fontSize);
 	line-height: 20px;
 	max-height: 30px;
 }
@@ -377,7 +380,7 @@ body {
 	display: flex;
 	flex-flow: row;
 	justify-content: space-between;
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	border: none;
 	border-radius: 5px;
 	gap: 5px;
@@ -411,12 +414,13 @@ body {
 	width: 24px;
 }
 .dual-pane-list-item {
-	background-color: var(--transparentColorActive);
-	padding: 3px;
+	background-color: var(--transparentColor);
+	height: 34px;
+	padding: 0px 5px;
 	border-radius: 5px;
 }
 .dual-pane-list-item:hover {
-	background-color: var(--secondaryColor);
+	background-color: var(--transparentColorActive);
 }
 .directory-item-entry {
 	width: 100%;
@@ -446,7 +450,7 @@ body {
 	bottom: 0;
 	width: 100%;
 	padding: 5px;
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	height: 24px;
 }
 .disk-item-bot > p {
@@ -532,7 +536,7 @@ body {
 .file-searchbar > input {
 	width: 100%;
 	padding: 10px 15px;
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	border-radius: 5px;
 	border: none;
 	z-index: 3;
@@ -542,7 +546,7 @@ body {
 	margin-left: -2px;
 	padding: 10px 10px 10px 12px;
 	border: none;
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	cursor: pointer;
 	z-index: 2;
 }
@@ -550,7 +554,7 @@ body {
 	display: none;
 }
 .search-button:hover, .cancel-search-button:hover {
-	background-color: var(--transparentColorActive);
+	background-color: var(--secondaryColorActive);
 }
 .search-bar-container {
 	display: none;
@@ -572,13 +576,80 @@ body {
 	padding: 10px 15px;
 	background-color: var(--secondaryColor);
 	border-radius: 5px;
-	border: none;
+	border: 1px solid var(--transparentColor);
 	z-index: 3;
 	outline: none;
 	width: 100%;
 }
+.text-input:focus {
+	background-color: var(--transparentColorActive);
+}
+.number-input {
+	padding: 10px 15px;
+	background-color: var(--secondaryColor);
+	border-radius: 5px;
+	border: 1px solid var(--transparentColor);
+	z-index: 3;
+	outline: none;
+	width: 100%;
+}
+.number-input:focus {
+	background-color: var(--transparentColorActive);
+}
 .search-bar-text {
 	margin-bottom: 10px;
+}
+.search-full-container {
+	display: none;
+	flex-flow: column;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+	width: 50%;
+	height: fit-content;
+	background-color: var(--primaryColor);
+	border-radius: 10px;
+	box-shadow: 0px 0px 10px 1px var(--transparentColor);
+	border: 1px solid var(--secondaryColor);
+	overflow: hidden;
+}
+.search-full-container-header {
+	position: sticky;
+	top: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	flex-flow: column;
+	gap: 10px;
+	background-color: var(--secondaryColor);
+	height: 50px;
+	padding-left: 20px;
+	font-size: large;
+	display: flex;
+	flex-flow: row;
+	align-items: center;
+	gap: 20px;
+	z-index: 4;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
+	border-bottom: 1px solid var(--secondaryColor);
+}
+.search-full-container-body {
+	padding: 20px;
+	display: flex;
+	flex-flow: column;
+	gap: 10px;
+}
+.search-full-container-body-buttons {
+	position: absolute;
+	bottom: 20px;
+	right: 20px;
+	display: flex;
+	flex-flow: row;
+	justify-content: flex-end;
+	gap: 10px;
 }
 
 
@@ -632,7 +703,7 @@ body {
 	width: 100%;
 	padding: 10px;
 	border: none;
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	border-radius: 5px;
 	margin: 2px;
 	cursor: pointer;
@@ -642,7 +713,7 @@ body {
 	justify-content: space-between;
 }
 .context-item:hover {
-	background-color: var(--transparentColorActive);
+	background-color: var(--secondaryColorActive);
 	color: var(--textColor);
 }
 .c-item-disabled {
@@ -673,7 +744,7 @@ body {
 .newfolder-input > input {
 	width: 100%;
 	padding: 10px 15px;
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 	border-radius: 5px;
 	border: none;
 	z-index: 3;
