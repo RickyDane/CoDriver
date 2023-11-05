@@ -416,7 +416,7 @@ body {
 	border-radius: 5px;
 }
 .dual-pane-list-item:hover {
-	background-color: var(--transparentColor);
+	background-color: var(--secondaryColor);
 }
 .directory-item-entry {
 	width: 100%;

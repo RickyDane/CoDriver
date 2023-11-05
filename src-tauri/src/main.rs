@@ -11,6 +11,7 @@ use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
+#[allow(unused_imports)]
 use get_sys_info::{System, Platform};
 use dialog::DialogBox;
 
@@ -66,7 +67,8 @@ struct AppConfig {
     is_dual_pane_enabled: String,
     launch_path: String,
     is_dual_pane_active: String,
-    search_depth: i32
+    search_depth: i32,
+    max_items: i32
 }
 
 #[tauri::command]
@@ -86,7 +88,8 @@ async fn check_app_config() -> AppConfig {
             is_dual_pane_enabled: "0".to_string(),
             launch_path: "".to_string(),
             is_dual_pane_active: "0".to_string(),
-            search_depth: 10 
+            search_depth: 10,
+            max_items: 1000,
         };
         let _ = serde_json::to_writer_pretty(File::create(config_dir().unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     }
@@ -105,7 +108,8 @@ async fn check_app_config() -> AppConfig {
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string(),
         launch_path: app_config["launch_path"].to_string().replace('"', ""),
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string(),
-        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap()
+        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
+        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap()
     };
 }
 
@@ -177,7 +181,8 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         launch_path: app_config["launch_path"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap() 
+        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
+        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap() 
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     return list_dirs().await;
@@ -394,6 +399,7 @@ async fn search_for(file_name: String) -> Vec<FDir> {
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     let search_depth = app_config["search_depth"].to_string().parse::<i32>().unwrap_or(1000) as usize;
+    let max_items = app_config["max_items"].to_string().parse::<i32>().unwrap_or(1000) as usize;
     println!("{}", search_depth);
 
     let mut file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
@@ -409,7 +415,7 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             .depth(search_depth.clone())
             .ext(&file_ext)
             .hidden()
-            .limit(10000)
+            .limit(max_items)
             .build()
             .collect();
     }
@@ -420,7 +426,7 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             .ignore_case()
             .depth(search_depth)
             .hidden()
-            .limit(10000)
+            .limit(max_items)
             .build()
             .collect();
     }
@@ -664,7 +670,8 @@ async fn save_config(
     is_dual_pane_enabled: String,
     launch_path: String,
     is_dual_pane_active: String,
-    search_depth: i32) {
+    search_depth: i32,
+    max_items: i32) {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
@@ -678,7 +685,8 @@ async fn save_config(
         is_dual_pane_enabled: is_dual_pane_enabled.replace("\\", ""),
         launch_path: launch_path.replace("\\", "/"),
         is_dual_pane_active: is_dual_pane_active.replace("\\", ""),
-        search_depth: search_depth
+        search_depth: search_depth,
+        max_items: max_items
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
 }

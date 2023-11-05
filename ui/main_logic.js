@@ -698,6 +698,7 @@ function createFolderInputPrompt(e = null) {
 	ContextMenu.style.display = "none";
 	nameInput.children[1].focus();
 	IsDisableShortcuts = true;
+	IsPopUpOpen = false;
 	nameInput.addEventListener("keyup", (e) => {
 		if (e.keyCode === 13) {
 			createFolder(nameInput.children[1].value);
@@ -830,6 +831,7 @@ async function checkAppConfig() {
 			document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
 			document.querySelector(".launch-path-input").value = appConfig.launch_path;
 			document.querySelector(".search-depth-input").value = parseInt(appConfig.search_depth);
+			document.querySelector(".max-items-input").value = parseInt(appConfig.max_items);
 
 
 			if (appConfig.is_dual_pane_active.includes("1")) {
@@ -1224,8 +1226,8 @@ async function switchView() {
 			ViewMode = "column";
 			document.querySelector(".list-column-header").style.display = "flex";
 			document.querySelectorAll(".explorer-container").forEach(item => {
-				item.style.marginTop = "39px";
-				item.style.height = "calc(100vh - 139px)";
+				item.style.marginTop = "35px";
+				item.style.height = "calc(100vh - 135px)";
 			});		
 		}
 		else {
@@ -1326,6 +1328,7 @@ async function saveConfig(isToReload = true) {
 	let launchPath = document.querySelector(".launch-path-input").value;
 	let isDualPaneActive = IsDualPaneEnabled;
 	let searchDepth = parseInt(document.querySelector(".search-depth-input").value);
+	let maxItems = parseInt(document.querySelector(".max-items-input").value);
 	closeSettings();
 
 	if (isOpenInTerminal == true) {
@@ -1358,7 +1361,8 @@ async function saveConfig(isToReload = true) {
 		launchPath,
 		isDualPaneEnabled,
 		isDualPaneActive,
-		searchDepth
+		searchDepth,
+		maxItems
 	});
 	if (isToReload == true) {
 		checkAppConfig();
