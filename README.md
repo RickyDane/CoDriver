@@ -19,7 +19,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - Navigate through directories as you know it
 - Copy & Paste, delete, create and rename files and folders
 - Switch between "big buttons"- and list mode
-- Open and close tabs with ctrl + t / ctrl + w
+- Open / close tabs with ctrl + t / ctrl + w
 
 ### Advanced features
 - Compress files and folders
@@ -29,30 +29,29 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
   - zip
   - 7zip
 - Navigate to a directory using the shortcut LAlt + 1 / 2 / 3 | (macOS option + 1 / 2 / 3)
-  - Configure the paths yourself in the settings<br><br>
-  ![grafik](https://github.com/RickyDane/rdpFX/assets/82893522/4abddf7c-c057-4ba8-9a8c-f61ac7447a23)
-- Create file with Ctrl + 6
-- Create folder with Ctrl + 7
+  - Configure the paths yourself in the settings
+- Create file with F6
+- Create folder with F7
 
 #### Language Support
 - English
   - Option to choose between languages coming soon ...
 
 #### Known issues:
-- Permissions on windows are a little bit strange
+- Permissions on ms windows are a little bit strange
+- Tabs are not fully worked out yet
 
 #### 📝 Todos:
 - Multiple languages
 - List filtering (filter by name, last modified, file size)
 - Drag and drop
-- New logo / icon
+- [x] New logo / icon
 - FTP-Integration
-- Miller columns
-- Dual pane view
+- [x] Dual pane view
 - Favorites
 <br>
 
-![image](https://github.com/RickyDane/rdpFX/assets/82893522/f86024a6-47e3-42ee-9a49-75459aa75247)
+![grafik](https://github.com/RickyDane/rdpFX/assets/82893522/8e677c93-c37c-4600-8686-4c118ef326bd)
 
 
 ## Speed comparison
