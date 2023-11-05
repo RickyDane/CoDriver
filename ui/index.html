@@ -39,7 +39,7 @@
 				<h5 class="directory-entries-count"></h5>
 			</div>
 			<div class="file-searchbar">
-				<input class="search-bar-input" type="text" placeholder="Searchinput"/>
+				<input class="search-bar-input text-input" type="text" placeholder="Searchinput"/>
 				<button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
 				<button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
 			</div>
@@ -52,6 +52,7 @@
 				<button class="site-nav-bar-button" onclick="goToDir(3)"><i class="fa-solid fa-image"></i> Pictures</button>
 				<button class="site-nav-bar-button" onclick="goToDir(4)"><i class="fa-solid fa-video"></i> Videos</button>
 				<button class="site-nav-bar-button" onclick="goToDir(5)"><i class="fa-solid fa-music"></i> Music</button>
+				<div class="horizontal-seperator"></div>
 				<button class="site-nav-bar-button" onclick="listDisks()"><i class="fa-solid fa-hard-drive"></i> Disks</button>
 				<!-- Future ftp - integration -->
 				<!--<button class="site-nav-bar-button" onclick="OpenFavFTP()"><i class="fa-solid fa-network-wired"></i> FTP</button>-->
@@ -64,7 +65,9 @@
 					<button class="list-column-header-button" onclick="sortBySize()" style="width: 75px; text-align: center;">Size</button>
 				</div>
 			</div>
-			<div class="explorer-container tab-container-1 non-dual-pane-container"></div>
+			<div class="explorer-container tab-container-1 non-dual-pane-container">
+				<!-- Directory will be displayed in here -->
+			</div>
 			<div class="dual-pane-container">
 				<div class="dual-pane-left"></div>
 				<div class="dual-pane-right"></div>
@@ -82,20 +85,24 @@
 			<button class="context-item context-open-in-terminal" onclick="openInTerminal()">Open in Terminal<i class="fa-solid fa-terminal"></i></button>
 		</div>
 		<div class="settings-ui">
-			<div class="settings-ui-header"><i class="fa-solid fa-gears"></i><p>Settings</p></div>
-			<br>
+			<div class="settings-ui-header">
+				<span style="display: flex; gap: 20px; align-items: center;">
+					<i class="fa-solid fa-gears"></i>
+					<p>Settings</p>
+				</span>
+				<button class="button" onclick="showAppInfo()"><i class="fa-solid fa-info"></i></button>
+			</div>
 			<div class="settings-ui-body">
 				<p>Configure up to 3 paths to switch to in an instant (Alt + 1, 2, 3)</p>
-				<input type="text" class="settings-ui-input configured-path-one-input" placeholder="/home/user" />
-				<input type="text" class="settings-ui-input configured-path-two-input" placeholder="/home/user/folder1" />
-				<input type="text" class="settings-ui-input configured-path-three-input" placeholder="/home/user/folder2" />
-				<br>
-				<p>Search depth (lower = faster)</p>
-				<input style="width: 100px;" type="number" class="settings-ui-input search-depth-input" placeholder="0 = off" />
-				<br>
+				<input type="text" class="settings-ui-input text-input configured-path-one-input" placeholder="/home/user" />
+				<input type="text" class="settings-ui-input text-input configured-path-two-input" placeholder="/home/user/folder1" />
+				<input type="text" class="settings-ui-input text-input configured-path-three-input" placeholder="/home/user/folder2" />
+				<p>Search depth (higher = slower) | Standard: 10</p>
+				<input style="width: 100px;" type="number" class="settings-ui-input number-input search-depth-input" placeholder="0 = off" />
+				<p>Max count of items to find (higher = slower) | Standard: 1000</p>
+				<input style="width: 100px;" type="number" class="settings-ui-input number-input max-items-input" placeholder="0 = off" />
 				<p>Path to launch at start</p>
-				<input type="text" class="settings-ui-input launch-path-input" placeholder="/home" />
-				<br>
+				<input type="text" class="settings-ui-input text-input launch-path-input" placeholder="/home" />
 				<span style="display: flex; gap: 10px; margin-top: 5px;">
 					<input id="open-in-terminal-checkbox" type="checkbox" class="settings-ui-checkbox openin-terminal-checkbox" />
 					<label for="open-in-terminal-checkbox">Enable "Open in terminal" (Experimental)</p>
@@ -112,8 +119,26 @@
 		</div>
 		<div class="search-bar-container">
 			<div class="search-bar">
-				<p class="search-bar-text">Start typing ...</p>
-				<input class="dualpane-search-input text-input" type="text" placeholder="Input"/>
+				<input class="dualpane-search-input text-input" type="text" placeholder="Start typing ..."/>
+			</div>
+		</div>
+		<div class="search-full-container">
+			<div class="search-full-container-header"><i class="fa-solid fa-magnifying-glass"></i><p>Full - Search</p></div>
+			<div class="search-full-container-body">
+				<p>Search input</p>
+				<input class="full-dualpane-search-input text-input" type="text" placeholder="example.txt"/>
+				<p>Max count of search results (0 = off)</p>
+				<input style="width: 100px;" type="number" class="number-input full-search-max-items-input" placeholder="1000" value="1000" />
+				<p>Search depth (0 = off)</p>
+				<input style="width: 100px;" type="number" class="number-input full-search-search-depth-input" placeholder="10" value="10" />
+				<div class="search-full-container-body-buttons">
+					<button class="button" onclick="closeFullSearchContainer()"><i class="fa-solid fa-ban"></i>Cancel</button>
+					<button class="button" onclick="searchFor(true)">
+						<i class="fa-solid fa-magnifying-glass"></i>
+						<span>Start</span>
+						<img style="display: none;" class="fullsearch-loader" src="resources/preloader.gif" width="16px" height="auto" />
+					</button>
+				</div>
 			</div>
 		</div>
 		<div class="current-path">...</div>

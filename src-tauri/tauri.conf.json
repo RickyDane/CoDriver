@@ -8,7 +8,7 @@
 	},
 	"package": {
 		"productName": "rdpFX",
-		"version": "0.1.81"
+		"version": "0.1.9"
 	},
 	"tauri": {
 		"allowlist": {
@@ -65,8 +65,11 @@
 			},
 			"externalBin": [],
 			"icon": [
-				"icons/rdpX-Logo-shadow.png",
-				"icons/rdpX-Logo-shadow.ico"
+				"icons/32x32.png",
+				"icons/128x128.png",
+				"icons/128x128@2x.png",
+				"icons/icon.icns",
+				"icons/icon.ico"
 			],
 			"identifier": "com.rdpFX.dev",
 			"longDescription": "A simple file explorer with nice ui and good features.",
@@ -99,7 +102,7 @@
 				"height": 600,
 				"resizable": true,
 				"title": "rdpFX",
-				"width": 1080
+				"width": 1050
 			}
 		]
 	}

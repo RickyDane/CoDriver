@@ -6,11 +6,12 @@ use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
 use rust_search::SearchBuilder;
 use serde_json::Value;
-use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config, Window};
+use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config};
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
+#[allow(unused_imports)]
 use get_sys_info::{System, Platform};
 use dialog::DialogBox;
 
@@ -66,7 +67,8 @@ struct AppConfig {
     is_dual_pane_enabled: String,
     launch_path: String,
     is_dual_pane_active: String,
-    search_depth: i32
+    search_depth: i32,
+    max_items: i32
 }
 
 #[tauri::command]
@@ -86,7 +88,8 @@ async fn check_app_config() -> AppConfig {
             is_dual_pane_enabled: "0".to_string(),
             launch_path: "".to_string(),
             is_dual_pane_active: "0".to_string(),
-            search_depth: 10 
+            search_depth: 10,
+            max_items: 1000,
         };
         let _ = serde_json::to_writer_pretty(File::create(config_dir().unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     }
@@ -105,7 +108,8 @@ async fn check_app_config() -> AppConfig {
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string(),
         launch_path: app_config["launch_path"].to_string().replace('"', ""),
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string(),
-        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap()
+        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
+        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap()
     };
 }
 
@@ -114,7 +118,7 @@ struct DisksInfo {
     name: String,
     format: String,
     path: String,
-    load: String,
+    avail: String,
     capacity: String
 }
 
@@ -135,11 +139,10 @@ async fn list_disks() -> Vec<DisksInfo> {
                 name: disk.fs_mounted_on.split("/").last().unwrap_or("/").to_string(),
                 format: disk.fs_type,
                 path: disk.fs_mounted_on,
-                load: disk.avail.to_string(),
+                avail: disk.avail.to_string(),
                 capacity: disk.total.to_string()
             });
         }
-        println!("{:?}", &disk.fs_mounted_from);
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -149,7 +152,7 @@ async fn list_disks() -> Vec<DisksInfo> {
             name: disk.fs_mounted_from,
             format: disk.fs_type,
             path: disk.fs_mounted_on.replace("\\", "/"),
-            load: disk.avail.to_string(),
+            avail: disk.avail.to_string(),
             capacity: disk.total.to_string()
         });
     }
@@ -178,7 +181,8 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         launch_path: app_config["launch_path"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap() 
+        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
+        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap() 
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     return list_dirs().await;
@@ -225,6 +229,7 @@ async fn list_dirs() -> Vec<FDir> {
     return dir_list;
 }
 
+#[allow(dead_code)]
 fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
     dialog::Message::new("No directory found or unable to open due to missing permissions")
     .title("No directory found")
@@ -389,13 +394,7 @@ async fn go_home() -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn search_for(file_name: String) -> Vec<FDir> {
-    let app_config_file = File::open(config_dir().unwrap().join("rdpFX/app_config.json")).unwrap();
-    let app_config_reader = BufReader::new(app_config_file);
-    let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
-    let search_depth = app_config["search_depth"].to_string().parse::<i32>().unwrap_or(1000) as usize;
-    println!("{}", search_depth);
-
+async fn search_for(file_name: String, max_items: i32, search_depth: i32) -> Vec<FDir> {
     let mut file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
     println!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext);
     let sw = Stopwatch::start_new();
@@ -406,10 +405,10 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             .location(current_dir().unwrap())
             .search_input(file_name.strip_suffix(&file_ext).unwrap())
             .ignore_case( )
-            .depth(search_depth.clone())
+            .depth(search_depth.clone() as usize)
             .ext(&file_ext)
             .hidden()
-            .limit(10000)
+            .limit(max_items as usize)
             .build()
             .collect();
     }
@@ -418,9 +417,9 @@ async fn search_for(file_name: String) -> Vec<FDir> {
             .location(current_dir().unwrap())
             .search_input(file_name)
             .ignore_case()
-            .depth(search_depth)
+            .depth(search_depth as usize)
             .hidden()
-            .limit(10000)
+            .limit(max_items as usize)
             .build()
             .collect();
     }
@@ -455,6 +454,10 @@ async fn search_for(file_name: String) -> Vec<FDir> {
         }
         else {
             is_dir_int = 0;
+        }
+        // Don't include the directory searched in 
+        if path == current_dir().unwrap().to_str().unwrap() {
+            continue;
         }
         dir_list.push(FDir {
             name: name.to_string(),
@@ -555,10 +558,6 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
     }*/
 
     println!("Copy-Paste time: {:?}", &sw.elapsed());
-    dialog::Message::new(format!("Copying process done in {:?}", sw.elapsed()))
-        .title("Information")
-        .show()
-        .expect("Did not go as planned");
     return list_dirs().await;
 }
 
@@ -668,7 +667,8 @@ async fn save_config(
     is_dual_pane_enabled: String,
     launch_path: String,
     is_dual_pane_active: String,
-    search_depth: i32) {
+    search_depth: i32,
+    max_items: i32) {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
@@ -682,7 +682,8 @@ async fn save_config(
         is_dual_pane_enabled: is_dual_pane_enabled.replace("\\", ""),
         launch_path: launch_path.replace("\\", "/"),
         is_dual_pane_active: is_dual_pane_active.replace("\\", ""),
-        search_depth: search_depth
+        search_depth: search_depth,
+        max_items: max_items
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
 }
