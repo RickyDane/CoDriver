@@ -76,14 +76,16 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	}
 });
 
+/* Quicksearch for dual pane view */
+
 document.querySelector(".full-dualpane-search-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13 && !IsFullSearching) {
 		IsFullSearching = true;
 		let fileName = document.querySelector(".full-dualpane-search-input").value;
 		let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
-		maxItems = maxItems >= 1 ? maxItems : 100;
+		maxItems = maxItems >= 1 ? maxItems : 999999;
 		let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
-		searchDepth = searchDepth >= 1 ? searchDepth : 10;
+		searchDepth = searchDepth >= 1 ? searchDepth : 999999;
 		searchFor(fileName, maxItems, searchDepth);
 	}
 });
@@ -821,6 +823,10 @@ async function renameElement(path, newName) {
 	listDirectories();
 }
 
+async function showAppInfo() {
+	alert("Application: rdpFX\nVersion: 0.1.9\nBuildno: 20230511\nDeveloper: Ricky Dane");
+}
+
 async function checkAppConfig() {
 	await invoke("check_app_config")
 		.then(appConfig => {
@@ -1200,9 +1206,9 @@ async function openInTerminal() {
 	ContextMenu.style.display = "none";
 }
 
-async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth = SettingsSearchDepth) {
+async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth = SettingsSearchDepth, isQuickSearch = false) {
 	document.querySelector(".fullsearch-loader").style.display = "block";
-	if (fileName.length >= 2) {
+	if (fileName.length >= 2 || isQuickSearch == true) {
 		document.querySelector(".cancel-search-button").style.display = "block";
 		if (IsDualPaneEnabled == false) {
 			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" />`;
@@ -1211,6 +1217,7 @@ async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth
 			.then(async (items) => {
 				if (IsDualPaneEnabled == true) {
 					await showItems(items, SelectedItemPaneSide);
+					goUp(false, true);
 				}
 				else {
 					await showItems(items);
@@ -1237,13 +1244,15 @@ function closeFullSearchContainer() {
 	IsDisableShortcuts = false;
 }
 
-document.querySelector(".dualpane-search-input").addEventListener("change", () => {
-	searchForFilter();
+document.querySelector(".dualpane-search-input").addEventListener("keyup", (e) => {
+	if (e.keyCode === 13) {
+		closeSearchBar();
+	}
+	else {
+		let fileName = document.querySelector(".dualpane-search-input").value;
+		searchFor(fileName, 999999, 1, true);
+	}
 });
-async function searchForFilter() {
-	let fileName = document.querySelector(".dualpane-search-input").value;
-	searchFor(fileName);
-}
 
 function openSearchBar() {
 	document.querySelector(".search-bar-container").style.display = "flex";

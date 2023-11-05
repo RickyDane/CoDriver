@@ -395,16 +395,6 @@ async fn go_home() -> Vec<FDir> {
 
 #[tauri::command]
 async fn search_for(file_name: String, max_items: i32, search_depth: i32) -> Vec<FDir> {
-    let mut search_depth = search_depth as usize;
-    let mut max_items = max_items as usize;
-    if search_depth == 0 {
-        search_depth = 999999 as usize;
-    }
-    if max_items == 0 {
-        max_items = 999999 as usize;
-    }
-    println!("{}", search_depth);
-
     let mut file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
     println!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext);
     let sw = Stopwatch::start_new();
@@ -415,10 +405,10 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32) -> Vec
             .location(current_dir().unwrap())
             .search_input(file_name.strip_suffix(&file_ext).unwrap())
             .ignore_case( )
-            .depth(search_depth.clone())
+            .depth(search_depth.clone() as usize)
             .ext(&file_ext)
             .hidden()
-            .limit(max_items)
+            .limit(max_items as usize)
             .build()
             .collect();
     }
@@ -427,9 +417,9 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32) -> Vec
             .location(current_dir().unwrap())
             .search_input(file_name)
             .ignore_case()
-            .depth(search_depth)
+            .depth(search_depth as usize)
             .hidden()
-            .limit(max_items)
+            .limit(max_items as usize)
             .build()
             .collect();
     }
@@ -464,6 +454,10 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32) -> Vec
         }
         else {
             is_dir_int = 0;
+        }
+        // Don't include the directory searched in 
+        if path == current_dir().unwrap().to_str().unwrap() {
+            continue;
         }
         dir_list.push(FDir {
             name: name.to_string(),
