@@ -57,7 +57,9 @@ let IsPopUpOpen = false;
 let SettingsSearchDepth = 10;
 let SettingsMaxItems = 1000;
 let IsFullSearching = false;
-let ArrCopyItems = [];
+let ArrCopyItems = []; // Todo: select more elements to copy at once
+let IsLightMode = false;
+let IsImagePreview = false;
 
 /* endregion */
 
@@ -81,16 +83,26 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 /* Quicksearch for dual pane view */
 
 document.querySelector(".full-dualpane-search-input").addEventListener("keyup", (e) => {
-	if (e.keyCode === 13 && !IsFullSearching) {
-		IsFullSearching = true;
-		let fileName = document.querySelector(".full-dualpane-search-input").value;
-		let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
-		maxItems = maxItems >= 1 ? maxItems : 999999;
-		let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
-		searchDepth = searchDepth >= 1 ? searchDepth : 999999;
-		searchFor(fileName, maxItems, searchDepth);
+	if (e.keyCode === 13 && IsFullSearching == false) {
+		startFullSearch();
 	}
 });
+document.querySelector(".full-dualpane-search-file-content-input").addEventListener("keyup", (e) => {
+	if (e.keyCode === 13 && IsFullSearching == false) {
+		startFullSearch();
+	}
+});
+
+function startFullSearch() {
+	IsFullSearching = true;
+	let fileName = document.querySelector(".full-dualpane-search-input").value;
+	let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
+	maxItems = maxItems >= 1 ? maxItems : 999999;
+	let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
+	searchDepth = searchDepth >= 1 ? searchDepth : 999999;
+	let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
+	searchFor(fileName, maxItems, searchDepth, false, fileContent);
+}
 
 document.addEventListener("keyup", (e) => {
 	if (e.keyCode === 27) {
@@ -175,7 +187,7 @@ document.onkeydown = async (e) => {
 	if(e.keyCode == 18){
 		IsAltDown = true;
 	}
-	if (e.metaKey == true) {
+	if (e.keyCode === 91) {
 		IsMetaDown = true;
 	}
 	if (IsAltDown == true && e.keyCode == 49)
@@ -236,76 +248,79 @@ document.onkeydown = async (e) => {
 		if (e.ctrlKey && e.keyCode == 87) {
 			closeTab();
 		}
-
 	}
 
 	// New folder input prompt when f7 is pressed
 	if (e.keyCode == 118) {
 		createFolderInputPrompt();
+		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	// New file input prompt when f6 is pressed
 	if (e.keyCode == 117) {
 		createFileInputPrompt();
+		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	if (IsDualPaneEnabled == true && IsDisableShortcuts == false && IsPopUpOpen == false) {
 		// check if f5 is pressed
 		if (e.keyCode == 116 && IsTabsEnabled == false) {
-			e.preventDefault();
-			e.stopPropagation();
 			let isToCopy = await confirm("Current selection will be copied over");
 			if (isToCopy == true) {
 				pasteItem();
 			}
+			e.preventDefault();
+			e.stopPropagation();
 		}
 		// check if backspace is pressed
 		if (e.keyCode == 8) {
+			goBack();	
 			e.preventDefault();
 			e.stopPropagation();
-			goBack();	
 		}
 		// check if arrow up is pressed
 		if (e.keyCode == 38) {
+			goUp();
 			e.preventDefault();
 			e.stopPropagation();
-			goUp();
 		}
 		// check if arrow down is pressed
 		if (e.keyCode == 40) {
+			goDown();
 			e.preventDefault();
 			e.stopPropagation();
-			goDown();
 		}
 		// check if return is pressed
 		if (!IsAltDown && e.keyCode == 13) {
+			openSelectedItem();
 			e.preventDefault();
 			e.stopPropagation();
-			openSelectedItem();
 		}
 		// check if tab is pressed
 		if (e.keyCode == 9) {
+			goToOtherPane();
 			e.preventDefault();
 			e.stopPropagation();
-			goToOtherPane();
 		}
 		// check if del is pressed
-		if (e.keyCode == 46 || (e.metaKey == true && e.keyCode == 8)) {
+		if (e.keyCode == 46 || (IsMetaDown && e.keyCode == 8)) {
+			deleteItem(SelectedElement);
 			e.preventDefault();
 			e.stopPropagation();
-			deleteItem(SelectedElement);
 		}
 		// check if strg + f is pressed
 		if (e.ctrlKey && e.keyCode == 70) {
+			openSearchBar();
 			e.preventDefault();
 			e.stopPropagation();
-			openSearchBar();
 		}
 		// check if ctrl + r is pressed
 		if (e.ctrlKey && e.keyCode == 82) {
+			refreshView();
 			e.preventDefault();
 			e.stopPropagation();
-			refreshView();
 		}
 		// check if alt + enter is pressed
 		if (IsAltDown && e.keyCode == 13) {
@@ -313,9 +328,9 @@ document.onkeydown = async (e) => {
 		}
 		// check if alt + f7 is pressed
 		if (e.keyCode == 119) {
+			openFullSearchContainer();
 			e.preventDefault();
 			e.stopPropagation();
-			openFullSearchContainer();
 		}
 	}
 } 
@@ -343,7 +358,7 @@ document.onkeyup = (e) => {
 	if (e.keyCode == 71){
 		IsGDown = false;
 	}
-	if (e.metaKey == true) {
+	if (e.keyCode === 91) {
 		IsMetaDown = false;
 	}
 }
@@ -452,8 +467,13 @@ async function showItems(items, dualPaneSide = "") {
 				case ".jpeg":
 				case ".gif":
 				case ".webp":
-					fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
-					iconSize = "100%";
+					if (IsImagePreview) {
+						fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
+						iconSize = "100%";
+					}
+					else {
+						fileIcon = "resources/img-file.png";
+					}
 					break;
 				case ".svg":
 					fileIcon = "resources/img-file.png";
@@ -540,8 +560,8 @@ async function showItems(items, dualPaneSide = "") {
 			ContextMenu.style.left = e.clientX + "px";
 			ContextMenu.style.top = e.clientY + "px";
 
-			let fromPath = item.getAttribute("onclick").split(",")[1].trim().split("/");
-			let actFileName = fromPath[fromPath.length - 1].replace("'", "");
+			let fromPath = item.getAttribute("itempath");
+			let actFileName = fromPath.split("/")[fromPath.split("/").length - 1];
 			let extension = actFileName.split(".")[actFileName.split(".").length-1];
 
 			ContextMenu.children[1].removeAttribute("disabled");
@@ -626,6 +646,9 @@ async function deleteItem(item) {
 	let SelectedItemPaneSide = item.getAttribute("itempaneside");
 	let actFileName = fromPath.split("/")[fromPath.split("/").length-1];
 	let isConfirm = await confirm("Do you really want to delete "+actFileName+"?");
+	if (IsMetaDown == true) {
+		IsMetaDown = false;
+	}
 	if (isConfirm == true) {
 		await invoke("delete_item", {actFileName})
 			.then(items => {
@@ -636,42 +659,43 @@ async function deleteItem(item) {
 }
 
 function copyItem(item) {
-	CopyFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
-	let tempCopyFilePath = item.getAttribute("onclick").split(",")[1].trim().split("/");
+	CopyFilePath = item.getAttribute("itempath");
+	let tempCopyFilePath = item.getAttribute("itempath").split("/");
 	CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
 	ContextMenu.style.display = "none";
 }
 
 async function extractItem(item) {
-	let compressFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
+	let compressFilePath = item.getAttribute("itempath");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
-	let isExtracting = confirm("Do you want to unpack " + compressFileName + "?");
+	let isExtracting = await confirm("Do you want to unpack " + compressFileName + "?");
 	if (isExtracting == true) {
-		let extractFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
-		let extractFileName = extractFilePath[extractFilePath.length - 1].replace("'", "");
+		ContextMenu.style.display = "none";
+		let extractFilePath = item.getAttribute("itempath");
+		let extractFileName = extractFilePath.split("/")[extractFilePath.split("/").length - 1].replace("'", "");
 		if (extractFileName != "") {
 			let fromPath = extractFilePath.toString();
 			invoke("extract_item", {fromPath})
-				.then(items => {
-					showItems(items.filter(str => !str.name.startsWith(".")));
-					message("Unpack complete");
+				.then(async (items) => {
+					await showItems(items.filter(str => !str.name.startsWith(".")));
+					await message("Unpack complete");
 				});
 		}
 	}
-	ContextMenu.style.display = "none";
 }
 
-function compressItem(item) {
+async function compressItem(item) {
 	message("Compressing started.\nThis can take some time.\nYou will be notified once the process is finished.");
-	let compressFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
-	let compressFileName = compressFilePath[compressFilePath.length - 1].replace("'", "");
+	let compressFilePath = item.getAttribute("itempath");
+	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
+	console.log(compressFileName, compressFilePath);
 	if (compressFileName != "") {
 		let fromPath = compressFilePath.toString();
 		ContextMenu.style.display = "none";
-		invoke("compress_item", {fromPath})
-			.then(items => {
-				showItems(items);
-				message("Komprimierung abgeschlossen");
+		await invoke("compress_item", {fromPath})
+			.then(async (items) => {
+				await showItems(items);
+				await message("Komprimierung abgeschlossen");
 			});
 	}
 }
@@ -832,7 +856,7 @@ async function renameElement(path, newName) {
 }
 
 async function showAppInfo() {
-	alert("Application: rdpFX\nVersion: 0.1.9\nBuildno: 20230511\nDeveloper: Ricky Dane");
+	alert("Application: rdpFX\nVersion: 0.2.0\nBuildno: 20230811\nDeveloper: Ricky Dane");
 }
 
 async function checkAppConfig() {
@@ -866,6 +890,22 @@ async function checkAppConfig() {
 				document.querySelector(".switch-dualpane-view-button").style.display = "none";
 			}
 
+			if (appConfig.is_light_mode.includes("1")) {
+				document.querySelector(".switch-light-dark-mode-checkbox").checked = true;
+				IsLightMode = true;
+			}
+			else {
+				document.querySelector(".switch-light-dark-mode-checkbox").checked = false;
+				IsLightMode = false;
+			}
+
+			if (appConfig.is_image_preview.includes("1")) {
+				document.querySelector(".image-preview-checkbox").checked = IsImagePreview = true;
+			}
+			else {
+				document.querySelector(".image-preview-checkbox").checked = false;
+			}
+
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
 			document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
@@ -873,11 +913,13 @@ async function checkAppConfig() {
 			document.querySelector(".search-depth-input").value = SettingsSearchDepth = parseInt(appConfig.search_depth);
 			document.querySelector(".max-items-input").value = SettingsMaxItems = parseInt(appConfig.max_items);
 
-
 			if (appConfig.is_dual_pane_active.includes("1")) {
 				if (IsDualPaneEnabled == false) {
 					switchToDualPane();
 				}
+			}
+			if (appConfig.is_light_mode.includes("1")) {
+				// Todo: Switch to light mode
 			}
 			else if (appConfig.launch_path.length >= 1) {
 				let path = appConfig.launch_path;
@@ -888,6 +930,7 @@ async function checkAppConfig() {
 					});
 			}
 		});
+	checkColorMode();
 }
 
 async function listDisks() {
@@ -1028,6 +1071,7 @@ async function goHome() {
 }
 
 async function goBack() {
+	console.log(IsMetaDown, IsDualPaneEnabled);
 	if (IsMetaDown == false) {
 		await invoke("go_back")
 			.then(async (items) => {
@@ -1216,14 +1260,15 @@ async function openInTerminal() {
 	ContextMenu.style.display = "none";
 }
 
-async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth = SettingsSearchDepth, isQuickSearch = false) {
+async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth = SettingsSearchDepth, isQuickSearch = false, fileContent = "") {
 	document.querySelector(".fullsearch-loader").style.display = "block";
-	if (fileName.length >= 2 || isQuickSearch == true) {
+	if (fileName.length > 1 || isQuickSearch == true) {
 		document.querySelector(".cancel-search-button").style.display = "block";
 		if (IsDualPaneEnabled == false) {
-			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" />`;
+			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+			DirectoryList.classList.add("dir-preloader-container");
 		}
-		await invoke("search_for", {fileName, maxItems, searchDepth})
+		await invoke("search_for", {fileName, maxItems, searchDepth, fileContent})
 			.then(async (items) => {
 				if (IsDualPaneEnabled == true) {
 					await showItems(items, SelectedItemPaneSide);
@@ -1239,6 +1284,7 @@ async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth
 	}
 	IsFullSearching = false;
 	document.querySelector(".fullsearch-loader").style.display = "none";
+	DirectoryList.classList.remove("dir-preloader-container");
 }
 
 function openFullSearchContainer() {
@@ -1399,6 +1445,8 @@ async function saveConfig(isToReload = true) {
 	let isDualPaneActive = IsDualPaneEnabled;
 	let searchDepth = parseInt(document.querySelector(".search-depth-input").value);
 	let maxItems = parseInt(document.querySelector(".max-items-input").value);
+	let isLightMode = document.querySelector(".switch-light-dark-mode-checkbox").checked;
+	let isImagePreview = IsImagePreview = document.querySelector(".image-preview-checkbox").checked;
 	closeSettings();
 
 	if (isOpenInTerminal == true) {
@@ -1421,6 +1469,20 @@ async function saveConfig(isToReload = true) {
 	else {
 		isDualPaneActive = "0";
 	}
+	
+	if (isLightMode == true) {
+		isLightMode = "1";
+	}
+	else {
+		isLightMode = "0";
+	}
+	
+	if (isImagePreview == true) {
+		isImagePreview = "1";
+	}
+	else {
+		isImagePreview = "0";
+	}
 
 	await invoke("save_config", {
 		configuredPathOne,
@@ -1432,7 +1494,9 @@ async function saveConfig(isToReload = true) {
 		isDualPaneEnabled,
 		isDualPaneActive,
 		searchDepth,
-		maxItems
+		maxItems,
+		isLightMode,
+		isImagePreview
 	});
 	if (isToReload == true) {
 		checkAppConfig();
@@ -1454,12 +1518,9 @@ function createTab(tabCount, isInitial) {
 		var tabName = "New tab";
 	}
 	tab.innerHTML = `
-		<p>${tabName}</p>
+		<a class="tab-link" onclick="switchToTab(${tabCount})"><p>${tabName}</p></a>
 		<button class="close-tab-button" onclick="closeTab()"><i class="fa-solid fa-xmark"></i></button>
 		`;
-	tab.addEventListener("click", () => {
-		switchToTab(tabCount);
-	});
 	if (tabCount != 1 || document.querySelector(".tab-container-1") == null) {
 		let explorerContainer = document.createElement("div");
 		explorerContainer.className = "explorer-container tab-container-"+tabCount;
@@ -1485,7 +1546,7 @@ function closeTab() {
 		if (TabCount == 2) {
 			IsTabs = false;
 			document.querySelector(".tab-header").style.display = "none";
-			document.querySelectorAll(".tab-container-"+CurrentActiveTab).forEach(item => item.remove());
+			document.querySelectorAll(".tab-container-" + CurrentActiveTab).forEach(item => item.remove());
 			document.querySelectorAll(".fx-tab").forEach(item => item.remove());
 			document.querySelectorAll(".explorer-container").forEach(item => {
 				if (ViewMode == "wrap") {
@@ -1499,25 +1560,27 @@ function closeTab() {
 				}
 			});
 			let tabCounter = 1;
-			let checkTab = document.querySelector(".tab-container-"+tabCounter);
+			let checkTab = document.querySelector(".tab-container-" + tabCounter);
 			while (checkTab == null) {
 				tabCounter++;
-				checkTab = document.querySelector(".tab-container-"+tabCounter);
+				checkTab = document.querySelector(".tab-container-" + tabCounter);
 			}
 			switchToTab(tabCounter);
+			console.log(tabCounter);
 			TabCount = 0;
 		}
 		else {
-			document.querySelectorAll(".tab-container-"+CurrentActiveTab).forEach(item => item.remove());
-			document.querySelectorAll(".fx-tab-"+CurrentActiveTab).forEach(item => item.remove());
+			document.querySelectorAll(".tab-container-" + CurrentActiveTab).forEach(item => item.remove());
+			document.querySelectorAll(".fx-tab-" + CurrentActiveTab).forEach(item => item.remove());
 			let switchTabNo = document.querySelectorAll(".fx-tab").length;
 			switchToTab(switchTabNo);
 			TabCount--;
 		}
-		}
 	}
+}
 
-	async function switchToTab(tabNo) {
+async function switchToTab(tabNo) {
+	if (IsDualPaneEnabled == false) {
 		CurrentActiveTab = tabNo;
 		document.querySelectorAll(".explorer-container").forEach(container => {
 			container.style.display = "none";
@@ -1525,9 +1588,9 @@ function closeTab() {
 		document.querySelectorAll(".fx-tab").forEach(tab => {
 			tab.classList.remove("active-tab");
 		});
-		let currentTabContainer = document.querySelector(".tab-container-"+tabNo);
+		let currentTabContainer = document.querySelector(".tab-container-" + tabNo);
 		if (currentTabContainer != null) {
-			let currentTab = document.querySelector(".fx-tab-"+tabNo);
+			let currentTab = document.querySelector(".fx-tab-" + tabNo);
 			currentTab?.classList.add("active-tab");
 			currentTabContainer.style.display = "block";
 		}
@@ -1550,7 +1613,7 @@ function closeTab() {
 		}
 		let currentDir = CurrentDir?.toString();
 		if (currentDir != null) {
-			await invoke("switch_to_directory", {currentDir});
+			await invoke("switch_to_directory", { currentDir });
 		}
 		document.querySelector(".current-path").textContent = CurrentDir;
 
@@ -1558,22 +1621,39 @@ function closeTab() {
 			switchToDualPane();
 		}
 	}
+}
 
-	function evalCurrentLoad(available, total) {
-		available = parseFloat(available.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
-		total = parseFloat(total.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
-		let result = 100 - (100 / total) * available;
-		return result.toFixed(0);
+function evalCurrentLoad(available, total) {
+	available = parseFloat(available.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
+	total = parseFloat(total.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
+	let result = 100 - (100 / total) * available;
+	return result.toFixed(0);
 }
 
 function formatBytes(bytes, decimals = 2) {
     if (!+bytes) return '0 Bytes'
-
     const k = 1000
     const dm = decimals < 0 ? 0 : decimals
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+}
+
+function checkColorMode(){
+	var r = document.querySelector(':root');
+	if (IsLightMode) {
+		r.style.setProperty("--primaryColor", "white");
+		r.style.setProperty("--secondaryColor", "whitesmoke");
+		r.style.setProperty("--tertiaryColor", "lightgray");
+		r.style.setProperty("--transparentColorActive", "rgba(0, 0, 0, 0.1)");
+		r.style.setProperty("--textColor", "rgba(99, 112, 135)");
+	}
+	else {
+		r.style.setProperty("--primaryColor", "#3f4352");
+		r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
+		r.style.setProperty("--tertiaryColor", "#464d5f");
+		r.style.setProperty("--textColor", "white");
+	}
 }
 
 // listDirectories();

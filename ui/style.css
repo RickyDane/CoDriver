@@ -15,7 +15,7 @@
 :root {
 	--primaryColor: #3f4352;
 	--secondaryColor: rgba(56, 59, 71, 1);
-	--tertiaryColor: #363946;
+	--tertiaryColor: #464d5f;
 	--transparentColor: rgba(0, 0, 0, 0.15);
 	--transparentColorActive: rgba(0, 0, 0, 0.25);
 	--textColor: white;
@@ -33,7 +33,7 @@ body {
 }
 .explorer-container {
 	margin: 0 0 0 calc(200px + 10px);
-	padding: 10px 10px 10px 0px;
+	padding: 10px 10px 20px 0px;
 	width: 100%;
 	height: calc(100vh - 100px);
 	max-width: 100%;
@@ -109,7 +109,7 @@ body {
 }
 .titlebar {
 	height: 50px;
-	padding: 0 10px;
+	padding: 10px;
 	background-color: var(--secondaryColor);
 	user-select: none;
 	display: flex;
@@ -132,7 +132,7 @@ body {
 	cursor: pointer;
 	border-radius: 15px;
 	transition: 0.2s;
-	background-color: var(--primaryColor);
+	background-color: var(--transparentColor);
 	font-size: small;
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.05);
 }
@@ -147,7 +147,6 @@ body {
 	flex-flow: row;
 	align-items: center;
 	gap: 20px;
-	padding-left: 10px;
 }
 
 .tab-header {
@@ -187,10 +186,9 @@ body {
 
 .fx-tab {
 	position: relative;
-	width: 150px;
-	height: 40px;
 	background-color: var(--secondaryColor);
-	padding: 5px 5px 5px 15px;
+	padding: 5px 5px 5px 10px;
+	width: 150px;
 	border-radius: 5px;
 	cursor: pointer;
 	display: flex;
@@ -200,16 +198,19 @@ body {
 	font-style: normal;
 	font-size: small;
 	overflow: hidden;
+	gap: 10px;
 	text-overflow: ellipsis;
 	border: 1px solid var(--primaryColor);
 }
+.tab-link {
+	padding: 5px 0;
+}
 .fx-tab:hover {
-	background-color: var(--secondaryColorActive);
+	background-color: var(--transparentColor);
 }
 .active-tab {
 	background-color: var(--primaryColor);
-	font-weight: bolder;
-	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
+	box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
 }
 .fx-tab > p {
 	width: 120px;
@@ -217,8 +218,9 @@ body {
 	text-overflow: ellipsis;
 }
 .close-tab-button {
-	height: 30px;
-	width: 30px;
+	height: 20px;
+	width: 20px;
+	padding: 5px;
 	border: none;
 	background-color: transparent;
 	cursor: pointer;
@@ -340,6 +342,7 @@ body {
 	align-items: center;
 	text-align: center;
 	margin: 5px;
+	border: 1px solid var(--transparentColor);
 }
 .item-button:hover {
 	background-color: var(--transparentColorActive);
@@ -501,7 +504,7 @@ body {
 	min-width: 40px;
 }
 .site-nav-bar-button {
-	background-color: rgba(0, 0, 0, 0.15);
+	background-color: var(--secondaryColor);
 	border: none;
 	width: 100%;
 	text-align: left;
@@ -515,7 +518,7 @@ body {
 	font-size: small;
 }
 .site-nav-bar-button:hover {
-	background-color: rgba(0, 0, 0, 0.25);
+	background-color: var(--transparentColorActive);
 }
 .horizontal-seperator {
 	width: 90%;
@@ -613,7 +616,7 @@ body {
 	background-color: var(--primaryColor);
 	border-radius: 10px;
 	box-shadow: 0px 0px 10px 1px var(--transparentColor);
-	border: 1px solid var(--secondaryColor);
+	border: 1px solid var(--primaryColor);
 	overflow: hidden;
 }
 .search-full-container-header {
@@ -654,7 +657,7 @@ body {
 
 
 .current-path {
-	background-color: rgba(0, 0, 0, 0.75);
+	background-color: var(--primaryColor);
 	position: fixed;
 	bottom: 0;
 	right: 0; 
@@ -662,6 +665,7 @@ body {
 	border-radius: 5px 0px 0px 0px;
 	text-align: right;
 	padding: 5px;
+	border: 1px solid var(--transparentColor);
 }
 
 
@@ -678,6 +682,13 @@ body {
 	display: flex;
 	flex-flow: column;
 	align-items: center;
+}
+.dir-preloader-container {
+	display: flex;
+	flex-flow: column !important;
+	justify-content: center;
+	align-items: center;
+	height: calc(100vh - 110px);
 }
 
 
@@ -718,7 +729,11 @@ body {
 }
 .c-item-disabled {
 	color: grey !important;
-	background-color: rgba(0, 0, 0, 0.05);
+	background-color: var(--primaryColor);
+}
+.c-item-disabled:hover {
+	color: grey !important;
+	background-color: var(--primaryColor);
 }
 
 
