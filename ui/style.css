@@ -326,7 +326,7 @@ body {
 }
 .item-button {
 	position: relative;
-	background-color: var(--primaryColor);
+	background-color: var(--secondaryColor);
 	border-radius: 5px;
 	cursor: pointer;
 	text-align: left;
@@ -340,8 +340,6 @@ body {
 	align-items: center;
 	text-align: center;
 	margin: 5px;
-	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.1);
-	border: 1px solid var(--secondaryColor);
 }
 .item-button:hover {
 	background-color: var(--transparentColorActive);
@@ -368,11 +366,15 @@ body {
 	bottom: 0;
 	left: 0;
 	right: 0;
-	background-color: var(--tertiaryColor);
+	background-color: var(--primaryColor);
 	padding: 5px;
 	font-size: var(--fontSize);
 	line-height: 20px;
 	max-height: 30px;
+	border-radius: 5px;
+	margin: 2px;
+	overflow: hidden;
+	border: 1px solid var(--secondaryColor);
 }
 .item-button-list {
 	display: flex;

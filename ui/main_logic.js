@@ -28,6 +28,7 @@ let CurrentDir = "/Home";
 let IsShowDisks = false;
 let IsShowHiddenFiles = false;
 let IsAltDown = false;
+let IsMetaDown = false;
 let ConfiguredPathOne = "";
 let ConfiguredPathTwo = "";
 let ConfiguredPathThree = "";
@@ -173,6 +174,9 @@ document.onkeydown = async (e) => {
 	if(e.keyCode == 18){
 		IsAltDown = true;
 	}
+	if (e.metaKey == true) {
+		IsMetaDown = true;
+	}
 	if (IsAltDown == true && e.keyCode == 49)
 	{
 		if (ConfiguredPathOne == "") {
@@ -285,7 +289,7 @@ document.onkeydown = async (e) => {
 			goToOtherPane();
 		}
 		// check if del is pressed
-		if (e.keyCode == 46) {
+		if (e.keyCode == 46 || (e.metaKey == true && e.keyCode == 8)) {
 			e.preventDefault();
 			e.stopPropagation();
 			deleteItem(SelectedElement);
@@ -337,6 +341,9 @@ document.onkeyup = (e) => {
 	}
 	if (e.keyCode == 71){
 		IsGDown = false;
+	}
+	if (e.metaKey == true) {
+		IsMetaDown = false;
 	}
 }
 
@@ -1020,16 +1027,18 @@ async function goHome() {
 }
 
 async function goBack() {
-	await invoke("go_back")
-		.then(async (items) => {
-			if (IsDualPaneEnabled == true) {
-				await showItems(items, SelectedItemPaneSide);
-				goUp(false, true);
-			}
-			else {
-				showItems(items);
-			}
-		});
+	if (IsMetaDown == false) {
+		await invoke("go_back")
+			.then(async (items) => {
+				if (IsDualPaneEnabled == true) {
+					await showItems(items, SelectedItemPaneSide);
+					goUp(false, true);
+				}
+				else {
+					showItems(items);
+				}
+			});
+	}
 }
 
 function goUp(isSwitched = false, toFirst = false) {
@@ -1261,6 +1270,7 @@ function openSearchBar() {
 }
 
 function closeSearchBar() {
+	document.querySelector(".dualpane-search-input").value = "";
 	document.querySelector(".search-bar-container").style.display = "none";
 	IsDisableShortcuts = false;
 }
