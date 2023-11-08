@@ -29,6 +29,7 @@ let IsShowDisks = false;
 let IsShowHiddenFiles = false;
 let IsAltDown = false;
 let IsMetaDown = false;
+let IsQuickSearchOpen = false;
 let ConfiguredPathOne = "";
 let ConfiguredPathTwo = "";
 let ConfiguredPathThree = "";
@@ -1257,7 +1258,7 @@ document.querySelector(".dualpane-search-input").addEventListener("keyup", (e) =
 	if (e.keyCode === 13) {
 		closeSearchBar();
 	}
-	else {
+	else if (IsQuickSearchOpen == true) {
 		let fileName = document.querySelector(".dualpane-search-input").value;
 		searchFor(fileName, 999999, 1, true);
 	}
@@ -1267,12 +1268,14 @@ function openSearchBar() {
 	document.querySelector(".search-bar-container").style.display = "flex";
 	document.querySelector(".dualpane-search-input").focus();
 	IsDisableShortcuts = true;	
+	IsQuickSearchOpen = true;
 }
 
 function closeSearchBar() {
 	document.querySelector(".dualpane-search-input").value = "";
 	document.querySelector(".search-bar-container").style.display = "none";
 	IsDisableShortcuts = false;
+	IsQuickSearchOpen = false;
 }
 
 async function cancelSearch() {
