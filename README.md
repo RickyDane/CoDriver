@@ -50,9 +50,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - [x] Dual pane view
 - Favorites
 <br>
-
-![grafik](https://github.com/RickyDane/rdpFX/assets/82893522/8e677c93-c37c-4600-8686-4c118ef326bd)
-
+<img width="1280" alt="Bildschirmfoto 2023-11-08 um 20 49 33" src="https://github.com/RickyDane/rdpFX/assets/82893522/18ee6da9-033b-4803-bd05-c524ee896def">
 
 ## Speed comparison
 ![2023-08-27-08-14-02](https://github.com/RickyDane/rdpFX/assets/82893522/237b28a0-d667-4bea-91a9-a43cb9277c49)
