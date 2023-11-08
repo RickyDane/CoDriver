@@ -619,7 +619,7 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
     // Check file extension
     let file_ext = ".".to_string().to_owned()+from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
 
-    println!("{} {}", &file_ext, &from_path);
+    println!("# Debug: Start unpacking {} - {}", &file_ext, &from_path);
 
     // make zip or rar unpack
     let sw = Stopwatch::start_new();

@@ -1518,12 +1518,9 @@ function createTab(tabCount, isInitial) {
 		var tabName = "New tab";
 	}
 	tab.innerHTML = `
-		<p>${tabName}</p>
-		<!--<button class="close-tab-button" onclick="closeTab()"><i class="fa-solid fa-xmark"></i></button>-->
+		<a class="tab-link" onclick="switchToTab(${tabCount})"><p>${tabName}</p></a>
+		<button class="close-tab-button" onclick="closeTab()"><i class="fa-solid fa-xmark"></i></button>
 		`;
-	tab.addEventListener("click", (e) => {
-		switchToTab(tabCount);
-	});
 	if (tabCount != 1 || document.querySelector(".tab-container-1") == null) {
 		let explorerContainer = document.createElement("div");
 		explorerContainer.className = "explorer-container tab-container-"+tabCount;
@@ -1583,44 +1580,46 @@ function closeTab() {
 }
 
 async function switchToTab(tabNo) {
-	CurrentActiveTab = tabNo;
-	document.querySelectorAll(".explorer-container").forEach(container => {
-		container.style.display = "none";
-	});
-	document.querySelectorAll(".fx-tab").forEach(tab => {
-		tab.classList.remove("active-tab");
-	});
-	let currentTabContainer = document.querySelector(".tab-container-" + tabNo);
-	if (currentTabContainer != null) {
-		let currentTab = document.querySelector(".fx-tab-" + tabNo);
-		currentTab?.classList.add("active-tab");
-		currentTabContainer.style.display = "block";
-	}
-	switch (CurrentActiveTab) {
-		case 1:
-			CurrentDir = TabOnePath;
-			break;
-		case 2:
-			CurrentDir = TabTwoPath;
-			break;
-		case 3:
-			CurrentDir = TabThreePath;
-			break;
-		case 4:
-			CurrentDir = TabFourPath;
-			break;
-		case 5:
-			CurrentDir = TabFivePath;
-			break;
-	}
-	let currentDir = CurrentDir?.toString();
-	if (currentDir != null) {
-		await invoke("switch_to_directory", { currentDir });
-	}
-	document.querySelector(".current-path").textContent = CurrentDir;
+	if (IsDualPaneEnabled == false) {
+		CurrentActiveTab = tabNo;
+		document.querySelectorAll(".explorer-container").forEach(container => {
+			container.style.display = "none";
+		});
+		document.querySelectorAll(".fx-tab").forEach(tab => {
+			tab.classList.remove("active-tab");
+		});
+		let currentTabContainer = document.querySelector(".tab-container-" + tabNo);
+		if (currentTabContainer != null) {
+			let currentTab = document.querySelector(".fx-tab-" + tabNo);
+			currentTab?.classList.add("active-tab");
+			currentTabContainer.style.display = "block";
+		}
+		switch (CurrentActiveTab) {
+			case 1:
+				CurrentDir = TabOnePath;
+				break;
+			case 2:
+				CurrentDir = TabTwoPath;
+				break;
+			case 3:
+				CurrentDir = TabThreePath;
+				break;
+			case 4:
+				CurrentDir = TabFourPath;
+				break;
+			case 5:
+				CurrentDir = TabFivePath;
+				break;
+		}
+		let currentDir = CurrentDir?.toString();
+		if (currentDir != null) {
+			await invoke("switch_to_directory", { currentDir });
+		}
+		document.querySelector(".current-path").textContent = CurrentDir;
 
-	if (IsDualPaneEnabled == true) {
-		switchToDualPane();
+		if (IsDualPaneEnabled == true) {
+			switchToDualPane();
+		}
 	}
 }
 
@@ -1643,15 +1642,16 @@ function formatBytes(bytes, decimals = 2) {
 function checkColorMode(){
 	var r = document.querySelector(':root');
 	if (IsLightMode) {
-		r.style.setProperty("--primaryColor", "whitesmoke");
-		r.style.setProperty("--secondaryColor", "white");
-		r.style.setProperty("--tertiaryColor", "white");
+		r.style.setProperty("--primaryColor", "white");
+		r.style.setProperty("--secondaryColor", "whitesmoke");
+		r.style.setProperty("--tertiaryColor", "lightgray");
+		r.style.setProperty("--transparentColorActive", "rgba(0, 0, 0, 0.1)");
 		r.style.setProperty("--textColor", "rgba(99, 112, 135)");
 	}
 	else {
 		r.style.setProperty("--primaryColor", "#3f4352");
 		r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
-		r.style.setProperty("--tertiaryColor", "#363946");
+		r.style.setProperty("--tertiaryColor", "#464d5f");
 		r.style.setProperty("--textColor", "white");
 	}
 }
