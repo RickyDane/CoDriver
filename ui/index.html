@@ -97,12 +97,15 @@
 				<input type="text" class="settings-ui-input text-input configured-path-one-input" placeholder="/home/user" />
 				<input type="text" class="settings-ui-input text-input configured-path-two-input" placeholder="/home/user/folder1" />
 				<input type="text" class="settings-ui-input text-input configured-path-three-input" placeholder="/home/user/folder2" />
+				<br/>
 				<p>Search depth (higher = slower) | Standard: 10</p>
 				<input style="width: 100px;" type="number" class="settings-ui-input number-input search-depth-input" placeholder="0 = off" />
 				<p>Max count of items to find (higher = slower) | Standard: 1000</p>
 				<input style="width: 100px;" type="number" class="settings-ui-input number-input max-items-input" placeholder="0 = off" />
 				<p>Path to launch at start</p>
 				<input type="text" class="settings-ui-input text-input launch-path-input" placeholder="/home" />
+				<br/>
+				<p>Extra options</p>
 				<span style="display: flex; gap: 10px; margin-top: 5px;">
 					<input id="open-in-terminal-checkbox" type="checkbox" class="settings-ui-checkbox openin-terminal-checkbox" />
 					<label for="open-in-terminal-checkbox">Enable "Open in terminal" (Experimental)</p>
@@ -114,6 +117,10 @@
 				<span style="display: flex; gap: 10px; margin-top: 5px;">
 					<input id="switch-light-dark-mode" type="checkbox" class="settings-ui-checkbox switch-light-dark-mode-checkbox" />
 					<label for="switch-light-dark-mode">Light-Mode (Experimental)</p>
+				</span>
+				<span style="display: flex; gap: 10px; margin-top: 5px;">
+					<input id="switch-image-preview" type="checkbox" class="settings-ui-checkbox image-preview-checkbox" />
+					<label for="switch-image-preview">Image preview (.gif, .jpeg, .jpg, .png)</p>
 				</span>
 				<span class="settings-ui-body-buttons">
 					<button class="button" onclick="closeSettings()"><i class="fa-solid fa-ban"></i>Cancel</button>

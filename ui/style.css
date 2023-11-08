@@ -204,7 +204,7 @@ body {
 	border: 1px solid var(--primaryColor);
 }
 .fx-tab:hover {
-	background-color: var(--secondaryColorActive);
+	background-color: var(--transparentColor);
 }
 .active-tab {
 	background-color: var(--primaryColor);
@@ -655,7 +655,7 @@ body {
 
 
 .current-path {
-	background-color: rgba(0, 0, 0, 0.75);
+	background-color: var(--tertiaryColor);
 	position: fixed;
 	bottom: 0;
 	right: 0; 
@@ -663,6 +663,7 @@ body {
 	border-radius: 5px 0px 0px 0px;
 	text-align: right;
 	padding: 5px;
+	border: 1px solid var(--transparentColor);
 }
 
 
@@ -679,6 +680,13 @@ body {
 	display: flex;
 	flex-flow: column;
 	align-items: center;
+}
+.dir-preloader-container {
+	display: flex;
+	flex-flow: column !important;
+	justify-content: center;
+	align-items: center;
+	height: calc(100vh - 110px);
 }
 
 

@@ -58,7 +58,8 @@ let SettingsSearchDepth = 10;
 let SettingsMaxItems = 1000;
 let IsFullSearching = false;
 let ArrCopyItems = []; // Todo: select more elements to copy at once
-let IsLightMode;
+let IsLightMode = false;
+let IsImagePreview = false;
 
 /* endregion */
 
@@ -466,8 +467,13 @@ async function showItems(items, dualPaneSide = "") {
 				case ".jpeg":
 				case ".gif":
 				case ".webp":
-					fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
-					iconSize = "100%";
+					if (IsImagePreview) {
+						fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
+						iconSize = "100%";
+					}
+					else {
+						fileIcon = "resources/img-file.png";
+					}
 					break;
 				case ".svg":
 					fileIcon = "resources/img-file.png";
@@ -554,8 +560,8 @@ async function showItems(items, dualPaneSide = "") {
 			ContextMenu.style.left = e.clientX + "px";
 			ContextMenu.style.top = e.clientY + "px";
 
-			let fromPath = item.getAttribute("onclick").split(",")[1].trim().split("/");
-			let actFileName = fromPath[fromPath.length - 1].replace("'", "");
+			let fromPath = item.getAttribute("itempath");
+			let actFileName = fromPath.split("/")[fromPath.split("/").length - 1];
 			let extension = actFileName.split(".")[actFileName.split(".").length-1];
 
 			ContextMenu.children[1].removeAttribute("disabled");
@@ -653,42 +659,43 @@ async function deleteItem(item) {
 }
 
 function copyItem(item) {
-	CopyFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
-	let tempCopyFilePath = item.getAttribute("onclick").split(",")[1].trim().split("/");
+	CopyFilePath = item.getAttribute("itempath");
+	let tempCopyFilePath = item.getAttribute("itempath").split("/");
 	CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
 	ContextMenu.style.display = "none";
 }
 
 async function extractItem(item) {
-	let compressFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
+	let compressFilePath = item.getAttribute("itempath");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
-	let isExtracting = confirm("Do you want to unpack " + compressFileName + "?");
+	let isExtracting = await confirm("Do you want to unpack " + compressFileName + "?");
 	if (isExtracting == true) {
-		let extractFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
-		let extractFileName = extractFilePath[extractFilePath.length - 1].replace("'", "");
+		ContextMenu.style.display = "none";
+		let extractFilePath = item.getAttribute("itempath");
+		let extractFileName = extractFilePath.split("/")[extractFilePath.split("/").length - 1].replace("'", "");
 		if (extractFileName != "") {
 			let fromPath = extractFilePath.toString();
 			invoke("extract_item", {fromPath})
-				.then(items => {
-					showItems(items.filter(str => !str.name.startsWith(".")));
-					message("Unpack complete");
+				.then(async (items) => {
+					await showItems(items.filter(str => !str.name.startsWith(".")));
+					await message("Unpack complete");
 				});
 		}
 	}
-	ContextMenu.style.display = "none";
 }
 
-function compressItem(item) {
+async function compressItem(item) {
 	message("Compressing started.\nThis can take some time.\nYou will be notified once the process is finished.");
-	let compressFilePath = item.getAttribute("onclick").split(",")[1].trim().replace("'", "").replace("'", "");
-	let compressFileName = compressFilePath[compressFilePath.length - 1].replace("'", "");
+	let compressFilePath = item.getAttribute("itempath");
+	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
+	console.log(compressFileName, compressFilePath);
 	if (compressFileName != "") {
 		let fromPath = compressFilePath.toString();
 		ContextMenu.style.display = "none";
-		invoke("compress_item", {fromPath})
-			.then(items => {
-				showItems(items);
-				message("Komprimierung abgeschlossen");
+		await invoke("compress_item", {fromPath})
+			.then(async (items) => {
+				await showItems(items);
+				await message("Komprimierung abgeschlossen");
 			});
 	}
 }
@@ -885,9 +892,18 @@ async function checkAppConfig() {
 
 			if (appConfig.is_light_mode.includes("1")) {
 				document.querySelector(".switch-light-dark-mode-checkbox").checked = true;
+				IsLightMode = true;
 			}
 			else {
 				document.querySelector(".switch-light-dark-mode-checkbox").checked = false;
+				IsLightMode = false;
+			}
+
+			if (appConfig.is_image_preview.includes("1")) {
+				document.querySelector(".image-preview-checkbox").checked = IsImagePreview = true;
+			}
+			else {
+				document.querySelector(".image-preview-checkbox").checked = false;
 			}
 
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
@@ -914,6 +930,7 @@ async function checkAppConfig() {
 					});
 			}
 		});
+	checkColorMode();
 }
 
 async function listDisks() {
@@ -1248,7 +1265,8 @@ async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth
 	if (fileName.length > 1 || isQuickSearch == true) {
 		document.querySelector(".cancel-search-button").style.display = "block";
 		if (IsDualPaneEnabled == false) {
-			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" />`;
+			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+			DirectoryList.classList.add("dir-preloader-container");
 		}
 		await invoke("search_for", {fileName, maxItems, searchDepth, fileContent})
 			.then(async (items) => {
@@ -1266,6 +1284,7 @@ async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth
 	}
 	IsFullSearching = false;
 	document.querySelector(".fullsearch-loader").style.display = "none";
+	DirectoryList.classList.remove("dir-preloader-container");
 }
 
 function openFullSearchContainer() {
@@ -1427,6 +1446,7 @@ async function saveConfig(isToReload = true) {
 	let searchDepth = parseInt(document.querySelector(".search-depth-input").value);
 	let maxItems = parseInt(document.querySelector(".max-items-input").value);
 	let isLightMode = document.querySelector(".switch-light-dark-mode-checkbox").checked;
+	let isImagePreview = IsImagePreview = document.querySelector(".image-preview-checkbox").checked;
 	closeSettings();
 
 	if (isOpenInTerminal == true) {
@@ -1456,6 +1476,13 @@ async function saveConfig(isToReload = true) {
 	else {
 		isLightMode = "0";
 	}
+	
+	if (isImagePreview == true) {
+		isImagePreview = "1";
+	}
+	else {
+		isImagePreview = "0";
+	}
 
 	await invoke("save_config", {
 		configuredPathOne,
@@ -1468,7 +1495,8 @@ async function saveConfig(isToReload = true) {
 		isDualPaneActive,
 		searchDepth,
 		maxItems,
-		isLightMode
+		isLightMode,
+		isImagePreview
 	});
 	if (isToReload == true) {
 		checkAppConfig();
@@ -1491,9 +1519,9 @@ function createTab(tabCount, isInitial) {
 	}
 	tab.innerHTML = `
 		<p>${tabName}</p>
-		<button class="close-tab-button" onclick="closeTab()"><i class="fa-solid fa-xmark"></i></button>
+		<!--<button class="close-tab-button" onclick="closeTab()"><i class="fa-solid fa-xmark"></i></button>-->
 		`;
-	tab.addEventListener("click", () => {
+	tab.addEventListener("click", (e) => {
 		switchToTab(tabCount);
 	});
 	if (tabCount != 1 || document.querySelector(".tab-container-1") == null) {
@@ -1521,7 +1549,7 @@ function closeTab() {
 		if (TabCount == 2) {
 			IsTabs = false;
 			document.querySelector(".tab-header").style.display = "none";
-			document.querySelectorAll(".tab-container-"+CurrentActiveTab).forEach(item => item.remove());
+			document.querySelectorAll(".tab-container-" + CurrentActiveTab).forEach(item => item.remove());
 			document.querySelectorAll(".fx-tab").forEach(item => item.remove());
 			document.querySelectorAll(".explorer-container").forEach(item => {
 				if (ViewMode == "wrap") {
@@ -1535,81 +1563,97 @@ function closeTab() {
 				}
 			});
 			let tabCounter = 1;
-			let checkTab = document.querySelector(".tab-container-"+tabCounter);
+			let checkTab = document.querySelector(".tab-container-" + tabCounter);
 			while (checkTab == null) {
 				tabCounter++;
-				checkTab = document.querySelector(".tab-container-"+tabCounter);
+				checkTab = document.querySelector(".tab-container-" + tabCounter);
 			}
 			switchToTab(tabCounter);
+			console.log(tabCounter);
 			TabCount = 0;
 		}
 		else {
-			document.querySelectorAll(".tab-container-"+CurrentActiveTab).forEach(item => item.remove());
-			document.querySelectorAll(".fx-tab-"+CurrentActiveTab).forEach(item => item.remove());
+			document.querySelectorAll(".tab-container-" + CurrentActiveTab).forEach(item => item.remove());
+			document.querySelectorAll(".fx-tab-" + CurrentActiveTab).forEach(item => item.remove());
 			let switchTabNo = document.querySelectorAll(".fx-tab").length;
 			switchToTab(switchTabNo);
 			TabCount--;
 		}
-		}
 	}
+}
 
-	async function switchToTab(tabNo) {
-		CurrentActiveTab = tabNo;
-		document.querySelectorAll(".explorer-container").forEach(container => {
-			container.style.display = "none";
-		});
-		document.querySelectorAll(".fx-tab").forEach(tab => {
-			tab.classList.remove("active-tab");
-		});
-		let currentTabContainer = document.querySelector(".tab-container-"+tabNo);
-		if (currentTabContainer != null) {
-			let currentTab = document.querySelector(".fx-tab-"+tabNo);
-			currentTab?.classList.add("active-tab");
-			currentTabContainer.style.display = "block";
-		}
-		switch (CurrentActiveTab) {
-			case 1:
-				CurrentDir = TabOnePath;
-				break;
-			case 2:
-				CurrentDir = TabTwoPath;
-				break;
-			case 3:
-				CurrentDir = TabThreePath;
-				break;
-			case 4:
-				CurrentDir = TabFourPath;
-				break;
-			case 5:
-				CurrentDir = TabFivePath;
-				break;
-		}
-		let currentDir = CurrentDir?.toString();
-		if (currentDir != null) {
-			await invoke("switch_to_directory", {currentDir});
-		}
-		document.querySelector(".current-path").textContent = CurrentDir;
-
-		if (IsDualPaneEnabled == true) {
-			switchToDualPane();
-		}
+async function switchToTab(tabNo) {
+	CurrentActiveTab = tabNo;
+	document.querySelectorAll(".explorer-container").forEach(container => {
+		container.style.display = "none";
+	});
+	document.querySelectorAll(".fx-tab").forEach(tab => {
+		tab.classList.remove("active-tab");
+	});
+	let currentTabContainer = document.querySelector(".tab-container-" + tabNo);
+	if (currentTabContainer != null) {
+		let currentTab = document.querySelector(".fx-tab-" + tabNo);
+		currentTab?.classList.add("active-tab");
+		currentTabContainer.style.display = "block";
 	}
+	switch (CurrentActiveTab) {
+		case 1:
+			CurrentDir = TabOnePath;
+			break;
+		case 2:
+			CurrentDir = TabTwoPath;
+			break;
+		case 3:
+			CurrentDir = TabThreePath;
+			break;
+		case 4:
+			CurrentDir = TabFourPath;
+			break;
+		case 5:
+			CurrentDir = TabFivePath;
+			break;
+	}
+	let currentDir = CurrentDir?.toString();
+	if (currentDir != null) {
+		await invoke("switch_to_directory", { currentDir });
+	}
+	document.querySelector(".current-path").textContent = CurrentDir;
 
-	function evalCurrentLoad(available, total) {
-		available = parseFloat(available.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
-		total = parseFloat(total.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
-		let result = 100 - (100 / total) * available;
-		return result.toFixed(0);
+	if (IsDualPaneEnabled == true) {
+		switchToDualPane();
+	}
+}
+
+function evalCurrentLoad(available, total) {
+	available = parseFloat(available.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
+	total = parseFloat(total.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
+	let result = 100 - (100 / total) * available;
+	return result.toFixed(0);
 }
 
 function formatBytes(bytes, decimals = 2) {
     if (!+bytes) return '0 Bytes'
-
     const k = 1000
     const dm = decimals < 0 ? 0 : decimals
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+}
+
+function checkColorMode(){
+	var r = document.querySelector(':root');
+	if (IsLightMode) {
+		r.style.setProperty("--primaryColor", "whitesmoke");
+		r.style.setProperty("--secondaryColor", "white");
+		r.style.setProperty("--tertiaryColor", "white");
+		r.style.setProperty("--textColor", "rgba(99, 112, 135)");
+	}
+	else {
+		r.style.setProperty("--primaryColor", "#3f4352");
+		r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
+		r.style.setProperty("--tertiaryColor", "#363946");
+		r.style.setProperty("--textColor", "white");
+	}
 }
 
 // listDirectories();

@@ -70,6 +70,7 @@ struct AppConfig {
     search_depth: i32,
     max_items: i32,
     is_light_mode: String,
+    is_image_preview: String,
 }
 
 #[tauri::command]
@@ -91,7 +92,8 @@ async fn check_app_config() -> AppConfig {
             is_dual_pane_active: "0".to_string(),
             search_depth: 10,
             max_items: 1000,
-            is_light_mode : "0".to_string(),
+            is_light_mode: "0".to_string(),
+            is_image_preview: "0".to_string(),
         };
         let _ = serde_json::to_writer_pretty(File::create(config_dir().unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     }
@@ -112,7 +114,8 @@ async fn check_app_config() -> AppConfig {
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string(),
         search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
         max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
-        is_light_mode: app_config["is_light_mode"].to_string()
+        is_light_mode: app_config["is_light_mode"].to_string(),
+        is_image_preview: app_config["is_image_preview"].to_string()
     };
 }
 
@@ -186,7 +189,8 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
         max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
-        is_light_mode: app_config["is_light_mode"].to_string().replace('"', "").replace("\\", "/").trim().to_string()
+        is_light_mode: app_config["is_light_mode"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
+        is_image_preview: app_config["is_image_preview"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     return list_dirs().await;
@@ -705,7 +709,8 @@ async fn save_config(
     is_dual_pane_active: String,
     search_depth: i32,
     max_items: i32,
-    is_light_mode: String) {
+    is_light_mode: String,
+    is_image_preview: String,) {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
@@ -721,7 +726,8 @@ async fn save_config(
         is_dual_pane_active: is_dual_pane_active.replace("\\", ""),
         search_depth: search_depth,
         max_items: max_items,
-        is_light_mode: is_light_mode.replace("\\", "/")
+        is_light_mode: is_light_mode.replace("\\", "/"),
+        is_image_preview: is_image_preview.replace("\\", "/"),
     };
     let config_dir = app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string();
     let _ = serde_json::to_writer_pretty(File::create(&config_dir).unwrap(), &app_config_json);
