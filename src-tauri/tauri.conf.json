@@ -8,21 +8,45 @@
 	},
 	"package": {
 		"productName": "rdpFX",
-		"version": "0.1.9"
+		"version": "0.2.0"
 	},
 	"tauri": {
 		"allowlist": {
 			"window": {
 				"all": true,
-				"close": true,
 				"create": true,
-				"hide": true,
-				"show": true,
+				"center": true,
+				"requestUserAttention": true,
+				"setResizable": true,
+				"setMaximizable": true,
+				"setMinimizable": true,
+				"setClosable": true,
+				"setTitle": true,
 				"maximize": true,
-				"minimize": true,
 				"unmaximize": true,
+				"minimize": true,
 				"unminimize": true,
-				"startDragging": true
+				"show": true,
+				"hide": true,
+				"close": true,
+				"setDecorations": true,
+				"setAlwaysOnTop": true,
+				"setContentProtected": true,
+				"setSize": true,
+				"setMinSize": true,
+				"setMaxSize": true,
+				"setPosition": true,
+				"setFullscreen": true,
+				"setFocus": true,
+				"setIcon": true,
+				"setSkipTaskbar": true,
+				"setCursorGrab": true,
+				"setCursorVisible": true,
+				"setCursorIcon": true,
+				"setCursorPosition": true,
+				"setIgnoreCursorEvents": true,
+				"startDragging": true,
+				"print": true
 			},
 			"path": {
 				"all": true

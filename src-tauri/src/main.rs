@@ -6,7 +6,7 @@ use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
 use rust_search::SearchBuilder;
 use serde_json::Value;
-use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config};
+use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config, window, Window};
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
@@ -68,7 +68,8 @@ struct AppConfig {
     launch_path: String,
     is_dual_pane_active: String,
     search_depth: i32,
-    max_items: i32
+    max_items: i32,
+    is_light_mode: String,
 }
 
 #[tauri::command]
@@ -90,6 +91,7 @@ async fn check_app_config() -> AppConfig {
             is_dual_pane_active: "0".to_string(),
             search_depth: 10,
             max_items: 1000,
+            is_light_mode : "0".to_string(),
         };
         let _ = serde_json::to_writer_pretty(File::create(config_dir().unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     }
@@ -109,7 +111,8 @@ async fn check_app_config() -> AppConfig {
         launch_path: app_config["launch_path"].to_string().replace('"', ""),
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string(),
         search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
-        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap()
+        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
+        is_light_mode: app_config["is_light_mode"].to_string()
     };
 }
 
@@ -182,7 +185,8 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         launch_path: app_config["launch_path"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
         search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
-        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap() 
+        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
+        is_light_mode: app_config["is_light_mode"].to_string().replace('"', "").replace("\\", "/").trim().to_string()
     };
     let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
     return list_dirs().await;
@@ -283,7 +287,10 @@ async fn go_back() -> Vec<FDir> {
         let is_dir_int: i8;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
+        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap_or_else(|x| {
+            println!("# Debug: Not possible to navigate to -> {:?}", &temp_item.path());
+            panic!("# Debug: {}", x)
+        }).modified().unwrap().clone().into();
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -394,7 +401,7 @@ async fn go_home() -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn search_for(file_name: String, max_items: i32, search_depth: i32) -> Vec<FDir> {
+async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_content: String) -> Vec<FDir> {
     let mut file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
     println!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext);
     let sw = Stopwatch::start_new();
@@ -459,14 +466,43 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32) -> Vec
         if path == current_dir().unwrap().to_str().unwrap() {
             continue;
         }
-        dir_list.push(FDir {
-            name: name.to_string(),
-            is_dir: is_dir_int,
-            path: path.to_string(),
-            extension: String::from(&file_ext),
-            size: file_size,
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
-        });
+
+        // Search for file contents
+        if &file_content != "" {
+            let file = fs::File::open(&path).unwrap();
+            let mut reader = BufReader::new(&file);
+            let mut contents: String = "".to_string();
+            println!("# Debug: Checking {}", &path);
+            if &file.metadata().unwrap().is_dir() == &false {
+                reader.read_to_string(&mut contents).unwrap_or_else(|x| {
+                    println!("Error reading: {}", x);
+                    0 as usize
+                });
+                if contents.contains(&file_content) {
+                    dir_list.push(FDir {
+                        name: name.to_string(),
+                        is_dir: is_dir_int,
+                        path: path.to_string(),
+                        extension: String::from(&file_ext),
+                        size: file_size.clone(),
+                        last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
+                    });
+                }
+                else {
+                    continue;
+                }
+            }
+        }
+        else {
+            dir_list.push(FDir {
+                name: name.to_string(),
+                is_dir: is_dir_int,
+                path: path.to_string(),
+                extension: String::from(&file_ext),
+                size: file_size,
+                last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
+            });
+        }
     }
 
     println!("# Debug: {} ms", sw.elapsed_ms());
@@ -530,7 +566,7 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
         }
     }
 
-    /* Copy file byte by byte -> To play around with later ...*/ 
+    /* Copy file byte by byte -> To play around with later ... */ 
 
     /*let line_file = File::open(&from_path).unwrap();
     let mut reader = BufReader::new(line_file);
@@ -668,7 +704,8 @@ async fn save_config(
     launch_path: String,
     is_dual_pane_active: String,
     search_depth: i32,
-    max_items: i32) {
+    max_items: i32,
+    is_light_mode: String) {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
@@ -683,7 +720,10 @@ async fn save_config(
         launch_path: launch_path.replace("\\", "/"),
         is_dual_pane_active: is_dual_pane_active.replace("\\", ""),
         search_depth: search_depth,
-        max_items: max_items
+        max_items: max_items,
+        is_light_mode: is_light_mode.replace("\\", "/")
     };
-    let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
+    let config_dir = app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string();
+    let _ = serde_json::to_writer_pretty(File::create(&config_dir).unwrap(), &app_config_json);
+    println!("# Debug: app_config was saved to {}", config_dir);
 }

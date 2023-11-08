@@ -33,7 +33,7 @@ body {
 }
 .explorer-container {
 	margin: 0 0 0 calc(200px + 10px);
-	padding: 10px 10px 10px 0px;
+	padding: 10px 10px 20px 0px;
 	width: 100%;
 	height: calc(100vh - 100px);
 	max-width: 100%;
@@ -340,6 +340,7 @@ body {
 	align-items: center;
 	text-align: center;
 	margin: 5px;
+	border: 1px solid var(--tertiaryColor);
 }
 .item-button:hover {
 	background-color: var(--transparentColorActive);
@@ -613,7 +614,7 @@ body {
 	background-color: var(--primaryColor);
 	border-radius: 10px;
 	box-shadow: 0px 0px 10px 1px var(--transparentColor);
-	border: 1px solid var(--secondaryColor);
+	border: 1px solid var(--primaryColor);
 	overflow: hidden;
 }
 .search-full-container-header {

@@ -57,7 +57,8 @@ let IsPopUpOpen = false;
 let SettingsSearchDepth = 10;
 let SettingsMaxItems = 1000;
 let IsFullSearching = false;
-let ArrCopyItems = [];
+let ArrCopyItems = []; // Todo: select more elements to copy at once
+let IsLightMode;
 
 /* endregion */
 
@@ -81,16 +82,26 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 /* Quicksearch for dual pane view */
 
 document.querySelector(".full-dualpane-search-input").addEventListener("keyup", (e) => {
-	if (e.keyCode === 13 && !IsFullSearching) {
-		IsFullSearching = true;
-		let fileName = document.querySelector(".full-dualpane-search-input").value;
-		let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
-		maxItems = maxItems >= 1 ? maxItems : 999999;
-		let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
-		searchDepth = searchDepth >= 1 ? searchDepth : 999999;
-		searchFor(fileName, maxItems, searchDepth);
+	if (e.keyCode === 13 && IsFullSearching == false) {
+		startFullSearch();
 	}
 });
+document.querySelector(".full-dualpane-search-file-content-input").addEventListener("keyup", (e) => {
+	if (e.keyCode === 13 && IsFullSearching == false) {
+		startFullSearch();
+	}
+});
+
+function startFullSearch() {
+	IsFullSearching = true;
+	let fileName = document.querySelector(".full-dualpane-search-input").value;
+	let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
+	maxItems = maxItems >= 1 ? maxItems : 999999;
+	let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
+	searchDepth = searchDepth >= 1 ? searchDepth : 999999;
+	let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
+	searchFor(fileName, maxItems, searchDepth, false, fileContent);
+}
 
 document.addEventListener("keyup", (e) => {
 	if (e.keyCode === 27) {
@@ -175,7 +186,7 @@ document.onkeydown = async (e) => {
 	if(e.keyCode == 18){
 		IsAltDown = true;
 	}
-	if (e.metaKey == true) {
+	if (e.keyCode === 91) {
 		IsMetaDown = true;
 	}
 	if (IsAltDown == true && e.keyCode == 49)
@@ -236,76 +247,79 @@ document.onkeydown = async (e) => {
 		if (e.ctrlKey && e.keyCode == 87) {
 			closeTab();
 		}
-
 	}
 
 	// New folder input prompt when f7 is pressed
 	if (e.keyCode == 118) {
 		createFolderInputPrompt();
+		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	// New file input prompt when f6 is pressed
 	if (e.keyCode == 117) {
 		createFileInputPrompt();
+		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	if (IsDualPaneEnabled == true && IsDisableShortcuts == false && IsPopUpOpen == false) {
 		// check if f5 is pressed
 		if (e.keyCode == 116 && IsTabsEnabled == false) {
-			e.preventDefault();
-			e.stopPropagation();
 			let isToCopy = await confirm("Current selection will be copied over");
 			if (isToCopy == true) {
 				pasteItem();
 			}
+			e.preventDefault();
+			e.stopPropagation();
 		}
 		// check if backspace is pressed
 		if (e.keyCode == 8) {
+			goBack();	
 			e.preventDefault();
 			e.stopPropagation();
-			goBack();	
 		}
 		// check if arrow up is pressed
 		if (e.keyCode == 38) {
+			goUp();
 			e.preventDefault();
 			e.stopPropagation();
-			goUp();
 		}
 		// check if arrow down is pressed
 		if (e.keyCode == 40) {
+			goDown();
 			e.preventDefault();
 			e.stopPropagation();
-			goDown();
 		}
 		// check if return is pressed
 		if (!IsAltDown && e.keyCode == 13) {
+			openSelectedItem();
 			e.preventDefault();
 			e.stopPropagation();
-			openSelectedItem();
 		}
 		// check if tab is pressed
 		if (e.keyCode == 9) {
+			goToOtherPane();
 			e.preventDefault();
 			e.stopPropagation();
-			goToOtherPane();
 		}
 		// check if del is pressed
-		if (e.keyCode == 46 || (e.metaKey == true && e.keyCode == 8)) {
+		if (e.keyCode == 46 || (IsMetaDown && e.keyCode == 8)) {
+			deleteItem(SelectedElement);
 			e.preventDefault();
 			e.stopPropagation();
-			deleteItem(SelectedElement);
 		}
 		// check if strg + f is pressed
 		if (e.ctrlKey && e.keyCode == 70) {
+			openSearchBar();
 			e.preventDefault();
 			e.stopPropagation();
-			openSearchBar();
 		}
 		// check if ctrl + r is pressed
 		if (e.ctrlKey && e.keyCode == 82) {
+			refreshView();
 			e.preventDefault();
 			e.stopPropagation();
-			refreshView();
 		}
 		// check if alt + enter is pressed
 		if (IsAltDown && e.keyCode == 13) {
@@ -313,9 +327,9 @@ document.onkeydown = async (e) => {
 		}
 		// check if alt + f7 is pressed
 		if (e.keyCode == 119) {
+			openFullSearchContainer();
 			e.preventDefault();
 			e.stopPropagation();
-			openFullSearchContainer();
 		}
 	}
 } 
@@ -343,7 +357,7 @@ document.onkeyup = (e) => {
 	if (e.keyCode == 71){
 		IsGDown = false;
 	}
-	if (e.metaKey == true) {
+	if (e.keyCode === 91) {
 		IsMetaDown = false;
 	}
 }
@@ -626,6 +640,9 @@ async function deleteItem(item) {
 	let SelectedItemPaneSide = item.getAttribute("itempaneside");
 	let actFileName = fromPath.split("/")[fromPath.split("/").length-1];
 	let isConfirm = await confirm("Do you really want to delete "+actFileName+"?");
+	if (IsMetaDown == true) {
+		IsMetaDown = false;
+	}
 	if (isConfirm == true) {
 		await invoke("delete_item", {actFileName})
 			.then(items => {
@@ -832,7 +849,7 @@ async function renameElement(path, newName) {
 }
 
 async function showAppInfo() {
-	alert("Application: rdpFX\nVersion: 0.1.9\nBuildno: 20230511\nDeveloper: Ricky Dane");
+	alert("Application: rdpFX\nVersion: 0.2.0\nBuildno: 20230811\nDeveloper: Ricky Dane");
 }
 
 async function checkAppConfig() {
@@ -866,6 +883,13 @@ async function checkAppConfig() {
 				document.querySelector(".switch-dualpane-view-button").style.display = "none";
 			}
 
+			if (appConfig.is_light_mode.includes("1")) {
+				document.querySelector(".switch-light-dark-mode-checkbox").checked = true;
+			}
+			else {
+				document.querySelector(".switch-light-dark-mode-checkbox").checked = false;
+			}
+
 			document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 			document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
 			document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
@@ -873,11 +897,13 @@ async function checkAppConfig() {
 			document.querySelector(".search-depth-input").value = SettingsSearchDepth = parseInt(appConfig.search_depth);
 			document.querySelector(".max-items-input").value = SettingsMaxItems = parseInt(appConfig.max_items);
 
-
 			if (appConfig.is_dual_pane_active.includes("1")) {
 				if (IsDualPaneEnabled == false) {
 					switchToDualPane();
 				}
+			}
+			if (appConfig.is_light_mode.includes("1")) {
+				// Todo: Switch to light mode
 			}
 			else if (appConfig.launch_path.length >= 1) {
 				let path = appConfig.launch_path;
@@ -1028,6 +1054,7 @@ async function goHome() {
 }
 
 async function goBack() {
+	console.log(IsMetaDown, IsDualPaneEnabled);
 	if (IsMetaDown == false) {
 		await invoke("go_back")
 			.then(async (items) => {
@@ -1216,14 +1243,14 @@ async function openInTerminal() {
 	ContextMenu.style.display = "none";
 }
 
-async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth = SettingsSearchDepth, isQuickSearch = false) {
+async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth = SettingsSearchDepth, isQuickSearch = false, fileContent = "") {
 	document.querySelector(".fullsearch-loader").style.display = "block";
-	if (fileName.length >= 2 || isQuickSearch == true) {
+	if (fileName.length > 1 || isQuickSearch == true) {
 		document.querySelector(".cancel-search-button").style.display = "block";
 		if (IsDualPaneEnabled == false) {
 			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" />`;
 		}
-		await invoke("search_for", {fileName, maxItems, searchDepth})
+		await invoke("search_for", {fileName, maxItems, searchDepth, fileContent})
 			.then(async (items) => {
 				if (IsDualPaneEnabled == true) {
 					await showItems(items, SelectedItemPaneSide);
@@ -1399,6 +1426,7 @@ async function saveConfig(isToReload = true) {
 	let isDualPaneActive = IsDualPaneEnabled;
 	let searchDepth = parseInt(document.querySelector(".search-depth-input").value);
 	let maxItems = parseInt(document.querySelector(".max-items-input").value);
+	let isLightMode = document.querySelector(".switch-light-dark-mode-checkbox").checked;
 	closeSettings();
 
 	if (isOpenInTerminal == true) {
@@ -1421,6 +1449,13 @@ async function saveConfig(isToReload = true) {
 	else {
 		isDualPaneActive = "0";
 	}
+	
+	if (isLightMode == true) {
+		isLightMode = "1";
+	}
+	else {
+		isLightMode = "0";
+	}
 
 	await invoke("save_config", {
 		configuredPathOne,
@@ -1432,7 +1467,8 @@ async function saveConfig(isToReload = true) {
 		isDualPaneEnabled,
 		isDualPaneActive,
 		searchDepth,
-		maxItems
+		maxItems,
+		isLightMode
 	});
 	if (isToReload == true) {
 		checkAppConfig();
