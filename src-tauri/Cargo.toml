@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.9"
+version = "0.2.0"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "none"
