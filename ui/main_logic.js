@@ -444,7 +444,7 @@ async function showItems(items, dualPaneSide = "") {
 		let iconSize = "48px";
 		if (item.is_dir == 1) {
 			fileIcon = "resources/folder-icon.png";
-			iconSize = "64px";	
+			iconSize = "48px";	
 		}
 		else {
 			switch (item.extension) {
@@ -688,7 +688,6 @@ async function compressItem(item) {
 	message("Compressing started.\nThis can take some time.\nYou will be notified once the process is finished.");
 	let compressFilePath = item.getAttribute("itempath");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
-	console.log(compressFileName, compressFilePath);
 	if (compressFileName != "") {
 		let fromPath = compressFilePath.toString();
 		ContextMenu.style.display = "none";
@@ -918,9 +917,6 @@ async function checkAppConfig() {
 					switchToDualPane();
 				}
 			}
-			if (appConfig.is_light_mode.includes("1")) {
-				// Todo: Switch to light mode
-			}
 			else if (appConfig.launch_path.length >= 1) {
 				let path = appConfig.launch_path;
 				let name = "launch";
@@ -930,7 +926,7 @@ async function checkAppConfig() {
 					});
 			}
 		});
-	checkColorMode();
+	checkColorMode("light_mode");
 }
 
 async function listDisks() {
@@ -1040,10 +1036,10 @@ async function openItem(isDir, dualPaneSide = "", element = null, shortcut = fal
 		SelectedItemPaneSide = dualPaneSide;
 	}
 	else if (isDir == 1 || (isDir == 1 && shortcut == true)) { // Open directory
-		document.querySelector('.tab-container-'+CurrentActiveTab).innerHTML = "";
 		await invoke("open_dir", {path, name})
-			.then(async (items) => {
-				if (IsDualPaneEnabled == true && dualPaneSide != "") {
+		.then(async (items) => {
+			if (IsDualPaneEnabled == true && dualPaneSide != "") {
+					document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";
 					await showItems(items, dualPaneSide);
 					goUp(false, true);
 				}
@@ -1071,7 +1067,6 @@ async function goHome() {
 }
 
 async function goBack() {
-	console.log(IsMetaDown, IsDualPaneEnabled);
 	if (IsMetaDown == false) {
 		await invoke("go_back")
 			.then(async (items) => {
@@ -1163,7 +1158,7 @@ function goUp(isSwitched = false, toFirst = false) {
 			LeftPaneItemIndex = 0;
 			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
 		}
-		if (element != null) {
+		if (element != null && element != SelectedElement) {
 			element.onclick();
 		}
 	}
@@ -1566,7 +1561,6 @@ function closeTab() {
 				checkTab = document.querySelector(".tab-container-" + tabCounter);
 			}
 			switchToTab(tabCounter);
-			console.log(tabCounter);
 			TabCount = 0;
 		}
 		else {
@@ -1639,14 +1633,13 @@ function formatBytes(bytes, decimals = 2) {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-function checkColorMode(){
+function checkColorMode() {
 	var r = document.querySelector(':root');
 	if (IsLightMode) {
 		r.style.setProperty("--primaryColor", "white");
 		r.style.setProperty("--secondaryColor", "whitesmoke");
 		r.style.setProperty("--tertiaryColor", "lightgray");
-		r.style.setProperty("--transparentColorActive", "rgba(0, 0, 0, 0.1)");
-		r.style.setProperty("--textColor", "rgba(99, 112, 135)");
+		r.style.setProperty("--textColor", "rgba(75, 75, 105)");
 	}
 	else {
 		r.style.setProperty("--primaryColor", "#3f4352");

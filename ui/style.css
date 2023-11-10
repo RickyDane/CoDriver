@@ -3,7 +3,7 @@
 	padding: 0;
 	box-sizing: border-box;
 	color: var(--textColor);
-	font-family: sans-serif;
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 	font-display: swap;
 	outline: none;
 	-webkit-user-select: none;
@@ -134,10 +134,9 @@ body {
 	transition: 0.2s;
 	background-color: var(--transparentColor);
 	font-size: small;
-	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.05);
 }
 .titlebar-button:hover {
-	background-color: rgb(20, 20, 20);
+	background-color: var(--transparentColorActive);
 }
 .titlebar-title {
 	font-size: 12px;
@@ -329,7 +328,7 @@ body {
 .item-button {
 	position: relative;
 	background-color: var(--secondaryColor);
-	border-radius: 5px;
+	border-radius: 7px;
 	cursor: pointer;
 	text-align: left;
 	font-size: small;
@@ -378,6 +377,7 @@ body {
 	margin: 2px;
 	overflow: hidden;
 	border: 1px solid var(--secondaryColor);
+	box-shadow: 0px 0px 10px 1px var(--transparentColor);
 }
 .item-button-list {
 	display: flex;
@@ -724,7 +724,7 @@ body {
 	justify-content: space-between;
 }
 .context-item:hover {
-	background-color: var(--secondaryColorActive);
+	background-color: var(--transparentColorActive);
 	color: var(--textColor);
 }
 .c-item-disabled {
