@@ -133,6 +133,15 @@
 				"title": "rdpFX",
 				"width": 1050
 			}
-		]
+		],
+		"cli": {
+			"args": [
+				{
+					"name": "source",
+					"index": 1,
+					"takesValue": true
+				}
+			]
+		}
 	}
 }
