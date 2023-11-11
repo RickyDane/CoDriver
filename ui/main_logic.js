@@ -2,6 +2,12 @@ const { invoke } = window.__TAURI__.tauri;
 const { confirm } = window.__TAURI__.dialog; 
 const { message } = window.__TAURI__.dialog;
 const { appWindow } = window.__TAURI__.window;
+const { writeText } = window.__TAURI__.clipboard;
+const { writeFile } = window.__TAURI__.clipboard;
+const { getTauriVersion } = window.__TAURI__.app;
+const { getVersion } = window.__TAURI__.app;
+const { getName } = window.__TAURI__.app;
+const { getMatches } = window.__TAURI__.cli;
 
 /* Window customization */
 
@@ -159,12 +165,15 @@ document.addEventListener("contextmenu", (e) => {
 	ContextMenu.style.display = "flex";
 	ContextMenu.style.left = e.clientX + "px";
 	if ((ContextMenu.offsetHeight + e.clientY) >= window.innerHeight) {
-		ContextMenu.style.top = null;
-		ContextMenu.style.bottom = e.clientY / 2 * -1 + "px";
+		ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
+		ContextMenu.style.bottom = null;
 	}
 	else {
 		ContextMenu.style.bottom = null;
 		ContextMenu.style.top = e.clientY + "px";
+	}
+	if ((ContextMenu.clientWidth + e.clientX) >= window.innerWidth) {
+		ContextMenu.style.left = e.clientX - ContextMenu.innerWidth + "px";
 	}
 	ContextMenu.children[0].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
 	ContextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
@@ -437,6 +446,8 @@ async function showItems(items, dualPaneSide = "") {
 		itemLink.setAttribute("itempath", item.path);
 		itemLink.setAttribute("itemindex", counter++);
 		itemLink.setAttribute("itempaneside", dualPaneSide);
+		itemLink.setAttribute("itemisdir", item.is_dir);
+		itemLink.setAttribute("itemext", item.extension);
 
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
@@ -469,7 +480,6 @@ async function showItems(items, dualPaneSide = "") {
 				case ".webp":
 					if (IsImagePreview) {
 						fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
-						iconSize = "100%";
 					}
 					else {
 						fileIcon = "resources/img-file.png";
@@ -658,11 +668,12 @@ async function deleteItem(item) {
 	}
 }
 
-function copyItem(item) {
+async function copyItem(item) {
 	CopyFilePath = item.getAttribute("itempath");
 	let tempCopyFilePath = item.getAttribute("itempath").split("/");
 	CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
 	ContextMenu.style.display = "none";
+	await writeText(CopyFilePath);
 }
 
 async function extractItem(item) {
@@ -675,7 +686,7 @@ async function extractItem(item) {
 		let extractFileName = extractFilePath.split("/")[extractFilePath.split("/").length - 1].replace("'", "");
 		if (extractFileName != "") {
 			let fromPath = extractFilePath.toString();
-			invoke("extract_item", {fromPath})
+			await invoke("extract_item", {fromPath})
 				.then(async (items) => {
 					await showItems(items.filter(str => !str.name.startsWith(".")));
 					await message("Unpack complete");
@@ -726,8 +737,8 @@ async function pasteItem() {
 		let fromPath = CopyFilePath.toString();
 		let isForDualPane = "0"
 		await invoke("copy_paste", {actFileName, fromPath, isForDualPane})
-			.then(items => {
-				showItems(items);
+			.then(async (items) => {
+				await showItems(items);
 			});
 		CopyFileName = "";
 		CopyFilePath = "";
@@ -855,7 +866,7 @@ async function renameElement(path, newName) {
 }
 
 async function showAppInfo() {
-	alert("Application: rdpFX\nVersion: 0.2.0\nBuildno: 20230811\nDeveloper: Ricky Dane");
+	alert(`Application: ${await getName()}\nTauri version: ${await getTauriVersion()}\nApp version: ${await getVersion()}\nDeveloper: Ricky Dane`);
 }
 
 async function checkAppConfig() {
@@ -997,9 +1008,9 @@ async function listDisks() {
 
 async function listDirectories() {
 	await invoke("list_dirs")
-		.then((items) => {
+		.then(async (items) => {
 			if (IsDualPaneEnabled == true) {
-				showItems(items, SelectedItemPaneSide);
+				await showItems(items, SelectedItemPaneSide);
 				goUp(false, true);
 			}
 			else {

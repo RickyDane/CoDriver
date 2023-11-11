@@ -307,6 +307,12 @@ body {
 	cursor: pointer;
 	transition: 0.2s ease;
 }
+input[type="checkbox"] {
+	cursor: pointer;
+}
+label {
+	cursor: pointer;
+}
 
 
 /* Custom controls*/
@@ -540,17 +546,18 @@ body {
 	width: 100%;
 	padding: 10px 15px;
 	background-color: var(--secondaryColor);
-	border-radius: 5px;
+	border-radius: 5px 0px 0px 5px;
 	border: none;
 	z-index: 3;
 	outline: none;
 }
 .search-button, .cancel-search-button {
-	margin-left: -2px;
+	margin-left: -1px;
 	padding: 10px 10px 10px 12px;
 	border: none;
 	background-color: var(--secondaryColor);
 	cursor: pointer;
+	border-radius: 5px;
 	z-index: 2;
 }
 .cancel-search-button {
