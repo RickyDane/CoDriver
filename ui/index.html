@@ -56,7 +56,7 @@
 				<button class="site-nav-bar-button" onclick="listDisks()"><i class="fa-solid fa-hard-drive"></i> Disks</button>
 				<div class="horizontal-seperator"></div>
 				<!-- Future ftp - integration -->
-				<button class="site-nav-bar-button" onclick="openFavFTP()"><i class="fa-solid fa-network-wired"></i> FTP</button>
+				<button class="site-nav-bar-button" onclick="showFtpConfig()"><i class="fa-solid fa-network-wired"></i> FTP</button>
 			</div>
 			<div class="list-column-header">
 				<button class="list-column-header-button" style="margin-left: 20px;" onclick="sortByName()">Name</button>
@@ -153,6 +153,27 @@
 						<img style="display: none;" class="fullsearch-loader" src="resources/preloader.gif" width="16px" height="auto" />
 					</button>
 				</div>
+			</div>
+		</div>
+		<div class="ftp-connect-container">
+			<div class="settings-ui-header">
+				<span style="display: flex; gap: 20px; align-items: center;">
+					<i class="fa-solid fa-gears"></i>
+					<p>FTP - Connection</p>
+				</span>
+			</div>
+			<div class="settings-ui-body">
+				<p>Hostname</p>
+				<input type="text" class="text-input ftp-hostname-input" placeholder="127.0.0.1" required/>
+				<p>Username</p>
+				<input type="text" class="text-input ftp-username-input" placeholder="user" required/>
+				<p>Password</p>
+				<input type="password" class="text-input ftp-password-input" placeholder="*********" required/>
+				<br><br>
+				<span class="settings-ui-body-buttons">
+					<button class="button" onclick="closeFtpConfig()"><i class="fa-solid fa-ban"></i>Cancel</button>
+					<button class="button" onclick="connectToFtp()"><i class="fa-solid fa-forward"></i></i>Connect</button>
+				</span>
 			</div>
 		</div>
 		<div class="current-path">...</div>

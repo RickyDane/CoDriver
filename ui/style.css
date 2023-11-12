@@ -315,6 +315,25 @@ label {
 }
 
 
+/* Ftp config */
+.ftp-connect-container {
+	display: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	max-width: 50%;
+	margin: auto;
+	height: fit-content;
+	max-height: 70vh;
+	background-color: var(--primaryColor);
+	overflow-y: auto;
+	border-radius: 5px;
+	box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
+}
+
+
 /* Custom controls*/
 .button {
 	padding: 10px 15px;

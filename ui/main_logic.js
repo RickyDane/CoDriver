@@ -66,6 +66,8 @@ let IsFullSearching = false;
 let ArrCopyItems = []; // Todo: select more elements to copy at once
 let IsLightMode = false;
 let IsImagePreview = false;
+let IsFtpActive = false;
+let CurrentFtpPath = "";
 
 /* endregion */
 
@@ -118,6 +120,7 @@ document.addEventListener("keyup", (e) => {
 		closeSettings();
 		closeInputDialog();
 		closeFullSearchContainer();
+		closeFtpConfig();
 	}
 });
 
@@ -448,6 +451,7 @@ async function showItems(items, dualPaneSide = "") {
 		itemLink.setAttribute("itempaneside", dualPaneSide);
 		itemLink.setAttribute("itemisdir", item.is_dir);
 		itemLink.setAttribute("itemext", item.extension);
+		itemLink.setAttribute("isftp", item.is_ftp);
 
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
@@ -1025,31 +1029,34 @@ async function refreshView() {
 
 async function openItem(isDir, dualPaneSide = "", element = null, shortcut = false, shortcutPath = null) {
 	let path = element?.getAttribute("itempath");
-	if (shortcut == true) {
-		path = shortcutPath;
-	}
-	if (dualPaneSide == "left") {
-		document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
-		document.querySelector(".dual-pane-right").style.boxShadow = "none";
-	}
-	else if (dualPaneSide == "right") {
-		document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
-		document.querySelector(".dual-pane-left").style.boxShadow = "none";
-	}
-	// Select item for dualpane
-	if (element != null && SelectedElement != element && IsDualPaneEnabled == true) {
-		if (SelectedElement != null) {
-			SelectedElement.style.backgroundColor = "transparent";
+	let isFtp = element?.getAttribute("isftp");
+	if (isFtp == false) {
+
+		if (shortcut == true) {
+			path = shortcutPath;
 		}
-		SelectedElement = element;
-		SelectedElement.style.backgroundColor = SelectedColor;
-		SelectedItemPath = path;
-		SelectedItemPaneSide = dualPaneSide;
-	}
-	else if (isDir == 1 || (isDir == 1 && shortcut == true)) { // Open directory
-		await invoke("open_dir", {path, name})
-		.then(async (items) => {
-			if (IsDualPaneEnabled == true && dualPaneSide != "") {
+		if (dualPaneSide == "left") {
+			document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+			document.querySelector(".dual-pane-right").style.boxShadow = "none";
+		}
+		else if (dualPaneSide == "right") {
+			document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+			document.querySelector(".dual-pane-left").style.boxShadow = "none";
+		}
+		// Select item for dualpane
+		if (element != null && SelectedElement != element && IsDualPaneEnabled == true) {
+			if (SelectedElement != null) {
+				SelectedElement.style.backgroundColor = "transparent";
+			}
+			SelectedElement = element;
+			SelectedElement.style.backgroundColor = SelectedColor;
+			SelectedItemPath = path;
+			SelectedItemPaneSide = dualPaneSide;
+		}
+		else if (isDir == 1 || (isDir == 1 && shortcut == true)) { // Open directory
+			await invoke("open_dir", {path, name})
+			.then(async (items) => {
+				if (IsDualPaneEnabled == true && dualPaneSide != "") {
 					document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";
 					await showItems(items, dualPaneSide);
 					goUp(false, true);
@@ -1058,9 +1065,23 @@ async function openItem(isDir, dualPaneSide = "", element = null, shortcut = fal
 					showItems(items);
 				}
 			});
+		}
+		else { // Open element with default application
+			await invoke("open_item", {path});
+		}
 	}
-	else { // Open element with default application
-		await invoke("open_item", {path});
+	else {
+		if (isDir) {
+			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+			DirectoryList.classList.add("dir-preloader-container");
+			await invoke("open_ftp_dir", {path})
+				.then(async (items) => {
+					await showItems(items);
+					CurrentFtpPath = path;
+				});
+			document.querySelector(".fullsearch-loader").style.display = "none";
+			DirectoryList.classList.remove("dir-preloader-container");
+		}
 	}
 }
 
@@ -1078,16 +1099,27 @@ async function goHome() {
 }
 
 async function goBack() {
-	if (IsMetaDown == false) {
-		await invoke("go_back")
+	if (IsFtpActive == false) {
+		if (IsMetaDown == false) {
+			await invoke("go_back")
+				.then(async (items) => {
+					if (IsDualPaneEnabled == true) {
+						await showItems(items, SelectedItemPaneSide);
+						goUp(false, true);
+					}
+					else {
+						showItems(items);
+					}
+				});
+		}
+	}
+	else {
+		await invoke("ftp_go_back", {path: CurrentFtpPath})
 			.then(async (items) => {
-				if (IsDualPaneEnabled == true) {
-					await showItems(items, SelectedItemPaneSide);
-					goUp(false, true);
-				}
-				else {
-					showItems(items);
-				}
+				await showItems(items);
+				console.log(CurrentFtpPath);
+				CurrentFtpPath = CurrentFtpPath.replace("/"+CurrentFtpPath.split("/").pop(), "");
+				console.log(CurrentFtpPath, CurrentFtpPath.split("/"));
 			});
 	}
 }
@@ -1258,13 +1290,16 @@ async function goToDir(directory) {
 			else {
 				await showItems(items);
 			}
+			IsFtpActive = false;
 		});
 }
 
-async function openFavFTP() {
-	await invoke("open_fav_ftp")
+async function openFavFTP(hostname, username, password) {
+	IsFtpActive = true;
+	await invoke("open_fav_ftp", {hostname, username, password})
 		.then(async (items) => {
-			// await showItems(items);
+			CurrentFtpPath = items[0].path.split("/")[items[0].path.split("/").length - 1];
+			await showItems(items);
 		});
 }
 
@@ -1444,8 +1479,11 @@ function switchHiddenFiles() {
 }
 
 function openSettings() {
-	document.querySelector(".settings-ui").style.display = "block";
-	IsDisableShortcuts = true;
+	if (IsPopUpOpen == false) {
+		document.querySelector(".settings-ui").style.display = "block";
+		IsDisableShortcuts = true;
+		IsPopUpOpen = true;
+	}
 }
 
 async function saveConfig(isToReload = true) {
@@ -1519,6 +1557,7 @@ async function saveConfig(isToReload = true) {
 function closeSettings() {
 	document.querySelector(".settings-ui").style.display = "none";
 	IsDisableShortcuts = false;
+	IsPopUpOpen = false;
 }
 
 function createTab(tabCount, isInitial) {
@@ -1640,6 +1679,26 @@ function evalCurrentLoad(available, total) {
 	total = parseFloat(total.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
 	let result = 100 - (100 / total) * available;
 	return result.toFixed(0);
+}
+
+function closeFtpConfig() {
+	document.querySelector(".ftp-connect-container").style.display = "none";
+	IsPopUpOpen = false;
+}
+
+function showFtpConfig() {
+	if (IsPopUpOpen == false) {
+		document.querySelector(".ftp-connect-container").style.display = "block";
+		IsPopUpOpen = true;
+	}
+}
+
+function connectToFtp() {
+	let hostname = document.querySelector(".ftp-hostname-input").value;
+	let username = document.querySelector(".ftp-username-input").value;
+	let password = document.querySelector(".ftp-password-input").value;
+	openFavFTP(hostname+":21", username, password);
+	closeFtpConfig();
 }
 
 function formatBytes(bytes, decimals = 2) {
