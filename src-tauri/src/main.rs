@@ -14,6 +14,7 @@ use zip_extensions::*;
 #[allow(unused_imports)]
 use get_sys_info::{System, Platform};
 use dialog::DialogBox;
+use remotefs_ftp;
 
 fn main() {
     tauri::Builder::default()
@@ -40,7 +41,8 @@ fn main() {
               open_in_terminal,
               rename_element,
               save_config,
-              switch_to_directory
+              switch_to_directory,
+              open_fav_ftp
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -330,6 +332,41 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
     else {
         println!("{:?}", current_dir().unwrap());
     }
+    let mut dir_list: Vec<FDir> = Vec::new();
+    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
+    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
+    for item in current_directory {
+        let temp_item = item.unwrap();
+        let name = &temp_item.file_name().into_string().unwrap();
+        let is_dir = &temp_item.path().is_dir();
+        let is_dir_int: i8;
+        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
+        let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
+        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
+        if is_dir.to_owned() {
+            is_dir_int = 1;
+        }
+        else {
+            is_dir_int = 0;
+        }
+        dir_list.push(FDir {
+            name: String::from(name), 
+            is_dir: is_dir_int,
+            path: String::from(path),
+            extension: file_ext,
+            size: temp_item.metadata().unwrap().len().to_string(),
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
+        });
+    }
+    return dir_list;
+}
+
+#[tauri::command]
+async fn open_fav_ftp() -> Vec<FDir> {
+    println!("open_fav_ftp");
+    let mut remote = remotefs_ftp::FtpFs::new("192.168.2.130", 22).username("daneServer").password("T-200-data-dane-!").secure(true, true).active_mode().stream().unwrap();
+    println!("{}", remote.pwd().unwrap());
+
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
     println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());

@@ -1251,13 +1251,20 @@ function openSelectedItem() {
 
 async function goToDir(directory) {
 	await invoke("go_to_dir", {directory})
-		.then((items) => {
+		.then(async (items) => {
 			if (IsDualPaneEnabled == true) {
-				showItems(items, SelectedItemPaneSide);
+				await showItems(items, SelectedItemPaneSide);
 			}
 			else {
-				showItems(items);
+				await showItems(items);
 			}
+		});
+}
+
+async function openFavFTP() {
+	await invoke("open_fav_ftp")
+		.then(async (items) => {
+			// await showItems(items);
 		});
 }
 

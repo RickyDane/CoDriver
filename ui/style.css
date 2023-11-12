@@ -522,6 +522,7 @@ label {
 	align-items: center;
 	gap: 10px;
 	font-size: small;
+	border: 1px solid var(--transparentColor);
 }
 .site-nav-bar-button:hover {
 	background-color: var(--transparentColorActive);
