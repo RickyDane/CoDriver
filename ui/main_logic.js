@@ -1071,7 +1071,7 @@ async function openItem(isDir, dualPaneSide = "", element = null, shortcut = fal
 		}
 	}
 	else {
-		if (isDir) {
+		if (isDir == 1) {
 			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
 			DirectoryList.classList.add("dir-preloader-container");
 			await invoke("open_ftp_dir", {path})
@@ -1081,6 +1081,9 @@ async function openItem(isDir, dualPaneSide = "", element = null, shortcut = fal
 				});
 			document.querySelector(".fullsearch-loader").style.display = "none";
 			DirectoryList.classList.remove("dir-preloader-container");
+		}
+		else {
+			await invoke("copy_from_ftp", {path});
 		}
 	}
 }

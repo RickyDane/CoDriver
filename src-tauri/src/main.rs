@@ -1,9 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command, os::fd::{AsFd, AsRawFd}}; 
 #[allow(unused_imports)]
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
+use async_std::io::Cursor;
+use lazy_static::lazy_static;
 use rust_search::SearchBuilder;
 use serde_json::Value;
 use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config};
@@ -13,39 +15,45 @@ use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
 #[allow(unused_imports)]
 use get_sys_info::{System, Platform};
-use dialog::DialogBox;
-use async_ftp::FtpStream;
+use dialog::{DialogBox, backends::Dialog};
+use async_ftp::{FtpStream, DataStream};
+use async_ftp::types::FileType::{Ascii, Binary, Ebcdic, Image, Local};
 use async_ftp::FtpError;
+
+static mut HOSTNAME: String = String::new();
+static mut USERNAME: String = String::new();
+static mut PASSWORD: String = String::new();
 
 fn main() {
     tauri::Builder::default()
         .invoke_handler(
             tauri::generate_handler![
-              list_dirs,
-              open_dir,
-              open_item,
-              go_back,
-              go_home,
-              search_for,
-              go_to_dir,
-              copy_paste,
-              delete_item,
-              extract_item,
-              compress_item,
-              create_folder,
-              switch_view,
-              check_app_config,
-              create_file,
-              get_current_dir,
-              set_dir,
-              list_disks,
-              open_in_terminal,
-              rename_element,
-              save_config,
-              switch_to_directory,
-              open_fav_ftp,
-              open_ftp_dir,
-              ftp_go_back
+                list_dirs,
+                open_dir,
+                open_item,
+                go_back,
+                go_home,
+                search_for,
+                go_to_dir,
+                copy_paste,
+                delete_item,
+                extract_item,
+                compress_item,
+                create_folder,
+                switch_view,
+                check_app_config,
+                create_file,
+                get_current_dir,
+                set_dir,
+                list_disks,
+                open_in_terminal,
+                rename_element,
+                save_config,
+                switch_to_directory,
+                open_fav_ftp,
+                open_ftp_dir,
+                ftp_go_back,
+                copy_from_ftp 
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -371,12 +379,18 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
 
 #[tauri::command]
 async fn open_fav_ftp(hostname: String, username: String, password: String) -> Vec<FDir> {
+    // Initialize ftp arguments
+    unsafe {
+        USERNAME = username.clone();
+        PASSWORD = password.clone();
+        HOSTNAME = hostname.clone();
+    }
     let mut ftp_stream = FtpStream::connect(hostname).await.unwrap();
-    let _ = ftp_stream.login(&username, &password).await.unwrap();
-    let ftp_dir = &ftp_stream.pwd().await.unwrap();
+    let _ = &ftp_stream.login(username.as_str(), password.as_str()).await.unwrap();
+    let ftp_dir = ftp_stream.pwd().await.unwrap();
     let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
 
-    for item in *&ftp_dir_list {
+    for item in ftp_dir_list {
         println!("{:?}", item.split("/").last().unwrap());
     }
 
@@ -389,9 +403,10 @@ async fn open_fav_ftp(hostname: String, username: String, password: String) -> V
         let name = &item.split("/").last().unwrap().to_string();
         let mod_date = &ftp_stream.mdtm(&item).await.unwrap_or_default();
         let size = &ftp_stream.size(&item).await.unwrap_or_default();
+        let is_dir = is_directory(&mut ftp_stream, item).await;
         dir_list.push(FDir {
             name: name.to_string(),
-            is_dir: 1,
+            is_dir: is_dir,
             path: item.to_string(),
             extension: "".to_string(),
             size: size.unwrap_or_default().to_string(),
@@ -404,14 +419,13 @@ async fn open_fav_ftp(hostname: String, username: String, password: String) -> V
 
 #[tauri::command]
 async fn open_ftp_dir(path: String) -> Vec<FDir> {
-    let mut ftp_stream = FtpStream::connect("192.168.2.130:21").await.unwrap();
-    let _ = ftp_stream.login("daneserver", "T-200-data-dane-!").await.unwrap();
+    let mut ftp_stream = get_current_connection().await;
     let _ = ftp_stream.cwd(&path).await.unwrap();
     let ftp_dir = ftp_stream.pwd().await.unwrap();
     let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
 
-    for item in *&ftp_dir_list {
-        println!("{:?}", item.split("/").last().unwrap());
+    for item in ftp_dir_list {
+        println!("{:?}", item);
     }
 
     // Get the current directory that the client will be reading from and writing to.
@@ -423,9 +437,10 @@ async fn open_ftp_dir(path: String) -> Vec<FDir> {
         let name = &item.split("/").last().unwrap().to_string();
         let mod_date = &ftp_stream.mdtm(&item).await.unwrap_or_default();
         let size = &ftp_stream.size(&item).await.unwrap_or_default();
+        let is_dir = is_directory(&mut ftp_stream, item).await;
         dir_list.push(FDir {
             name: name.to_string(),
-            is_dir: 1,
+            is_dir: is_dir,
             path: item.to_string(),
             extension: "".to_string(),
             size: size.unwrap_or_default().to_string(),
@@ -437,9 +452,32 @@ async fn open_ftp_dir(path: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
+async fn copy_from_ftp(path: String) {
+    let mut ftp_stream = get_current_connection().await;
+    let file = ftp_stream.simple_retr(&path).await.unwrap();
+    let mut data = String::new();
+    for line in file.lines() {
+        data.push_str(&line.unwrap());
+    }
+    println!("{}", data);
+}
+
+async fn is_directory(ftp_stream: &mut FtpStream, path: &str) -> i8 {
+    match ftp_stream.cwd(path).await {
+        Ok(_) => {
+            // Zurück zum ursprünglichen Verzeichnis wechseln
+            if let Err(_) = ftp_stream.cdup().await {
+                eprintln!("Fehler beim Wechseln zum ursprünglichen Verzeichnis");
+            }
+            1 // Erfolgreich gewechselt, also ist es ein Verzeichnis
+        }
+        Err(_) => 0, // Fehler beim Wechseln, also ist es keine Verzeichnis
+    }
+}
+
+#[tauri::command]
 async fn ftp_go_back(path: String) -> Vec<FDir> {
-    let mut ftp_stream = FtpStream::connect("192.168.2.130:21").await.unwrap();
-    ftp_stream.login("daneserver", "T-200-data-dane-!").await.unwrap();
+    let mut ftp_stream = get_current_connection().await;
     ftp_stream.cwd(&path).await.unwrap();
     ftp_stream.cdup().await.unwrap();
     let ftp_dir = ftp_stream.pwd().await.unwrap();
@@ -453,16 +491,15 @@ async fn ftp_go_back(path: String) -> Vec<FDir> {
     println!("Current directory: {:?}", &ftp_dir);
 
     let mut dir_list: Vec<FDir> = Vec::new();
-    
+        
     for item in ftp_dir_list {
         let name = &item.split("/").last().unwrap().to_string();
         let mod_date = &ftp_stream.mdtm(&item).await.unwrap_or_default();
         let size = &ftp_stream.size(&item).await.unwrap_or_default();
-        // let mut buffer = String::new();
-        // let _ = &ftp_stream.get(&item).await.unwrap();
+        let is_dir = is_directory(&mut ftp_stream, item).await;
         dir_list.push(FDir {
             name: name.to_string(),
-            is_dir: 1,
+            is_dir: is_dir,
             path: item.to_string(),
             extension: "".to_string(),
             size: size.unwrap_or_default().to_string(),
@@ -471,6 +508,20 @@ async fn ftp_go_back(path: String) -> Vec<FDir> {
         });
     }
     dir_list
+}
+
+async fn get_current_connection() -> FtpStream {
+    let host: String;
+    let user: String;
+    let password: String;
+    unsafe {
+        host = HOSTNAME.clone();
+        user = USERNAME.clone();
+        password = PASSWORD.clone();
+    }
+    let mut ftp_stream = FtpStream::connect(host).await.unwrap();
+    let _ = ftp_stream.login(user.as_str(), password.as_str()).await.unwrap();
+    ftp_stream
 }
 
 #[tauri::command]
