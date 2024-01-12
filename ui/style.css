@@ -166,7 +166,7 @@ body {
 	padding: 10px 0px;
 	background-color: var(--secondaryColor);
 	z-index: 2;
-	border-bottom: 1px solid var(--secondaryColorActive);
+	box-shadow: 2px 0px 10px 0px rgba(0, 0, 0, 0.5);
 }
 .list-column-header-button {
 	background-color: transparent;

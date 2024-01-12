@@ -224,7 +224,7 @@ document.onkeydown = async (e) => {
 		openItem(1, SelectedItemPaneSide, null, true, ConfiguredPathThree);
 	}
 
-	if (IsTabsEnabled == true) {
+	if (false) { //IsTabsEnabled == true) {
 		// Check if ctrl + t or is pressed to open new tab
 		if ((e.ctrlKey || e.keyCode == 91) && e.keyCode == 84) {
 			if (TabCount < 5) {
