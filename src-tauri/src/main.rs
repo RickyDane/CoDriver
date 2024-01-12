@@ -1,46 +1,59 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command, os::fd::{AsFd, AsRawFd}}; 
 #[allow(unused_imports)]
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
+use async_std::io::Cursor;
+use lazy_static::lazy_static;
 use rust_search::SearchBuilder;
 use serde_json::Value;
-use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config, window, Window};
+use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config};
 use stopwatch::Stopwatch;
 use unrar::Archive;
 use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
 #[allow(unused_imports)]
 use get_sys_info::{System, Platform};
-use dialog::DialogBox;
+use dialog::{DialogBox, backends::Dialog};
+use async_ftp::{FtpStream, DataStream};
+use async_ftp::types::FileType::{Ascii, Binary, Ebcdic, Image, Local};
+use async_ftp::FtpError;
+
+static mut HOSTNAME: String = String::new();
+static mut USERNAME: String = String::new();
+static mut PASSWORD: String = String::new();
 
 fn main() {
     tauri::Builder::default()
         .invoke_handler(
             tauri::generate_handler![
-              list_dirs,
-              open_dir,
-              open_item,
-              go_back,
-              go_home,
-              search_for,
-              go_to_dir,
-              copy_paste,
-              delete_item,
-              extract_item,
-              compress_item,
-              create_folder,
-              switch_view,
-              check_app_config,
-              create_file,
-              get_current_dir,
-              set_dir,
-              list_disks,
-              open_in_terminal,
-              rename_element,
-              save_config,
-              switch_to_directory
+                list_dirs,
+                open_dir,
+                open_item,
+                go_back,
+                go_home,
+                search_for,
+                go_to_dir,
+                copy_paste,
+                delete_item,
+                extract_item,
+                compress_item,
+                create_folder,
+                switch_view,
+                check_app_config,
+                create_file,
+                get_current_dir,
+                set_dir,
+                list_disks,
+                open_in_terminal,
+                rename_element,
+                save_config,
+                switch_to_directory,
+                open_fav_ftp,
+                open_ftp_dir,
+                ftp_go_back,
+                copy_from_ftp 
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -53,7 +66,8 @@ struct FDir {
     path: String,
     extension: String,
     size: String,
-    last_modified: String
+    last_modified: String,
+    is_ftp: i8
 }
 
 #[derive(serde::Serialize)]
@@ -218,7 +232,14 @@ async fn list_dirs() -> Vec<FDir> {
         let is_dir_int: i8;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
+        let file_data = fs::metadata(&temp_item.path());
+        let file_date: DateTime<Utc>;
+        if file_data.is_ok() {
+            file_date = file_data.unwrap().modified().unwrap().clone().into();
+        }
+        else {
+            file_date = Utc::now();
+        }
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -231,7 +252,8 @@ async fn list_dirs() -> Vec<FDir> {
             path: String::from(path),
             extension: file_ext,
             size: temp_item.metadata().unwrap().len().to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
+            is_ftp: 0
         });
     }
     return dir_list;
@@ -247,7 +269,7 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 }
 
 #[tauri::command]
-async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
+async fn open_dir(_path: String) -> Vec<FDir> {
     println!("{}", &_path.contains('"'));
     let sw = Stopwatch::start_new();
     let mut dir_list: Vec<FDir> = Vec::new();
@@ -261,7 +283,14 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
         let mut is_dir_int: i8 = 0;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
+        let file_data = fs::metadata(&temp_item.path());
+        let file_date: DateTime<Utc>;
+        if file_data.is_ok() {
+            file_date = file_data.unwrap().modified().unwrap().clone().into();
+        }
+        else {
+            file_date = Utc::now();
+        }
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -271,7 +300,8 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
             path: path.to_owned(),
             extension: file_ext,
             size: temp_item.metadata().unwrap().len().to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
+            is_ftp: 0
         });
     }
     println!("{} ms", sw.elapsed_ms());
@@ -291,10 +321,14 @@ async fn go_back() -> Vec<FDir> {
         let is_dir_int: i8;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap_or_else(|x| {
-            println!("# Debug: Not possible to navigate to -> {:?}", &temp_item.path());
-            panic!("# Debug: {}", x)
-        }).modified().unwrap().clone().into();
+        let file_data = fs::metadata(&temp_item.path());
+        let file_date: DateTime<Utc>;
+        if file_data.is_ok() {
+            file_date = file_data.unwrap().modified().unwrap().clone().into();
+        }
+        else {
+            file_date = Utc::now();
+        }
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -307,7 +341,8 @@ async fn go_back() -> Vec<FDir> {
             path: String::from(path),
             extension: file_ext,
             size: temp_item.metadata().unwrap().len().to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
+            is_ftp: 0
         });
     }
     return dir_list;
@@ -353,10 +388,158 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
             path: String::from(path),
             extension: file_ext,
             size: temp_item.metadata().unwrap().len().to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
+            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
+            is_ftp: 0
         });
     }
     return dir_list;
+}
+
+#[tauri::command]
+async fn open_fav_ftp(hostname: String, username: String, password: String) -> Vec<FDir> {
+    // Initialize ftp arguments
+    unsafe {
+        USERNAME = username.clone();
+        PASSWORD = password.clone();
+        HOSTNAME = hostname.clone();
+    }
+    let mut ftp_stream = FtpStream::connect(hostname).await.unwrap();
+    let _ = &ftp_stream.login(username.as_str(), password.as_str()).await.unwrap();
+    let ftp_dir = ftp_stream.pwd().await.unwrap();
+    let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
+
+    for item in ftp_dir_list {
+        println!("{:?}", item.split("/").last().unwrap());
+    }
+
+    // Get the current directory that the client will be reading from and writing to.
+    println!("Current directory: {:?}", &ftp_dir);
+
+    let mut dir_list: Vec<FDir> = Vec::new();
+    
+    for item in ftp_dir_list {
+        let name = &item.split("/").last().unwrap().to_string();
+        let mod_date = &ftp_stream.mdtm(&item).await.unwrap_or_default();
+        let size = &ftp_stream.size(&item).await.unwrap_or_default();
+        let is_dir = is_directory(&mut ftp_stream, item).await;
+        dir_list.push(FDir {
+            name: name.to_string(),
+            is_dir: is_dir,
+            path: item.to_string(),
+            extension: "".to_string(),
+            size: size.unwrap_or_default().to_string(),
+            last_modified: mod_date.unwrap_or_default().to_string(),
+            is_ftp: 1
+        });
+    }
+    dir_list
+}
+
+#[tauri::command]
+async fn open_ftp_dir(path: String) -> Vec<FDir> {
+    let mut ftp_stream = get_current_connection().await;
+    let _ = ftp_stream.cwd(&path).await.unwrap();
+    let ftp_dir = ftp_stream.pwd().await.unwrap();
+    let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
+
+    for item in ftp_dir_list {
+        println!("{:?}", item);
+    }
+
+    // Get the current directory that the client will be reading from and writing to.
+    println!("Current directory: {:?}", &ftp_dir);
+
+    let mut dir_list: Vec<FDir> = Vec::new();
+    
+    for item in ftp_dir_list {
+        let name = &item.split("/").last().unwrap().to_string();
+        let mod_date = &ftp_stream.mdtm(&item).await.unwrap_or_default();
+        let size = &ftp_stream.size(&item).await.unwrap_or_default();
+        let is_dir = is_directory(&mut ftp_stream, item).await;
+        dir_list.push(FDir {
+            name: name.to_string(),
+            is_dir: is_dir,
+            path: item.to_string(),
+            extension: "".to_string(),
+            size: size.unwrap_or_default().to_string(),
+            last_modified: mod_date.unwrap_or_default().to_string(),
+            is_ftp: 1
+        });
+    }
+    dir_list
+}
+
+#[tauri::command]
+async fn copy_from_ftp(path: String) {
+    let mut ftp_stream = get_current_connection().await;
+    let file = ftp_stream.simple_retr(&path).await.unwrap();
+    let mut data = String::new();
+    for line in file.lines() {
+        data.push_str(&line.unwrap());
+    }
+    println!("{}", data);
+}
+
+async fn is_directory(ftp_stream: &mut FtpStream, path: &str) -> i8 {
+    match ftp_stream.cwd(path).await {
+        Ok(_) => {
+            // Zurück zum ursprünglichen Verzeichnis wechseln
+            if let Err(_) = ftp_stream.cdup().await {
+                eprintln!("Fehler beim Wechseln zum ursprünglichen Verzeichnis");
+            }
+            1 // Erfolgreich gewechselt, also ist es ein Verzeichnis
+        }
+        Err(_) => 0, // Fehler beim Wechseln, also ist es keine Verzeichnis
+    }
+}
+
+#[tauri::command]
+async fn ftp_go_back(path: String) -> Vec<FDir> {
+    let mut ftp_stream = get_current_connection().await;
+    ftp_stream.cwd(&path).await.unwrap();
+    ftp_stream.cdup().await.unwrap();
+    let ftp_dir = ftp_stream.pwd().await.unwrap();
+    let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
+
+    for item in *&ftp_dir_list {
+        println!("{:?}", item.split("/").last().unwrap());
+    }
+
+    // Get the current directory that the client will be reading from and writing to.
+    println!("Current directory: {:?}", &ftp_dir);
+
+    let mut dir_list: Vec<FDir> = Vec::new();
+        
+    for item in ftp_dir_list {
+        let name = &item.split("/").last().unwrap().to_string();
+        let mod_date = &ftp_stream.mdtm(&item).await.unwrap_or_default();
+        let size = &ftp_stream.size(&item).await.unwrap_or_default();
+        let is_dir = is_directory(&mut ftp_stream, item).await;
+        dir_list.push(FDir {
+            name: name.to_string(),
+            is_dir: is_dir,
+            path: item.to_string(),
+            extension: "".to_string(),
+            size: size.unwrap_or_default().to_string(),
+            last_modified: mod_date.unwrap_or_default().to_string(),
+            is_ftp: 1
+        });
+    }
+    dir_list
+}
+
+async fn get_current_connection() -> FtpStream {
+    let host: String;
+    let user: String;
+    let password: String;
+    unsafe {
+        host = HOSTNAME.clone();
+        user = USERNAME.clone();
+        password = PASSWORD.clone();
+    }
+    let mut ftp_stream = FtpStream::connect(host).await.unwrap();
+    let _ = ftp_stream.login(user.as_str(), password.as_str()).await.unwrap();
+    ftp_stream
 }
 
 #[tauri::command]
@@ -369,39 +552,13 @@ async fn open_in_terminal() {
     let _ = Command::new("cmd").arg("/c").arg("start").arg(current_dir().unwrap()).spawn();
     #[cfg(target_os = "macos")]
     // Open the terminal on mac
-    let _ = Command::new("open").arg(current_dir().unwrap()).spawn();
+    let _ = Command::new("terminal").arg(current_dir().unwrap()).spawn();
 }
 
 #[tauri::command]
 async fn go_home() -> Vec<FDir> {
     let _ = set_current_dir(home_dir().unwrap());
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        }
-        else {
-            is_dir_int = 0;
-        }
-        dir_list.push(FDir {
-            name: String::from(name), 
-            is_dir: is_dir_int,
-            path: String::from(path),
-            extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
-        });
-    }
-    return dir_list;
+    return open_dir(String::from(current_dir().unwrap().to_string_lossy())).await;
 }
 
 #[tauri::command]
@@ -489,7 +646,8 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
                         path: path.to_string(),
                         extension: String::from(&file_ext),
                         size: file_size.clone(),
-                        last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
+                        last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
+                        is_ftp: 0
                     });
                 }
                 else {
@@ -504,7 +662,8 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
                 path: path.to_string(),
                 extension: String::from(&file_ext),
                 size: file_size,
-                last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap())
+                last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
+                is_ftp: 0
             });
         }
     }

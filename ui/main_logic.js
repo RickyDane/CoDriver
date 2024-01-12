@@ -2,6 +2,12 @@ const { invoke } = window.__TAURI__.tauri;
 const { confirm } = window.__TAURI__.dialog; 
 const { message } = window.__TAURI__.dialog;
 const { appWindow } = window.__TAURI__.window;
+const { writeText } = window.__TAURI__.clipboard;
+const { writeFile } = window.__TAURI__.clipboard;
+const { getTauriVersion } = window.__TAURI__.app;
+const { getVersion } = window.__TAURI__.app;
+const { getName } = window.__TAURI__.app;
+const { getMatches } = window.__TAURI__.cli;
 
 /* Window customization */
 
@@ -60,6 +66,8 @@ let IsFullSearching = false;
 let ArrCopyItems = []; // Todo: select more elements to copy at once
 let IsLightMode = false;
 let IsImagePreview = false;
+let IsFtpActive = false;
+let CurrentFtpPath = "";
 
 /* endregion */
 
@@ -112,6 +120,7 @@ document.addEventListener("keyup", (e) => {
 		closeSettings();
 		closeInputDialog();
 		closeFullSearchContainer();
+		closeFtpConfig();
 	}
 });
 
@@ -159,12 +168,15 @@ document.addEventListener("contextmenu", (e) => {
 	ContextMenu.style.display = "flex";
 	ContextMenu.style.left = e.clientX + "px";
 	if ((ContextMenu.offsetHeight + e.clientY) >= window.innerHeight) {
-		ContextMenu.style.top = null;
-		ContextMenu.style.bottom = e.clientY / 2 * -1 + "px";
+		ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
+		ContextMenu.style.bottom = null;
 	}
 	else {
 		ContextMenu.style.bottom = null;
 		ContextMenu.style.top = e.clientY + "px";
+	}
+	if ((ContextMenu.clientWidth + e.clientX) >= window.innerWidth) {
+		ContextMenu.style.left = e.clientX - ContextMenu.innerWidth + "px";
 	}
 	ContextMenu.children[0].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
 	ContextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
@@ -212,7 +224,7 @@ document.onkeydown = async (e) => {
 		openItem(1, SelectedItemPaneSide, null, true, ConfiguredPathThree);
 	}
 
-	if (IsTabsEnabled == true) {
+	if (false) { //IsTabsEnabled == true) {
 		// Check if ctrl + t or is pressed to open new tab
 		if ((e.ctrlKey || e.keyCode == 91) && e.keyCode == 84) {
 			if (TabCount < 5) {
@@ -437,6 +449,10 @@ async function showItems(items, dualPaneSide = "") {
 		itemLink.setAttribute("itempath", item.path);
 		itemLink.setAttribute("itemindex", counter++);
 		itemLink.setAttribute("itempaneside", dualPaneSide);
+		itemLink.setAttribute("itemisdir", item.is_dir);
+		itemLink.setAttribute("itemext", item.extension);
+		itemLink.setAttribute("isftp", item.is_ftp);
+		itemLink.setAttribute("itemname", item.name);
 
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
@@ -444,7 +460,7 @@ async function showItems(items, dualPaneSide = "") {
 		let iconSize = "48px";
 		if (item.is_dir == 1) {
 			fileIcon = "resources/folder-icon.png";
-			iconSize = "64px";	
+			iconSize = "48px";	
 		}
 		else {
 			switch (item.extension) {
@@ -469,7 +485,6 @@ async function showItems(items, dualPaneSide = "") {
 				case ".webp":
 					if (IsImagePreview) {
 						fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
-						iconSize = "100%";
 					}
 					else {
 						fileIcon = "resources/img-file.png";
@@ -658,11 +673,12 @@ async function deleteItem(item) {
 	}
 }
 
-function copyItem(item) {
+async function copyItem(item) {
 	CopyFilePath = item.getAttribute("itempath");
 	let tempCopyFilePath = item.getAttribute("itempath").split("/");
 	CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
 	ContextMenu.style.display = "none";
+	await writeText(CopyFilePath);
 }
 
 async function extractItem(item) {
@@ -675,7 +691,7 @@ async function extractItem(item) {
 		let extractFileName = extractFilePath.split("/")[extractFilePath.split("/").length - 1].replace("'", "");
 		if (extractFileName != "") {
 			let fromPath = extractFilePath.toString();
-			invoke("extract_item", {fromPath})
+			await invoke("extract_item", {fromPath})
 				.then(async (items) => {
 					await showItems(items.filter(str => !str.name.startsWith(".")));
 					await message("Unpack complete");
@@ -688,7 +704,6 @@ async function compressItem(item) {
 	message("Compressing started.\nThis can take some time.\nYou will be notified once the process is finished.");
 	let compressFilePath = item.getAttribute("itempath");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
-	console.log(compressFileName, compressFilePath);
 	if (compressFileName != "") {
 		let fromPath = compressFilePath.toString();
 		ContextMenu.style.display = "none";
@@ -727,8 +742,8 @@ async function pasteItem() {
 		let fromPath = CopyFilePath.toString();
 		let isForDualPane = "0"
 		await invoke("copy_paste", {actFileName, fromPath, isForDualPane})
-			.then(items => {
-				showItems(items);
+			.then(async (items) => {
+				await showItems(items);
 			});
 		CopyFileName = "";
 		CopyFilePath = "";
@@ -856,7 +871,7 @@ async function renameElement(path, newName) {
 }
 
 async function showAppInfo() {
-	alert("Application: rdpFX\nVersion: 0.2.0\nBuildno: 20230811\nDeveloper: Ricky Dane");
+	alert(`Application: ${await getName()}\nTauri version: ${await getTauriVersion()}\nApp version: ${await getVersion()}\nDeveloper: Ricky Dane`);
 }
 
 async function checkAppConfig() {
@@ -918,19 +933,15 @@ async function checkAppConfig() {
 					switchToDualPane();
 				}
 			}
-			if (appConfig.is_light_mode.includes("1")) {
-				// Todo: Switch to light mode
-			}
 			else if (appConfig.launch_path.length >= 1) {
 				let path = appConfig.launch_path;
-				let name = "launch";
-				invoke("open_dir", {path, name})
+				invoke("open_dir", {path})
 					.then((items) => {
 						showItems(items);
 					});
 			}
 		});
-	checkColorMode();
+	checkColorMode("light_mode");
 }
 
 async function listDisks() {
@@ -945,7 +956,10 @@ async function listDisks() {
 			DirectoryCount.innerHTML = "Objects: " + disks.length;
 			disks.forEach(item => {
 				let itemLink = document.createElement("button");
-				itemLink.setAttribute("onclick", "openItem('1')");
+				itemLink.setAttribute("itempath", item.path);
+				itemLink.setAttribute("itemname", item.name);
+				itemLink.setAttribute("isftp", 0);
+				itemLink.setAttribute("onclick", "openItem('1', '', this)");
 				let newRow = document.createElement("div");
 				newRow.className = "directory-item-entry";
 				itemLink.className = "item-link directory-entry";
@@ -1001,9 +1015,9 @@ async function listDisks() {
 
 async function listDirectories() {
 	await invoke("list_dirs")
-		.then((items) => {
+		.then(async (items) => {
 			if (IsDualPaneEnabled == true) {
-				showItems(items, SelectedItemPaneSide);
+				await showItems(items, SelectedItemPaneSide);
 				goUp(false, true);
 			}
 			else {
@@ -1017,33 +1031,37 @@ async function refreshView() {
 }
 
 async function openItem(isDir, dualPaneSide = "", element = null, shortcut = false, shortcutPath = null) {
+	let name = element?.getAttribute("itemname");
 	let path = element?.getAttribute("itempath");
-	if (shortcut == true) {
-		path = shortcutPath;
-	}
-	if (dualPaneSide == "left") {
-		document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
-		document.querySelector(".dual-pane-right").style.boxShadow = "none";
-	}
-	else if (dualPaneSide == "right") {
-		document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
-		document.querySelector(".dual-pane-left").style.boxShadow = "none";
-	}
-	// Select item for dualpane
-	if (element != null && SelectedElement != element && IsDualPaneEnabled == true) {
-		if (SelectedElement != null) {
-			SelectedElement.style.backgroundColor = "transparent";
+	let isFtp = element?.getAttribute("isftp");
+	if (isFtp == false || isFtp == null) {
+
+		if (shortcut == true) {
+			path = shortcutPath;
 		}
-		SelectedElement = element;
-		SelectedElement.style.backgroundColor = SelectedColor;
-		SelectedItemPath = path;
-		SelectedItemPaneSide = dualPaneSide;
-	}
-	else if (isDir == 1 || (isDir == 1 && shortcut == true)) { // Open directory
-		document.querySelector('.tab-container-'+CurrentActiveTab).innerHTML = "";
-		await invoke("open_dir", {path, name})
+		if (dualPaneSide == "left") {
+			document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+			document.querySelector(".dual-pane-right").style.boxShadow = "none";
+		}
+		else if (dualPaneSide == "right") {
+			document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+			document.querySelector(".dual-pane-left").style.boxShadow = "none";
+		}
+		// Select item for dualpane
+		if (element != null && SelectedElement != element && IsDualPaneEnabled == true) {
+			if (SelectedElement != null) {
+				SelectedElement.style.backgroundColor = "transparent";
+			}
+			SelectedElement = element;
+			SelectedElement.style.backgroundColor = SelectedColor;
+			SelectedItemPath = path;
+			SelectedItemPaneSide = dualPaneSide;
+		}
+		else if (isDir == 1 || (isDir == 1 && shortcut == true)) { // Open directory
+			await invoke("open_dir", {path})
 			.then(async (items) => {
 				if (IsDualPaneEnabled == true && dualPaneSide != "") {
+					document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";
 					await showItems(items, dualPaneSide);
 					goUp(false, true);
 				}
@@ -1051,9 +1069,26 @@ async function openItem(isDir, dualPaneSide = "", element = null, shortcut = fal
 					showItems(items);
 				}
 			});
+		}
+		else { // Open element with default application
+			await invoke("open_item", {path});
+		}
 	}
-	else { // Open element with default application
-		await invoke("open_item", {path});
+	else {
+		if (isDir == 1) {
+			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+			DirectoryList.classList.add("dir-preloader-container");
+			await invoke("open_ftp_dir", {path})
+				.then(async (items) => {
+					await showItems(items);
+					CurrentFtpPath = path;
+				});
+			document.querySelector(".fullsearch-loader").style.display = "none";
+			DirectoryList.classList.remove("dir-preloader-container");
+		}
+		else {
+			await invoke("copy_from_ftp", {path});
+		}
 	}
 }
 
@@ -1071,17 +1106,27 @@ async function goHome() {
 }
 
 async function goBack() {
-	console.log(IsMetaDown, IsDualPaneEnabled);
-	if (IsMetaDown == false) {
-		await invoke("go_back")
+	if (IsFtpActive == false) {
+		if (IsMetaDown == false) {
+			await invoke("go_back")
+				.then(async (items) => {
+					if (IsDualPaneEnabled == true) {
+						await showItems(items, SelectedItemPaneSide);
+						goUp(false, true);
+					}
+					else {
+						showItems(items);
+					}
+				});
+		}
+	}
+	else {
+		await invoke("ftp_go_back", {path: CurrentFtpPath})
 			.then(async (items) => {
-				if (IsDualPaneEnabled == true) {
-					await showItems(items, SelectedItemPaneSide);
-					goUp(false, true);
-				}
-				else {
-					showItems(items);
-				}
+				await showItems(items);
+				console.log(CurrentFtpPath);
+				CurrentFtpPath = CurrentFtpPath.replace("/"+CurrentFtpPath.split("/").pop(), "");
+				console.log(CurrentFtpPath, CurrentFtpPath.split("/"));
 			});
 	}
 }
@@ -1163,7 +1208,7 @@ function goUp(isSwitched = false, toFirst = false) {
 			LeftPaneItemIndex = 0;
 			element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
 		}
-		if (element != null) {
+		if (element != null && element != SelectedElement) {
 			element.onclick();
 		}
 	}
@@ -1245,13 +1290,23 @@ function openSelectedItem() {
 
 async function goToDir(directory) {
 	await invoke("go_to_dir", {directory})
-		.then((items) => {
+		.then(async (items) => {
 			if (IsDualPaneEnabled == true) {
-				showItems(items, SelectedItemPaneSide);
+				await showItems(items, SelectedItemPaneSide);
 			}
 			else {
-				showItems(items);
+				await showItems(items);
 			}
+			IsFtpActive = false;
+		});
+}
+
+async function openFavFTP(hostname, username, password) {
+	IsFtpActive = true;
+	await invoke("open_fav_ftp", {hostname, username, password})
+		.then(async (items) => {
+			CurrentFtpPath = items[0].path.split("/")[items[0].path.split("/").length - 1];
+			await showItems(items);
 		});
 }
 
@@ -1431,8 +1486,11 @@ function switchHiddenFiles() {
 }
 
 function openSettings() {
-	document.querySelector(".settings-ui").style.display = "block";
-	IsDisableShortcuts = true;
+	if (IsPopUpOpen == false) {
+		document.querySelector(".settings-ui").style.display = "block";
+		IsDisableShortcuts = true;
+		IsPopUpOpen = true;
+	}
 }
 
 async function saveConfig(isToReload = true) {
@@ -1506,6 +1564,7 @@ async function saveConfig(isToReload = true) {
 function closeSettings() {
 	document.querySelector(".settings-ui").style.display = "none";
 	IsDisableShortcuts = false;
+	IsPopUpOpen = false;
 }
 
 function createTab(tabCount, isInitial) {
@@ -1566,7 +1625,6 @@ function closeTab() {
 				checkTab = document.querySelector(".tab-container-" + tabCounter);
 			}
 			switchToTab(tabCounter);
-			console.log(tabCounter);
 			TabCount = 0;
 		}
 		else {
@@ -1630,6 +1688,26 @@ function evalCurrentLoad(available, total) {
 	return result.toFixed(0);
 }
 
+function closeFtpConfig() {
+	document.querySelector(".ftp-connect-container").style.display = "none";
+	IsPopUpOpen = false;
+}
+
+function showFtpConfig() {
+	if (IsPopUpOpen == false) {
+		document.querySelector(".ftp-connect-container").style.display = "block";
+		IsPopUpOpen = true;
+	}
+}
+
+function connectToFtp() {
+	let hostname = document.querySelector(".ftp-hostname-input").value;
+	let username = document.querySelector(".ftp-username-input").value;
+	let password = document.querySelector(".ftp-password-input").value;
+	openFavFTP(hostname+":21", username, password);
+	closeFtpConfig();
+}
+
 function formatBytes(bytes, decimals = 2) {
     if (!+bytes) return '0 Bytes'
     const k = 1000
@@ -1639,14 +1717,13 @@ function formatBytes(bytes, decimals = 2) {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
-function checkColorMode(){
+function checkColorMode() {
 	var r = document.querySelector(':root');
 	if (IsLightMode) {
 		r.style.setProperty("--primaryColor", "white");
 		r.style.setProperty("--secondaryColor", "whitesmoke");
 		r.style.setProperty("--tertiaryColor", "lightgray");
-		r.style.setProperty("--transparentColorActive", "rgba(0, 0, 0, 0.1)");
-		r.style.setProperty("--textColor", "rgba(99, 112, 135)");
+		r.style.setProperty("--textColor", "rgba(75, 75, 105)");
 	}
 	else {
 		r.style.setProperty("--primaryColor", "#3f4352");

@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "tauri-plugin-clipboard-api": "^0.4.0"
+  }
+}

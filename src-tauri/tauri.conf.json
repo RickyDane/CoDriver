@@ -12,6 +12,11 @@
 	},
 	"tauri": {
 		"allowlist": {
+			"clipboard": {
+				"all": true,
+				"writeText": true,
+				"readText": true
+			},
 			"window": {
 				"all": true,
 				"create": true,
@@ -123,11 +128,22 @@
 			{
 				"decorations": false,
 				"fullscreen": false,
+				"transparent": true,
 				"height": 600,
 				"resizable": true,
 				"title": "rdpFX",
 				"width": 1050
 			}
-		]
+		],
+		"cli": {
+			"args": [
+				{
+					"name": "source",
+					"index": 1,
+					"takesValue": true
+				}
+			]
+		},
+		"macOSPrivateApi": true
 	}
 }
