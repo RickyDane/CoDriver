@@ -19,7 +19,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - Navigate through directories as you know it
 - Copy & Paste, delete, create and rename files and folders
 - Switch between "big buttons"- and list mode
-- Open / close tabs with ctrl + t / ctrl + w
+- Open / close tabs with Ctrl + t / Ctrl + w
 
 ### Advanced features
 - Compress files and folders
@@ -32,22 +32,24 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
   - Configure the paths yourself in the settings
 - Create file with F6
 - Create folder with F7
+- Dual-Pane view
+  - Search for files with F8
+  - Ctrl + F for quicksearch in current directory
+  - Copy current selected element to other pane with F5
 
 #### Language Support
 - English
   - Option to choose between languages coming soon ...
 
 #### Known issues:
-- Permissions on ms windows are a little bit strange
+- Permissions on ms-windows are a little bit strange
+  - You may have to run the program as administrator if you encounter problems to copy elements or something similar
 - Tabs are not fully worked out yet
 
 #### 📝 Todos:
 - Multiple languages
 - List filtering (filter by name, last modified, file size)
-- Drag and drop
-- [x] New logo / icon
 - FTP-Integration
-- [x] Dual pane view
 - Favorites
 <br>
 <img width="1280" alt="Bildschirmfoto 2023-11-08 um 20 49 33" src="https://github.com/RickyDane/rdpFX/assets/82893522/18ee6da9-033b-4803-bd05-c524ee896def">
