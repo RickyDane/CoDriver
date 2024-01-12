@@ -37,6 +37,4 @@ jobs:
           releaseName: 'rdpFX v__VERSION__'
           releaseBody: '# Updates'
           releaseDraft: true
-          prerelease: false  
-      - name: Notifying
-        run: curl -H ta:tada -d "Publish of binaries finished" http://daneserver.hopto.org:5234/rdpfx-published
+          prerelease: false
