@@ -452,6 +452,7 @@ async function showItems(items, dualPaneSide = "") {
 		itemLink.setAttribute("itemisdir", item.is_dir);
 		itemLink.setAttribute("itemext", item.extension);
 		itemLink.setAttribute("isftp", item.is_ftp);
+		itemLink.setAttribute("itemname", item.name);
 
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
@@ -934,8 +935,7 @@ async function checkAppConfig() {
 			}
 			else if (appConfig.launch_path.length >= 1) {
 				let path = appConfig.launch_path;
-				let name = "launch";
-				invoke("open_dir", {path, name})
+				invoke("open_dir", {path})
 					.then((items) => {
 						showItems(items);
 					});
@@ -956,7 +956,10 @@ async function listDisks() {
 			DirectoryCount.innerHTML = "Objects: " + disks.length;
 			disks.forEach(item => {
 				let itemLink = document.createElement("button");
-				itemLink.setAttribute("onclick", "openItem('1')");
+				itemLink.setAttribute("itempath", item.path);
+				itemLink.setAttribute("itemname", item.name);
+				itemLink.setAttribute("isftp", 0);
+				itemLink.setAttribute("onclick", "openItem('1', '', this)");
 				let newRow = document.createElement("div");
 				newRow.className = "directory-item-entry";
 				itemLink.className = "item-link directory-entry";
@@ -1028,9 +1031,10 @@ async function refreshView() {
 }
 
 async function openItem(isDir, dualPaneSide = "", element = null, shortcut = false, shortcutPath = null) {
+	let name = element?.getAttribute("itemname");
 	let path = element?.getAttribute("itempath");
 	let isFtp = element?.getAttribute("isftp");
-	if (isFtp == false) {
+	if (isFtp == false || isFtp == null) {
 
 		if (shortcut == true) {
 			path = shortcutPath;
@@ -1054,7 +1058,7 @@ async function openItem(isDir, dualPaneSide = "", element = null, shortcut = fal
 			SelectedItemPaneSide = dualPaneSide;
 		}
 		else if (isDir == 1 || (isDir == 1 && shortcut == true)) { // Open directory
-			await invoke("open_dir", {path, name})
+			await invoke("open_dir", {path})
 			.then(async (items) => {
 				if (IsDualPaneEnabled == true && dualPaneSide != "") {
 					document.querySelector(".tab-container-"+CurrentActiveTab).innerHTML = "";

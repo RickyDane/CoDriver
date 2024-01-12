@@ -232,7 +232,14 @@ async fn list_dirs() -> Vec<FDir> {
         let is_dir_int: i8;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
+        let file_data = fs::metadata(&temp_item.path());
+        let file_date: DateTime<Utc>;
+        if file_data.is_ok() {
+            file_date = file_data.unwrap().modified().unwrap().clone().into();
+        }
+        else {
+            file_date = Utc::now();
+        }
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -262,7 +269,7 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 }
 
 #[tauri::command]
-async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
+async fn open_dir(_path: String) -> Vec<FDir> {
     println!("{}", &_path.contains('"'));
     let sw = Stopwatch::start_new();
     let mut dir_list: Vec<FDir> = Vec::new();
@@ -276,7 +283,14 @@ async fn open_dir(_path: String, _name: String) -> Vec<FDir> {
         let mut is_dir_int: i8 = 0;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
+        let file_data = fs::metadata(&temp_item.path());
+        let file_date: DateTime<Utc>;
+        if file_data.is_ok() {
+            file_date = file_data.unwrap().modified().unwrap().clone().into();
+        }
+        else {
+            file_date = Utc::now();
+        }
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -307,10 +321,14 @@ async fn go_back() -> Vec<FDir> {
         let is_dir_int: i8;
         let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
         let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap_or_else(|x| {
-            println!("# Debug: Not possible to navigate to -> {:?}", &temp_item.path());
-            panic!("# Debug: {}", x)
-        }).modified().unwrap().clone().into();
+        let file_data = fs::metadata(&temp_item.path());
+        let file_date: DateTime<Utc>;
+        if file_data.is_ok() {
+            file_date = file_data.unwrap().modified().unwrap().clone().into();
+        }
+        else {
+            file_date = Utc::now();
+        }
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
@@ -540,34 +558,7 @@ async fn open_in_terminal() {
 #[tauri::command]
 async fn go_home() -> Vec<FDir> {
     let _ = set_current_dir(home_dir().unwrap());
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        }
-        else {
-            is_dir_int = 0;
-        }
-        dir_list.push(FDir {
-            name: String::from(name), 
-            is_dir: is_dir_int,
-            path: String::from(path),
-            extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0
-        });
-    }
-    return dir_list;
+    return open_dir(String::from(current_dir().unwrap().to_string_lossy())).await;
 }
 
 #[tauri::command]
