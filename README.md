@@ -36,6 +36,7 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
   - Search for files with F8
   - Ctrl + F for quicksearch in current directory
   - Copy current selected element to other pane with F5
+- Drag and drop files into the explorer to copy them into the current directory
 
 #### Language Support
 - English
