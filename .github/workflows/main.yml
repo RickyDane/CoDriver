@@ -1,6 +1,6 @@
 name: 'publish'
 on:
-  push:
+  pull_request:
     branches:
       - master
 
