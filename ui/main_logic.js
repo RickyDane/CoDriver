@@ -453,6 +453,7 @@ async function showItems(items, dualPaneSide = "") {
 		itemLink.setAttribute("itemext", item.extension);
 		itemLink.setAttribute("isftp", item.is_ftp);
 		itemLink.setAttribute("itemname", item.name);
+		itemLink.setAttribute("itemsize", formatBytes(item.size));
 
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
@@ -523,7 +524,7 @@ async function showItems(items, dualPaneSide = "") {
 		let itemButton = document.createElement("div");
 		itemButton.innerHTML = `
 			<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" style="object-fit: cover;" loading="lazy" />
-			<p style="text-align: left;">${item.name}</p>
+			<p style="text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 		`;
 		delete fileIcon;
 		itemButton.className = "item-button directory-entry";
@@ -570,6 +571,7 @@ async function showItems(items, dualPaneSide = "") {
 			ContextMenu.children[4].replaceWith(ContextMenu.children[4].cloneNode(true));
 			ContextMenu.children[6].replaceWith(ContextMenu.children[6].cloneNode(true));
 			ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
+			ContextMenu.children[8].replaceWith(ContextMenu.children[8].cloneNode(true));
 
 			ContextMenu.style.display = "flex";
 			ContextMenu.style.left = e.clientX + "px";
@@ -587,6 +589,8 @@ async function showItems(items, dualPaneSide = "") {
 			ContextMenu.children[4].classList.remove("c-item-disabled");
 			ContextMenu.children[7].removeAttribute("disabled");
 			ContextMenu.children[7].classList.remove("c-item-disabled");
+			ContextMenu.children[8].removeAttribute("disabled");
+			ContextMenu.children[8].classList.remove("c-item-disabled");
 
 
 			if (extension != "zip"
@@ -606,6 +610,8 @@ async function showItems(items, dualPaneSide = "") {
 			ContextMenu.children[4].addEventListener("click", () => { copyItem(item); }, {once: true});
 			ContextMenu.children[6].addEventListener("click", () => { createFileInputPrompt(e); }, {once: true});
 			ContextMenu.children[7].addEventListener("click", () => { renameElementInputPrompt(e, item); }, {once: true});
+			ContextMenu.children[8].addEventListener("click", () => { showProperties(item); }, {once: true});
+
 		});
 	});
 	if (IsTabsEnabled == true) {
@@ -1679,6 +1685,14 @@ async function switchToTab(tabNo) {
 			switchToDualPane();
 		}
 	}
+}
+
+function showProperties(item) {
+	let name = item.getAttribute("itemname");
+	let path = item.getAttribute("itempath");
+	let size = item.getAttribute("itemsize");
+	alert("Name: " + name + "\n Path: " + path + "\n Size: " + size);
+	ContextMenu.style.display = "none";
 }
 
 function evalCurrentLoad(available, total) {
