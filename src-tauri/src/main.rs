@@ -5,7 +5,6 @@ use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, 
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
 use async_std::io::Cursor;
-use lazy_static::lazy_static;
 use rust_search::SearchBuilder;
 use serde_json::Value;
 use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config};
