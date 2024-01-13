@@ -599,13 +599,13 @@ async function showItems(items, dualPaneSide = "") {
 				ContextMenu.children[2].removeAttribute("disabled");
 				ContextMenu.children[2].classList.remove("c-item-disabled");
 			}
-			ContextMenu.children[0].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
-			ContextMenu.children[1].addEventListener("click", function() { deleteItem(item); }, {once: true});
-			ContextMenu.children[2].addEventListener("click", function() { extractItem(item); }, {once: true});
-			ContextMenu.children[3].addEventListener("click", function() { compressItem(item); }, {once: true});
-			ContextMenu.children[4].addEventListener("click", function() { copyItem(item); }, {once: true});
-			ContextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
-			ContextMenu.children[7].addEventListener("click", function() { renameElementInputPrompt(e, item); }, {once: true});
+			ContextMenu.children[0].addEventListener("click", () => { createFolderInputPrompt(e); }, {once: true});
+			ContextMenu.children[1].addEventListener("click", () => { deleteItem(item); }, {once: true});
+			ContextMenu.children[2].addEventListener("click", () => { extractItem(item); }, {once: true});
+			ContextMenu.children[3].addEventListener("click", () => { compressItem(item); }, {once: true});
+			ContextMenu.children[4].addEventListener("click", () => { copyItem(item); }, {once: true});
+			ContextMenu.children[6].addEventListener("click", () => { createFileInputPrompt(e); }, {once: true});
+			ContextMenu.children[7].addEventListener("click", () => { renameElementInputPrompt(e, item); }, {once: true});
 		});
 	});
 	if (IsTabsEnabled == true) {
@@ -701,15 +701,15 @@ async function extractItem(item) {
 }
 
 async function compressItem(item) {
-	message("Compressing started.\nThis can take some time.\nYou will be notified once the process is finished.");
 	let compressFilePath = item.getAttribute("itempath");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
 	if (compressFileName != "") {
 		let fromPath = compressFilePath.toString();
 		ContextMenu.style.display = "none";
-		await invoke("compress_item", {fromPath})
+		let SelectedItemPaneSide = item.getAttribute("itempaneside");
+		await invoke("compress_item", { fromPath })
 			.then(async (items) => {
-				await showItems(items);
+				await showItems(items, SelectedItemPaneSide);
 				await message("Komprimierung abgeschlossen");
 			});
 	}
