@@ -53,7 +53,8 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 - FTP-Integration
 - Favorites
 <br>
-<img width="1280" alt="Bildschirmfoto 2023-11-08 um 20 49 33" src="https://github.com/RickyDane/rdpFX/assets/82893522/18ee6da9-033b-4803-bd05-c524ee896def">
+<img src="https://github.com/RickyDane/rdpFX/assets/82893522/89baafde-62b4-49b6-ae13-ca832e8eb2e2" />
+
 
 ## Speed comparison
 ![2023-08-27-08-14-02](https://github.com/RickyDane/rdpFX/assets/82893522/237b28a0-d667-4bea-91a9-a43cb9277c49)
