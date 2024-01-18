@@ -461,10 +461,41 @@ async function showItems(items, dualPaneSide = "") {
 		let iconSize = "48px";
 		if (item.is_dir == 1) {
 			fileIcon = "resources/folder-icon.png";
-			iconSize = "48px";	
+			iconSize = "48px";
+			// Check for dir name to apply custom icons
+			if (item.name.toLowerCase().includes("downloads")) {
+				fileIcon = "resources/folder-downloads.png";
+			}
+			else if (item.name.toLowerCase().includes("desktop")|| item.name.toLowerCase().includes("schreibtisch")) {
+				fileIcon = "resources/folder-desktop.png";
+			}
+			else if (item.name.toLowerCase().includes("dokumente") || item.name.toLowerCase().includes("documents")) {
+				fileIcon = "resources/folder-docs.png";
+			}
+			else if (item.name.toLowerCase().includes("musik") || item.name.toLowerCase().includes("music")) {
+				fileIcon = "resources/folder-music.png";
+			}
+			else if (item.name.toLowerCase().includes("bilder") || item.name.toLowerCase().includes("pictures")) {
+				fileIcon = "resources/folder-images.png";
+			}
+			else if (item.name.toLowerCase().includes("videos")) {
+				fileIcon = "resources/folder-videos.png";
+			}
+			else if (item.name.toLowerCase().includes("coding") || item.name.toLowerCase().includes("programming")) {
+				fileIcon = "resources/folder-coding.png";
+			}
+			else if (item.name.toLowerCase().includes("werkzeuge") || item.name.toLowerCase().includes("tools")) {
+				fileIcon = "resources/folder-tools.png";
+			}
+			else if (item.name.toLowerCase().includes("public") || item.name.toLowerCase().includes("öffentlich")) {
+				fileIcon = "resources/folder-public.png";
+			}
+			else if (item.name.toLowerCase().includes("games") || item.name.toLowerCase().includes("spiele")) {
+				fileIcon = "resources/folder-games.png";
+			}
 		}
 		else {
-			switch (item.extension) {
+			switch (item.extension.toLowerCase()) {
 				case ".json":
 				case ".sql":
 				case ".js":
@@ -513,6 +544,9 @@ async function showItems(items, dualPaneSide = "") {
 					break;
 				case ".xlsx":
 					fileIcon = "resources/spreadsheet-file.png";
+					break;
+				case ".appimage":
+					fileIcon = "resources/appimage-file.png";
 					break;
 				default:
 					fileIcon = "resources/file-icon.png";
