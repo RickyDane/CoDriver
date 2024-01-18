@@ -927,14 +927,14 @@ async function checkAppConfig() {
 				firstContainer.style.paddingBottom = "10px";
 			}
 
-			if (appConfig.is_open_in_terminal.includes("1")) {
-				document.querySelector(".openin-terminal-checkbox").checked = true;
-				document.querySelector(".context-open-in-terminal").style.display = "flex";
-			}
-			else {
-				document.querySelector(".openin-terminal-checkbox").checked = false;
+			// if (appConfig.is_open_in_terminal.includes("1")) {
+			// 	document.querySelector(".openin-terminal-checkbox").checked = true;
+			// 	document.querySelector(".context-open-in-terminal").style.display = "flex";
+			// }
+			// else {
+				// document.querySelector(".openin-terminal-checkbox").checked = false;
 				document.querySelector(".context-open-in-terminal").style.display = "none";
-			}
+			// }
 
 			if (appConfig.is_dual_pane_enabled.includes("1")) {
 				document.querySelector(".show-dual-pane-checkbox").checked = true;
@@ -1537,7 +1537,7 @@ async function saveConfig(isToReload = true) {
 	let configuredPathOne = ConfiguredPathOne = document.querySelector(".configured-path-one-input").value;
 	let configuredPathTwo = ConfiguredPathTwo = document.querySelector(".configured-path-two-input").value;
 	let configuredPathThree = ConfiguredPathThree = document.querySelector(".configured-path-three-input").value;
-	let isOpenInTerminal = document.querySelector(".openin-terminal-checkbox").checked;
+	let isOpenInTerminal = false; //document.querySelector(".openin-terminal-checkbox").checked;
 	let isDualPaneEnabled = document.querySelector(".show-dual-pane-checkbox").checked;
 	let launchPath = document.querySelector(".launch-path-input").value;
 	let isDualPaneActive = IsDualPaneEnabled;

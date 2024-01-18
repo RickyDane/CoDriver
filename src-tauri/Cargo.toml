@@ -1,10 +1,10 @@
 [package]
 name = "app"
-version = "0.2.2"
+version = "0.2.3"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "none"
-repository = ""
+repository = "https://github.com/RickyDane/rdpfx"
 default-run = "app"
 edition = "2021"
 rust-version = "1.73"
