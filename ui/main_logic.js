@@ -453,6 +453,7 @@ async function showItems(items, dualPaneSide = "") {
 		itemLink.setAttribute("itemext", item.extension);
 		itemLink.setAttribute("isftp", item.is_ftp);
 		itemLink.setAttribute("itemname", item.name);
+		itemLink.setAttribute("itemsize", formatBytes(item.size));
 
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
@@ -460,10 +461,41 @@ async function showItems(items, dualPaneSide = "") {
 		let iconSize = "48px";
 		if (item.is_dir == 1) {
 			fileIcon = "resources/folder-icon.png";
-			iconSize = "48px";	
+			iconSize = "48px";
+			// Check for dir name to apply custom icons
+			if (item.name.toLowerCase().includes("downloads")) {
+				fileIcon = "resources/folder-downloads.png";
+			}
+			else if (item.name.toLowerCase().includes("desktop")|| item.name.toLowerCase().includes("schreibtisch")) {
+				fileIcon = "resources/folder-desktop.png";
+			}
+			else if (item.name.toLowerCase().includes("dokumente") || item.name.toLowerCase().includes("documents")) {
+				fileIcon = "resources/folder-docs.png";
+			}
+			else if (item.name.toLowerCase().includes("musik") || item.name.toLowerCase().includes("music")) {
+				fileIcon = "resources/folder-music.png";
+			}
+			else if (item.name.toLowerCase().includes("bilder") || item.name.toLowerCase().includes("pictures")) {
+				fileIcon = "resources/folder-images.png";
+			}
+			else if (item.name.toLowerCase().includes("videos")) {
+				fileIcon = "resources/folder-videos.png";
+			}
+			else if (item.name.toLowerCase().includes("coding") || item.name.toLowerCase().includes("programming")) {
+				fileIcon = "resources/folder-coding.png";
+			}
+			else if (item.name.toLowerCase().includes("werkzeuge") || item.name.toLowerCase().includes("tools")) {
+				fileIcon = "resources/folder-tools.png";
+			}
+			else if (item.name.toLowerCase().includes("public") || item.name.toLowerCase().includes("öffentlich")) {
+				fileIcon = "resources/folder-public.png";
+			}
+			else if (item.name.toLowerCase().includes("games") || item.name.toLowerCase().includes("spiele")) {
+				fileIcon = "resources/folder-games.png";
+			}
 		}
 		else {
-			switch (item.extension) {
+			switch (item.extension.toLowerCase()) {
 				case ".json":
 				case ".sql":
 				case ".js":
@@ -513,6 +545,9 @@ async function showItems(items, dualPaneSide = "") {
 				case ".xlsx":
 					fileIcon = "resources/spreadsheet-file.png";
 					break;
+				case ".appimage":
+					fileIcon = "resources/appimage-file.png";
+					break;
 				default:
 					fileIcon = "resources/file-icon.png";
 					break;
@@ -523,7 +558,7 @@ async function showItems(items, dualPaneSide = "") {
 		let itemButton = document.createElement("div");
 		itemButton.innerHTML = `
 			<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" style="object-fit: cover;" loading="lazy" />
-			<p style="text-align: left;">${item.name}</p>
+			<p style="text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 		`;
 		delete fileIcon;
 		itemButton.className = "item-button directory-entry";
@@ -570,6 +605,7 @@ async function showItems(items, dualPaneSide = "") {
 			ContextMenu.children[4].replaceWith(ContextMenu.children[4].cloneNode(true));
 			ContextMenu.children[6].replaceWith(ContextMenu.children[6].cloneNode(true));
 			ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
+			ContextMenu.children[8].replaceWith(ContextMenu.children[8].cloneNode(true));
 
 			ContextMenu.style.display = "flex";
 			ContextMenu.style.left = e.clientX + "px";
@@ -587,6 +623,8 @@ async function showItems(items, dualPaneSide = "") {
 			ContextMenu.children[4].classList.remove("c-item-disabled");
 			ContextMenu.children[7].removeAttribute("disabled");
 			ContextMenu.children[7].classList.remove("c-item-disabled");
+			ContextMenu.children[8].removeAttribute("disabled");
+			ContextMenu.children[8].classList.remove("c-item-disabled");
 
 
 			if (extension != "zip"
@@ -606,6 +644,8 @@ async function showItems(items, dualPaneSide = "") {
 			ContextMenu.children[4].addEventListener("click", () => { copyItem(item); }, {once: true});
 			ContextMenu.children[6].addEventListener("click", () => { createFileInputPrompt(e); }, {once: true});
 			ContextMenu.children[7].addEventListener("click", () => { renameElementInputPrompt(e, item); }, {once: true});
+			ContextMenu.children[8].addEventListener("click", () => { showProperties(item); }, {once: true});
+
 		});
 	});
 	if (IsTabsEnabled == true) {
@@ -887,14 +927,14 @@ async function checkAppConfig() {
 				firstContainer.style.paddingBottom = "10px";
 			}
 
-			if (appConfig.is_open_in_terminal.includes("1")) {
-				document.querySelector(".openin-terminal-checkbox").checked = true;
-				document.querySelector(".context-open-in-terminal").style.display = "flex";
-			}
-			else {
-				document.querySelector(".openin-terminal-checkbox").checked = false;
+			// if (appConfig.is_open_in_terminal.includes("1")) {
+			// 	document.querySelector(".openin-terminal-checkbox").checked = true;
+			// 	document.querySelector(".context-open-in-terminal").style.display = "flex";
+			// }
+			// else {
+				// document.querySelector(".openin-terminal-checkbox").checked = false;
 				document.querySelector(".context-open-in-terminal").style.display = "none";
-			}
+			// }
 
 			if (appConfig.is_dual_pane_enabled.includes("1")) {
 				document.querySelector(".show-dual-pane-checkbox").checked = true;
@@ -1497,7 +1537,7 @@ async function saveConfig(isToReload = true) {
 	let configuredPathOne = ConfiguredPathOne = document.querySelector(".configured-path-one-input").value;
 	let configuredPathTwo = ConfiguredPathTwo = document.querySelector(".configured-path-two-input").value;
 	let configuredPathThree = ConfiguredPathThree = document.querySelector(".configured-path-three-input").value;
-	let isOpenInTerminal = document.querySelector(".openin-terminal-checkbox").checked;
+	let isOpenInTerminal = false; //document.querySelector(".openin-terminal-checkbox").checked;
 	let isDualPaneEnabled = document.querySelector(".show-dual-pane-checkbox").checked;
 	let launchPath = document.querySelector(".launch-path-input").value;
 	let isDualPaneActive = IsDualPaneEnabled;
@@ -1679,6 +1719,14 @@ async function switchToTab(tabNo) {
 			switchToDualPane();
 		}
 	}
+}
+
+function showProperties(item) {
+	let name = item.getAttribute("itemname");
+	let path = item.getAttribute("itempath");
+	let size = item.getAttribute("itemsize");
+	alert("Name: " + name + "\n Path: " + path + "\n Size: " + size);
+	ContextMenu.style.display = "none";
 }
 
 function evalCurrentLoad(available, total) {

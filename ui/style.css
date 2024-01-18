@@ -16,7 +16,7 @@
 	--primaryColor: #3f4352;
 	--secondaryColor: rgba(56, 59, 71, 1);
 	--tertiaryColor: #464d5f;
-	--transparentColor: rgba(0, 0, 0, 0.15);
+	--transparentColor: rgba(0, 0, 0, 0.1);
 	--transparentColorActive: rgba(0, 0, 0, 0.25);
 	--textColor: white;
 	--fontSize: 12px;
@@ -44,7 +44,7 @@ body {
 .dual-pane-container {
 	width: 100%;
 	max-width: 100%;
-	height: calc(100vh - 110px);
+	height: calc(100vh - 100px);
 	display: none;
 	flex-flow: row;
 	justify-content: center;
@@ -71,7 +71,7 @@ body {
 	gap: 2px;
 }
 .main-container {
-	margin-top: 110px;
+	margin-top: 100px;
 	display: flex;
 	flex-flow: row;
 }
@@ -82,11 +82,11 @@ body {
 	align-items: center;
 	gap: 10px;
 	position: fixed;
-	top: 50px;
+	top: 40px;
 	background-color: var(--primaryColor);
 	width: 100%;
 	height: 60px;
-	padding: 0px 20px 0px 10px;
+	padding: 0px 10px;
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
 	z-index: 3;
 	border-bottom: 1px solid var(--secondaryColor);
@@ -94,7 +94,7 @@ body {
 .site-nav-bar {
 	background-color: var(--primaryColor);
 	position: fixed;
-	top: 110px;
+	top: 100px;
 	left: 0;
 	bottom: 0;
 	width: 200px;
@@ -108,7 +108,7 @@ body {
 	border-right: 1px solid var(--secondaryColor);
 }
 .titlebar {
-	height: 50px;
+	height: 40px;
 	padding: 10px;
 	background-color: var(--secondaryColor);
 	user-select: none;
@@ -121,16 +121,17 @@ body {
 	left: 0;
 	right: 0;
 	z-index: 99;
+	border-bottom: 1px solid var(--transparentColor);
 }
 .titlebar-button {
 	display: inline-flex;
 	flex-flow: row;
 	justify-content: center;
 	align-items: center;
-	width: 30px;
-	height: 30px;
+	width: 35px;
+	height: 25px;
 	cursor: pointer;
-	border-radius: 15px;
+	border-radius: 5px;
 	transition: 0.2s;
 	background-color: var(--transparentColor);
 	font-size: small;
@@ -346,13 +347,14 @@ label {
 	flex-flow: row;
 	gap: 10px;
 	align-items: center;
+	transition: 0.2s ease;
 }
 .button:hover {
 	background: var(--transparentColorActive);
 }
 .item-button {
 	position: relative;
-	background-color: var(--secondaryColor);
+	background-color: var(--transparentColor);
 	border-radius: 7px;
 	cursor: pointer;
 	text-align: left;
@@ -366,10 +368,13 @@ label {
 	align-items: center;
 	text-align: center;
 	margin: 5px;
-	border: 1px solid var(--transparentColor);
+	transition: 0.2s ease;
 }
 .item-button:hover {
 	background-color: var(--transparentColorActive);
+}
+.item-button > img {
+	transition: 0.2s ease;
 }
 .item-button:hover > img {
 	filter: brightness(0.75);
@@ -399,7 +404,7 @@ label {
 	line-height: 20px;
 	max-height: 30px;
 	border-radius: 5px;
-	margin: 2px;
+	margin: 1px;
 	overflow: hidden;
 	border: 1px solid var(--secondaryColor);
 	box-shadow: 0px 0px 10px 1px var(--transparentColor);
@@ -422,6 +427,7 @@ label {
 	overflow: hidden;
 	word-wrap: normal;
 	white-space: nowrap;
+	transition: 0.2s ease;
 }
 .item-button-list > p {
 	padding-right: 5px;
@@ -510,6 +516,7 @@ label {
 	cursor: pointer;
 	padding: 10px;
 	border-radius: 5px;
+	transition: 0.2s ease;
 }
 .go-back-button:hover {
 	background-color: rgba(0, 0, 0, 0.15);
@@ -519,8 +526,9 @@ label {
 	border: none;
 	border-radius: 5px;
 	font-size: large;
-	padding: 10px;
+	padding: 10px 12.5px;
 	cursor: pointer;
+	transition: 0.2s ease;
 }
 .header-nav-button:hover {
 	background-color: rgba(0, 0, 0, 0.15);
@@ -529,7 +537,7 @@ label {
 	min-width: 40px;
 }
 .site-nav-bar-button {
-	background-color: var(--secondaryColor);
+	background-color: var(--transparentColor);
 	border: none;
 	width: 100%;
 	text-align: left;
@@ -541,6 +549,7 @@ label {
 	align-items: center;
 	gap: 10px;
 	font-size: small;
+	transition: 0.2s ease;
 }
 .site-nav-bar-button:hover {
 	background-color: var(--transparentColorActive);
