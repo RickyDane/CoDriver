@@ -1,6 +1,8 @@
 # rdpFX
 [![publish](https://github.com/RickyDane/rdpFX/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/RickyDane/rdpFX/actions/workflows/main.yml)
 
+<img width="64px" height="auto" src="https://github.com/RickyDane/rdpFX/assets/82893522/880b33d3-d749-49e8-906f-fee2abc053d9" />
+
 A simple file explorer that was born because I wanted to learn the Rust language.
 <br>
 It is operating system independent and trimmed for optimization.
