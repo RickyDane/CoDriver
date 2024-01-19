@@ -328,12 +328,6 @@ document.onkeydown = async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 		}
-		// check if ctrl + r is pressed
-		if (e.ctrlKey && e.keyCode == 82) {
-			refreshView();
-			e.preventDefault();
-			e.stopPropagation();
-		}
 		// check if alt + enter is pressed
 		if (IsAltDown && e.keyCode == 13) {
 			renameElementInputPrompt(null, SelectedElement);	
@@ -344,6 +338,13 @@ document.onkeydown = async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 		}
+	}
+	
+	// check if ctrl + r is pressed
+	if (e.ctrlKey && e.key == "r") {
+		refreshView();
+		e.preventDefault();
+		e.stopPropagation();
 	}
 } 
 
@@ -1061,7 +1062,7 @@ async function listDirectories() {
 				goUp(false, true);
 			}
 			else {
-				showItems(items);
+				await showItems(items);
 			}
 		});
 }

@@ -1,6 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command, time::SystemTime}; 
 #[allow(unused_imports)]
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
@@ -18,6 +18,8 @@ use dialog::{DialogBox, backends::Dialog};
 use async_ftp::{FtpStream, DataStream};
 use async_ftp::types::FileType::{Ascii, Binary, Ebcdic, Image, Local};
 use async_ftp::FtpError;
+mod utils;
+use utils::{dbg_log, err_log};
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -269,12 +271,10 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 
 #[tauri::command]
 async fn open_dir(_path: String) -> Vec<FDir> {
-    println!("{}", &_path.contains('"'));
     let sw = Stopwatch::start_new();
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(&_path.replace('"', "")).expect("Unable to open directory");
     let _ = set_current_dir(_path);
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
     for item in current_directory {
         let temp_item = item.unwrap();
         let name = &temp_item.file_name().into_string().unwrap();
@@ -303,14 +303,14 @@ async fn open_dir(_path: String) -> Vec<FDir> {
             is_ftp: 0
         });
     }
-    println!("{} ms", sw.elapsed_ms());
+    dbg_log(format!("Current dir: {:?} | Time: {:?}", current_dir().unwrap(), sw.elapsed()));
     return dir_list;
 }
 
 #[tauri::command]
 async fn go_back() -> Vec<FDir> {
     let _ = set_current_dir(current_dir().unwrap().to_str().unwrap().to_owned()+"/../");
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
+    dbg_log(format!("Current dir: {:?}", current_dir().unwrap()));
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_dir = fs::read_dir(current_dir().unwrap()).unwrap();
     for item in current_dir {
@@ -359,14 +359,13 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
         _ => set_current_dir(current_dir().unwrap()) 
     };
     if wanted_directory.is_err() {
-        println!("Not a valid directory");
+        err_log("Not a valid directory".into());
     }
     else {
-        println!("{:?}", current_dir().unwrap());
+        dbg_log(format!("Current dir: {:?}", current_dir().unwrap()));
     }
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
     for item in current_directory {
         let temp_item = item.unwrap();
         let name = &temp_item.file_name().into_string().unwrap();
@@ -408,11 +407,11 @@ async fn open_fav_ftp(hostname: String, username: String, password: String) -> V
     let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
 
     for item in ftp_dir_list {
-        println!("{:?}", item.split("/").last().unwrap());
+        dbg_log(format!("{:?}", item.split("/").last().unwrap()));
     }
 
     // Get the current directory that the client will be reading from and writing to.
-    println!("Current directory: {:?}", &ftp_dir);
+        dbg_log(format!("Current dir: {:?}", &ftp_dir));
 
     let mut dir_list: Vec<FDir> = Vec::new();
     
@@ -442,11 +441,11 @@ async fn open_ftp_dir(path: String) -> Vec<FDir> {
     let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
 
     for item in ftp_dir_list {
-        println!("{:?}", item);
+        dbg_log(format!("{:?}", item));
     }
 
     // Get the current directory that the client will be reading from and writing to.
-    println!("Current directory: {:?}", &ftp_dir);
+        dbg_log(format!("Current dir: {:?}", &ftp_dir));
 
     let mut dir_list: Vec<FDir> = Vec::new();
     
@@ -476,7 +475,7 @@ async fn copy_from_ftp(path: String) {
     for line in file.lines() {
         data.push_str(&line.unwrap());
     }
-    println!("{}", data);
+    dbg_log(format!("Data: {:?}", data));
 }
 
 async fn is_directory(ftp_stream: &mut FtpStream, path: &str) -> i8 {
@@ -484,11 +483,11 @@ async fn is_directory(ftp_stream: &mut FtpStream, path: &str) -> i8 {
         Ok(_) => {
             // Zurück zum ursprünglichen Verzeichnis wechseln
             if let Err(_) = ftp_stream.cdup().await {
-                eprintln!("Fehler beim Wechseln zum ursprünglichen Verzeichnis");
+                err_log("Fehler beim Wechseln zum ursprünglichen Verzeichnis".into());
             }
             1 // Erfolgreich gewechselt, also ist es ein Verzeichnis
         }
-        Err(_) => 0, // Fehler beim Wechseln, also ist es keine Verzeichnis
+        Err(_) => 0, // Fehler beim Wechseln, also ist es kein Verzeichnis
     }
 }
 
@@ -501,11 +500,11 @@ async fn ftp_go_back(path: String) -> Vec<FDir> {
     let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
 
     for item in *&ftp_dir_list {
-        println!("{:?}", item.split("/").last().unwrap());
+        dbg_log(format!("{:?}", item.split("/").last().unwrap()));
     }
 
     // Get the current directory that the client will be reading from and writing to.
-    println!("Current directory: {:?}", &ftp_dir);
+        dbg_log(format!("Current dir: {:?}", &ftp_dir));
 
     let mut dir_list: Vec<FDir> = Vec::new();
         
@@ -563,7 +562,7 @@ async fn go_home() -> Vec<FDir> {
 #[tauri::command]
 async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_content: String) -> Vec<FDir> {
     let mut file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
-    println!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext);
+    dbg_log(format!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext));
     let sw = Stopwatch::start_new();
     let search: Vec<String>;
     if file_ext != ".".to_string().to_owned()+&file_name {
@@ -632,7 +631,8 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
             let file = fs::File::open(&path).unwrap();
             let mut reader = BufReader::new(&file);
             let mut contents: String = "".to_string();
-            println!("# Debug: Checking {}", &path);
+            dbg_log(format!("Checking {}", &path));
+
             if &file.metadata().unwrap().is_dir() == &false {
                 reader.read_to_string(&mut contents).unwrap_or_else(|x| {
                     println!("Error reading: {}", x);
@@ -666,10 +666,8 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
             });
         }
     }
-
-    println!("# Debug: {} ms", sw.elapsed_ms());
-    println!("# Debug: {} items found", dir_list.len());
-
+    dbg_log(format!("{} ms", sw.elapsed_ms()));
+    dbg_log(format!("{} items found", dir_list.len()));
     return dir_list;
 }
 
@@ -755,14 +753,14 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
         counter += 1;
     }*/
 
-    println!("Copy-Paste time: {:?}", &sw.elapsed());
+    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
     return list_dirs().await;
 }
 
 #[tauri::command]
 async fn delete_item(act_file_name: String) -> Vec<FDir> {
     let is_dir = File::open(&act_file_name).unwrap().metadata().unwrap().is_dir();
-    println!("{}", &act_file_name);
+    dbg_log(String::from(&act_file_name));
     if is_dir {
         let _ = remove_dir_all(act_file_name.replace("\\", "/"));
     }
@@ -777,9 +775,9 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
     // Check file extension
     let file_ext = ".".to_string().to_owned()+from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
 
-    println!("# Debug: Start unpacking {} - {}", &file_ext, &from_path);
+    dbg_log(format!("Start unpacking {} - {}", &file_ext, &from_path));
 
-    // make zip or rar unpack
+    // zip, 7z or rar unpack
     let sw = Stopwatch::start_new();
     if file_ext == ".zip" {
         let file = PathBuf::from(&from_path);
@@ -788,11 +786,9 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
         zip_extract(&file, &new_dir).unwrap();
     }
     else if file_ext == ".rar" {
-        let mut archive = Archive::new(&from_path)
-            .open_for_processing()
-            .unwrap();
+        let mut archive = Archive::new(&from_path).open_for_processing().unwrap();
         while let Some(header) = archive.read_header().unwrap() {
-            println!("{} bytes: {}", header.entry().unpacked_size, header.entry().filename.to_string_lossy());
+            dbg_log(format!("{} bytes: {}", header.entry().unpacked_size, header.entry().filename.to_string_lossy()));
             archive = if header.entry().is_file() {
                 header.extract().unwrap()
             } else {
@@ -803,7 +799,8 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
     else if file_ext == ".7z" {
         let _ = sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     }
-    println!("# Debug: Unpack time: {} ms", sw.elapsed_ms());
+
+    dbg_log(format!("Unpack time: {:?} ms", sw.elapsed()));
     return list_dirs().await;
 }
 
@@ -832,7 +829,7 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
     }
     let _ = zip_create_from_directory(&archive, &source);
     let _ = remove_dir_all("compressed_dir");
-    println!("# Debug: Pack time: {} ms", sw.elapsed_ms());
+    dbg_log(format!("Pack time: {:?} ms", sw.elapsed()));
     return list_dirs().await;
 }
 
@@ -850,9 +847,8 @@ async fn create_file(file_name: String) {
 
 #[tauri::command]
 async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
-    let sw = Stopwatch::start_new();
     let _ = fs::rename(current_dir().unwrap().join(&path.replace("\\", "/")), current_dir().unwrap().join(&new_name.replace("\\", "/")));
-    println!("# Debug: Rename time: {} ms", sw.elapsed_ms());
+    dbg_log(format!("Renamed from {} to {} ms" , path, new_name));
     return list_dirs().await;
 }
 
@@ -889,5 +885,5 @@ async fn save_config(
     };
     let config_dir = app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string();
     let _ = serde_json::to_writer_pretty(File::create(&config_dir).unwrap(), &app_config_json);
-    println!("# Debug: app_config was saved to {}", config_dir);
+    dbg_log(format!("app_config was saved to {}", config_dir));
 }
