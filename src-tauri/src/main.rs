@@ -4,6 +4,7 @@ use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, 
 #[allow(unused_imports)]
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
+#[allow(unused_imports)]
 use async_std::io::Cursor;
 use rust_search::SearchBuilder;
 use serde_json::Value;
@@ -14,12 +15,17 @@ use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
 #[allow(unused_imports)]
 use get_sys_info::{System, Platform};
+#[allow(unused_imports)]
 use dialog::{DialogBox, backends::Dialog};
+#[allow(unused_imports)]
 use async_ftp::{FtpStream, DataStream};
+#[allow(unused_imports)]
 use async_ftp::types::FileType::{Ascii, Binary, Ebcdic, Image, Local};
+#[allow(unused_imports)]
 use async_ftp::FtpError;
 mod utils;
 use utils::{dbg_log, err_log};
+use sysinfo::{Components, Disks, Networks};
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -145,6 +151,12 @@ struct DisksInfo {
 
 #[tauri::command]
 async fn list_disks() -> Vec<DisksInfo> {
+    println!("=> disks:");
+    let disks = Disks::new_with_refreshed_list();
+    for disk in &disks {
+        println!("{disk:?}");
+    }
+
     let mut ls_disks: Vec<DisksInfo> = vec![];
     #[cfg(not(target_os = "macos"))]
     let disk_list = System::new().mounts().unwrap_or_else(|r| {
@@ -155,7 +167,8 @@ async fn list_disks() -> Vec<DisksInfo> {
     #[cfg(not(target_os = "macos"))]
     #[cfg(not(target_os = "windows"))]
     for disk in disk_list {
-        if disk.fs_mounted_from.starts_with("/dev/sda") || disk.fs_mounted_from.starts_with("/dev/nvme") {
+        if disk.fs_mounted_from.starts_with("/dev/sda") || disk.fs_mounted_from.starts_with("/dev/nvme") || disk.fs_mounted_from.starts_with("/mnt"){
+            dbg_log(format!("Mounted on: {:?} - Mounted from: {:?} - Free: {:?} - FS-Type: {:?}", disk.fs_mounted_on, disk.fs_mounted_from, disk.free, disk.fs_type));
             ls_disks.push(DisksInfo {
                 name: disk.fs_mounted_on.split("/").last().unwrap_or("/").to_string(),
                 format: disk.fs_type,
@@ -665,7 +678,7 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
             });
         }
     }
-    dbg_log(format!("{} ms", sw.elapsed_ms()));
+    dbg_log(format!("{}", sw.elapsed_ms()));
     dbg_log(format!("{} items found", dir_list.len()));
     return dir_list;
 }
@@ -799,7 +812,7 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
         let _ = sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     }
 
-    dbg_log(format!("Unpack time: {:?} ms", sw.elapsed()));
+    dbg_log(format!("Unpack time: {:?}", sw.elapsed()));
     return list_dirs().await;
 }
 
@@ -828,7 +841,7 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
     }
     let _ = zip_create_from_directory(&archive, &source);
     let _ = remove_dir_all("compressed_dir");
-    dbg_log(format!("Pack time: {:?} ms", sw.elapsed()));
+    dbg_log(format!("Pack time: {:?}", sw.elapsed()));
     return list_dirs().await;
 }
 
@@ -847,7 +860,7 @@ async fn create_file(file_name: String) {
 #[tauri::command]
 async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
     let _ = fs::rename(current_dir().unwrap().join(&path.replace("\\", "/")), current_dir().unwrap().join(&new_name.replace("\\", "/")));
-    dbg_log(format!("Renamed from {} to {} ms" , path, new_name));
+    dbg_log(format!("Renamed from {} to {}" , path, new_name));
     return list_dirs().await;
 }
 

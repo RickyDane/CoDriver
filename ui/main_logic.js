@@ -115,7 +115,7 @@ function startFullSearch() {
 document.addEventListener("keyup", (e) => {
 	if (e.keyCode === 27) {
 		ContextMenu.style.display = "none";
-		document.querySelector(".newfolder-input")?.remove();
+		document.querySelector(".input-dialog")?.remove();
 		closeSearchBar();
 		closeSettings();
 		closeInputDialog();
@@ -129,11 +129,11 @@ document.addEventListener("keyup", (e) => {
 document.addEventListener("mousedown", (e) => {
 	if (!e.target.classList.contains("context-item-icon")
 		&& !e.target.classList.contains("context-item")
-		&& !e.target.classList.contains("newfolder-input")
+		&& !e.target.classList.contains("input-dialog")
 		&& !e.target.classList.contains("directory-item-entry")
 		&& !e.target.classList.contains("directory-entry"))
 	{
-		let newFolderInput = document.querySelector(".newfolder-input");
+		let newFolderInput = document.querySelector(".input-dialog");
 		if (newFolderInput != null
 			&& e.target != newFolderInput
 			&& e.target != newFolderInput.children[0]
@@ -177,7 +177,6 @@ document.addEventListener("contextmenu", (e) => {
 	// ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
 
 	ContextMenu.style.display = "flex";
-	ContextMenu.style.left = e.clientX + "px";
 	if ((ContextMenu.offsetHeight + e.clientY) >= window.innerHeight) {
 		ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
 		ContextMenu.style.bottom = null;
@@ -187,7 +186,11 @@ document.addEventListener("contextmenu", (e) => {
 		ContextMenu.style.top = e.clientY + "px";
 	}
 	if ((ContextMenu.clientWidth + e.clientX) >= window.innerWidth) {
-		ContextMenu.style.left = e.clientX - ContextMenu.innerWidth + "px";
+		ContextMenu.style.left = e.clientX - ContextMenu.clientWidth + "px";
+		console.log("ContextMenu.style.left");
+	}
+	else {
+		ContextMenu.style.left = e.clientX + "px";
 	}
 	
 	ContextMenu.children[6].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
@@ -201,6 +204,7 @@ document.addEventListener("contextmenu", (e) => {
 		ContextMenu.children[4].removeAttribute("disabled");
 		ContextMenu.children[4].classList.remove("c-item-disabled");
 	}
+	closeInputDialog();
 });
 
 
@@ -467,6 +471,7 @@ async function showItems(items, dualPaneSide = "") {
 		itemLink.setAttribute("isftp", item.is_ftp);
 		itemLink.setAttribute("itemname", item.name);
 		itemLink.setAttribute("itemsize", formatBytes(item.size));
+		itemLink.setAttribute("itemmodified", item.last_modified);
 
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
@@ -651,9 +656,7 @@ async function showItems(items, dualPaneSide = "") {
 			ContextMenu.style.left = e.clientX + "px";
 			ContextMenu.style.top = e.clientY + "px";
 
-			let fromPath = item.getAttribute("itempath");
-			let actFileName = fromPath.split("/")[fromPath.split("/").length - 1];
-			let extension = actFileName.split(".")[actFileName.split(".").length-1];
+			let extension = item.getAttribute("itemext");
 
 			ContextMenu.children[0].removeAttribute("disabled");
 			ContextMenu.children[0].classList.remove("c-item-disabled");
@@ -669,9 +672,9 @@ async function showItems(items, dualPaneSide = "") {
 			ContextMenu.children[8].classList.remove("c-item-disabled");
 
 
-			if (extension != "zip"
-				&& extension != "rar"
-				&& extension != "7z") {
+			if (extension != ".zip"
+				&& extension != ".rar"
+				&& extension != ".7z") {
 				ContextMenu.children[1].setAttribute("disabled", "true");
 				ContextMenu.children[1].classList.add("c-item-disabled");
 			}
@@ -739,6 +742,7 @@ async function setCurrentDir(currentDir, dualPaneSide) {
 }
 
 async function deleteItem(item) {
+	ContextMenu.style.display = "none";
 	let fromPath = item.getAttribute("itempath");
 	let SelectedItemPaneSide = item.getAttribute("itempaneside");
 	let actFileName = fromPath.split("/")[fromPath.split("/").length-1];
@@ -747,10 +751,12 @@ async function deleteItem(item) {
 		IsMetaDown = false;
 	}
 	if (isConfirm == true) {
+		showLoadingPopup(actFileName + " is being deleted");
 		await invoke("delete_item", {actFileName})
-			.then(items => {
+			.then(async items => {
 				ContextMenu.style.display = "none";
-				showItems(items.filter(str => !str.name.startsWith(".")), SelectedItemPaneSide);
+				await showItems(items.filter(str => !str.name.startsWith(".")), SelectedItemPaneSide);
+				closeLoadingPopup();
 			});
 	}
 }
@@ -786,21 +792,42 @@ async function compressItem(item) {
 	let compressFilePath = item.getAttribute("itempath");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
 	if (compressFileName != "") {
+		// open compressing... popup
+		showLoadingPopup("File is being compressed");
 		let fromPath = compressFilePath.toString();
 		ContextMenu.style.display = "none";
 		let SelectedItemPaneSide = item.getAttribute("itempaneside");
 		await invoke("compress_item", { fromPath })
 			.then(async (items) => {
 				await showItems(items, SelectedItemPaneSide);
+				closeLoadingPopup();	
 				await message("Komprimierung abgeschlossen");
 			});
 	}
 }
 
+function showLoadingPopup(msg) {
+	let body = document.querySelector("body");
+	let popup = document.createElement("div");
+	popup.innerHTML = `
+		<h4>${msg}</h4>
+		<img width="32px" height="auto" src="resources/preloader.gif" />
+	`;
+	popup.className = "loading-popup";
+	body.append(popup);
+	IsPopUpOpen = false;
+}
+function closeLoadingPopup() {
+	$(".loading-popup").remove();
+	IsPopUpOpen = false;
+}
+
 async function pasteItem() {
+	ContextMenu.style.display = "none";
 	if (IsDualPaneEnabled == true) {
 		let actFileName = SelectedItemPath.split("/")[SelectedItemPath.split("/").length - 1].replace("'", "");
 		let fromPath = SelectedItemPath;
+		showLoadingPopup(actFileName + " is being copied over");
 		let isForDualPane = "1"
 		if (SelectedItemPaneSide == "left") {
 			actFileName = RightDualPanePath+"/"+actFileName;
@@ -821,6 +848,7 @@ async function pasteItem() {
 	}
 	else if (CopyFileName != "") {
 		let actFileName = CopyFileName;
+		showLoadingPopup(actFileName + " is being copied over");
 		let fromPath = CopyFilePath.toString();
 		let isForDualPane = "0"
 		await invoke("copy_paste", {actFileName, fromPath, isForDualPane})
@@ -831,26 +859,19 @@ async function pasteItem() {
 		CopyFilePath = "";
 		ContextMenu.style.display = "none";
 	}
+	closeLoadingPopup();
 }
 
 function createFolderInputPrompt(e = null) {
-	document.querySelectorAll(".newfolder-input").forEach(item => {
+	document.querySelectorAll(".input-dialog").forEach(item => {
 		item.remove();
 	});
 	let nameInput = document.createElement("div");
-	nameInput.className = "newfolder-input";
+	nameInput.className = "input-dialog";
 	nameInput.innerHTML = `
 		<h4>Type in a name for your new folder.</h4>
 		<input type="text" placeholder="New folder" autofocus>
 	`;
-	if (e == null) {
-		nameInput.style.left = "50%"; 
-		nameInput.style.top = "50%";
-	}
-	else {
-		nameInput.style.left = e.clientX + "px";
-		nameInput.style.top = e.clientY + "px";
-	}
 	document.querySelector("body").append(nameInput);
 	ContextMenu.style.display = "none";
 	nameInput.children[1].focus();
@@ -865,23 +886,15 @@ function createFolderInputPrompt(e = null) {
 }
 
 function createFileInputPrompt(e) {
-	document.querySelectorAll(".newfolder-input").forEach(item => {
+	document.querySelectorAll(".input-dialog").forEach(item => {
 		item.remove();
 	});
 	let nameInput = document.createElement("div");
-	nameInput.className = "newfolder-input";
+	nameInput.className = "input-dialog";
 	nameInput.innerHTML = `
 		<h4>Type in a name for your new file.</h4>
 		<input type="text" placeholder="New document" autofocus>
 	`;
-	if (e == null) {
-		nameInput.style.left = "50%"; 
-		nameInput.style.top = "50%";
-	}
-	else {
-		nameInput.style.left = e.clientX + "px";
-		nameInput.style.top = e.clientY + "px";
-	}
 	document.querySelector("body").append(nameInput);
 	ContextMenu.style.display = "none";
 	nameInput.children[1].focus();
@@ -895,7 +908,7 @@ function createFileInputPrompt(e) {
 }
 
 function closeInputDialog() {
-	let newFolderInput = document.querySelector(".newfolder-input");
+	let newFolderInput = document.querySelector(".input-dialog");
 	if (newFolderInput != null) {
 		newFolderInput.remove();
 	}
@@ -908,7 +921,7 @@ function renameElementInputPrompt(e, item) {
 	let tempFileName = tempRenameFilePath[tempRenameFilePath.length - 1].replace("'", "");
 	let nameInput = document.createElement("div");
 
-	nameInput.className = "newfolder-input";
+	nameInput.className = "input-dialog";
 	nameInput.innerHTML = `
 		<h4>Type in a new name for this item.</h4>
 		<input type="text" placeholder="document.txt" value="${tempFileName}" required pattern="[0-9]" autofocus>
@@ -1767,7 +1780,8 @@ function showProperties(item) {
 	let name = item.getAttribute("itemname");
 	let path = item.getAttribute("itempath");
 	let size = item.getAttribute("itemsize");
-	alert("Name: " + name + "\n Path: " + path + "\n Size: " + size);
+	let modifiedAt = item.getAttribute("itemmodified");
+	alert("Name: " + name + "\nModified: " + modifiedAt + "\nPath: " + path + "\nSize: " + size);
 	ContextMenu.style.display = "none";
 }
 

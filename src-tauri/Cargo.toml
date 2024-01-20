@@ -34,6 +34,7 @@ async_ftp = { version = "6.0.0", features = ["secure"] }
 lazy_static = "1.4.0"
 ftp = "3.0.1"
 async-std = "1.10.0"
+sysinfo = "0.30.5"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
