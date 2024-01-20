@@ -23,13 +23,17 @@
 }
 
 
+html {
+	overflow: hidden;
+	background-color: transparent;
+	border-radius: 10px;
+}
 body {
 	height: 100vh;
 	background-color: var(--primaryColor);
 	overflow: hidden;
-	user-select: none;
 	outline: none;
-	border-radius: 20px;
+	border-radius: 10px;
 }
 .explorer-container {
 	margin: 0 0 0 calc(200px + 10px);
@@ -40,6 +44,7 @@ body {
 	overflow: auto;
 	position: relative;
 	user-select: none;
+	border-radius: 10px;
 }
 .dual-pane-container {
 	width: 100%;
@@ -74,6 +79,7 @@ body {
 	margin-top: 100px;
 	display: flex;
 	flex-flow: row;
+	border-radius: 15px;
 }
 .header-nav {
 	display: flex;
@@ -106,10 +112,11 @@ body {
 	z-index: 2;
 	gap: 5px;
 	border-right: 1px solid var(--secondaryColor);
+	border-radius: 0px 0px 0px 10px;
 }
 .titlebar {
 	height: 40px;
-	padding: 10px;
+	padding-right: 10px;
 	background-color: var(--secondaryColor);
 	user-select: none;
 	display: flex;
@@ -122,6 +129,7 @@ body {
 	right: 0;
 	z-index: 99;
 	border-bottom: 1px solid var(--transparentColor);
+	border-radius: 10px 10px 0px 0px;
 }
 .titlebar-button {
 	display: inline-flex;
@@ -132,7 +140,7 @@ body {
 	height: 25px;
 	cursor: pointer;
 	border-radius: 5px;
-	transition: 0.2s;
+	transition: 0.1s;
 	background-color: var(--transparentColor);
 	font-size: small;
 }
@@ -368,13 +376,13 @@ label {
 	align-items: center;
 	text-align: center;
 	margin: 5px;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .item-button:hover {
 	background-color: var(--transparentColorActive);
 }
 .item-button > img {
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .item-button:hover > img {
 	filter: brightness(0.75);
@@ -427,7 +435,7 @@ label {
 	overflow: hidden;
 	word-wrap: normal;
 	white-space: nowrap;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .item-button-list > p {
 	padding-right: 5px;
@@ -549,7 +557,7 @@ label {
 	align-items: center;
 	gap: 10px;
 	font-size: small;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .site-nav-bar-button:hover {
 	background-color: var(--transparentColorActive);
@@ -585,7 +593,6 @@ label {
 	border: none;
 	background-color: var(--secondaryColor);
 	cursor: pointer;
-	border-radius: 5px;
 	z-index: 2;
 }
 .cancel-search-button {
@@ -692,12 +699,12 @@ label {
 
 
 .current-path {
-	background-color: var(--primaryColor);
+	background-color: var(--secondaryColor);
 	position: fixed;
 	bottom: 0;
 	right: 0; 
 	font-size: small;
-	border-radius: 5px 0px 0px 0px;
+	border-radius: 5px 0px 10px 0px;
 	text-align: right;
 	padding: 5px;
 	border: 1px solid var(--transparentColor);
@@ -728,7 +735,7 @@ label {
 
 
 .context-menu {
-	width: 200px;
+	width: 175px;
 	height: fit-content;
 	padding: 5px;
 	display: flex;
@@ -740,14 +747,14 @@ label {
 	left: 0;
 	margin: auto;
 	background-color: var(--primaryColor);
-	border-radius: 5px;
+	border-radius: 10px;
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.1);
 	z-index: 99;
 }
 .context-item {
 	color: var(--textColor);
 	width: 100%;
-	padding: 10px;
+	padding: 7.5px;
 	border: none;
 	background-color: var(--secondaryColor);
 	border-radius: 5px;
@@ -772,18 +779,19 @@ label {
 }
 
 
-.newfolder-input {
+.input-dialog {
 	position: fixed;
 	top: 0;
 	left: 0;
+	right: 0;
+	bottom: 0;
 	margin: auto;
 	display: flex;
 	height: fit-content;
 	flex-flow: column;
 	justify-content: center;
 	align-items: center;
-	gap: 20px;
-	padding: 20px;
+	padding: 5px;
 	color: var(--textColor);
 	width: fit-content;
 	background-color: var(--primaryColor);
@@ -791,7 +799,10 @@ label {
 	border-radius: 10px;
 	max-width: 300px;
 }
-.newfolder-input > input {
+.input-dialog > h4 {
+	padding: 5px 10px 10px 10px;
+}
+.input-dialog > input {
 	width: 100%;
 	padding: 10px 15px;
 	background-color: var(--secondaryColor);
@@ -818,4 +829,31 @@ label {
 }
 .disk-info-icon {
 	margin: 0 !important;
+}
+
+
+.loading-popup {
+	position: absolute;
+	top: 0;
+    left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+	display: flex;
+	flex-flow: column;
+	justify-content: center;
+	align-items: center;
+	background-color: var(--primaryColor);
+	gap: 10px;
+	padding: 5px;
+	border-radius: 10px;
+	width: fit-content;
+	height: fit-content;
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+	padding-bottom: 10px;
+}
+.loading-popup > h4 {
+	padding: 10px;
+	border-radius: 5px;
+	background-color: var(--secondaryColor);
 }

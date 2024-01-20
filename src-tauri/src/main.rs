@@ -1,9 +1,10 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command, time::SystemTime, fmt::format}; 
 #[allow(unused_imports)]
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
+#[allow(unused_imports)]
 use async_std::io::Cursor;
 use rust_search::SearchBuilder;
 use serde_json::Value;
@@ -14,10 +15,17 @@ use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
 #[allow(unused_imports)]
 use get_sys_info::{System, Platform};
+#[allow(unused_imports)]
 use dialog::{DialogBox, backends::Dialog};
+#[allow(unused_imports)]
 use async_ftp::{FtpStream, DataStream};
+#[allow(unused_imports)]
 use async_ftp::types::FileType::{Ascii, Binary, Ebcdic, Image, Local};
+#[allow(unused_imports)]
 use async_ftp::FtpError;
+mod utils;
+use utils::{dbg_log, err_log};
+use sysinfo::{Components, Disks, Networks};
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -143,45 +151,59 @@ struct DisksInfo {
 
 #[tauri::command]
 async fn list_disks() -> Vec<DisksInfo> {
+
     let mut ls_disks: Vec<DisksInfo> = vec![];
-    #[cfg(not(target_os = "macos"))]
-    let disk_list = System::new().mounts().unwrap_or_else(|r| {
-            println!("get mounts error:{}", r);
-            vec![]
-        });
-
-    #[cfg(not(target_os = "macos"))]
-    #[cfg(not(target_os = "windows"))]
-    for disk in disk_list {
-        if disk.fs_mounted_from.starts_with("/dev/sda") || disk.fs_mounted_from.starts_with("/dev/nvme") {
-            ls_disks.push(DisksInfo {
-                name: disk.fs_mounted_on.split("/").last().unwrap_or("/").to_string(),
-                format: disk.fs_type,
-                path: disk.fs_mounted_on,
-                avail: disk.avail.to_string(),
-                capacity: disk.total.to_string()
-            });
-        }
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    #[cfg(target_os = "windows")]
-    for disk in disk_list {
+    let disks = Disks::new_with_refreshed_list();
+    for disk in &disks {
+        dbg_log(format!("{:?}", &disk));
         ls_disks.push(DisksInfo {
-            name: disk.fs_mounted_from,
-            format: disk.fs_type,
-            path: disk.fs_mounted_on.replace("\\", "/"),
-            avail: disk.avail.to_string(),
-            capacity: disk.total.to_string()
+            name: format!("{:?}", disk.mount_point()).split("/").last().unwrap_or("/").to_string().replace("\"", ""),
+            format: format!("{:?}", disk.file_system()),
+            path: format!("{:?}", disk.mount_point()),
+            avail: format!("{:?}", disk.available_space()),
+            capacity: format!("{:?}", disk.total_space()),
         });
     }
+
+    // #[cfg(not(target_os = "macos"))]
+    // let disk_list = System::new().mounts().unwrap_or_else(|r| {
+    //         dbg_log(format!("Got mounts error: {}", r));
+    //         vec![]
+    //     });
+
+    // #[cfg(not(target_os = "macos"))]
+    // #[cfg(not(target_os = "windows"))]
+    // for disk in disk_list {
+    //     if disk.fs_mounted_from.starts_with("/dev/sda") || disk.fs_mounted_from.starts_with("/dev/nvme") || disk.fs_mounted_from.starts_with("/mnt"){
+    //         dbg_log(format!("Mounted on: {:?} - Mounted from: {:?} - Free: {:?} - FS-Type: {:?}", disk.fs_mounted_on, disk.fs_mounted_from, disk.free, disk.fs_type));
+    //         ls_disks.push(DisksInfo {
+    //             name: disk.fs_mounted_on.split("/").last().unwrap_or("/").to_string(),
+    //             format: disk.fs_type,
+    //             path: disk.fs_mounted_on,
+    //             avail: disk.avail.to_string(),
+    //             capacity: disk.total.to_string()
+    //         });
+    //     }
+    // }
+
+    // #[cfg(not(target_os = "macos"))]
+    // #[cfg(target_os = "windows")]
+    // for disk in disk_list {
+    //     ls_disks.push(DisksInfo {
+    //         name: disk.fs_mounted_from,
+    //         format: disk.fs_type,
+    //         path: disk.fs_mounted_on.replace("\\", "/"),
+    //         avail: disk.avail.to_string(),
+    //         capacity: disk.total.to_string()
+    //     });
+    // }
 
     return ls_disks;
 }
 
 #[tauri::command]
 async fn switch_to_directory(current_dir: String) {
-    println!("Switching to directory: {}", &current_dir);
+    dbg_log(format!("Switching to directory: {}", &current_dir));
     set_current_dir(current_dir).unwrap();
 }
 #[tauri::command]
@@ -189,7 +211,6 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
-    println!("{}", app_config["configured_path_one"].to_string());
     let app_config_json = AppConfig {
         view_mode,
         last_modified: chrono::offset::Local::now().to_string(),
@@ -216,7 +237,7 @@ async fn get_current_dir() -> String {
 
 #[tauri::command]
 async fn set_dir(current_dir: String) {
-    println!("Current dir: {}", &current_dir);
+    dbg_log(format!("Current dir: {}", &current_dir));
     let _ = set_current_dir(current_dir);
 }
 
@@ -269,12 +290,10 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 
 #[tauri::command]
 async fn open_dir(_path: String) -> Vec<FDir> {
-    println!("{}", &_path.contains('"'));
     let sw = Stopwatch::start_new();
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(&_path.replace('"', "")).expect("Unable to open directory");
     let _ = set_current_dir(_path);
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
     for item in current_directory {
         let temp_item = item.unwrap();
         let name = &temp_item.file_name().into_string().unwrap();
@@ -303,14 +322,14 @@ async fn open_dir(_path: String) -> Vec<FDir> {
             is_ftp: 0
         });
     }
-    println!("{} ms", sw.elapsed_ms());
+    dbg_log(format!("Current dir: {:?} | Time: {:?}", current_dir().unwrap(), sw.elapsed()));
     return dir_list;
 }
 
 #[tauri::command]
 async fn go_back() -> Vec<FDir> {
     let _ = set_current_dir(current_dir().unwrap().to_str().unwrap().to_owned()+"/../");
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
+    dbg_log(format!("Current dir: {:?}", current_dir().unwrap()));
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_dir = fs::read_dir(current_dir().unwrap()).unwrap();
     for item in current_dir {
@@ -359,14 +378,13 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
         _ => set_current_dir(current_dir().unwrap()) 
     };
     if wanted_directory.is_err() {
-        println!("Not a valid directory");
+        err_log("Not a valid directory".into());
     }
     else {
-        println!("{:?}", current_dir().unwrap());
+        dbg_log(format!("Current dir: {:?}", current_dir().unwrap()));
     }
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    println!("# DEBUG: Current dir: {:?}", current_dir().unwrap());
     for item in current_directory {
         let temp_item = item.unwrap();
         let name = &temp_item.file_name().into_string().unwrap();
@@ -408,11 +426,11 @@ async fn open_fav_ftp(hostname: String, username: String, password: String) -> V
     let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
 
     for item in ftp_dir_list {
-        println!("{:?}", item.split("/").last().unwrap());
+        dbg_log(format!("{:?}", item.split("/").last().unwrap()));
     }
 
     // Get the current directory that the client will be reading from and writing to.
-    println!("Current directory: {:?}", &ftp_dir);
+        dbg_log(format!("Current dir: {:?}", &ftp_dir));
 
     let mut dir_list: Vec<FDir> = Vec::new();
     
@@ -442,11 +460,11 @@ async fn open_ftp_dir(path: String) -> Vec<FDir> {
     let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
 
     for item in ftp_dir_list {
-        println!("{:?}", item);
+        dbg_log(format!("{:?}", item));
     }
 
     // Get the current directory that the client will be reading from and writing to.
-    println!("Current directory: {:?}", &ftp_dir);
+        dbg_log(format!("Current dir: {:?}", &ftp_dir));
 
     let mut dir_list: Vec<FDir> = Vec::new();
     
@@ -476,7 +494,7 @@ async fn copy_from_ftp(path: String) {
     for line in file.lines() {
         data.push_str(&line.unwrap());
     }
-    println!("{}", data);
+    dbg_log(format!("Data: {:?}", data));
 }
 
 async fn is_directory(ftp_stream: &mut FtpStream, path: &str) -> i8 {
@@ -484,11 +502,11 @@ async fn is_directory(ftp_stream: &mut FtpStream, path: &str) -> i8 {
         Ok(_) => {
             // Zurück zum ursprünglichen Verzeichnis wechseln
             if let Err(_) = ftp_stream.cdup().await {
-                eprintln!("Fehler beim Wechseln zum ursprünglichen Verzeichnis");
+                err_log("Fehler beim Wechseln zum ursprünglichen Verzeichnis".into());
             }
             1 // Erfolgreich gewechselt, also ist es ein Verzeichnis
         }
-        Err(_) => 0, // Fehler beim Wechseln, also ist es keine Verzeichnis
+        Err(_) => 0, // Fehler beim Wechseln, also ist es kein Verzeichnis
     }
 }
 
@@ -501,11 +519,11 @@ async fn ftp_go_back(path: String) -> Vec<FDir> {
     let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
 
     for item in *&ftp_dir_list {
-        println!("{:?}", item.split("/").last().unwrap());
+        dbg_log(format!("{:?}", item.split("/").last().unwrap()));
     }
 
     // Get the current directory that the client will be reading from and writing to.
-    println!("Current directory: {:?}", &ftp_dir);
+        dbg_log(format!("Current dir: {:?}", &ftp_dir));
 
     let mut dir_list: Vec<FDir> = Vec::new();
         
@@ -563,11 +581,11 @@ async fn go_home() -> Vec<FDir> {
 #[tauri::command]
 async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_content: String) -> Vec<FDir> {
     let mut file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
-    println!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext);
+    dbg_log(format!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext));
     let sw = Stopwatch::start_new();
     let search: Vec<String>;
     if file_ext != ".".to_string().to_owned()+&file_name {
-        println!("{}{}", &file_name, &file_ext);
+        dbg_log(format!("{}{}", &file_name, &file_ext));
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
             .search_input(file_name.strip_suffix(&file_ext).unwrap())
@@ -632,10 +650,11 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
             let file = fs::File::open(&path).unwrap();
             let mut reader = BufReader::new(&file);
             let mut contents: String = "".to_string();
-            println!("# Debug: Checking {}", &path);
+            dbg_log(format!("Checking {}", &path));
+
             if &file.metadata().unwrap().is_dir() == &false {
                 reader.read_to_string(&mut contents).unwrap_or_else(|x| {
-                    println!("Error reading: {}", x);
+                    err_log(format!("Error reading: {}", x));
                     0 as usize
                 });
                 if contents.contains(&file_content) {
@@ -666,16 +685,14 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
             });
         }
     }
-
-    println!("# Debug: {} ms", sw.elapsed_ms());
-    println!("# Debug: {} items found", dir_list.len());
-
+    dbg_log(format!("{}", sw.elapsed_ms()));
+    dbg_log(format!("{} items found", dir_list.len()));
     return dir_list;
 }
 
 #[tauri::command]
 async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
-    println!("Copying starting ...");
+    dbg_log("Copying starting ...".into());
     let is_dir = fs::metadata(&from_path).unwrap().is_dir();
     let sw = Stopwatch::start_new();
     let file_name: String;
@@ -755,14 +772,14 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
         counter += 1;
     }*/
 
-    println!("Copy-Paste time: {:?}", &sw.elapsed());
+    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
     return list_dirs().await;
 }
 
 #[tauri::command]
 async fn delete_item(act_file_name: String) -> Vec<FDir> {
     let is_dir = File::open(&act_file_name).unwrap().metadata().unwrap().is_dir();
-    println!("{}", &act_file_name);
+    dbg_log(String::from(&act_file_name));
     if is_dir {
         let _ = remove_dir_all(act_file_name.replace("\\", "/"));
     }
@@ -777,9 +794,9 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
     // Check file extension
     let file_ext = ".".to_string().to_owned()+from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
 
-    println!("# Debug: Start unpacking {} - {}", &file_ext, &from_path);
+    dbg_log(format!("Start unpacking {} - {}", &file_ext, &from_path));
 
-    // make zip or rar unpack
+    // zip, 7z or rar unpack
     let sw = Stopwatch::start_new();
     if file_ext == ".zip" {
         let file = PathBuf::from(&from_path);
@@ -788,11 +805,9 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
         zip_extract(&file, &new_dir).unwrap();
     }
     else if file_ext == ".rar" {
-        let mut archive = Archive::new(&from_path)
-            .open_for_processing()
-            .unwrap();
+        let mut archive = Archive::new(&from_path).open_for_processing().unwrap();
         while let Some(header) = archive.read_header().unwrap() {
-            println!("{} bytes: {}", header.entry().unpacked_size, header.entry().filename.to_string_lossy());
+            dbg_log(format!("{} bytes: {}", header.entry().unpacked_size, header.entry().filename.to_string_lossy()));
             archive = if header.entry().is_file() {
                 header.extract().unwrap()
             } else {
@@ -803,13 +818,14 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
     else if file_ext == ".7z" {
         let _ = sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     }
-    println!("# Debug: Unpack time: {} ms", sw.elapsed_ms());
+
+    dbg_log(format!("Unpack time: {:?}", sw.elapsed()));
     return list_dirs().await;
 }
 
 #[tauri::command]
 async fn open_item(path: String) {
-    println!("{}", &path);
+    dbg_log(format!("{}", &path));
     let _ = open::that_detached(path); 
 }
 
@@ -832,7 +848,7 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
     }
     let _ = zip_create_from_directory(&archive, &source);
     let _ = remove_dir_all("compressed_dir");
-    println!("# Debug: Pack time: {} ms", sw.elapsed_ms());
+    dbg_log(format!("Pack time: {:?}", sw.elapsed()));
     return list_dirs().await;
 }
 
@@ -850,9 +866,8 @@ async fn create_file(file_name: String) {
 
 #[tauri::command]
 async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
-    let sw = Stopwatch::start_new();
     let _ = fs::rename(current_dir().unwrap().join(&path.replace("\\", "/")), current_dir().unwrap().join(&new_name.replace("\\", "/")));
-    println!("# Debug: Rename time: {} ms", sw.elapsed_ms());
+    dbg_log(format!("Renamed from {} to {}" , path, new_name));
     return list_dirs().await;
 }
 
@@ -889,5 +904,5 @@ async fn save_config(
     };
     let config_dir = app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string();
     let _ = serde_json::to_writer_pretty(File::create(&config_dir).unwrap(), &app_config_json);
-    println!("# Debug: app_config was saved to {}", config_dir);
+    dbg_log(format!("app_config was saved to {}", config_dir));
 }
