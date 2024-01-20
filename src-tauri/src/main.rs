@@ -157,7 +157,7 @@ async fn list_disks() -> Vec<DisksInfo> {
     for disk in &disks {
         dbg_log(format!("{:?}", &disk));
         ls_disks.push(DisksInfo {
-            name: format!("{:?}", disk.name()),
+            name: format!("{:?}", disk.mount_point()).split("/").last().unwrap_or("/").to_string().replace("\"", ""),
             format: format!("{:?}", disk.file_system()),
             path: format!("{:?}", disk.mount_point()),
             avail: format!("{:?}", disk.available_space()),

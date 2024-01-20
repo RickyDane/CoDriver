@@ -1067,8 +1067,8 @@ async function listDisks() {
 						<div class="disk-item-top">
 							<img class="item-icon" src="resources/disk-icon.png" width="48" height="auto"/>
 							<span>
-								<span style="display: flex; gap: 10px; align-items: center;">${item.avail}</span>
-								<span style="display: flex; gap: 10px; align-items: center;">${item.capacity}</span>
+								<span style="display: flex; gap: 10px; align-items: center;">${formatBytes(item.avail)}</span>
+								<span style="display: flex; gap: 10px; align-items: center;">${formatBytes(item.capacity)}</span>
 							</span>
 						</div>
 						<span class="disk-item-bot">
@@ -1085,8 +1085,8 @@ async function listDisks() {
 					<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 					</span>
 					<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-					<p style="width: auto; text-align: right;">${item.avail}</p>
-					<p style="width: 75px; text-align: right;">${item.capacity}</p>
+					<p style="width: auto; text-align: right;">${formatBytes(item.avail)}</p>
+					<p style="width: 75px; text-align: right;">${formatBytes(item.capacity)}</p>
 					</span>
 					`;
 				itemButtonList.className = "item-button-list directory-entry";
