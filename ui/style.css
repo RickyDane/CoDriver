@@ -27,6 +27,7 @@ html {
 	overflow: hidden;
 	background-color: transparent;
 	border-radius: 10px;
+	overflow: hidden;
 }
 body {
 	height: 100vh;
@@ -80,6 +81,7 @@ body {
 	display: flex;
 	flex-flow: row;
 	border-radius: 15px;
+	overflow: hidden;
 }
 .header-nav {
 	display: flex;
