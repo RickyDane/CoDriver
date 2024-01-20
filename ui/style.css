@@ -26,7 +26,8 @@
 html {
 	overflow: hidden;
 	background-color: transparent;
-	border-radius: 10px;
+	border: none;
+	border-radius: 15px;
 	overflow: hidden;
 }
 body {
@@ -34,7 +35,8 @@ body {
 	background-color: var(--primaryColor);
 	overflow: hidden;
 	outline: none;
-	border-radius: 10px;
+	border: none;
+	border-radius: 15px;
 }
 .explorer-container {
 	margin: 0 0 0 calc(200px + 10px);
@@ -45,7 +47,6 @@ body {
 	overflow: auto;
 	position: relative;
 	user-select: none;
-	border-radius: 10px;
 }
 .dual-pane-container {
 	width: 100%;
@@ -80,7 +81,6 @@ body {
 	margin-top: 100px;
 	display: flex;
 	flex-flow: row;
-	border-radius: 15px;
 	overflow: hidden;
 }
 .header-nav {
