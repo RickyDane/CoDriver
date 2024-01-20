@@ -1,6 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command, time::SystemTime}; 
+use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command, time::SystemTime, fmt::format}; 
 #[allow(unused_imports)]
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
@@ -148,7 +148,7 @@ async fn list_disks() -> Vec<DisksInfo> {
     let mut ls_disks: Vec<DisksInfo> = vec![];
     #[cfg(not(target_os = "macos"))]
     let disk_list = System::new().mounts().unwrap_or_else(|r| {
-            println!("get mounts error:{}", r);
+            dbg_log(format!("Got mounts error: {}", r));
             vec![]
         });
 
@@ -183,7 +183,7 @@ async fn list_disks() -> Vec<DisksInfo> {
 
 #[tauri::command]
 async fn switch_to_directory(current_dir: String) {
-    println!("Switching to directory: {}", &current_dir);
+    dbg_log(format!("Switching to directory: {}", &current_dir));
     set_current_dir(current_dir).unwrap();
 }
 #[tauri::command]
@@ -191,7 +191,6 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
     let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
-    println!("{}", app_config["configured_path_one"].to_string());
     let app_config_json = AppConfig {
         view_mode,
         last_modified: chrono::offset::Local::now().to_string(),
@@ -218,7 +217,7 @@ async fn get_current_dir() -> String {
 
 #[tauri::command]
 async fn set_dir(current_dir: String) {
-    println!("Current dir: {}", &current_dir);
+    dbg_log(format!("Current dir: {}", &current_dir));
     let _ = set_current_dir(current_dir);
 }
 
@@ -566,7 +565,7 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
     let sw = Stopwatch::start_new();
     let search: Vec<String>;
     if file_ext != ".".to_string().to_owned()+&file_name {
-        println!("{}{}", &file_name, &file_ext);
+        dbg_log(format!("{}{}", &file_name, &file_ext));
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
             .search_input(file_name.strip_suffix(&file_ext).unwrap())
@@ -635,7 +634,7 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
 
             if &file.metadata().unwrap().is_dir() == &false {
                 reader.read_to_string(&mut contents).unwrap_or_else(|x| {
-                    println!("Error reading: {}", x);
+                    err_log(format!("Error reading: {}", x));
                     0 as usize
                 });
                 if contents.contains(&file_content) {
@@ -673,7 +672,7 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
 
 #[tauri::command]
 async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
-    println!("Copying starting ...");
+    dbg_log("Copying starting ...".into());
     let is_dir = fs::metadata(&from_path).unwrap().is_dir();
     let sw = Stopwatch::start_new();
     let file_name: String;
@@ -806,7 +805,7 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
 
 #[tauri::command]
 async fn open_item(path: String) {
-    println!("{}", &path);
+    dbg_log(format!("{}", &path));
     let _ = open::that_detached(path); 
 }
 

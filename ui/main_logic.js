@@ -144,6 +144,8 @@ document.addEventListener("mousedown", (e) => {
 		document.querySelector(".context-menu").style.display = "none";
 
 		// Reset context menu
+		ContextMenu.children[0].setAttribute("disabled", "true");
+		ContextMenu.children[0].classList.add("c-item-disabled");
 		ContextMenu.children[1].setAttribute("disabled", "true");
 		ContextMenu.children[1].classList.add("c-item-disabled");
 		ContextMenu.children[2].setAttribute("disabled", "true");
@@ -152,8 +154,17 @@ document.addEventListener("mousedown", (e) => {
 		ContextMenu.children[3].classList.add("c-item-disabled");
 		ContextMenu.children[4].setAttribute("disabled", "true");
 		ContextMenu.children[4].classList.add("c-item-disabled");
+
+		// New file and new folder
+		// ContextMenu.children[5].setAttribute("disabled", "true");
+		// ContextMenu.children[5].classList.add("c-item-disabled");
+		// ContextMenu.children[6].setAttribute("disabled", "true");
+		// ContextMenu.children[6].classList.add("c-item-disabled");
+
 		ContextMenu.children[7].setAttribute("disabled", "true");
 		ContextMenu.children[7].classList.add("c-item-disabled");
+		ContextMenu.children[8].setAttribute("disabled", "true");
+		ContextMenu.children[8].classList.add("c-item-disabled");
 	}
 });
 
@@ -161,10 +172,10 @@ document.addEventListener("mousedown", (e) => {
 // Open context menu for pasting for example
 document.addEventListener("contextmenu", (e) => {
 	e.preventDefault();
-	ContextMenu.children[0].replaceWith(ContextMenu.children[0].cloneNode(true));
 	ContextMenu.children[5].replaceWith(ContextMenu.children[5].cloneNode(true));
 	ContextMenu.children[6].replaceWith(ContextMenu.children[6].cloneNode(true));
 	// ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
+
 	ContextMenu.style.display = "flex";
 	ContextMenu.style.left = e.clientX + "px";
 	if ((ContextMenu.offsetHeight + e.clientY) >= window.innerHeight) {
@@ -178,16 +189,17 @@ document.addEventListener("contextmenu", (e) => {
 	if ((ContextMenu.clientWidth + e.clientX) >= window.innerWidth) {
 		ContextMenu.style.left = e.clientX - ContextMenu.innerWidth + "px";
 	}
-	ContextMenu.children[0].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
-	ContextMenu.children[6].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
+	
+	ContextMenu.children[6].addEventListener("click", function() { createFolderInputPrompt(e); }, {once: true});
+	ContextMenu.children[5].addEventListener("click", function() { createFileInputPrompt(e); }, {once: true});
 
 	if (CopyFilePath == "") {
-		ContextMenu.children[5].setAttribute("disabled", "true");
-		ContextMenu.children[5].classList.add("c-item-disabled");
+		ContextMenu.children[4].setAttribute("disabled", "true");
+		ContextMenu.children[4].classList.add("c-item-disabled");
 	}
 	else {
-		ContextMenu.children[5].removeAttribute("disabled");
-		ContextMenu.children[5].classList.remove("c-item-disabled");
+		ContextMenu.children[4].removeAttribute("disabled");
+		ContextMenu.children[4].classList.remove("c-item-disabled");
 	}
 });
 
@@ -467,32 +479,59 @@ async function showItems(items, dualPaneSide = "") {
 			if (item.name.toLowerCase().includes("downloads")) {
 				fileIcon = "resources/folder-downloads.png";
 			}
-			else if (item.name.toLowerCase().includes("desktop")|| item.name.toLowerCase().includes("schreibtisch")) {
+			else if (item.name.toLowerCase().includes("desktop")
+			|| item.name.toLowerCase().includes("schreibtisch"))
+			{
 				fileIcon = "resources/folder-desktop.png";
 			}
-			else if (item.name.toLowerCase().includes("dokumente") || item.name.toLowerCase().includes("documents")) {
+			else if (item.name.toLowerCase().includes("dokumente")
+			|| item.name.toLowerCase().includes("documents")
+			|| item.name.toLowerCase().includes("docs"))
+			{
 				fileIcon = "resources/folder-docs.png";
 			}
 			else if (item.name.toLowerCase().includes("musik") || item.name.toLowerCase().includes("music")) {
 				fileIcon = "resources/folder-music.png";
 			}
-			else if (item.name.toLowerCase().includes("bilder") || item.name.toLowerCase().includes("pictures")) {
+			else if (item.name.toLowerCase().includes("bilder")
+			|| item.name.toLowerCase().includes("pictures")
+			|| item.name.toLowerCase().includes("images"))
+			{
 				fileIcon = "resources/folder-images.png";
 			}
-			else if (item.name.toLowerCase().includes("videos")) {
+			else if (item.name.toLowerCase().includes("videos")
+			|| item.name.toLowerCase().includes("movies")
+			|| item.name.toLowerCase().includes("films")
+			|| item.name.toLowerCase().includes("filme"))
+			{
 				fileIcon = "resources/folder-videos.png";
 			}
-			else if (item.name.toLowerCase().includes("coding") || item.name.toLowerCase().includes("programming")) {
+			else if (item.name.toLowerCase().includes("coding")
+			|| item.name.toLowerCase().includes("programming")
+			|| item.name.toLowerCase().includes("programmieren")
+			|| item.name.toLowerCase().includes("code"))
+			{
 				fileIcon = "resources/folder-coding.png";
 			}
 			else if (item.name.toLowerCase().includes("werkzeuge") || item.name.toLowerCase().includes("tools")) {
 				fileIcon = "resources/folder-tools.png";
 			}
-			else if (item.name.toLowerCase().includes("public") || item.name.toLowerCase().includes("öffentlich")) {
+			else if (item.name.toLowerCase().includes("public")
+			|| item.name.toLowerCase().includes("öffentlich")
+		    || item.name.toLowerCase().includes("shared")
+			|| item.name.toLowerCase().includes("geteilt"))
+			{
 				fileIcon = "resources/folder-public.png";
 			}
-			else if (item.name.toLowerCase().includes("games") || item.name.toLowerCase().includes("spiele")) {
+			else if (item.name.toLowerCase().includes("games")
+			|| item.name.toLowerCase().includes("spiele"))
+			{
 				fileIcon = "resources/folder-games.png";
+			}
+			else if (item.name.toLowerCase().includes("developer")
+			|| item.name.toLowerCase().includes("development"))
+			{
+				fileIcon = "resources/folder-development.png";
 			}
 		}
 		else {
@@ -616,10 +655,12 @@ async function showItems(items, dualPaneSide = "") {
 			let actFileName = fromPath.split("/")[fromPath.split("/").length - 1];
 			let extension = actFileName.split(".")[actFileName.split(".").length-1];
 
-			ContextMenu.children[1].removeAttribute("disabled");
-			ContextMenu.children[1].classList.remove("c-item-disabled");
+			ContextMenu.children[0].removeAttribute("disabled");
+			ContextMenu.children[0].classList.remove("c-item-disabled");
+			ContextMenu.children[2].removeAttribute("disabled");
+			ContextMenu.children[2].classList.remove("c-item-disabled")
 			ContextMenu.children[3].removeAttribute("disabled");
-			ContextMenu.children[3].classList.remove("c-item-disabled");
+			ContextMenu.children[3].classList.remove("c-item-disabled");;
 			ContextMenu.children[4].removeAttribute("disabled");
 			ContextMenu.children[4].classList.remove("c-item-disabled");
 			ContextMenu.children[7].removeAttribute("disabled");
@@ -631,19 +672,19 @@ async function showItems(items, dualPaneSide = "") {
 			if (extension != "zip"
 				&& extension != "rar"
 				&& extension != "7z") {
-				ContextMenu.children[2].setAttribute("disabled", "true");
-				ContextMenu.children[2].classList.add("c-item-disabled");
+				ContextMenu.children[1].setAttribute("disabled", "true");
+				ContextMenu.children[1].classList.add("c-item-disabled");
 			}
 			else {
-				ContextMenu.children[2].removeAttribute("disabled");
-				ContextMenu.children[2].classList.remove("c-item-disabled");
+				ContextMenu.children[1].removeAttribute("disabled");
+				ContextMenu.children[1].classList.remove("c-item-disabled");
 			}
-			ContextMenu.children[0].addEventListener("click", () => { createFolderInputPrompt(e); }, {once: true});
-			ContextMenu.children[1].addEventListener("click", () => { deleteItem(item); }, {once: true});
-			ContextMenu.children[2].addEventListener("click", () => { extractItem(item); }, {once: true});
-			ContextMenu.children[3].addEventListener("click", () => { compressItem(item); }, {once: true});
-			ContextMenu.children[4].addEventListener("click", () => { copyItem(item); }, {once: true});
-			ContextMenu.children[6].addEventListener("click", () => { createFileInputPrompt(e); }, {once: true});
+			ContextMenu.children[0].addEventListener("click", () => { deleteItem(item); }, {once: true});
+			ContextMenu.children[1].addEventListener("click", () => { extractItem(item); }, {once: true});
+			ContextMenu.children[2].addEventListener("click", () => { compressItem(item); }, {once: true});
+			ContextMenu.children[3].addEventListener("click", () => { copyItem(item); }, {once: true});
+			ContextMenu.children[5].addEventListener("click", () => { createFileInputPrompt(e); }, {once: true});
+			ContextMenu.children[6].addEventListener("click", () => { createFolderInputPrompt(e); }, {once: true});
 			ContextMenu.children[7].addEventListener("click", () => { renameElementInputPrompt(e, item); }, {once: true});
 			ContextMenu.children[8].addEventListener("click", () => { showProperties(item); }, {once: true});
 

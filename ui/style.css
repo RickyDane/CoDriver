@@ -132,7 +132,7 @@ body {
 	height: 25px;
 	cursor: pointer;
 	border-radius: 5px;
-	transition: 0.2s;
+	transition: 0.1s;
 	background-color: var(--transparentColor);
 	font-size: small;
 }
@@ -368,13 +368,13 @@ label {
 	align-items: center;
 	text-align: center;
 	margin: 5px;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .item-button:hover {
 	background-color: var(--transparentColorActive);
 }
 .item-button > img {
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .item-button:hover > img {
 	filter: brightness(0.75);
@@ -427,7 +427,7 @@ label {
 	overflow: hidden;
 	word-wrap: normal;
 	white-space: nowrap;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .item-button-list > p {
 	padding-right: 5px;
@@ -549,7 +549,7 @@ label {
 	align-items: center;
 	gap: 10px;
 	font-size: small;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .site-nav-bar-button:hover {
 	background-color: var(--transparentColorActive);
@@ -728,7 +728,7 @@ label {
 
 
 .context-menu {
-	width: 200px;
+	width: 175px;
 	height: fit-content;
 	padding: 5px;
 	display: flex;
@@ -740,14 +740,14 @@ label {
 	left: 0;
 	margin: auto;
 	background-color: var(--primaryColor);
-	border-radius: 5px;
+	border-radius: 10px;
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.1);
 	z-index: 99;
 }
 .context-item {
 	color: var(--textColor);
 	width: 100%;
-	padding: 10px;
+	padding: 7.5px;
 	border: none;
 	background-color: var(--secondaryColor);
 	border-radius: 5px;
@@ -782,14 +782,16 @@ label {
 	flex-flow: column;
 	justify-content: center;
 	align-items: center;
-	gap: 20px;
-	padding: 20px;
+	padding: 5px;
 	color: var(--textColor);
 	width: fit-content;
 	background-color: var(--primaryColor);
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
 	border-radius: 10px;
 	max-width: 300px;
+}
+.newfolder-input > h4 {
+	padding: 5px 10px 10px 10px;
 }
 .newfolder-input > input {
 	width: 100%;
