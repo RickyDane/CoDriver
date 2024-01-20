@@ -23,13 +23,17 @@
 }
 
 
+html {
+	overflow: hidden;
+	background-color: transparent;
+	border-radius: 10px;
+}
 body {
 	height: 100vh;
 	background-color: var(--primaryColor);
 	overflow: hidden;
-	user-select: none;
 	outline: none;
-	border-radius: 20px;
+	border-radius: 10px;
 }
 .explorer-container {
 	margin: 0 0 0 calc(200px + 10px);
@@ -40,6 +44,7 @@ body {
 	overflow: auto;
 	position: relative;
 	user-select: none;
+	border-radius: 10px;
 }
 .dual-pane-container {
 	width: 100%;
@@ -74,6 +79,7 @@ body {
 	margin-top: 100px;
 	display: flex;
 	flex-flow: row;
+	border-radius: 15px;
 }
 .header-nav {
 	display: flex;
@@ -106,10 +112,11 @@ body {
 	z-index: 2;
 	gap: 5px;
 	border-right: 1px solid var(--secondaryColor);
+	border-radius: 0px 0px 0px 10px;
 }
 .titlebar {
 	height: 40px;
-	padding: 10px;
+	padding-right: 10px;
 	background-color: var(--secondaryColor);
 	user-select: none;
 	display: flex;
@@ -122,6 +129,7 @@ body {
 	right: 0;
 	z-index: 99;
 	border-bottom: 1px solid var(--transparentColor);
+	border-radius: 10px 10px 0px 0px;
 }
 .titlebar-button {
 	display: inline-flex;
@@ -691,12 +699,12 @@ label {
 
 
 .current-path {
-	background-color: var(--primaryColor);
+	background-color: var(--secondaryColor);
 	position: fixed;
 	bottom: 0;
 	right: 0; 
 	font-size: small;
-	border-radius: 5px 0px 0px 0px;
+	border-radius: 5px 0px 10px 0px;
 	text-align: right;
 	padding: 5px;
 	border: 1px solid var(--transparentColor);
