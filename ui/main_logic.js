@@ -116,15 +116,18 @@ document.addEventListener("keyup", (e) => {
 	if (e.keyCode === 27) {
 		// Close all popups etc.
 		ContextMenu.style.display = "none";
-		closeSearchBar();
-		closeSettings();
-		closeInputDialog();
-		closeFullSearchContainer();
-		closeFtpConfig();
-		closeInputPopup();
+		closeAllPopups();
 	}
 });
 
+function closeAllPopups() {
+	closeSearchBar();
+	closeSettings();
+	closeInputDialog();
+	closeFullSearchContainer();
+	closeFtpConfig();
+	closeInputPopup();
+}
 
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
@@ -166,6 +169,7 @@ document.addEventListener("mousedown", (e) => {
 		ContextMenu.children[7].classList.add("c-item-disabled");
 		ContextMenu.children[8].setAttribute("disabled", "true");
 		ContextMenu.children[8].classList.add("c-item-disabled");
+		closeAllPopups();
 	}
 });
 
@@ -330,15 +334,9 @@ document.onkeydown = async (e) => {
 			renameElementInputPrompt(null, SelectedElement);	
 		}
 		if (IsPopUpOpen == false) {
-			// check if alt + f7 is pressed
+			// check if f8 is pressed
 			if (e.keyCode == 119) {
 				openFullSearchContainer();
-				e.preventDefault();
-				e.stopPropagation();
-			}
-			// check if strg + f is pressed
-			if (e.ctrlKey && e.keyCode == 70) {
-				openSearchBar();
 				e.preventDefault();
 				e.stopPropagation();
 			}
@@ -350,6 +348,11 @@ document.onkeydown = async (e) => {
 		refreshView();
 		e.preventDefault();
 		e.stopPropagation();
+	}
+
+	// check if ctrl + v is pressed
+	if (e.ctrlKey && e.key == "v") {
+		pasteItem();
 	}
 
 	if (IsPopUpOpen == false) {
@@ -370,6 +373,13 @@ document.onkeydown = async (e) => {
 		// New file input prompt when f6 is pressed
 		if (e.keyCode == 117) {
 			createFileInputPrompt();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+
+		// check if strg + f is pressed
+		if (e.ctrlKey && e.keyCode == 70) {
+			openSearchBar();
 			e.preventDefault();
 			e.stopPropagation();
 		}
@@ -839,7 +849,7 @@ function showInputPopup(msg) {
 	let popup = document.createElement("div");
 	popup.innerHTML = `
 		<h4>${msg}</h4>
-		<input class="text-input" placeholder="Start typing ..." autofocus/>
+		<input class="text-input" placeholder="/home/example/path/to/dir" autofocus/>
 	`;
 	popup.className = "input-popup"
 	popup.children[1].addEventListener("keyup", async (e) => {
@@ -1492,9 +1502,8 @@ document.querySelector(".dualpane-search-input").addEventListener("keyup", (e) =
 	if (e.keyCode === 13) {
 		closeSearchBar();
 	}
-	else if (IsQuickSearchOpen == true) {
-		let fileName = document.querySelector(".dualpane-search-input").value;
-		searchFor(fileName, 999999, 1, true);
+	else if (IsQuickSearchOpen == true && e.ctrlKey == false) {
+		searchFor($(".dualpane-search-input").val(), 999999, 1, true);
 	}
 });
 

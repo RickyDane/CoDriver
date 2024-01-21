@@ -61,14 +61,14 @@ body {
 	border-right: 2px solid var(--transparentColor);
 	width: 50%;
 	max-width: 50%;
-	padding: 15px;
+	padding: 5px;
 	min-height: 100vh - 110px;
 	overflow: auto;
 }
 .dual-pane-right {
 	border-left: 2px solid var(--transparentColor);
 	width: 50%;
-	padding: 15px;
+	padding: 5px;
 	overflow: auto;
 }
 .dual-pane-left > div > button, .dual-pane-right > div > button {
@@ -616,7 +616,7 @@ label {
 	height: fit-content;
 	background: var(--primaryColor);
 	padding: 10px;
-	border-radius: 5px;
+	border-radius: 10px;
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
 }
 .text-input {
@@ -732,7 +732,7 @@ label {
 	flex-flow: column !important;
 	justify-content: center;
 	align-items: center;
-	height: calc(100vh - 110px);
+	height: calc(100vh - 100px);
 }
 
 

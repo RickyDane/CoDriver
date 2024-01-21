@@ -6,7 +6,7 @@ use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
 use std::fs::{self, ReadDir};
 #[allow(unused_imports)]
 use async_std::io::Cursor;
-use rust_search::SearchBuilder;
+use rust_search::{SearchBuilder, similarity_sort};
 use serde_json::Value;
 use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config};
 use stopwatch::Stopwatch;
@@ -24,7 +24,7 @@ use async_ftp::types::FileType::{Ascii, Binary, Ebcdic, Image, Local};
 #[allow(unused_imports)]
 use async_ftp::FtpError;
 mod utils;
-use utils::{dbg_log, err_log};
+use utils::{dbg_log, err_log, wng_log};
 use sysinfo::{Components, Disks, Networks};
 
 static mut HOSTNAME: String = String::new();
@@ -565,10 +565,10 @@ async fn get_current_connection() -> FtpStream {
 #[tauri::command]
 async fn open_in_terminal() {
     #[cfg(target_os = "linux")]
-    // Open the terminal on linux pc
+    // Open the terminal on linux
     let _ = Command::new("gnome-terminal").arg(current_dir().unwrap()).spawn();
     #[cfg(target_os = "windows")]
-    // Open the terminal on windows pc
+    // Open the terminal on windows
     let _ = Command::new("cmd").arg("/c").arg("start").arg(current_dir().unwrap()).spawn();
     #[cfg(target_os = "macos")]
     // Open the terminal on mac
@@ -584,14 +584,15 @@ async fn go_home() -> Vec<FDir> {
 #[tauri::command]
 async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_content: String) -> Vec<FDir> {
     let mut file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
+    println!("");
     dbg_log(format!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext));
     let sw = Stopwatch::start_new();
-    let search: Vec<String>;
+    let mut search: Vec<String>;
     if file_ext != ".".to_string().to_owned()+&file_name {
         dbg_log(format!("{}{}", &file_name, &file_ext));
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
-            .search_input(file_name.strip_suffix(&file_ext).unwrap())
+            .search_input(*&file_name.strip_suffix(&file_ext).unwrap())
             .ignore_case( )
             .depth(search_depth.clone() as usize)
             .ext(&file_ext)
@@ -603,7 +604,7 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
     else {
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
-            .search_input(file_name)
+            .search_input(&file_name)
             .ignore_case()
             .depth(search_depth as usize)
             .hidden()
@@ -611,6 +612,12 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
             .build()
             .collect();
     }
+
+    // Sorting search results by input
+    let sw2 = Stopwatch::start_new();
+    similarity_sort(&mut search, &file_name);
+    dbg_log(format!("Sorting took: {:?}", sw2.elapsed()));
+
     let mut dir_list: Vec<FDir> = Vec::new();
     for item in search {
         file_ext = ".".to_string().to_owned()+item.split(".").nth(item.split(".").count() - 1).unwrap_or("");
@@ -621,28 +628,24 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
         let temp_file = fs::metadata(&item);
         let file_size: String;
         let file_date: DateTime<Utc>;
+
         if &temp_file.is_ok() == &true {
             file_size = String::from(fs::metadata(&item).unwrap().len().to_string());
             file_date = fs::metadata(&item).unwrap().modified().unwrap().clone().into();
         }
         else {
-            file_size = "0".to_string();
-            file_date = TimeZone::from_utc_datetime(&Utc, &NaiveDateTime::from_timestamp_opt(61, 0).unwrap());
+            continue;
         }
-        let is_dir: bool;
-        if &temp_file.is_ok() == &true {
-            is_dir = *&temp_file.unwrap().is_dir();
-        }
-        else {
-            is_dir = false;
-        }
+
+        // Check if the item is a directory
         let is_dir_int;
-        if is_dir.to_owned() {
+        if &temp_file.is_ok() == &true && *&temp_file.unwrap().is_dir() {
             is_dir_int = 1;
         }
         else {
             is_dir_int = 0;
         }
+
         // Don't include the directory searched in 
         if path == current_dir().unwrap().to_str().unwrap() {
             continue;
@@ -652,7 +655,7 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
         if &file_content != "" {
             let file = fs::File::open(&path).unwrap();
             let mut reader = BufReader::new(&file);
-            let mut contents: String = "".to_string();
+            let mut contents = String::from("");
             dbg_log(format!("Checking {}", &path));
 
             if &file.metadata().unwrap().is_dir() == &false {
@@ -688,7 +691,10 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
             });
         }
     }
-    dbg_log(format!("{}", sw.elapsed_ms()));
+    if dir_list.len() == 0 {
+        wng_log("No item found ".into());
+    }
+    dbg_log(format!("Search took: {:?}", sw.elapsed()));
     dbg_log(format!("{} items found", dir_list.len()));
     return dir_list;
 }
@@ -828,7 +834,7 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
 
 #[tauri::command]
 async fn open_item(path: String) {
-    dbg_log(format!("{}", &path));
+    dbg_log(format!("Opening: {}", &path));
     let _ = open::that_detached(path); 
 }
 
