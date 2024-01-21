@@ -143,7 +143,7 @@ document.addEventListener("mousedown", (e) => {
 			&& e.target != newFolderInput.children[0]
 			&& e.target != newFolderInput.children[1])
 		{
-			closeInputDialog();
+			closeAllPopups();
 		}
 		document.querySelector(".context-menu").style.display = "none";
 
@@ -169,7 +169,6 @@ document.addEventListener("mousedown", (e) => {
 		ContextMenu.children[7].classList.add("c-item-disabled");
 		ContextMenu.children[8].setAttribute("disabled", "true");
 		ContextMenu.children[8].classList.add("c-item-disabled");
-		closeAllPopups();
 	}
 });
 
@@ -864,6 +863,9 @@ function showInputPopup(msg) {
 	body.append(popup);
 	popup.children[1].focus();
 	IsPopUpOpen = true;
+	popup.children[1].addEventListener("focusout", () => {
+		closeAllPopups();
+	});
 }
 function closeInputPopup() {
 	$(".input-popup").remove();
@@ -918,7 +920,7 @@ function createFolderInputPrompt(e = null) {
 	nameInput.className = "input-dialog";
 	nameInput.innerHTML = `
 		<h4>Type in a name for your new folder.</h4>
-		<input type="text" placeholder="New folder" autofocus>
+		<input class="text-input" type="text" placeholder="New folder" autofocus>
 	`;
 	document.querySelector("body").append(nameInput);
 	ContextMenu.style.display = "none";
@@ -931,6 +933,7 @@ function createFolderInputPrompt(e = null) {
 			nameInput.remove();
 		}
 	});
+	IsPopUpOpen = true;
 }
 
 function createFileInputPrompt(e) {
@@ -941,7 +944,7 @@ function createFileInputPrompt(e) {
 	nameInput.className = "input-dialog";
 	nameInput.innerHTML = `
 		<h4>Type in a name for your new file.</h4>
-		<input type="text" placeholder="New document" autofocus>
+		<input class="text-input" type="text" placeholder="New document" autofocus>
 	`;
 	document.querySelector("body").append(nameInput);
 	ContextMenu.style.display = "none";
@@ -953,6 +956,7 @@ function createFileInputPrompt(e) {
 			nameInput.remove();
 		}
 	});
+	IsPopUpOpen = true;
 }
 
 function closeInputDialog() {
@@ -961,6 +965,7 @@ function closeInputDialog() {
 		newFolderInput.remove();
 	}
 	IsDisableShortcuts = false;
+	IsPopUpOpen = false;
 }
 
 function renameElementInputPrompt(e, item) {
@@ -972,7 +977,7 @@ function renameElementInputPrompt(e, item) {
 	nameInput.className = "input-dialog";
 	nameInput.innerHTML = `
 		<h4>Type in a new name for this item.</h4>
-		<input type="text" placeholder="document.txt" value="${tempFileName}" required pattern="[0-9]" autofocus>
+		<input class="text-input" type="text" placeholder="document.txt" value="${tempFileName}" required pattern="[0-9]" autofocus>
 		`;
 	if (e != null) {
 		nameInput.style.left = e.clientX + "px";
@@ -995,6 +1000,7 @@ function renameElementInputPrompt(e, item) {
 			IsPopUpOpen = false;
 		}
 	});
+	IsPopUpOpen = true;
 }
 
 function createFolder(folderName) {
@@ -1513,6 +1519,9 @@ function openSearchBar() {
 	IsDisableShortcuts = true;	
 	IsQuickSearchOpen = true;
 	IsPopUpOpen = true;
+	document.querySelector(".dualpane-search-input").addEventListener("focusout", () => {
+		closeAllPopups();
+	});
 }
 
 function closeSearchBar() {
