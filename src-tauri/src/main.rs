@@ -292,7 +292,10 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 async fn open_dir(_path: String) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
     let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(&_path.replace('"', "")).expect("Unable to open directory");
+    let current_directory = fs::read_dir(&_path.replace('"', "")).unwrap_or_else(|r| {
+        alert_not_found_dir(r);
+        panic!()
+    });
     let _ = set_current_dir(_path);
     for item in current_directory {
         let temp_item = item.unwrap();

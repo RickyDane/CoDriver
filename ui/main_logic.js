@@ -105,22 +105,23 @@ function startFullSearch() {
 	IsFullSearching = true;
 	let fileName = document.querySelector(".full-dualpane-search-input").value;
 	let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
-	maxItems = maxItems >= 1 ? maxItems : 999999;
+	maxItems = maxItems >= 1 ? maxItems : 9999999;
 	let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
-	searchDepth = searchDepth >= 1 ? searchDepth : 999999;
+	searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
 	let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
 	searchFor(fileName, maxItems, searchDepth, false, fileContent);
 }
 
 document.addEventListener("keyup", (e) => {
 	if (e.keyCode === 27) {
+		// Close all popups etc.
 		ContextMenu.style.display = "none";
-		document.querySelector(".input-dialog")?.remove();
 		closeSearchBar();
 		closeSettings();
 		closeInputDialog();
 		closeFullSearchContainer();
 		closeFtpConfig();
+		closeInputPopup();
 	}
 });
 
@@ -212,7 +213,7 @@ document.addEventListener("contextmenu", (e) => {
 
 document.onkeydown = async (e) => {
 	// Shortcut for jumping to configured directory
-	if(e.keyCode == 18){
+	if (e.keyCode == 18){
 		IsAltDown = true;
 	}
 	if (e.keyCode === 91) {
@@ -278,20 +279,6 @@ document.onkeydown = async (e) => {
 		}
 	}
 
-	// New folder input prompt when f7 is pressed
-	if (e.keyCode == 118) {
-		createFolderInputPrompt();
-		e.preventDefault();
-		e.stopPropagation();
-	}
-
-	// New file input prompt when f6 is pressed
-	if (e.keyCode == 117) {
-		createFileInputPrompt();
-		e.preventDefault();
-		e.stopPropagation();
-	}
-
 	if (IsDualPaneEnabled == true && IsDisableShortcuts == false && IsPopUpOpen == false) {
 		// check if f5 is pressed
 		if (e.keyCode == 116 && IsTabsEnabled == false) {
@@ -338,21 +325,23 @@ document.onkeydown = async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 		}
-		// check if strg + f is pressed
-		if (e.ctrlKey && e.keyCode == 70) {
-			openSearchBar();
-			e.preventDefault();
-			e.stopPropagation();
-		}
 		// check if alt + enter is pressed
 		if (IsAltDown && e.keyCode == 13) {
 			renameElementInputPrompt(null, SelectedElement);	
 		}
-		// check if alt + f7 is pressed
-		if (e.keyCode == 119) {
-			openFullSearchContainer();
-			e.preventDefault();
-			e.stopPropagation();
+		if (IsPopUpOpen == false) {
+			// check if alt + f7 is pressed
+			if (e.keyCode == 119) {
+				openFullSearchContainer();
+				e.preventDefault();
+				e.stopPropagation();
+			}
+			// check if strg + f is pressed
+			if (e.ctrlKey && e.keyCode == 70) {
+				openSearchBar();
+				e.preventDefault();
+				e.stopPropagation();
+			}
 		}
 	}
 	
@@ -361,6 +350,29 @@ document.onkeydown = async (e) => {
 		refreshView();
 		e.preventDefault();
 		e.stopPropagation();
+	}
+
+	if (IsPopUpOpen == false) {
+		// check if ctrl + g is pressed | Path input
+		if (e.ctrlKey && e.key == "g") {
+			showInputPopup("Input path to jump to");
+			e.preventDefault();
+			e.stopPropagation();
+		}
+
+		// New folder input prompt when f7 is pressed
+		if (e.keyCode == 118) {
+			createFolderInputPrompt();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+	
+		// New file input prompt when f6 is pressed
+		if (e.keyCode == 117) {
+			createFileInputPrompt();
+			e.preventDefault();
+			e.stopPropagation();
+		}
 	}
 } 
 
@@ -815,10 +827,36 @@ function showLoadingPopup(msg) {
 	`;
 	popup.className = "loading-popup";
 	body.append(popup);
-	IsPopUpOpen = false;
+	IsPopUpOpen = true;
 }
 function closeLoadingPopup() {
 	$(".loading-popup").remove();
+	IsPopUpOpen = false;
+}
+
+function showInputPopup(msg) {
+	let body = document.querySelector("body");
+	let popup = document.createElement("div");
+	popup.innerHTML = `
+		<h4>${msg}</h4>
+		<input class="text-input" placeholder="Start typing ..." autofocus/>
+	`;
+	popup.className = "input-popup"
+	popup.children[1].addEventListener("keyup", async (e) => {
+		if (e.keyCode == 13) {
+			await invoke("open_dir", {path: popup.children[1].value})
+			.then(async (items) => {
+				await showItems(items);
+				closeInputPopup();
+			});
+		}
+	});
+	body.append(popup);
+	popup.children[1].focus();
+	IsPopUpOpen = true;
+}
+function closeInputPopup() {
+	$(".input-popup").remove();
 	IsPopUpOpen = false;
 }
 
@@ -1465,6 +1503,7 @@ function openSearchBar() {
 	document.querySelector(".dualpane-search-input").focus();
 	IsDisableShortcuts = true;	
 	IsQuickSearchOpen = true;
+	IsPopUpOpen = true;
 }
 
 function closeSearchBar() {
@@ -1472,6 +1511,7 @@ function closeSearchBar() {
 	document.querySelector(".search-bar-container").style.display = "none";
 	IsDisableShortcuts = false;
 	IsQuickSearchOpen = false;
+	IsPopUpOpen = false;
 }
 
 async function cancelSearch() {
