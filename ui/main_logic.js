@@ -137,14 +137,6 @@ document.addEventListener("mousedown", (e) => {
 		&& !e.target.classList.contains("directory-item-entry")
 		&& !e.target.classList.contains("directory-entry"))
 	{
-		let newFolderInput = document.querySelector(".input-dialog");
-		if (newFolderInput != null
-			&& e.target != newFolderInput
-			&& e.target != newFolderInput.children[0]
-			&& e.target != newFolderInput.children[1])
-		{
-			closeAllPopups();
-		}
 		document.querySelector(".context-menu").style.display = "none";
 
 		// Reset context menu
@@ -934,6 +926,9 @@ function createFolderInputPrompt(e = null) {
 		}
 	});
 	IsPopUpOpen = true;
+	nameInput.addEventListener("focusout", () => {
+		closeAllPopups();
+	});
 }
 
 function createFileInputPrompt(e) {
@@ -957,6 +952,9 @@ function createFileInputPrompt(e) {
 		}
 	});
 	IsPopUpOpen = true;
+	nameInput.addEventListener("focusout", () => {
+		closeAllPopups();
+	});
 }
 
 function closeInputDialog() {
@@ -1001,6 +999,9 @@ function renameElementInputPrompt(e, item) {
 		}
 	});
 	IsPopUpOpen = true;
+	nameInput.addEventListener("focusout", () => {
+		closeAllPopups();
+	});
 }
 
 function createFolder(folderName) {
