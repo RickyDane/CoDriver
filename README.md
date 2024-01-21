@@ -1,27 +1,32 @@
 # rdpFX
-[![publish](https://github.com/RickyDane/rdpFX/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/RickyDane/rdpFX/actions/workflows/main.yml)
+[![publish](https://github.com/RickyDane/rdpFX/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/RickyDane/rdpFX/actions/workflows/main.yml) 
 
 <img width="64px" height="auto" src="https://github.com/RickyDane/rdpFX/assets/82893522/880b33d3-d749-49e8-906f-fee2abc053d9" />
-
+<br><br>
+<a href='https://ko-fi.com/F1F8OL456' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+<br><br>
 A simple file explorer that was born because I wanted to learn the Rust language.
 <br>
 It is operating system independent and trimmed for optimization.
+<br><br>
 
 | OS                              |  Support  |
 |:--------------------------------|:----------|
 | Linux                           | ✔️        |
-| macOS (intel / apple silicon)   | ✔️        |
+| macOS (Intel / Apple Silicon)   | ✔️        |
 | Windows                         | ✔️        |
 <br>
 
-The performance comes from ["rust_search"](https://crates.io/crates/rust_search) and ["Tauri"](https://tauri.app/)
-<br>So high performance is achieved purely by Rust, the speed of the disk and the power of the cpu, without path caching (which may come later).
+The performance is provided by ["rust_search"](https://crates.io/crates/rust_search) and ["Tauri"](https://tauri.app/).
+<br><br>
+rdpFX does not use path caching to access files and folders, so the performance is achieved by Rust, the speed of the disk and the power of the cpu.
 
 ### Basic features
 - Navigate through directories as you know it
 - Copy & Paste, delete, create and rename files and folders
 - Switch between "big buttons"- and list mode
 - Open / close tabs with Ctrl + t / Ctrl + w
+- Close popups with esc
 
 ### Advanced features
 - Compress files and folders
@@ -60,6 +65,3 @@ The performance comes from ["rust_search"](https://crates.io/crates/rust_search)
 
 ## Speed comparison
 ![2023-08-27-08-14-02](https://github.com/RickyDane/rdpFX/assets/82893522/237b28a0-d667-4bea-91a9-a43cb9277c49)
-
-#
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/F1F8OL456)
