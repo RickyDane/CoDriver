@@ -801,7 +801,7 @@ async function compressItem(item) {
 			.then(async (items) => {
 				await showItems(items, SelectedItemPaneSide);
 				closeLoadingPopup();	
-				await message("Komprimierung abgeschlossen");
+				await message("Compressing done");
 			});
 	}
 }
