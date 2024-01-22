@@ -653,11 +653,13 @@ async function showItems(items, dualPaneSide = "") {
 		}
 		if (ViewMode == "column") {
 			itemButton.style.display = "none";
-			DirectoryList.style.flexFlow = "column";
+			DirectoryList.style.gridTemplateColumns = "unset";
+			DirectoryList.style.rowGap = "2px";
 		}
 		else {
 			itemButtonList.style.display = "none";
-			DirectoryList.style.flexFlow = "wrap";
+			DirectoryList.style.gridTemplateColumns = "repeat(auto-fill, minmax(157px, 1fr))";
+			DirectoryList.style.rowGap = "15px";
 		}
 		newRow.append(itemButton);
 		newRow.append(itemButtonList);
@@ -998,14 +1000,7 @@ function renameElementInputPrompt(e, item) {
 		<h4>Type in a new name for this item.</h4>
 		<input class="text-input" type="text" placeholder="document.txt" value="${tempFileName}" required pattern="[0-9]" autofocus>
 		`;
-	if (e != null) {
-		nameInput.style.left = e.clientX + "px";
-		nameInput.style.top = e.clientY + "px";
-	}
-	else {
-		nameInput.style.left = "50%";
-		nameInput.style.top = "50%";
-	}
+
 	document.querySelector("body").append(nameInput);
 	ContextMenu.style.display = "none";
 	IsDisableShortcuts = true;
@@ -1221,10 +1216,26 @@ async function openItem(isDir, dualPaneSide = "", element = null, shortcut = fal
 		// Select item for dualpane
 		if (element != null && SelectedElement != element) {
 			if (SelectedElement != null) {
-				SelectedElement.style.backgroundColor = "transparent";
+				if (IsDualPaneEnabled) {
+					SelectedElement.children[0].style.backgroundColor = PrimaryColor;
+				}
+				else if (ViewMode == "column") {
+					SelectedElement.children[0].children[1].style.backgroundColor = SecondaryColor;
+				}
+				else {
+					SelectedElement.children[0].children[0].style.backgroundColor = SecondaryColor;
+				}
 			}
 			SelectedElement = element;
-			SelectedElement.style.backgroundColor = SelectedColor;
+			if (IsDualPaneEnabled) {
+				SelectedElement.children[0].style.backgroundColor = SelectedColor;
+			}
+			else if (ViewMode == "column") {
+				SelectedElement.children[0].children[1].style.backgroundColor = SelectedColor;
+			}
+			else {
+				SelectedElement.children[0].children[0].style.backgroundColor = SelectedColor;
+			}
 			SelectedItemPath = path;
 			SelectedItemPaneSide = dualPaneSide;
 		}
@@ -1564,7 +1575,9 @@ async function switchView() {
 	if (IsDualPaneEnabled == false) {
 		if (ViewMode == "wrap") {
 			document.querySelectorAll(".directory-list").forEach(list => {
-				list.style.flexFlow = "column";
+				// list.style.flexFlow = "column";
+				list.style.gridTemplateColumns = "unset";
+				list.style.rowGap = "2px";
 			});
 			document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
 			document.querySelectorAll(".item-button").forEach(item => item.style.display = "none");
@@ -1578,7 +1591,9 @@ async function switchView() {
 		}
 		else {
 			document.querySelectorAll(".directory-list").forEach(list => {
-				list.style.flexFlow = "wrap";
+				// list.style.flexFlow = "wrap";
+				list.style.gridTemplateColumns = "repeat(auto-fill, minmax(157px, 1fr))";
+				list.style.rowGap = "15px";
 			});
 			document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
 			document.querySelectorAll(".item-button").forEach(item => item.style.display = "flex");
@@ -1905,18 +1920,20 @@ function checkColorMode() {
 	var r = document.querySelector(':root');
 	if (IsLightMode) {
 		r.style.setProperty("--primaryColor", "white");
+		PrimaryColor = "white";
 		r.style.setProperty("--secondaryColor", "whitesmoke");
+		SecondaryColor = "whitesmoke";
 		r.style.setProperty("--tertiaryColor", "lightgray");
 		r.style.setProperty("--textColor", "rgba(75, 75, 105)");
 	}
 	else {
 		r.style.setProperty("--primaryColor", "#3f4352");
+		PrimaryColor = "#3f4352";
 		r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
+		SecondaryColor = "rgb(56, 59, 71)";
 		r.style.setProperty("--tertiaryColor", "#464d5f");
 		r.style.setProperty("--textColor", "white");
 	}
 }
 
-// listDirectories();
 checkAppConfig();
-// listDisks()

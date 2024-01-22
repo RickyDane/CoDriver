@@ -276,6 +276,7 @@ async fn list_dirs() -> Vec<FDir> {
             is_ftp: 0
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
 
@@ -326,6 +327,7 @@ async fn open_dir(_path: String) -> Vec<FDir> {
         });
     }
     dbg_log(format!("Current dir: {:?} | Time: {:?}", current_dir().unwrap(), sw.elapsed()));
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
 
@@ -366,6 +368,7 @@ async fn go_back() -> Vec<FDir> {
             is_ftp: 0
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
 
@@ -412,6 +415,7 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
             is_ftp: 0
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
 
@@ -452,6 +456,7 @@ async fn open_fav_ftp(hostname: String, username: String, password: String) -> V
             is_ftp: 1
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     dir_list
 }
 
@@ -486,6 +491,7 @@ async fn open_ftp_dir(path: String) -> Vec<FDir> {
             is_ftp: 1
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     dir_list
 }
 
@@ -545,6 +551,7 @@ async fn ftp_go_back(path: String) -> Vec<FDir> {
             is_ftp: 1
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     dir_list
 }
 
@@ -696,6 +703,7 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
     }
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
     dbg_log(format!("{} items found", dir_list.len()));
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
 

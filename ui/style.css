@@ -1,9 +1,15 @@
+@font-face {
+    font-family: "Inter";
+    src: url("resources/inter/Inter-VariableFont_slnt,wght.ttf");
+}
+
+
 * {
 	margin: 0;
 	padding: 0;
 	box-sizing: border-box;
 	color: var(--textColor);
-	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	font-family: "Inter";
 	font-display: swap;
 	outline: none;
 	-webkit-user-select: none;
@@ -61,14 +67,14 @@ body {
 	border-right: 2px solid var(--transparentColor);
 	width: 50%;
 	max-width: 50%;
-	padding: 5px;
+	padding: 10px;
 	min-height: 100vh - 110px;
 	overflow: auto;
 }
 .dual-pane-right {
 	border-left: 2px solid var(--transparentColor);
 	width: 50%;
-	padding: 5px;
+	padding: 10px;
 	overflow: auto;
 }
 .dual-pane-left > div > button, .dual-pane-right > div > button {
@@ -235,7 +241,7 @@ body {
 	background-color: transparent;
 	cursor: pointer;
 	border-radius: 5px;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .close-tab-button:hover {
 	background: rgba(0, 0, 0, 0.2);
@@ -316,7 +322,7 @@ body {
 	border-radius: 5px;
 	border: 1px solid var(--primaryColor);
 	cursor: pointer;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 input[type="checkbox"] {
 	cursor: pointer;
@@ -357,7 +363,7 @@ label {
 	flex-flow: row;
 	gap: 10px;
 	align-items: center;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .button:hover {
 	background: var(--transparentColorActive);
@@ -377,8 +383,9 @@ label {
 	justify-content: center;
 	align-items: center;
 	text-align: center;
-	margin: 2px;
 	transition: 0.1s ease;
+	margin: 0 auto;
+	border: 1px solid var(--transparentColor);
 }
 .item-button:hover {
 	background-color: var(--transparentColorActive);
@@ -414,10 +421,9 @@ label {
 	line-height: 20px;
 	max-height: 30px;
 	border-radius: 5px;
-	margin: 1px;
+	margin: 4px;
 	overflow: hidden;
-	border: 1px solid var(--secondaryColor);
-	box-shadow: 0px 0px 10px 1px var(--transparentColor);
+	box-shadow: 0px 0px 3px var(--transparentColor);
 }
 .item-button-list {
 	display: flex;
@@ -469,13 +475,14 @@ label {
 .directory-item-entry {
 	width: 100%;
 	max-width: 100%;
+	border-radius: 5px;
 }
 .item-link {
 	background-color: transparent;
 	border: none;
-	border-radius: 10px;
-	overflow: hidden;
-	margin: 2px;
+	border-radius: 7.5px;
+	transition: 0.1s ease;
+	width: 100%;
 }
 .disk-item-button {
 	display: flex;
@@ -490,31 +497,32 @@ label {
 }
 .disk-item-bot {
 	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	width: 100%;
+	left: 4px;
+	right: 4px;
+	bottom: 4px;
 	padding: 5px;
-	background-color: var(--secondaryColor);
+	background-color: var(--transparentColor);
 	height: 24px;
+	border-radius: 4px;
+	border: 1px solid var(--transparentColor);
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.025);
 }
 .disk-item-bot > p {
-	position: absolute;
-	left: 6px;
-	right: 0;
-	bottom: 3px;
 	font-size: 14px;
 	z-index: 3;
 }
 .disk-item-usage-bar {
 	position: absolute;
+	top: 0;
 	left: 0;
 	right: 0;
 	bottom: 0;
-	height: 100%;
-	background-color: var(--transparentColorActive);
+	background-color: var(--primaryColor);
 	z-index: 2;
-	border-right: 1px solid rgba(255, 255, 255, 0.25);
+	border-right: 1px solid var(--tertiaryColor);
 }
 
 
@@ -527,7 +535,7 @@ label {
 	cursor: pointer;
 	padding: 10px;
 	border-radius: 5px;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .go-back-button:hover {
 	background-color: rgba(0, 0, 0, 0.15);
@@ -539,7 +547,7 @@ label {
 	font-size: large;
 	padding: 10px 12.5px;
 	cursor: pointer;
-	transition: 0.2s ease;
+	transition: 0.1s ease;
 }
 .header-nav-button:hover {
 	background-color: rgba(0, 0, 0, 0.15);
@@ -718,10 +726,9 @@ label {
 	width: 100%;
 	max-width: 100%;
 	overflow: hidden;
-	display: flex;
-	flex-flow: wrap;
-	gap: 5px;
-	align-content: stretch;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(157px, 1fr));
+	margin: 0 auto;
 }
 .directory-list-dual-pane {
 	display: flex;
@@ -751,7 +758,7 @@ label {
 	margin: auto;
 	background-color: var(--primaryColor);
 	border-radius: 10px;
-	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.1);
+	box-shadow: 0px 0px 10px 0px var(--transparentColorActive);
 	z-index: 99;
 }
 .context-item {
@@ -767,6 +774,7 @@ label {
 	display: flex;
 	flex-flow: row;
 	justify-content: space-between;
+	transition: 0.1s ease;
 }
 .context-item:hover {
 	background-color: var(--transparentColorActive);
