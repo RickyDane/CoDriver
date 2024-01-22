@@ -188,7 +188,7 @@ body {
 .list-column-header-button {
 	background-color: transparent;
 	border: none;
-	font-weight: bold;
+	font-weight: 550;
 	min-width: 110px;
 }
 .disk-list-column-header {
@@ -355,7 +355,7 @@ label {
 .button {
 	padding: 10px 15px;
 	color: var(--textColor);
-	background-color: var(--secondaryColor);
+	background-color: var(--transparentColor);
 	border: none;
 	border-radius: 5px;
 	cursor: pointer;
@@ -367,6 +367,9 @@ label {
 }
 .button:hover {
 	background: var(--transparentColorActive);
+}
+.button:active {
+	background: var(--tertiaryColor);
 }
 .item-button {
 	position: relative;
@@ -538,7 +541,10 @@ label {
 	transition: 0.1s ease;
 }
 .go-back-button:hover {
-	background-color: rgba(0, 0, 0, 0.15);
+	background-color: var(--transparentColor);
+}
+.go-back-button:active {
+	background-color: var(--transparentColorActive);
 }
 .header-nav-button {
 	background-color: transparent;
@@ -550,8 +556,12 @@ label {
 	transition: 0.1s ease;
 }
 .header-nav-button:hover {
-	background-color: rgba(0, 0, 0, 0.15);
+	background-color: var(--transparentColor);
 }
+.header-nav-button:active {
+	background-color: var(--transparentColorActive);
+}
+
 .switch-view-button {
 	min-width: 40px;
 }
