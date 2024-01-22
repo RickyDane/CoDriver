@@ -377,7 +377,7 @@ label {
 	justify-content: center;
 	align-items: center;
 	text-align: center;
-	margin: 5px;
+	margin: 2px;
 	transition: 0.1s ease;
 }
 .item-button:hover {
@@ -473,8 +473,9 @@ label {
 .item-link {
 	background-color: transparent;
 	border: none;
-	border-radius: 5px;
+	border-radius: 10px;
 	overflow: hidden;
+	margin: 2px;
 }
 .disk-item-button {
 	display: flex;

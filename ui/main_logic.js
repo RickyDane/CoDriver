@@ -68,6 +68,7 @@ let IsLightMode = false;
 let IsImagePreview = false;
 let IsFtpActive = false;
 let CurrentFtpPath = "";
+let IsCopyToCut = false;
 
 /* endregion */
 
@@ -340,10 +341,23 @@ document.onkeydown = async (e) => {
 		e.preventDefault();
 		e.stopPropagation();
 	}
-
 	// check if ctrl + v is pressed
 	if (e.ctrlKey && e.key == "v") {
 		pasteItem();
+		e.preventDefault();
+		e.stopPropagation();
+	}
+	// check if ctrl + c is pressed
+	if (e.ctrlKey && e.key == "c") {
+		copyItem(SelectedElement);
+		e.preventDefault();
+		e.stopPropagation();
+	}
+	// check if ctrl + c is pressed
+	if (e.ctrlKey && e.key == "x") {
+		copyItem(SelectedElement, true);
+		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	if (IsPopUpOpen == false) {
@@ -772,14 +786,18 @@ async function deleteItem(item) {
 				closeLoadingPopup();
 			});
 	}
+	IsCopyToCut = false;
 }
 
-async function copyItem(item) {
+async function copyItem(item, toCut = false) {
 	CopyFilePath = item.getAttribute("itempath");
 	let tempCopyFilePath = item.getAttribute("itempath").split("/");
 	CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
 	ContextMenu.style.display = "none";
 	await writeText(CopyFilePath);
+	if (toCut == true) {
+		IsCopyToCut = true;
+	}
 }
 
 async function extractItem(item) {
@@ -897,11 +915,12 @@ async function pasteItem() {
 			.then(async (items) => {
 				await showItems(items);
 			});
-		CopyFileName = "";
-		CopyFilePath = "";
 		ContextMenu.style.display = "none";
 	}
 	closeLoadingPopup();
+	if (IsCopyToCut == true) {
+		deleteItem(SelectedElement);
+	}
 }
 
 function createFolderInputPrompt(e = null) {
@@ -922,6 +941,7 @@ function createFolderInputPrompt(e = null) {
 	nameInput.addEventListener("keyup", (e) => {
 		if (e.keyCode === 13) {
 			createFolder(nameInput.children[1].value);
+			closeAllPopups();
 			nameInput.remove();
 		}
 	});
@@ -948,6 +968,7 @@ function createFileInputPrompt(e) {
 	nameInput.addEventListener("keyup", (e) => {
 		if (e.keyCode === 13) {
 			createFile(nameInput.children[1].value);
+			closeAllPopups();
 			nameInput.remove();
 		}
 	});
@@ -1198,7 +1219,7 @@ async function openItem(isDir, dualPaneSide = "", element = null, shortcut = fal
 			document.querySelector(".dual-pane-left").style.boxShadow = "none";
 		}
 		// Select item for dualpane
-		if (element != null && SelectedElement != element && IsDualPaneEnabled == true) {
+		if (element != null && SelectedElement != element) {
 			if (SelectedElement != null) {
 				SelectedElement.style.backgroundColor = "transparent";
 			}
