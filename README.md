@@ -60,6 +60,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - List filtering (filter by name, last modified, file size)
 - FTP-Integration
 - Favorites
+- Item-preview
 <br>
 <img src="https://github.com/RickyDane/rdpFX/assets/82893522/89baafde-62b4-49b6-ae13-ca832e8eb2e2" />
 
