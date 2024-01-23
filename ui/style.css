@@ -84,7 +84,7 @@ body {
 	gap: 2px;
 }
 .main-container {
-	margin-top: 100px;
+	margin-top: 110px;
 	display: flex;
 	flex-flow: row;
 	overflow: hidden;

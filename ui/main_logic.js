@@ -315,12 +315,6 @@ document.onkeydown = async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 		}
-		// check if del is pressed
-		if (e.keyCode == 46 || (IsMetaDown && e.keyCode == 8)) {
-			deleteItem(SelectedElement);
-			e.preventDefault();
-			e.stopPropagation();
-		}
 		// check if alt + enter is pressed
 		if (IsAltDown && e.keyCode == 13) {
 			renameElementInputPrompt(null, SelectedElement);	
@@ -334,7 +328,13 @@ document.onkeydown = async (e) => {
 			}
 		}
 	}
-	
+
+	// check if del is pressed
+	if (e.keyCode == 46 || (IsMetaDown && e.keyCode == 8)) {
+		deleteItem(SelectedElement);
+		e.preventDefault();
+		e.stopPropagation();
+	}
 	// check if ctrl + r is pressed
 	if (e.ctrlKey && e.key == "r") {
 		refreshView();
