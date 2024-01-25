@@ -70,6 +70,7 @@ let IsFtpActive = false;
 let CurrentFtpPath = "";
 let IsCopyToCut = false;
 let Platform = "";
+let IsSelectMode = true;
 
 /* endregion */
 
@@ -1045,7 +1046,7 @@ async function pasteItem() {
   }
   closeLoadingPopup();
   if (IsCopyToCut == true) {
-    deleteItem(SelectedElement);
+    await invoke("delete_item", { actFileName: CopyFilePath });
   }
 }
 
@@ -1200,6 +1201,13 @@ async function checkAppConfig() {
       document.querySelector(".switch-dualpane-view-button").style.display =
         "none";
     }
+    if (appConfig.is_select_mode.includes("1")) {
+      $(".choose-interaction-mode").checked = true;
+      IsSelectMode = true;
+    } else {
+      $(".choose-interaction-mode").checked = false;
+      IsSelectMode = false;
+    }
 
     if (appConfig.is_light_mode.includes("1")) {
       document.querySelector(".switch-light-dark-mode-checkbox").checked = true;
@@ -1352,8 +1360,8 @@ async function openItem(
         "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
       document.querySelector(".dual-pane-left").style.boxShadow = "none";
     }
-    // Select item for dualpane
-    if (element != null && SelectedElement != element) {
+    // Interaction mode: Select
+    if (element != null && SelectedElement != element && IsSelectMode == true) {
       if (SelectedElement != null) {
         if (IsDualPaneEnabled) {
           SelectedElement.children[0].style.backgroundColor = PrimaryColor;
@@ -1904,6 +1912,7 @@ async function saveConfig(isToReload = true) {
   let isImagePreview = (IsImagePreview = document.querySelector(
     ".image-preview-checkbox",
   ).checked);
+  let isSelectMode = (IsSelectMode = $("#choose-interaction-mode").checked);
   closeSettings();
 
   if (isOpenInTerminal == true) {
@@ -1936,6 +1945,12 @@ async function saveConfig(isToReload = true) {
     isImagePreview = "0";
   }
 
+  if (isSelectMode == true) {
+    isSelectMode = "1";
+  } else {
+    isSelectMode = "0";
+  }
+
   await invoke("save_config", {
     configuredPathOne,
     configuredPathTwo,
@@ -1949,6 +1964,7 @@ async function saveConfig(isToReload = true) {
     maxItems,
     isLightMode,
     isImagePreview,
+    isSelectMode,
   });
   if (isToReload == true) {
     checkAppConfig();
@@ -2097,7 +2113,7 @@ function showProperties(item) {
   ContextMenu.style.display = "none";
 }
 
-async function showItemPreview(item) {
+function showItemPreview(item) {
   if (IsPopUpOpen == false) {
     let ext = item.getAttribute("itemext");
     let path = item.getAttribute("itempath");
@@ -2118,7 +2134,7 @@ async function showItemPreview(item) {
     `;
     document.querySelector("body").append(popup);
     IsPopUpOpen = true;
-    $(".item-preview-popup").fadeIn(100);
+    $(popup).fadeIn(100);
   }
 }
 
@@ -2128,22 +2144,6 @@ function closeItemPreview() {
     IsPopUpOpen = false;
   });
 }
-
-const compressImage = async (file, { quality = 1, type = file.type }) => {
-  console.log(file, quality, type);
-  // Get as image data
-  const imageBitmap = await createImageBitmap(file);
-
-  // Draw to canvas
-  const canvas = document.createElement("canvas");
-  canvas.width = imageBitmap.width;
-  canvas.height = imageBitmap.height;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(imageBitmap, 0, 0);
-
-  // Turn into Blob
-  return await new Promise((resolve) => canvas.toBlob(resolve, type, quality));
-};
 
 function evalCurrentLoad(available, total) {
   available = parseFloat(

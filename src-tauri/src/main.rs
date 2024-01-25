@@ -106,6 +106,7 @@ struct AppConfig {
     max_items: i32,
     is_light_mode: String,
     is_image_preview: String,
+    is_select_mode: String,
 }
 
 #[tauri::command]
@@ -137,6 +138,7 @@ async fn check_app_config() -> AppConfig {
             max_items: 1000,
             is_light_mode: "0".to_string(),
             is_image_preview: "0".to_string(),
+            is_select_mode: "1".to_string(),
         };
         let _ = serde_json::to_writer_pretty(
             File::create(
@@ -179,6 +181,7 @@ async fn check_app_config() -> AppConfig {
         max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
         is_light_mode: app_config["is_light_mode"].to_string(),
         is_image_preview: app_config["is_image_preview"].to_string(),
+        is_select_mode: app_config["is_select_mode"].to_string(),
     };
 }
 
@@ -319,6 +322,12 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
             .trim()
             .to_string(),
         is_image_preview: app_config["is_image_preview"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
+        is_select_mode: app_config["is_select_mode"]
             .to_string()
             .replace('"', "")
             .replace("\\", "/")
@@ -761,21 +770,21 @@ async fn search_for(
     search_depth: i32,
     file_content: String,
 ) -> Vec<FDir> {
+    dbg_log(format!("Start searching for {}", &file_name));
     let mut file_ext = ".".to_string().to_owned()
         + file_name
             .split(".")
             .nth(file_name.split(".").count() - 1)
             .unwrap_or("");
     println!("");
-    dbg_log(format!(
-        "Start searching for {} - {}",
-        &file_name.strip_suffix(&file_ext).unwrap_or(&file_name),
-        &file_ext
-    ));
+    // dbg_log(format!(
+    //     "Start searching for {} - {}",
+    //     &file_name.strip_suffix(&file_ext).unwrap_or(&file_name),
+    //     &file_ext
+    // ));
     let sw = Stopwatch::start_new();
     let mut search: Vec<String>;
     if file_ext != ".".to_string().to_owned() + &file_name {
-        dbg_log(format!("{}{}", &file_name, &file_ext));
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
             .search_input(*&file_name.strip_suffix(&file_ext).unwrap())
@@ -1139,6 +1148,7 @@ async fn save_config(
     max_items: i32,
     is_light_mode: String,
     is_image_preview: String,
+    is_select_mode: String,
 ) {
     let app_config_file = File::open(
         app_config_dir(&Config::default())
@@ -1162,6 +1172,7 @@ async fn save_config(
         max_items: max_items,
         is_light_mode: is_light_mode.replace("\\", "/"),
         is_image_preview: is_image_preview.replace("\\", "/"),
+        is_select_mode: is_select_mode.replace("\\", "/"),
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
