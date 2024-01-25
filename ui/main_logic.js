@@ -1250,8 +1250,16 @@ async function checkAppConfig() {
     }
   });
   checkColorMode("light_mode");
-  Platform = await platform();
-  console.log(Platform);
+  applyPlatformFeatures()
+}
+
+async function applyPlatformFeatures() {
+	Platform = await platform();
+	
+	// Check for macOS and position titlebar buttons on the left
+	if (Platform == "darwin") {
+		$(".titlebar").style.flexFlow = "row-reverse";
+	}
 }
 
 async function listDisks() {
