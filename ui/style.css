@@ -139,7 +139,7 @@ body {
 }
 .titlebar-buttons {
     display: flex;
-    flex-flow: row-reverse;
+    flex-flow: row;
     gap: 5px;
 }
 .titlebar-button {
