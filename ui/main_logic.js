@@ -390,49 +390,50 @@ document.onkeydown = async (e) => {
     e.stopPropagation();
   }
 
-  if (IsPopUpOpen == false)
+  if (IsPopUpOpen == false) {
     if ((IsAltDown && e.key == "Enter") || e.key == "F2") {
       // check if alt + enter is pressed
       renameElementInputPrompt(SelectedElement);
     }
-  // check if ctrl + g is pressed | Path input
-  if (e.ctrlKey && e.key == "g") {
-    showInputPopup("Input path to jump to");
-    e.preventDefault();
-    e.stopPropagation();
-  }
+	// check if ctrl + g is pressed | Path input
+	if (e.ctrlKey && e.key == "g") {
+		showInputPopup("Input path to jump to");
+		e.preventDefault();
+		e.stopPropagation();
+	}
 
-  // New folder input prompt when f7 is pressed
-  if (e.key == "F7") {
-    createFolderInputPrompt();
-    e.preventDefault();
-    e.stopPropagation();
-  }
+	// New folder input prompt when f7 is pressed
+	if (e.key == "F7") {
+		createFolderInputPrompt();
+		e.preventDefault();
+		e.stopPropagation();
+	}
 
-  // New file input prompt when f6 is pressed
-  if (e.keyCode == 117) {
-    createFileInputPrompt();
-    e.preventDefault();
-    e.stopPropagation();
-  }
+	// New file input prompt when f6 is pressed
+	if (e.keyCode == 117) {
+		createFileInputPrompt();
+		e.preventDefault();
+		e.stopPropagation();
+	}
 
-  // check if strg + f is pressed
-  if (e.ctrlKey && e.keyCode == 70) {
-    openSearchBar();
-    e.preventDefault();
-    e.stopPropagation();
-  }
+	// check if strg + f is pressed
+	if (e.ctrlKey && e.keyCode == 70) {
+		openSearchBar();
+		e.preventDefault();
+		e.stopPropagation();
+	}
 
-  // Check if space is pressed on selected item
-  if (e.key == " " && SelectedElement != null) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (IsPopUpOpen == false) {
-      showItemPreview(SelectedElement);
-    } else {
-      closeItemPreview();
-    }
-  }
+	// Check if space is pressed on selected item
+	if (e.key == " " && SelectedElement != null) {
+		e.preventDefault();
+		e.stopPropagation();
+		if (IsPopUpOpen == false) {
+		showItemPreview(SelectedElement);
+		} else {
+		closeItemPreview();
+		}
+	}
+	}
 };
 
 // check for click on one of the dual pane containers and set directory accordingly
@@ -1202,10 +1203,10 @@ async function checkAppConfig() {
         "none";
     }
     if (appConfig.is_select_mode.includes("1")) {
-      $(".choose-interaction-mode").checked = true;
+      document.querySelector("#choose-interaction-mode").checked = true;
       IsSelectMode = true;
     } else {
-      $(".choose-interaction-mode").checked = false;
+      document.querySelector("#choose-interaction-mode").checked = false;
       IsSelectMode = false;
     }
 
@@ -1912,7 +1913,7 @@ async function saveConfig(isToReload = true) {
   let isImagePreview = (IsImagePreview = document.querySelector(
     ".image-preview-checkbox",
   ).checked);
-  let isSelectMode = (IsSelectMode = $("#choose-interaction-mode").checked);
+  let isSelectMode = (IsSelectMode = $("#choose-interaction-mode").is(":checked"));
   closeSettings();
 
   if (isOpenInTerminal == true) {

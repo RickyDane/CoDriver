@@ -730,6 +730,7 @@ label {
     max-width: 100%;
     overflow: hidden;
     display: grid;
+	column-gap: 10px;
     grid-template-columns: repeat(auto-fill, minmax(157px, 1fr));
     margin: 0 auto;
 }
