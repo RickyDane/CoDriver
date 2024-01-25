@@ -122,7 +122,7 @@ body {
 }
 .titlebar {
     height: 40px;
-    padding-right: 10px;
+    padding: 0px 10px;
     background-color: var(--secondaryColor);
     user-select: none;
     display: flex;
@@ -136,6 +136,11 @@ body {
     z-index: 99;
     border-bottom: 1px solid var(--transparentColor);
     border-radius: 10px 10px 0px 0px;
+}
+.titlebar-buttons {
+    display: flex;
+    flex-flow: row-reverse;
+    gap: 5px;
 }
 .titlebar-button {
     display: inline-flex;
@@ -729,7 +734,7 @@ label {
     max-width: 100%;
     overflow: hidden;
     display: grid;
-	column-gap: 10px;
+    column-gap: 10px;
     grid-template-columns: repeat(auto-fill, minmax(157px, 1fr));
     margin: 0 auto;
 }

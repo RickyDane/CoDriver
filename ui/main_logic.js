@@ -362,32 +362,20 @@ document.onkeydown = async (e) => {
   // check if ctrl + v is pressed
   if (Platform == "darwin" && e.key == "v" && e.metaKey) {
     pasteItem();
-    e.preventDefault();
-    e.stopPropagation();
   } else if (e.ctrlKey && e.key == "v") {
     pasteItem();
-    e.preventDefault();
-    e.stopPropagation();
   }
   // check if ctrl + c is pressed
   if (Platform == "darwin" && e.key == "c" && e.metaKey) {
     copyItem(SelectedElement);
-    e.preventDefault();
-    e.stopPropagation();
   } else if (e.ctrlKey && e.key == "c") {
     copyItem(SelectedElement);
-    e.preventDefault();
-    e.stopPropagation();
   }
   // check if ctrl + c is pressed
   if (Platform == "darwin" && e.key == "x" && e.metaKey) {
     copyItem(SelectedElement, true);
-    e.preventDefault();
-    e.stopPropagation();
   } else if (e.ctrlKey && e.key == "x") {
     copyItem(SelectedElement, true);
-    e.preventDefault();
-    e.stopPropagation();
   }
 
   if (IsPopUpOpen == false) {
@@ -395,45 +383,45 @@ document.onkeydown = async (e) => {
       // check if alt + enter is pressed
       renameElementInputPrompt(SelectedElement);
     }
-	// check if ctrl + g is pressed | Path input
-	if (e.ctrlKey && e.key == "g") {
-		showInputPopup("Input path to jump to");
-		e.preventDefault();
-		e.stopPropagation();
-	}
+    // check if ctrl + g is pressed | Path input
+    if (e.ctrlKey && e.key == "g") {
+      showInputPopup("Input path to jump to");
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-	// New folder input prompt when f7 is pressed
-	if (e.key == "F7") {
-		createFolderInputPrompt();
-		e.preventDefault();
-		e.stopPropagation();
-	}
+    // New folder input prompt when f7 is pressed
+    if (e.key == "F7") {
+      createFolderInputPrompt();
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-	// New file input prompt when f6 is pressed
-	if (e.keyCode == 117) {
-		createFileInputPrompt();
-		e.preventDefault();
-		e.stopPropagation();
-	}
+    // New file input prompt when f6 is pressed
+    if (e.keyCode == 117) {
+      createFileInputPrompt();
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-	// check if strg + f is pressed
-	if (e.ctrlKey && e.keyCode == 70) {
-		openSearchBar();
-		e.preventDefault();
-		e.stopPropagation();
-	}
+    // check if strg + f is pressed
+    if (e.ctrlKey && e.keyCode == 70) {
+      openSearchBar();
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-	// Check if space is pressed on selected item
-	if (e.key == " " && SelectedElement != null) {
-		e.preventDefault();
-		e.stopPropagation();
-		if (IsPopUpOpen == false) {
-		showItemPreview(SelectedElement);
-		} else {
-		closeItemPreview();
-		}
-	}
-	}
+    // Check if space is pressed on selected item
+    if (e.key == " " && SelectedElement != null) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (IsPopUpOpen == false) {
+        showItemPreview(SelectedElement);
+      } else {
+        closeItemPreview();
+      }
+    }
+  }
 };
 
 // check for click on one of the dual pane containers and set directory accordingly
@@ -1250,16 +1238,16 @@ async function checkAppConfig() {
     }
   });
   checkColorMode("light_mode");
-  applyPlatformFeatures()
+  applyPlatformFeatures();
 }
 
 async function applyPlatformFeatures() {
-	Platform = await platform();
-	
-	// Check for macOS and position titlebar buttons on the left
-	if (Platform == "darwin") {
-		$(".titlebar").style.flexFlow = "row-reverse";
-	}
+  Platform = await platform();
+
+  // Check for macOS and position titlebar buttons on the left
+  if (Platform == "darwin") {
+    $(".titlebar").css("flex-flow", "row-reverse");
+  }
 }
 
 async function listDisks() {
@@ -1921,7 +1909,9 @@ async function saveConfig(isToReload = true) {
   let isImagePreview = (IsImagePreview = document.querySelector(
     ".image-preview-checkbox",
   ).checked);
-  let isSelectMode = (IsSelectMode = $("#choose-interaction-mode").is(":checked"));
+  let isSelectMode = (IsSelectMode = $("#choose-interaction-mode").is(
+    ":checked",
+  ));
   closeSettings();
 
   if (isOpenInTerminal == true) {
