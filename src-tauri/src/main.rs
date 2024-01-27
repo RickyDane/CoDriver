@@ -21,11 +21,9 @@ use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Read, Write};
 use std::{
     env::{current_dir, set_current_dir},
-    fmt::format,
     fs::{copy, create_dir, remove_dir_all, remove_file, File},
     path::PathBuf,
     process::Command,
-    time::SystemTime,
 };
 use stopwatch::Stopwatch;
 use tauri::{
@@ -765,7 +763,7 @@ async fn go_home() -> Vec<FDir> {
 
 #[tauri::command]
 async fn search_for(
-    file_name: String,
+    mut file_name: String,
     max_items: i32,
     search_depth: i32,
     file_content: String,
@@ -777,13 +775,12 @@ async fn search_for(
             .nth(file_name.split(".").count() - 1)
             .unwrap_or("");
     println!("");
-    // dbg_log(format!(
-    //     "Start searching for {} - {}",
-    //     &file_name.strip_suffix(&file_ext).unwrap_or(&file_name),
-    //     &file_ext
-    // ));
+
     let sw = Stopwatch::start_new();
     let mut search: Vec<String>;
+    if String::from(&file_name) == String::from("*") {
+        file_name = "".into();
+    }
     if file_ext != ".".to_string().to_owned() + &file_name {
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
@@ -854,7 +851,15 @@ async fn search_for(
 
         // Search for file contents
         if &file_content != "" {
-            let file = fs::File::open(&path).unwrap();
+            let check_file = fs::File::open(&path);
+            let file: File;
+            if &check_file.is_ok() == &true {
+                file = check_file.unwrap();
+            }
+            else {
+                err_log("Couldn't access file. Probably due to insufficient permissions".into());
+                continue;
+            }
             let mut reader = BufReader::new(&file);
             let mut contents = String::from("");
             dbg_log(format!("Checking {}", &path));
@@ -908,7 +913,15 @@ async fn copy_paste(
     is_for_dual_pane: String,
 ) -> Vec<FDir> {
     dbg_log("Copying starting ...".into());
-    let is_dir = fs::metadata(&from_path).unwrap().is_dir();
+    let is_dir: bool;
+    let file = fs::metadata(&from_path);
+    if &file.is_ok() == &true {
+        is_dir = file.unwrap().is_dir();
+    }
+    else {
+        err_log("File could not be copied".into());
+        return list_dirs().await;
+    }
     let sw = Stopwatch::start_new();
     let file_name: String;
     if is_for_dual_pane == "1" {

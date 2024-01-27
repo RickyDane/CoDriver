@@ -71,6 +71,7 @@ let CurrentFtpPath = "";
 let IsCopyToCut = false;
 let Platform = "";
 let IsSelectMode = true;
+let IsItemPreviewOpen = false;
 
 /* endregion */
 
@@ -382,6 +383,18 @@ document.onkeydown = async (e) => {
 		// await writeText(CurrentDir);
 		alert("Current dir copied!");
 	}
+	// Check if space is pressed on selected item
+	if (e.key == " " && SelectedElement != null) {
+		if (IsPopUpOpen == false) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		if (IsPopUpOpen == false && IsItemPreviewOpen == false) {
+			showItemPreview(SelectedElement);
+		} else { 
+			closeItemPreview();
+		}
+	}
 
 	if (IsPopUpOpen == false) {
 		if ((IsAltDown && e.key == "Enter") || e.key == "F2") {
@@ -411,16 +424,6 @@ document.onkeydown = async (e) => {
 			openSearchBar();
 			e.preventDefault();
 			e.stopPropagation();
-		}
-		// Check if space is pressed on selected item
-		if (e.key == " " && SelectedElement != null) {
-			e.preventDefault();
-			e.stopPropagation();
-			if (IsPopUpOpen == false) {
-				showItemPreview(SelectedElement);
-			} else {
-				closeItemPreview();
-			}
 		}
 	}
 };
@@ -630,6 +633,7 @@ async function showItems(items, dualPaneSide = "") {
 				case ".jpeg":
 				case ".gif":
 				case ".webp":
+				case ".svg":
 					if (IsImagePreview) {
 						fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
 					} else {
@@ -670,7 +674,7 @@ async function showItems(items, dualPaneSide = "") {
 		itemLink.className = "item-link directory-entry";
 		let itemButton = document.createElement("div");
 		itemButton.innerHTML = `
-			<img class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" style="object-fit: cover;" loading="lazy" />
+			<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" style="object-fit: cover;" />
 			<p style="text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 		`;
 		delete fileIcon;
@@ -678,7 +682,7 @@ async function showItems(items, dualPaneSide = "") {
 		let itemButtonList = document.createElement("div");
 		itemButtonList.innerHTML = `
 			<span style="display: flex; gap: 10px; align-items: center; width: 50%;">
-				<img class="item-icon" src="${fileIcon}" width="24px" height="24px" loading="lazy"/>
+				<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
 				<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 			</span>
 			<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
@@ -955,7 +959,7 @@ function showLoadingPopup(msg) {
 	let popup = document.createElement("div");
 	popup.innerHTML = `
 		<h4>${msg}</h4>
-		<img width="32px" height="auto" src="resources/preloader.gif" />
+		<img decoding="async" width="32px" height="auto" src="resources/preloader.gif" />
 	`;
 	popup.className = "loading-popup";
 	body.append(popup);
@@ -1277,7 +1281,7 @@ async function listDisks() {
 			itemButton.innerHTML = `
 					<span class="disk-item-button">
 						<div class="disk-item-top">
-							<img class="item-icon" src="resources/disk-icon.png" width="48" height="auto"/>
+							<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="48" height="auto"/>
 							<span>
 								<span style="display: flex; gap: 10px; align-items: center;">${formatBytes(item.avail)}</span>
 								<span style="display: flex; gap: 10px; align-items: center;">${formatBytes(item.capacity)}</span>
@@ -1293,7 +1297,7 @@ async function listDisks() {
 			let itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 					<span style="display: flex; gap: 10px; align-items: center; width: 50%;">
-					<img class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
+					<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
 					<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 					</span>
 					<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
@@ -1304,10 +1308,10 @@ async function listDisks() {
 			itemButtonList.className = "item-button-list directory-entry";
 			if (ViewMode == "column") {
 				itemButton.style.display = "none";
-				DirectoryList.style.flexFlow = "column";
+				DirectoryList.style.gridTemplateColumns = "unset";
+				DirectoryList.style.rowGap = "2px";
 			} else {
 				itemButtonList.style.display = "none";
-				DirectoryList.style.flexFlow = "wrap";
 			}
 			newRow.append(itemButton);
 			newRow.append(itemButtonList);
@@ -1343,76 +1347,76 @@ async function openItem(
 	shortcut = false,
 	shortcutPath = null,
 ) {
-	let name = element?.getAttribute("itemname");
-	let path = element?.getAttribute("itempath");
-	let isFtp = element?.getAttribute("isftp");
-	if (isFtp == false || isFtp == null) {
-		if (shortcut == true) {
-			path = shortcutPath;
-		}
-		if (dualPaneSide == "left") {
-			document.querySelector(".dual-pane-left").style.boxShadow =
-				"inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
-			document.querySelector(".dual-pane-right").style.boxShadow = "none";
-		} else if (dualPaneSide == "right") {
-			document.querySelector(".dual-pane-right").style.boxShadow =
-				"inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
-			document.querySelector(".dual-pane-left").style.boxShadow = "none";
-		}
-		// Interaction mode: Select
-		if (element != null && SelectedElement != element && IsSelectMode == true) {
-			if (SelectedElement != null) {
+	if (IsItemPreviewOpen == false) {
+		let name = element?.getAttribute("itemname");
+		let path = element?.getAttribute("itempath");
+		let isFtp = element?.getAttribute("isftp");
+		if (isFtp == false || isFtp == null) {
+			if (shortcut == true) {
+				path = shortcutPath;
+			}
+			if (dualPaneSide == "left") {
+				document.querySelector(".dual-pane-left").style.boxShadow =
+					"inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+				document.querySelector(".dual-pane-right").style.boxShadow = "none";
+			} else if (dualPaneSide == "right") {
+				document.querySelector(".dual-pane-right").style.boxShadow =
+					"inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+				document.querySelector(".dual-pane-left").style.boxShadow = "none";
+			}
+			// Interaction mode: Select
+			if (element != null && SelectedElement != element && IsSelectMode == true) {
+				if (SelectedElement != null) {
+					if (IsDualPaneEnabled) {
+						SelectedElement.children[0].style.backgroundColor = PrimaryColor;
+					} else if (ViewMode == "column") {
+						SelectedElement.children[0].children[1].style.backgroundColor = PrimaryColor;
+					} else {
+						SelectedElement.children[0].children[0].style.backgroundColor = PrimaryColor;
+					}
+				}
+				SelectedElement = element;
 				if (IsDualPaneEnabled) {
-					SelectedElement.children[0].style.backgroundColor = PrimaryColor;
+					SelectedElement.children[0].style.backgroundColor = SelectedColor;
 				} else if (ViewMode == "column") {
 					SelectedElement.children[0].children[1].style.backgroundColor =
-						SecondaryColor;
+						SelectedColor;
 				} else {
 					SelectedElement.children[0].children[0].style.backgroundColor =
-						SecondaryColor;
+						SelectedColor;
 				}
-			}
-			SelectedElement = element;
-			if (IsDualPaneEnabled) {
-				SelectedElement.children[0].style.backgroundColor = SelectedColor;
-			} else if (ViewMode == "column") {
-				SelectedElement.children[0].children[1].style.backgroundColor =
-					SelectedColor;
+				SelectedItemPath = path;
+				SelectedItemPaneSide = dualPaneSide;
+			} else if (isDir == 1 || (isDir == 1 && shortcut == true)) {
+				// Open directory
+				await invoke("open_dir", { path }).then(async (items) => {
+					if (IsDualPaneEnabled == true && dualPaneSide != "") {
+						document.querySelector(
+							".tab-container-" + CurrentActiveTab,
+						).innerHTML = "";
+						await showItems(items, dualPaneSide);
+						goUp(false, true);
+					} else {
+						showItems(items);
+					}
+				});
 			} else {
-				SelectedElement.children[0].children[0].style.backgroundColor =
-					SelectedColor;
+				// Open element with default application
+				await invoke("open_item", { path });
 			}
-			SelectedItemPath = path;
-			SelectedItemPaneSide = dualPaneSide;
-		} else if (isDir == 1 || (isDir == 1 && shortcut == true)) {
-			// Open directory
-			await invoke("open_dir", { path }).then(async (items) => {
-				if (IsDualPaneEnabled == true && dualPaneSide != "") {
-					document.querySelector(
-						".tab-container-" + CurrentActiveTab,
-					).innerHTML = "";
-					await showItems(items, dualPaneSide);
-					goUp(false, true);
-				} else {
-					showItems(items);
-				}
-			});
 		} else {
-			// Open element with default application
-			await invoke("open_item", { path });
-		}
-	} else {
-		if (isDir == 1) {
-			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
-			DirectoryList.classList.add("dir-preloader-container");
-			await invoke("open_ftp_dir", { path }).then(async (items) => {
-				await showItems(items);
-				CurrentFtpPath = path;
-			});
-			document.querySelector(".fullsearch-loader").style.display = "none";
-			DirectoryList.classList.remove("dir-preloader-container");
-		} else {
-			await invoke("copy_from_ftp", { path });
+			if (isDir == 1) {
+				DirectoryList.innerHTML = `<img decoding="async" src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+				DirectoryList.classList.add("dir-preloader-container");
+				await invoke("open_ftp_dir", { path }).then(async (items) => {
+					await showItems(items);
+					CurrentFtpPath = path;
+				});
+				document.querySelector(".fullsearch-loader").style.display = "none";
+				DirectoryList.classList.remove("dir-preloader-container");
+			} else {
+				await invoke("copy_from_ftp", { path });
+			}
 		}
 	}
 }
@@ -1681,7 +1685,7 @@ async function searchFor(
 	if (fileName.length > 1 || isQuickSearch == true) {
 		document.querySelector(".cancel-search-button").style.display = "block";
 		if (IsDualPaneEnabled == false) {
-			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+			DirectoryList.innerHTML = `<img decoding="async" src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
 			DirectoryList.classList.add("dir-preloader-container");
 		}
 		await invoke("search_for", {
@@ -2115,34 +2119,41 @@ function showProperties(item) {
 }
 
 function showItemPreview(item) {
-	if (IsPopUpOpen == false) {
-		let ext = item.getAttribute("itemext");
-		let path = item.getAttribute("itempath");
-		let popup = document.createElement("div");
-		popup.className = "uni-popup item-preview-popup";
-		let mod = "";
-		switch (ext) {
-			case ".png":
-			case ".jpg":
-			case ".jpeg":
-				mod = `<img src="${window.__TAURI__.tauri.convertFileSrc(path)}" width="auto" height="100%" loading="lazy" />`;
-				break;
-		}
-		popup.innerHTML = `
-      <div>
-        ${mod}
-      </div>
-    `;
-		document.querySelector("body").append(popup);
-		IsPopUpOpen = true;
-		$(popup).fadeIn(100);
+	let name = item.getAttribute("itemname");
+	let ext = item.getAttribute("itemext");
+	let path = item.getAttribute("itempath");
+	let popup = document.createElement("div");
+	popup.className = "item-preview-popup";
+	let mod = "";
+	switch (ext) {
+		case ".png":
+		case ".jpg":
+		case ".jpeg":
+		case ".gif":
+		case ".svg":
+			mod = `<img decoding="async" src="${window.__TAURI__.tauri.convertFileSrc(path)}" alt="${name}" />`;
+			break;
+		case ".pdf":
+			mod = `<iframe src="${window.__TAURI__.tauri.convertFileSrc(path)}" />`;
+			break;
+		default:
+			mod = `<h3 style="padding: 10px;" align="center" style="padding: 0px 5px;">No support for ${name}</h3>`;
+			break;
 	}
+	popup.innerHTML = `
+		${mod}
+	`;
+	document.querySelector("body").append(popup);
+	IsPopUpOpen = true;
+	$(popup).fadeIn(200);
+	IsItemPreviewOpen = true;
 }
 
 function closeItemPreview() {
-	$(".item-preview-popup").fadeOut(100, () => {
+	$(".item-preview-popup").fadeOut(200, () => {
 		$(".item-preview-popup")?.remove();
 		IsPopUpOpen = false;
+		IsItemPreviewOpen = false;
 	});
 }
 
@@ -2205,14 +2216,14 @@ function checkColorMode() {
 		PrimaryColor = "white";
 		r.style.setProperty("--secondaryColor", "whitesmoke");
 		SecondaryColor = "whitesmoke";
-		r.style.setProperty("--tertiaryColor", "lightgray");
-		r.style.setProperty("--textColor", "rgba(75, 75, 105)");
+		r.style.setProperty("--tertiaryColor", "rgba(240, 240, 240, 1)");
+		r.style.setProperty("--textColor", "rgb(55, 55, 55)");
 	} else {
 		r.style.setProperty("--primaryColor", "#3f4352");
 		PrimaryColor = "#3f4352";
 		r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
 		SecondaryColor = "rgb(56, 59, 71)";
-		r.style.setProperty("--tertiaryColor", "#464d5f");
+		r.style.setProperty("--tertiaryColor", "#474b5c");
 		r.style.setProperty("--textColor", "white");
 	}
 }
