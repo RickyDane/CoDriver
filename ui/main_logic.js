@@ -377,6 +377,11 @@ document.onkeydown = async (e) => {
 	} else if (e.ctrlKey && e.key == "x") {
 		copyItem(SelectedElement, true);
 	}
+	// Check if ctrl + shift + c is pressed
+	if (e.ctrlKey && e.shiftKey && e.key == "c") {
+		// await writeText(CurrentDir);
+		alert("Current dir copied!");
+	}
 
 	if (IsPopUpOpen == false) {
 		if ((IsAltDown && e.key == "Enter") || e.key == "F2") {
@@ -389,28 +394,24 @@ document.onkeydown = async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 		}
-
 		// New folder input prompt when f7 is pressed
 		if (e.key == "F7") {
 			createFolderInputPrompt();
 			e.preventDefault();
 			e.stopPropagation();
 		}
-
 		// New file input prompt when f6 is pressed
 		if (e.keyCode == 117) {
 			createFileInputPrompt();
 			e.preventDefault();
 			e.stopPropagation();
 		}
-
 		// check if strg + f is pressed
 		if (e.ctrlKey && e.keyCode == 70) {
 			openSearchBar();
 			e.preventDefault();
 			e.stopPropagation();
 		}
-
 		// Check if space is pressed on selected item
 		if (e.key == " " && SelectedElement != null) {
 			e.preventDefault();
@@ -970,7 +971,7 @@ function showInputPopup(msg) {
 	let popup = document.createElement("div");
 	popup.innerHTML = `
 		<h4>${msg}</h4>
-		<input class="text-input" placeholder="/home/example/path/to/dir" autofocus/>
+		<input class="text-input" placeholder="/path/to/dir" autofocus/>
 	`;
 	popup.className = "input-popup";
 	popup.children[1].addEventListener("keyup", async (e) => {
