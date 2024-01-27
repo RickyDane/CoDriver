@@ -927,3 +927,7 @@ label {
     height: 70vh;
     border: none;
 }
+.item-preview-popup > div {
+    padding: 10px;
+    background-color: var(--primaryColor);
+}
