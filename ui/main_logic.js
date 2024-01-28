@@ -54,6 +54,7 @@ let RightDualPanePath = "";
 let SelectedElement = null;
 let SelectedItemPath = "";
 let SelectedItemPaneSide = "";
+let SelectedItemIndex = 0;
 let LeftPaneItemCollection = [];
 let RightPaneItemCollection = [];
 let IsDisableShortcuts = false;
@@ -63,7 +64,7 @@ let IsPopUpOpen = false;
 let SettingsSearchDepth = 10;
 let SettingsMaxItems = 1000;
 let IsFullSearching = false;
-let ArrCopyItems = []; // Todo: select more elements to copy at once
+let ArrItems = []; // Todo: select more elements to copy / cut / delete at once
 let IsLightMode = false;
 let IsImagePreview = false;
 let IsFtpActive = false;
@@ -78,7 +79,7 @@ let IsItemPreviewOpen = false;
 /* Colors  */
 let PrimaryColor = "#3f4352";
 let SecondaryColor = "rgb(56, 59, 71)";
-let SelectedColor = "rgba(0, 0, 0, 0.25)";
+let SelectedColor = "rgba(0, 0, 0, 0.5)";
 let TransparentColor = "rgba(0, 0, 0, 0.1)";
 
 /* Upper right search bar logic */
@@ -152,12 +153,18 @@ document.addEventListener("mousedown", (e) => {
     !e.target.classList.contains("context-item") &&
     !e.target.classList.contains("input-dialog") &&
     !e.target.classList.contains("directory-item-entry") &&
-    !e.target.classList.contains("directory-entry")
-  ) {
+    !e.target.classList.contains("directory-entry") && 
+    !e.target.classList.contains("disk-item") &&
+    !e.target.classList.contains("item-button") &&
+    !e.target.classList.contains("item-button-list") &&
+    !e.target.classList.contains("item-icon") &&
+    !e.target.classList.contains("item-button-list-text") &&
+    !e.target.classList.contains("item-button-list-info-span")
+    ) {
     document.querySelector(".context-menu").style.display = "none";
 
     // Reset context menu
-    ContextMenu.children[0].setAttribute("disabled", "true");
+    ContextMenu.children[0].setAttribute("disabled", "true"); 
     ContextMenu.children[0].classList.add("c-item-disabled");
     ContextMenu.children[1].setAttribute("disabled", "true");
     ContextMenu.children[1].classList.add("c-item-disabled");
@@ -178,6 +185,18 @@ document.addEventListener("mousedown", (e) => {
     ContextMenu.children[7].classList.add("c-item-disabled");
     ContextMenu.children[8].setAttribute("disabled", "true");
     ContextMenu.children[8].classList.add("c-item-disabled");
+
+    if (SelectedElement != null) {
+      if (IsDualPaneEnabled) {
+        SelectedElement.children[0].style.backgroundColor = "transparent";
+      }
+      else if (ViewMode == "column") {
+        SelectedElement.children[0].children[1].style.backgroundColor = TransparentColor;
+      }
+      else {
+        SelectedElement.children[0].children[0].style.backgroundColor = TransparentColor;
+      }
+    }
   }
 });
 
@@ -315,6 +334,12 @@ document.onkeydown = async (e) => {
       e.preventDefault();
       e.stopPropagation();
     }
+    // check if return is pressed
+    if (!IsAltDown && e.keyCode == 13) {
+      openSelectedItem();
+      e.preventDefault();
+      e.stopPropagation();
+    }
     // check if arrow up is pressed
     if (e.keyCode == 38) {
       goUp();
@@ -323,13 +348,7 @@ document.onkeydown = async (e) => {
     }
     // check if arrow down is pressed
     if (e.keyCode == 40) {
-      goDown();
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    // check if return is pressed
-    if (!IsAltDown && e.keyCode == 13) {
-      openSelectedItem();
+      goDown(e);
       e.preventDefault();
       e.stopPropagation();
     }
@@ -347,11 +366,23 @@ document.onkeydown = async (e) => {
         e.stopPropagation();
       }
     }
+    if (e.key == "PageUp") {
+      goUp();
+      goUp();
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (e.key == "PageDown") {
+      goDown();
+      goDown();
+      e.preventDefault();
+      e.stopPropagation();
+    }
   }
-
   // check if del is pressed
   if (e.keyCode == 46 || (IsMetaDown && e.keyCode == 8)) {
-    deleteItem(SelectedElement);
+    await deleteItem(SelectedElement);
+    goUp();
     e.preventDefault();
     e.stopPropagation();
   }
@@ -420,7 +451,7 @@ document.onkeydown = async (e) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    // check if strg + f is pressed
+    // check if ctrl + f is pressed
     if (e.ctrlKey && e.keyCode == 70) {
       openSearchBar();
       e.preventDefault();
@@ -547,10 +578,9 @@ async function showItems(items, dualPaneSide = "") {
     let newRow = document.createElement("div");
     newRow.className = "directory-item-entry";
     let fileIcon = "resources/file-icon.png"; // Default
-    let iconSize = "48px";
+    let iconSize = "38px";
     if (item.is_dir == 1) {
       fileIcon = "resources/folder-icon.png";
-      iconSize = "48px";
       // Check for dir name to apply custom icons
       if (item.name.toLowerCase().includes("downloads")) {
         fileIcon = "resources/folder-downloads.png";
@@ -682,13 +712,13 @@ async function showItems(items, dualPaneSide = "") {
     itemButton.className = "item-button directory-entry";
     let itemButtonList = document.createElement("div");
     itemButtonList.innerHTML = `
-			<span style="display: flex; gap: 10px; align-items: center; width: 50%;">
+			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%;">
 				<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
-				<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+				<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 			</span>
-			<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-				<p style="width: auto; text-align: right;">${item.last_modified}</p>
-				<p style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
+				<p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
+				<p class="item-button-list-text" style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
 			</span>
 		`;
     if (dualPaneSide != null && dualPaneSide != "") {
@@ -704,7 +734,7 @@ async function showItems(items, dualPaneSide = "") {
     } else {
       itemButtonList.style.display = "none";
       DirectoryList.style.gridTemplateColumns =
-        "repeat(auto-fill, minmax(157px, 1fr))";
+        "repeat(auto-fill, minmax(132px, 1fr))";
       DirectoryList.style.rowGap = "15px";
     }
     newRow.append(itemButton);
@@ -1174,8 +1204,7 @@ async function checkAppConfig() {
       let firstContainer = document.querySelector(".explorer-container");
       document.querySelector(".list-column-header").style.display = "flex";
       firstContainer.style.marginTop = "35px";
-      firstContainer.style.height = "calc(100vh - 147px)";
-      firstContainer.style.paddingBottom = "10px";
+      firstContainer.style.height = "calc(100vh - 135px)";
     }
 
     // if (appConfig.is_open_in_terminal.includes("1")) {
@@ -1348,83 +1377,92 @@ async function openItem(
   shortcut = false,
   shortcutPath = null,
 ) {
-  if (IsItemPreviewOpen == false) {
-    let name = element?.getAttribute("itemname");
-    let path = element?.getAttribute("itempath");
-    let isFtp = element?.getAttribute("isftp");
-    if (isFtp == false || isFtp == null) {
-      if (shortcut == true) {
-        path = shortcutPath;
-      }
-      if (dualPaneSide == "left") {
-        document.querySelector(".dual-pane-left").style.boxShadow =
-          "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
-        document.querySelector(".dual-pane-right").style.boxShadow = "none";
-      } else if (dualPaneSide == "right") {
-        document.querySelector(".dual-pane-right").style.boxShadow =
-          "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
-        document.querySelector(".dual-pane-left").style.boxShadow = "none";
-      }
-      // Interaction mode: Select
-      if (
-        element != null &&
-        SelectedElement != element &&
-        IsSelectMode == true
-      ) {
-        if (SelectedElement != null) {
-          if (IsDualPaneEnabled) {
-            SelectedElement.children[0].style.backgroundColor =
-              TransparentColor;
-          } else if (ViewMode == "column") {
-            SelectedElement.children[0].children[1].style.backgroundColor =
-              TransparentColor;
-          } else {
-            SelectedElement.children[0].children[0].style.backgroundColor =
-              TransparentColor;
-          }
-        }
-        SelectedElement = element;
+  let name = element?.getAttribute("itemname");
+  let path = element?.getAttribute("itempath");
+  let isFtp = element?.getAttribute("isftp");
+  let index = element?.getAttribute("itemindex");
+  if (isFtp == false || isFtp == null) {
+    if (shortcut == true) {
+      path = shortcutPath;
+    }
+    if (dualPaneSide == "left") {
+      document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+      document.querySelector(".dual-pane-right").style.boxShadow = "none";
+    }
+    else if (dualPaneSide == "right") {
+      document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+      document.querySelector(".dual-pane-left").style.boxShadow = "none";
+    }
+    // Interaction mode: Select
+    if (element != null && SelectedElement != element && IsSelectMode == true) {
+      if (SelectedElement != null) {
         if (IsDualPaneEnabled) {
-          SelectedElement.children[0].style.backgroundColor = SelectedColor;
-        } else if (ViewMode == "column") {
-          SelectedElement.children[0].children[1].style.backgroundColor =
-            SelectedColor;
-        } else {
-          SelectedElement.children[0].children[0].style.backgroundColor =
-            SelectedColor;
+          SelectedElement.children[0].style.backgroundColor = "transparent";
         }
-        SelectedItemPath = path;
-        SelectedItemPaneSide = dualPaneSide;
-      } else if (isDir == 1 || (isDir == 1 && shortcut == true)) {
-        // Open directory
-        await invoke("open_dir", { path }).then(async (items) => {
-          if (IsDualPaneEnabled == true && dualPaneSide != "") {
-            document.querySelector(
-              ".tab-container-" + CurrentActiveTab,
-            ).innerHTML = "";
-            await showItems(items, dualPaneSide);
-            goUp(false, true);
-          } else {
-            showItems(items);
-          }
-        });
-      } else {
-        // Open element with default application
-        await invoke("open_item", { path });
+        else if (ViewMode == "column") {
+          SelectedElement.children[0].children[1].style.backgroundColor = TransparentColor;
+        }
+        else {
+          SelectedElement.children[0].children[0].style.backgroundColor = TransparentColor;
+        }
       }
-    } else {
-      if (isDir == 1) {
-        DirectoryList.innerHTML = `<img decoding="async" src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
-        DirectoryList.classList.add("dir-preloader-container");
-        await invoke("open_ftp_dir", { path }).then(async (items) => {
-          await showItems(items);
-          CurrentFtpPath = path;
-        });
-        document.querySelector(".fullsearch-loader").style.display = "none";
-        DirectoryList.classList.remove("dir-preloader-container");
-      } else {
-        await invoke("copy_from_ftp", { path });
+      SelectedElement = element; // Switch to new element / selection
+      if (IsDualPaneEnabled) {
+        SelectedElement.children[0].style.backgroundColor = SelectedColor;
       }
+      else if (ViewMode == "column") {
+        SelectedElement.children[0].children[1].style.backgroundColor = SelectedColor;
+      }
+      else {
+        SelectedElement.children[0].children[0].style.backgroundColor = SelectedColor;
+      }
+      SelectedItemPath = path;
+      SelectedItemPaneSide = dualPaneSide;
+      if (dualPaneSide == "left") {
+        LeftPaneItemIndex = index;
+      }
+      else if (dualPaneSide == "right") {
+        RightPaneItemIndex = index;
+      }
+      // Switch item preview when already open
+      if (IsItemPreviewOpen == true) {
+        showItemPreview(SelectedElement, true);
+      }
+    }
+    // Interaction mode: Open item
+    else if (IsItemPreviewOpen == false && isDir == 1 || (isDir == 1 && shortcut == true)) {
+      // Open directory
+      await invoke("open_dir", { path }).then(async (items) => {
+        if (IsDualPaneEnabled == true && dualPaneSide != "") {
+          document.querySelector(
+            ".tab-container-" + CurrentActiveTab,
+          ).innerHTML = "";
+          await showItems(items, dualPaneSide);
+          goUp(false, true);
+        }
+        else {
+          showItems(items);
+        }
+      });
+    }
+    else if (IsItemPreviewOpen == false) {
+      // Open element with default application / Todo: "open with / as"
+      await invoke("open_item", { path });
+    }
+  }
+  else { // Test for future ftp integration
+    if (isDir == 1) {
+      DirectoryList.innerHTML = `<img decoding="async" src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+      DirectoryList.classList.add("dir-preloader-container");
+      await invoke("open_ftp_dir", { path }).then(async (items) => {
+        await showItems(items);
+        CurrentFtpPath = path;
+      });
+      document.querySelector(".fullsearch-loader").style.display = "none";
+      DirectoryList.classList.remove("dir-preloader-container");
+    }
+    else {
+      await invoke("copy_from_ftp", { path });
     }
   }
 }
@@ -1469,7 +1507,7 @@ async function goBack() {
 
 function goUp(isSwitched = false, toFirst = false) {
   let element = null;
-  let selectedItemIndex = 0;
+  let selectedItemIndex = 0; 
   if (toFirst == false) {
     if (SelectedElement != null) {
       if (SelectedItemPaneSide == "left") {
@@ -1477,18 +1515,14 @@ function goUp(isSwitched = false, toFirst = false) {
         if (LeftPaneItemIndex > 0 && isSwitched == true) {
           selectedItemIndex = LeftPaneItemIndex;
           element =
-            LeftPaneItemCollection.querySelectorAll(".item-link")[
-              selectedItemIndex
-            ];
+            LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
         } else if (parseInt(selectedItemIndex) < 1) {
           selectedItemIndex = 0;
           element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
         } else {
           selectedItemIndex = parseInt(selectedItemIndex) - 1;
           element =
-            LeftPaneItemCollection.querySelectorAll(".item-link")[
-              selectedItemIndex
-            ];
+            LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
         }
         LeftPaneItemIndex = selectedItemIndex;
       } else if (SelectedItemPaneSide == "right") {
@@ -1511,7 +1545,7 @@ function goUp(isSwitched = false, toFirst = false) {
         }
         RightPaneItemIndex = selectedItemIndex;
       }
-      SelectedElement.style.backgroundColor = SelectedColor;
+      SelectedElement.style.backgroundColor = "transparent";
     } else {
       if (SelectedItemPaneSide == "left") {
         selectedItemIndex = 0;
@@ -1524,7 +1558,7 @@ function goUp(isSwitched = false, toFirst = false) {
       }
     }
     if (element != SelectedElement && element != null) {
-      SelectedElement.style.backgroundColor = PrimaryColor;
+      SelectedElement.style.backgroundColor = "transparent";
       element.onclick();
     }
 
@@ -1560,7 +1594,7 @@ function goUp(isSwitched = false, toFirst = false) {
   }
 }
 
-function goDown() {
+function goDown(e) {
   let element = null;
   let selectedItemIndex = 0;
   if (SelectedElement != null) {
@@ -1616,7 +1650,7 @@ function goDown() {
     }
   }
   if (element != SelectedElement) {
-    SelectedElement.style.backgroundColor = PrimaryColor;
+    SelectedElement.children[0].style.backgroundColor = "transparent";
     element.onclick();
   }
 
@@ -2009,11 +2043,9 @@ function createTab(tabCount, isInitial) {
       "explorer-container tab-container-" + tabCount;
     if (ViewMode == "wrap") {
       explorerContainer.style.height = "calc(100vh - 100px)";
-      explorerContainer.style.paddingBottom = "20px";
     } else {
       explorerContainer.style.marginTop = "35px";
-      explorerContainer.style.height = "calc(100vh - 147px)";
-      explorerContainer.style.paddingBottom = "10px";
+      explorerContainer.style.height = "calc(100vh - 135px)";
     }
     document.querySelector(".main-container").append(explorerContainer);
   }
@@ -2126,7 +2158,12 @@ function showProperties(item) {
   ContextMenu.style.display = "none";
 }
 
-function showItemPreview(item) {
+function showItemPreview(item, isOverride = false) {
+  let fadeTime = 200;
+  if (isOverride) {
+    $(".item-preview-popup").fadeOut(50);
+    fadeTime = 50;
+  }
   let name = item.getAttribute("itemname");
   let ext = item.getAttribute("itemext");
   let path = item.getAttribute("itempath");
@@ -2163,11 +2200,11 @@ function showItemPreview(item) {
 	`;
   document.querySelector("body").append(popup);
   IsPopUpOpen = true;
-  $(popup).fadeIn(200);
+  $(popup).fadeIn(fadeTime);
   IsItemPreviewOpen = true;
 }
 
-function closeItemPreview() {
+async function closeItemPreview() {
   $(".item-preview-popup").fadeOut(200, () => {
     $(".item-preview-popup")?.remove();
     IsPopUpOpen = false;

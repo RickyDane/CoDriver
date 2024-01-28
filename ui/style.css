@@ -1,4 +1,4 @@
-@font-face {
+        @font-face {
     font-family: "Inter";
     src: url("resources/inter/Inter-VariableFont_slnt,wght.ttf");
 }
@@ -30,8 +30,8 @@ html {
     overflow: hidden;
     background-color: transparent;
     border: none;
-    border-radius: 10px 10px 10px 10px;
     overflow: hidden;
+    border-radius: 10px;
 }
 body {
     height: 100vh;
@@ -39,7 +39,7 @@ body {
     overflow: hidden;
     outline: none;
     border: none;
-    border-radius: 15px;
+    border-radius: 10px;
 }
 .explorer-container {
     margin: 0 0 0 calc(200px + 10px);
@@ -184,9 +184,9 @@ body {
     width: calc(100% - 200px);
     color: var(--textColor);
     padding: 10px 0px;
-    background-color: var(--secondaryColor);
+    background-color: var(--primaryColor);
     z-index: 2;
-    border-bottom: 1px solid var(--tertiaryColor);
+    border-bottom: 1px solid var(--secondaryColor);
 }
 .list-column-header-button {
     background-color: transparent;
@@ -372,16 +372,15 @@ label {
 .item-button {
     position: relative;
     background-color: var(--transparentColor);
-    border-radius: 7px;
+    border-radius: 5px;
     cursor: pointer;
     text-align: left;
     font-size: small;
-    height: 100px;
-    width: 150px;
+    height: 85px;
+    width: 125px;
     overflow: hidden;
     display: flex;
     flex-flow: column;
-    justify-content: center;
     align-items: center;
     text-align: center;
     transition: 0.1s ease;
@@ -391,11 +390,33 @@ label {
 .item-button:hover {
     background-color: var(--transparentColorActive);
 }
+.item-button > span {
+    /* gap: 15px; */
+}
 .item-button > img {
     transition: 0.1s ease;
+    width: auto;
+    max-width: 80%;
+    margin-top: 7.5px;
+    border-radius: 3px;
 }
 .item-button:hover > img {
     filter: brightness(0.75);
+}
+.item-button > p {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--secondaryColor);
+    padding: 2px 5px;
+    font-size: var(--fontSize);
+    line-height: 20px;
+    max-height: 30px;
+    border-radius: 5px;
+    margin: 4px;
+    overflow: hidden;
+    transition: 0.1s ease;
 }
 .item-button:hover > p {
     background-color: var(--transparentColorActive);
@@ -408,31 +429,11 @@ label {
     justify-content: center;
     align-items: center;
 }
-.item-button > .item-icon {
-    margin-bottom: 30px;
-}
-.item-icon {
-    border-radius: 4px;
-}
-.item-button > p {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: var(--secondaryColor);
-    padding: 5px;
-    font-size: var(--fontSize);
-    line-height: 20px;
-    max-height: 30px;
-    border-radius: 5px;
-    margin: 4px;
-    overflow: hidden;
-}
 .item-button-list {
     display: flex;
     flex-flow: row;
     justify-content: space-between;
-    background-color: var(--secondaryColor);
+    background-color: var(--transparentColor);
     border: none;
     border-radius: 5px;
     gap: 5px;
@@ -511,7 +512,7 @@ label {
     overflow: hidden;
     display: flex;
     align-items: center;
-    box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.025);
+    box-shadow: 0px 0px 2px 1px var(--transparentColor);
 }
 .disk-item-bot > p {
     font-size: 14px;
@@ -638,6 +639,7 @@ label {
     padding: 10px;
     border-radius: 10px;
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--tertiaryColor);
 }
 .text-input {
     padding: 10px 15px;
@@ -680,7 +682,7 @@ label {
     background-color: var(--primaryColor);
     border-radius: 10px;
     box-shadow: 0px 0px 10px 1px var(--transparentColor);
-    border: 1px solid var(--primaryColor);
+    border: 1px solid var(--tertiaryColor);
     overflow: hidden;
 }
 .search-full-container-header {
@@ -736,11 +738,10 @@ label {
     max-width: 100%;
     overflow: hidden;
     display: grid;
-    column-gap: 10px;
-    grid-template-columns: repeat(auto-fill, minmax(157px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
     margin: 0 auto;
-    padding-top: 5px;
     will-change: transform;
+    padding-top: 2.5px;
 }
 .directory-list-dual-pane {
     display: flex;
@@ -771,6 +772,7 @@ label {
     border-radius: 10px;
     box-shadow: 0px 0px 10px 0px var(--transparentColorActive);
     z-index: 99;
+    border: 1px solid var(--tertiaryColor);
 }
 .context-item {
     color: var(--textColor);
@@ -819,6 +821,7 @@ label {
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
     border-radius: 10px;
     max-width: 300px;
+    border: 1px solid var(--tertiaryColor);
 }
 .input-dialog > h4 {
     padding: 5px 10px 10px 10px;
@@ -918,6 +921,7 @@ label {
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--tertiaryColor);
 }
 .item-preview-popup > img {
     max-height: 50vh;
@@ -929,5 +933,5 @@ label {
 }
 .item-preview-popup > div {
     padding: 10px;
-    background-color: var(--primaryColor);
+    text-shadow: 0px 0px 2px var(--transparentColorActive);
 }
