@@ -372,7 +372,7 @@ label {
 .item-button {
     position: relative;
     background-color: var(--transparentColor);
-    border-radius: 10px;
+    border-radius: 5px;
     cursor: pointer;
     text-align: left;
     font-size: small;
@@ -741,6 +741,7 @@ label {
     margin: 0 auto;
     will-change: transform;
     padding-top: 2.5px;
+    row-gap: 15px;
 }
 .directory-list-dual-pane {
     display: flex;
@@ -911,8 +912,9 @@ label {
     right: 0;
     bottom: 0;
     margin: auto;
+    min-height: 0;
     width: fit-content;
-    height: fit-content;
+    height: 70vh;
     border-radius: 10px;
     overflow: hidden;
     z-index: 999;
@@ -923,11 +925,11 @@ label {
     border: 1px solid var(--tertiaryColor);
 }
 .item-preview-popup > img {
-    max-height: 50vh;
+    max-height: 70vh;
 }
 .item-preview-popup > iframe {
     width: 40vw;
-    height: 80vh;
+    height: 70vh;
     border: none;
 }
 .item-preview-popup > div {
