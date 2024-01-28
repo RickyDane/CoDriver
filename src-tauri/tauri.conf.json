@@ -1,149 +1,157 @@
 {
-	"build": {
-		"beforeBuildCommand": "",
-		"beforeDevCommand": "",
-		"devPath": "../ui",
-		"distDir": "../ui",
-		"withGlobalTauri": true
-	},
-	"package": {
-		"productName": "rdpFX",
-		"version": "0.2.5"
-	},
-	"tauri": {
-		"allowlist": {
-			"clipboard": {
-				"all": true,
-				"writeText": true,
-				"readText": true
-			},
-			"window": {
-				"all": true,
-				"create": true,
-				"center": true,
-				"requestUserAttention": true,
-				"setResizable": true,
-				"setMaximizable": true,
-				"setMinimizable": true,
-				"setClosable": true,
-				"setTitle": true,
-				"maximize": true,
-				"unmaximize": true,
-				"minimize": true,
-				"unminimize": true,
-				"show": true,
-				"hide": true,
-				"close": true,
-				"setDecorations": true,
-				"setAlwaysOnTop": true,
-				"setContentProtected": true,
-				"setSize": true,
-				"setMinSize": true,
-				"setMaxSize": true,
-				"setPosition": true,
-				"setFullscreen": true,
-				"setFocus": true,
-				"setIcon": true,
-				"setSkipTaskbar": true,
-				"setCursorGrab": true,
-				"setCursorVisible": true,
-				"setCursorIcon": true,
-				"setCursorPosition": true,
-				"setIgnoreCursorEvents": true,
-				"startDragging": true,
-				"print": true
-			},
-			"path": {
-				"all": true
-			},
-			"fs": {
-				"all": true,
-				"readFile": true,
-				"writeFile": true,
-				"readDir": true,
-				"copyFile": true,
-				"createDir": true,
-				"removeDir": true,
-				"removeFile": true,
-				"renameFile": true,
-				"exists": true
-			},
-			"dialog": {
-				"all": true,
-				"ask": true,
-				"confirm": true,
-				"message": true,
-				"open": true,
-				"save": true
-			},
-			"protocol": {
-				"asset": true,
-				"assetScope": {
-					"allow": ["**"],
-					"requireLiteralLeadingDot": false
-				},
-				"all": true
-			}
-		},
-		"bundle": {
-			"active": true,
-			"category": "DeveloperTool",
-			"copyright": "",
-			"deb": {
-				"depends": []
-			},
-			"externalBin": [],
-			"icon": [
-				"icons/32x32.png",
-				"icons/128x128.png",
-				"icons/128x128@2x.png",
-				"icons/icon.icns",
-				"icons/icon.ico"
-			],
-			"identifier": "com.rdpFX.dev",
-			"longDescription": "A simple file explorer with nice ui and good features.",
-			"macOS": {
-				"entitlements": null,
-				"exceptionDomain": "",
-				"frameworks": [],
-				"providerShortName": null,
-				"signingIdentity": null
-			},
-			"resources": [],
-			"shortDescription": "",
-			"targets": "all",
-			"windows": {
-				"certificateThumbprint": null,
-				"digestAlgorithm": "sha256",
-				"timestampUrl": ""
-			}
-		},
-		"security": {
-			"csp": null
-		},
-		"updater": {
-			"active": false
-		},
-		"windows": [
-			{
-				"decorations": false,
-				"fullscreen": false,
-				"transparent": true,
-				"height": 600,
-				"resizable": true,
-				"title": "rdpFX",
-				"width": 1050
-			}
-		],
-		"cli": {
-			"args": [
-				{
-					"name": "source",
-					"index": 1,
-					"takesValue": true
-				}
-			]
-		},
-		"macOSPrivateApi": true
-	}
+  "build": {
+    "beforeBuildCommand": "",
+    "beforeDevCommand": "",
+    "devPath": "../ui",
+    "distDir": "../ui",
+    "withGlobalTauri": true
+  },
+  "package": {
+    "productName": "rdpFX",
+    "version": "0.3.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "http": {
+        "all": true,
+        "request": true,
+        "scope": ["asset://*"]
+      },
+      "clipboard": {
+        "all": true,
+        "writeText": true,
+        "readText": true
+      },
+      "window": {
+        "all": true,
+        "create": true,
+        "center": true,
+        "requestUserAttention": true,
+        "setResizable": true,
+        "setMaximizable": true,
+        "setMinimizable": true,
+        "setClosable": true,
+        "setTitle": true,
+        "maximize": true,
+        "unmaximize": true,
+        "minimize": true,
+        "unminimize": true,
+        "show": true,
+        "hide": true,
+        "close": true,
+        "setDecorations": true,
+        "setAlwaysOnTop": true,
+        "setContentProtected": true,
+        "setSize": true,
+        "setMinSize": true,
+        "setMaxSize": true,
+        "setPosition": true,
+        "setFullscreen": true,
+        "setFocus": true,
+        "setIcon": true,
+        "setSkipTaskbar": true,
+        "setCursorGrab": true,
+        "setCursorVisible": true,
+        "setCursorIcon": true,
+        "setCursorPosition": true,
+        "setIgnoreCursorEvents": true,
+        "startDragging": true,
+        "print": true
+      },
+      "path": {
+        "all": true
+      },
+      "fs": {
+        "all": true,
+        "readFile": true,
+        "writeFile": true,
+        "readDir": true,
+        "copyFile": true,
+        "createDir": true,
+        "removeDir": true,
+        "removeFile": true,
+        "renameFile": true,
+        "exists": true
+      },
+      "dialog": {
+        "all": true,
+        "ask": true,
+        "confirm": true,
+        "message": true,
+        "open": true,
+        "save": true
+      },
+      "protocol": {
+        "asset": true,
+        "assetScope": {
+          "allow": ["**"],
+          "requireLiteralLeadingDot": false
+        },
+        "all": true
+      },
+      "os": {
+        "all": true
+      }
+    },
+    "bundle": {
+      "active": true,
+      "category": "DeveloperTool",
+      "copyright": "",
+      "deb": {
+        "depends": []
+      },
+      "externalBin": [],
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
+      "identifier": "com.rdpFX.dev",
+      "longDescription": "A simple file explorer with nice ui and good features.",
+      "macOS": {
+        "entitlements": null,
+        "exceptionDomain": "",
+        "frameworks": [],
+        "providerShortName": null,
+        "signingIdentity": null
+      },
+      "resources": [],
+      "shortDescription": "",
+      "targets": "all",
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": ""
+      }
+    },
+    "security": {
+      "csp": null
+    },
+    "updater": {
+      "active": false
+    },
+    "windows": [
+      {
+        "decorations": false,
+        "fullscreen": false,
+        "transparent": true,
+        "height": 650,
+        "resizable": true,
+        "title": "rdpFX",
+        "width": 1050
+      }
+    ],
+    "cli": {
+      "args": [
+        {
+          "name": "source",
+          "index": 1,
+          "takesValue": true
+        }
+      ]
+    },
+    "macOSPrivateApi": true
+  }
 }

@@ -1,31 +1,32 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{env::{current_dir, set_current_dir}, fs::{File, copy, remove_dir_all, remove_file, create_dir}, path::PathBuf, process::Command, time::SystemTime, fmt::format}; 
-#[allow(unused_imports)]
-use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write, Read};
-use std::fs::{self, ReadDir};
-#[allow(unused_imports)]
-use async_std::io::Cursor;
-use rust_search::{SearchBuilder, similarity_sort};
+use async_ftp::FtpStream;
+use chrono::prelude::{DateTime, Utc};
+use dialog::DialogBox;
+use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
-use tauri::{api::path::{home_dir, picture_dir, download_dir, desktop_dir, video_dir, audio_dir, document_dir, app_config_dir, config_dir}, Config};
+use std::fs::{self, ReadDir};
+use std::io::{BufRead, BufReader, Read};
+use std::{
+    env::{current_dir, set_current_dir},
+    fs::{copy, create_dir, remove_dir_all, remove_file, File},
+    path::PathBuf,
+    process::Command,
+};
 use stopwatch::Stopwatch;
+use tauri::{
+    api::path::{
+        app_config_dir, audio_dir, config_dir, desktop_dir, document_dir, download_dir, home_dir,
+        picture_dir, video_dir,
+    },
+    Config,
+};
 use unrar::Archive;
-use chrono::prelude::{DateTime, Utc, NaiveDateTime, TimeZone};
 use zip_extensions::*;
-#[allow(unused_imports)]
-use get_sys_info::{System, Platform};
-#[allow(unused_imports)]
-use dialog::{DialogBox, backends::Dialog};
-#[allow(unused_imports)]
-use async_ftp::{FtpStream, DataStream};
-#[allow(unused_imports)]
-use async_ftp::types::FileType::{Ascii, Binary, Ebcdic, Image, Local};
-#[allow(unused_imports)]
-use async_ftp::FtpError;
 mod utils;
+use sysinfo::Disks;
 use utils::{dbg_log, err_log, wng_log};
-use sysinfo::{Components, Disks, Networks};
+use tauri_plugin_drag;
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -33,35 +34,35 @@ static mut PASSWORD: String = String::new();
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(
-            tauri::generate_handler![
-                list_dirs,
-                open_dir,
-                open_item,
-                go_back,
-                go_home,
-                search_for,
-                go_to_dir,
-                copy_paste,
-                delete_item,
-                extract_item,
-                compress_item,
-                create_folder,
-                switch_view,
-                check_app_config,
-                create_file,
-                get_current_dir,
-                set_dir,
-                list_disks,
-                open_in_terminal,
-                rename_element,
-                save_config,
-                switch_to_directory,
-                open_fav_ftp,
-                open_ftp_dir,
-                ftp_go_back,
-                copy_from_ftp 
+        .invoke_handler(tauri::generate_handler![
+            list_dirs,
+            open_dir,
+            open_item,
+            go_back,
+            go_home,
+            search_for,
+            go_to_dir,
+            copy_paste,
+            delete_item,
+            extract_item,
+            compress_item,
+            create_folder,
+            switch_view,
+            check_app_config,
+            create_file,
+            get_current_dir,
+            set_dir,
+            list_disks,
+            open_in_terminal,
+            rename_element,
+            save_config,
+            switch_to_directory,
+            open_fav_ftp,
+            open_ftp_dir,
+            ftp_go_back,
+            copy_from_ftp
         ])
+        .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -74,7 +75,7 @@ struct FDir {
     extension: String,
     size: String,
     last_modified: String,
-    is_ftp: i8
+    is_ftp: i8,
 }
 
 #[derive(serde::Serialize)]
@@ -92,11 +93,20 @@ struct AppConfig {
     max_items: i32,
     is_light_mode: String,
     is_image_preview: String,
+    is_select_mode: String,
 }
 
 #[tauri::command]
 async fn check_app_config() -> AppConfig {
-    create_folder(config_dir().unwrap().join("rdpFX").to_str().unwrap().to_string()).await;
+    create_folder(
+        config_dir()
+            .unwrap()
+            .join("rdpFX")
+            .to_str()
+            .unwrap()
+            .to_string(),
+    )
+    .await;
 
     // If config doesn't exist, create it
     if fs::metadata(config_dir().unwrap().join("rdpFX/app_config.json")).is_err() {
@@ -104,7 +114,7 @@ async fn check_app_config() -> AppConfig {
         let app_config_json = AppConfig {
             view_mode: "".to_string(),
             last_modified: chrono::offset::Local::now().to_string(),
-            configured_path_one: "".to_string(), 
+            configured_path_one: "".to_string(),
             configured_path_two: "".to_string(),
             configured_path_three: "".to_string(),
             is_open_in_terminal: "0".to_string(),
@@ -115,8 +125,20 @@ async fn check_app_config() -> AppConfig {
             max_items: 1000,
             is_light_mode: "0".to_string(),
             is_image_preview: "0".to_string(),
+            is_select_mode: "1".to_string(),
         };
-        let _ = serde_json::to_writer_pretty(File::create(config_dir().unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
+        let _ = serde_json::to_writer_pretty(
+            File::create(
+                config_dir()
+                    .unwrap()
+                    .join("rdpFX/app_config.json")
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+            )
+            .unwrap(),
+            &app_config_json,
+        );
     }
 
     let app_config_file = File::open(config_dir().unwrap().join("rdpFX/app_config.json")).unwrap();
@@ -126,78 +148,55 @@ async fn check_app_config() -> AppConfig {
     return AppConfig {
         view_mode: app_config["view_mode"].to_string(),
         last_modified: app_config["last_modified"].to_string(),
-        configured_path_one: app_config["configured_path_one"].to_string().replace('"', ""),
-        configured_path_two: app_config["configured_path_two"].to_string().replace('"', ""),
-        configured_path_three: app_config["configured_path_three"].to_string().replace('"', ""),
+        configured_path_one: app_config["configured_path_one"]
+            .to_string()
+            .replace('"', ""),
+        configured_path_two: app_config["configured_path_two"]
+            .to_string()
+            .replace('"', ""),
+        configured_path_three: app_config["configured_path_three"]
+            .to_string()
+            .replace('"', ""),
         is_open_in_terminal: app_config["is_open_in_terminal"].to_string(),
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string(),
         launch_path: app_config["launch_path"].to_string().replace('"', ""),
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string(),
-        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
+        search_depth: app_config["search_depth"]
+            .to_string()
+            .parse::<i32>()
+            .unwrap(),
         max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
         is_light_mode: app_config["is_light_mode"].to_string(),
-        is_image_preview: app_config["is_image_preview"].to_string()
+        is_image_preview: app_config["is_image_preview"].to_string(),
+        is_select_mode: app_config["is_select_mode"].to_string(),
     };
 }
 
 #[derive(serde::Serialize)]
 struct DisksInfo {
     name: String,
+    dev: String,
     format: String,
     path: String,
     avail: String,
-    capacity: String
+    capacity: String,
 }
 
 #[tauri::command]
 async fn list_disks() -> Vec<DisksInfo> {
-
     let mut ls_disks: Vec<DisksInfo> = vec![];
     let disks = Disks::new_with_refreshed_list();
-    for disk in &disks {
+    for disk in disks.into_iter() {
         dbg_log(format!("{:?}", &disk));
         ls_disks.push(DisksInfo {
             name: format!("{:?}", disk.mount_point()).split("/").last().unwrap_or("/").to_string().replace("\"", ""),
-            format: format!("{:?}", disk.file_system()),
+            dev: format!("{:?}", disk.name()),
+            format: format!("{:?}", disk.file_system().to_string_lossy()),
             path: format!("{:?}", disk.mount_point()),
             avail: format!("{:?}", disk.available_space()),
             capacity: format!("{:?}", disk.total_space()),
         });
     }
-
-    // #[cfg(not(target_os = "macos"))]
-    // let disk_list = System::new().mounts().unwrap_or_else(|r| {
-    //         dbg_log(format!("Got mounts error: {}", r));
-    //         vec![]
-    //     });
-
-    // #[cfg(not(target_os = "macos"))]
-    // #[cfg(not(target_os = "windows"))]
-    // for disk in disk_list {
-    //     if disk.fs_mounted_from.starts_with("/dev/sda") || disk.fs_mounted_from.starts_with("/dev/nvme") || disk.fs_mounted_from.starts_with("/mnt"){
-    //         dbg_log(format!("Mounted on: {:?} - Mounted from: {:?} - Free: {:?} - FS-Type: {:?}", disk.fs_mounted_on, disk.fs_mounted_from, disk.free, disk.fs_type));
-    //         ls_disks.push(DisksInfo {
-    //             name: disk.fs_mounted_on.split("/").last().unwrap_or("/").to_string(),
-    //             format: disk.fs_type,
-    //             path: disk.fs_mounted_on,
-    //             avail: disk.avail.to_string(),
-    //             capacity: disk.total.to_string()
-    //         });
-    //     }
-    // }
-
-    // #[cfg(not(target_os = "macos"))]
-    // #[cfg(target_os = "windows")]
-    // for disk in disk_list {
-    //     ls_disks.push(DisksInfo {
-    //         name: disk.fs_mounted_from,
-    //         format: disk.fs_type,
-    //         path: disk.fs_mounted_on.replace("\\", "/"),
-    //         avail: disk.avail.to_string(),
-    //         capacity: disk.total.to_string()
-    //     });
-    // }
-
     return ls_disks;
 }
 
@@ -208,31 +207,107 @@ async fn switch_to_directory(current_dir: String) {
 }
 #[tauri::command]
 async fn switch_view(view_mode: String) -> Vec<FDir> {
-    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_file = File::open(
+        app_config_dir(&Config::default())
+            .unwrap()
+            .join("rdpFX/app_config.json"),
+    )
+    .unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     let app_config_json = AppConfig {
         view_mode,
         last_modified: chrono::offset::Local::now().to_string(),
-        configured_path_one: app_config["configured_path_one"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        configured_path_two: app_config["configured_path_two"].to_string().replace('"', "").replace("\\", "/").trim().to_string(), 
-        configured_path_three: app_config["configured_path_three"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        is_open_in_terminal: app_config["is_open_in_terminal"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        launch_path: app_config["launch_path"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        is_dual_pane_active: app_config["is_dual_pane_active"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
+        configured_path_one: app_config["configured_path_one"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
+        configured_path_two: app_config["configured_path_two"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
+        configured_path_three: app_config["configured_path_three"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
+        is_open_in_terminal: app_config["is_open_in_terminal"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
+        is_dual_pane_enabled: app_config["is_dual_pane_enabled"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
+        launch_path: app_config["launch_path"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
+        is_dual_pane_active: app_config["is_dual_pane_active"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
+        search_depth: app_config["search_depth"]
+            .to_string()
+            .parse::<i32>()
+            .unwrap(),
         max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
-        is_light_mode: app_config["is_light_mode"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
-        is_image_preview: app_config["is_image_preview"].to_string().replace('"', "").replace("\\", "/").trim().to_string(),
+        is_light_mode: app_config["is_light_mode"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
+        is_image_preview: app_config["is_image_preview"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
+        is_select_mode: app_config["is_select_mode"]
+            .to_string()
+            .replace('"', "")
+            .replace("\\", "/")
+            .trim()
+            .to_string(),
     };
-    let _ = serde_json::to_writer_pretty(File::create(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string()).unwrap(), &app_config_json);
+    let _ = serde_json::to_writer_pretty(
+        File::create(
+            app_config_dir(&Config::default())
+                .unwrap()
+                .join("rdpFX/app_config.json")
+                .to_str()
+                .unwrap()
+                .to_string(),
+        )
+        .unwrap(),
+        &app_config_json,
+    );
     return list_dirs().await;
 }
 
 #[tauri::command]
 async fn get_current_dir() -> String {
-    return current_dir().unwrap().as_path().to_str().unwrap().to_string().replace("\\", "/");
+    return current_dir()
+        .unwrap()
+        .as_path()
+        .to_str()
+        .unwrap()
+        .to_string()
+        .replace("\\", "/");
 }
 
 #[tauri::command]
@@ -250,41 +325,49 @@ async fn list_dirs() -> Vec<FDir> {
         let name = &temp_item.file_name().into_string().unwrap();
         let is_dir = &temp_item.path().is_dir();
         let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
+        let path = &temp_item
+            .path()
+            .to_str()
+            .unwrap()
+            .to_string()
+            .replace("\\", "/");
+        let file_ext = ".".to_string().to_owned()
+            + &path
+                .split(".")
+                .nth(&path.split(".").count() - 1)
+                .unwrap_or("");
         let file_data = fs::metadata(&temp_item.path());
         let file_date: DateTime<Utc>;
         if file_data.is_ok() {
             file_date = file_data.unwrap().modified().unwrap().clone().into();
-        }
-        else {
+        } else {
             file_date = Utc::now();
         }
         if is_dir.to_owned() {
             is_dir_int = 1;
-        }
-        else {
+        } else {
             is_dir_int = 0;
         }
         dir_list.push(FDir {
-            name: String::from(name), 
+            name: String::from(name),
             is_dir: is_dir_int,
             path: String::from(path),
             extension: file_ext,
             size: temp_item.metadata().unwrap().len().to_string(),
             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0
+            is_ftp: 0,
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
 
 #[allow(dead_code)]
 fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
     dialog::Message::new("No directory found or unable to open due to missing permissions")
-    .title("No directory found")
-    .show()
-    .expect("Error opening dialog");
+        .title("No directory found")
+        .show()
+        .expect("Error opening dialog");
     return fs::read_dir(current_dir().unwrap()).unwrap();
 }
 
@@ -302,36 +385,49 @@ async fn open_dir(_path: String) -> Vec<FDir> {
         let name = &temp_item.file_name().into_string().unwrap();
         let is_dir = &temp_item.path().is_dir();
         let mut is_dir_int: i8 = 0;
-        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
+        let path = &temp_item
+            .path()
+            .to_str()
+            .unwrap()
+            .to_string()
+            .replace("\\", "/");
+        let file_ext = ".".to_string().to_owned()
+            + &path
+                .split(".")
+                .nth(&path.split(".").count() - 1)
+                .unwrap_or("");
         let file_data = fs::metadata(&temp_item.path());
         let file_date: DateTime<Utc>;
         if file_data.is_ok() {
             file_date = file_data.unwrap().modified().unwrap().clone().into();
-        }
-        else {
+        } else {
             file_date = Utc::now();
         }
         if is_dir.to_owned() {
             is_dir_int = 1;
         }
         dir_list.push(FDir {
-            name: name.to_owned(), 
+            name: name.to_owned(),
             is_dir: is_dir_int,
             path: path.to_owned(),
             extension: file_ext,
             size: temp_item.metadata().unwrap().len().to_string(),
             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0
+            is_ftp: 0,
         });
     }
-    dbg_log(format!("Current dir: {:?} | Time: {:?}", current_dir().unwrap(), sw.elapsed()));
+    dbg_log(format!(
+        "Current dir: {:?} | Time: {:?}",
+        current_dir().unwrap(),
+        sw.elapsed()
+    ));
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
 
 #[tauri::command]
 async fn go_back() -> Vec<FDir> {
-    let _ = set_current_dir(current_dir().unwrap().to_str().unwrap().to_owned()+"/../");
+    let _ = set_current_dir(current_dir().unwrap().to_str().unwrap().to_owned() + "/../");
     dbg_log(format!("Current dir: {:?}", current_dir().unwrap()));
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_dir = fs::read_dir(current_dir().unwrap()).unwrap();
@@ -340,32 +436,40 @@ async fn go_back() -> Vec<FDir> {
         let name = &temp_item.file_name().into_string().unwrap();
         let is_dir = &temp_item.path().is_dir();
         let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
+        let path = &temp_item
+            .path()
+            .to_str()
+            .unwrap()
+            .to_string()
+            .replace("\\", "/");
+        let file_ext = ".".to_string().to_owned()
+            + &path
+                .split(".")
+                .nth(&path.split(".").count() - 1)
+                .unwrap_or("");
         let file_data = fs::metadata(&temp_item.path());
         let file_date: DateTime<Utc>;
         if file_data.is_ok() {
             file_date = file_data.unwrap().modified().unwrap().clone().into();
-        }
-        else {
+        } else {
             file_date = Utc::now();
         }
         if is_dir.to_owned() {
             is_dir_int = 1;
-        }
-        else {
+        } else {
             is_dir_int = 0;
         }
         dir_list.push(FDir {
-            name: String::from(name), 
+            name: String::from(name),
             is_dir: is_dir_int,
             path: String::from(path),
             extension: file_ext,
             size: temp_item.metadata().unwrap().len().to_string(),
             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0
+            is_ftp: 0,
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
 
@@ -378,12 +482,11 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
         3 => set_current_dir(picture_dir().unwrap_or_default()),
         4 => set_current_dir(video_dir().unwrap_or_default()),
         5 => set_current_dir(audio_dir().unwrap_or_default()),
-        _ => set_current_dir(current_dir().unwrap()) 
+        _ => set_current_dir(current_dir().unwrap()),
     };
     if wanted_directory.is_err() {
         err_log("Not a valid directory".into());
-    }
-    else {
+    } else {
         dbg_log(format!("Current dir: {:?}", current_dir().unwrap()));
     }
     let mut dir_list: Vec<FDir> = Vec::new();
@@ -393,25 +496,39 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
         let name = &temp_item.file_name().into_string().unwrap();
         let is_dir = &temp_item.path().is_dir();
         let is_dir_int: i8;
-        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()+&path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path()).unwrap().modified().unwrap().clone().into();
+        let path = &temp_item
+            .path()
+            .to_str()
+            .unwrap()
+            .to_string()
+            .replace("\\", "/");
+        let file_ext = ".".to_string().to_owned()
+            + &path
+                .split(".")
+                .nth(&path.split(".").count() - 1)
+                .unwrap_or("");
+        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path())
+            .unwrap()
+            .modified()
+            .unwrap()
+            .clone()
+            .into();
         if is_dir.to_owned() {
             is_dir_int = 1;
-        }
-        else {
+        } else {
             is_dir_int = 0;
         }
         dir_list.push(FDir {
-            name: String::from(name), 
+            name: String::from(name),
             is_dir: is_dir_int,
             path: String::from(path),
             extension: file_ext,
             size: temp_item.metadata().unwrap().len().to_string(),
             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0
+            is_ftp: 0,
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
 
@@ -424,7 +541,10 @@ async fn open_fav_ftp(hostname: String, username: String, password: String) -> V
         HOSTNAME = hostname.clone();
     }
     let mut ftp_stream = FtpStream::connect(hostname).await.unwrap();
-    let _ = &ftp_stream.login(username.as_str(), password.as_str()).await.unwrap();
+    let _ = &ftp_stream
+        .login(username.as_str(), password.as_str())
+        .await
+        .unwrap();
     let ftp_dir = ftp_stream.pwd().await.unwrap();
     let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).await.unwrap();
 
@@ -433,10 +553,10 @@ async fn open_fav_ftp(hostname: String, username: String, password: String) -> V
     }
 
     // Get the current directory that the client will be reading from and writing to.
-        dbg_log(format!("Current dir: {:?}", &ftp_dir));
+    dbg_log(format!("Current dir: {:?}", &ftp_dir));
 
     let mut dir_list: Vec<FDir> = Vec::new();
-    
+
     for item in ftp_dir_list {
         let name = &item.split("/").last().unwrap().to_string();
         let mod_date = &ftp_stream.mdtm(&item).await.unwrap_or_default();
@@ -449,9 +569,10 @@ async fn open_fav_ftp(hostname: String, username: String, password: String) -> V
             extension: "".to_string(),
             size: size.unwrap_or_default().to_string(),
             last_modified: mod_date.unwrap_or_default().to_string(),
-            is_ftp: 1
+            is_ftp: 1,
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     dir_list
 }
 
@@ -467,10 +588,10 @@ async fn open_ftp_dir(path: String) -> Vec<FDir> {
     }
 
     // Get the current directory that the client will be reading from and writing to.
-        dbg_log(format!("Current dir: {:?}", &ftp_dir));
+    dbg_log(format!("Current dir: {:?}", &ftp_dir));
 
     let mut dir_list: Vec<FDir> = Vec::new();
-    
+
     for item in ftp_dir_list {
         let name = &item.split("/").last().unwrap().to_string();
         let mod_date = &ftp_stream.mdtm(&item).await.unwrap_or_default();
@@ -483,9 +604,10 @@ async fn open_ftp_dir(path: String) -> Vec<FDir> {
             extension: "".to_string(),
             size: size.unwrap_or_default().to_string(),
             last_modified: mod_date.unwrap_or_default().to_string(),
-            is_ftp: 1
+            is_ftp: 1,
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     dir_list
 }
 
@@ -526,10 +648,10 @@ async fn ftp_go_back(path: String) -> Vec<FDir> {
     }
 
     // Get the current directory that the client will be reading from and writing to.
-        dbg_log(format!("Current dir: {:?}", &ftp_dir));
+    dbg_log(format!("Current dir: {:?}", &ftp_dir));
 
     let mut dir_list: Vec<FDir> = Vec::new();
-        
+
     for item in ftp_dir_list {
         let name = &item.split("/").last().unwrap().to_string();
         let mod_date = &ftp_stream.mdtm(&item).await.unwrap_or_default();
@@ -542,9 +664,10 @@ async fn ftp_go_back(path: String) -> Vec<FDir> {
             extension: "".to_string(),
             size: size.unwrap_or_default().to_string(),
             last_modified: mod_date.unwrap_or_default().to_string(),
-            is_ftp: 1
+            is_ftp: 1,
         });
     }
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     dir_list
 }
 
@@ -558,7 +681,10 @@ async fn get_current_connection() -> FtpStream {
         password = PASSWORD.clone();
     }
     let mut ftp_stream = FtpStream::connect(host).await.unwrap();
-    let _ = ftp_stream.login(user.as_str(), password.as_str()).await.unwrap();
+    let _ = ftp_stream
+        .login(user.as_str(), password.as_str())
+        .await
+        .unwrap();
     ftp_stream
 }
 
@@ -566,10 +692,16 @@ async fn get_current_connection() -> FtpStream {
 async fn open_in_terminal() {
     #[cfg(target_os = "linux")]
     // Open the terminal on linux
-    let _ = Command::new("gnome-terminal").arg(current_dir().unwrap()).spawn();
+    let _ = Command::new("gnome-terminal")
+        .arg(current_dir().unwrap())
+        .spawn();
     #[cfg(target_os = "windows")]
     // Open the terminal on windows
-    let _ = Command::new("cmd").arg("/c").arg("start").arg(current_dir().unwrap()).spawn();
+    let _ = Command::new("cmd")
+        .arg("/c")
+        .arg("start")
+        .arg(current_dir().unwrap())
+        .spawn();
     #[cfg(target_os = "macos")]
     // Open the terminal on mac
     let _ = Command::new("terminal").arg(current_dir().unwrap()).spawn();
@@ -582,26 +714,37 @@ async fn go_home() -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_content: String) -> Vec<FDir> {
-    let mut file_ext = ".".to_string().to_owned()+file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
+async fn search_for(
+    mut file_name: String,
+    max_items: i32,
+    search_depth: i32,
+    file_content: String,
+) -> Vec<FDir> {
+    dbg_log(format!("Start searching for {}", &file_name));
+    let mut file_ext = ".".to_string().to_owned()
+        + file_name
+            .split(".")
+            .nth(file_name.split(".").count() - 1)
+            .unwrap_or("");
     println!("");
-    dbg_log(format!("Start searching for {} - {}", &file_name.strip_suffix(&file_ext).unwrap_or(&file_name), &file_ext));
+
     let sw = Stopwatch::start_new();
     let mut search: Vec<String>;
-    if file_ext != ".".to_string().to_owned()+&file_name {
-        dbg_log(format!("{}{}", &file_name, &file_ext));
+    if String::from(&file_name) == String::from("*") {
+        file_name = "".into();
+    }
+    if file_ext != ".".to_string().to_owned() + &file_name {
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
             .search_input(*&file_name.strip_suffix(&file_ext).unwrap())
-            .ignore_case( )
+            .ignore_case()
             .depth(search_depth.clone() as usize)
             .ext(&file_ext)
             .hidden()
             .limit(max_items as usize)
             .build()
             .collect();
-    }
-    else {
+    } else {
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
             .search_input(&file_name)
@@ -620,20 +763,28 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
 
     let mut dir_list: Vec<FDir> = Vec::new();
     for item in search {
-        file_ext = ".".to_string().to_owned()+item.split(".").nth(item.split(".").count() - 1).unwrap_or("");
+        file_ext = ".".to_string().to_owned()
+            + item
+                .split(".")
+                .nth(item.split(".").count() - 1)
+                .unwrap_or("");
         let item = item.replace("\\", "/");
         let temp_item = &item.split("/").collect::<Vec<&str>>();
         let name = &temp_item[*&temp_item.len() - 1];
-        let path = &item.replace("\\", "/"); 
+        let path = &item.replace("\\", "/");
         let temp_file = fs::metadata(&item);
         let file_size: String;
         let file_date: DateTime<Utc>;
 
         if &temp_file.is_ok() == &true {
             file_size = String::from(fs::metadata(&item).unwrap().len().to_string());
-            file_date = fs::metadata(&item).unwrap().modified().unwrap().clone().into();
-        }
-        else {
+            file_date = fs::metadata(&item)
+                .unwrap()
+                .modified()
+                .unwrap()
+                .clone()
+                .into();
+        } else {
             continue;
         }
 
@@ -641,19 +792,26 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
         let is_dir_int;
         if &temp_file.is_ok() == &true && *&temp_file.unwrap().is_dir() {
             is_dir_int = 1;
-        }
-        else {
+        } else {
             is_dir_int = 0;
         }
 
-        // Don't include the directory searched in 
+        // Don't include the directory searched in
         if path == current_dir().unwrap().to_str().unwrap() {
             continue;
         }
 
         // Search for file contents
         if &file_content != "" {
-            let file = fs::File::open(&path).unwrap();
+            let check_file = fs::File::open(&path);
+            let file: File;
+            if &check_file.is_ok() == &true {
+                file = check_file.unwrap();
+            }
+            else {
+                err_log("Couldn't access file. Probably due to insufficient permissions".into());
+                continue;
+            }
             let mut reader = BufReader::new(&file);
             let mut contents = String::from("");
             dbg_log(format!("Checking {}", &path));
@@ -670,16 +828,16 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
                         path: path.to_string(),
                         extension: String::from(&file_ext),
                         size: file_size.clone(),
-                        last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-                        is_ftp: 0
+                        last_modified: String::from(
+                            file_date.to_string().split(".").nth(0).unwrap(),
+                        ),
+                        is_ftp: 0,
                     });
-                }
-                else {
+                } else {
                     continue;
                 }
             }
-        }
-        else {
+        } else {
             dir_list.push(FDir {
                 name: name.to_string(),
                 is_dir: is_dir_int,
@@ -687,7 +845,7 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
                 extension: String::from(&file_ext),
                 size: file_size,
                 last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-                is_ftp: 0
+                is_ftp: 0,
             });
         }
     }
@@ -696,20 +854,37 @@ async fn search_for(file_name: String, max_items: i32, search_depth: i32, file_c
     }
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
     dbg_log(format!("{} items found", dir_list.len()));
+    dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
 
 #[tauri::command]
-async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
+async fn copy_paste(
+    act_file_name: String,
+    from_path: String,
+    is_for_dual_pane: String,
+) -> Vec<FDir> {
     dbg_log("Copying starting ...".into());
-    let is_dir = fs::metadata(&from_path).unwrap().is_dir();
+    let is_dir: bool;
+    let file = fs::metadata(&from_path);
+    if &file.is_ok() == &true {
+        is_dir = file.unwrap().is_dir();
+    }
+    else {
+        err_log("File could not be copied".into());
+        return list_dirs().await;
+    }
     let sw = Stopwatch::start_new();
     let file_name: String;
     if is_for_dual_pane == "1" {
         file_name = act_file_name;
-    }
-    else {
-        file_name = current_dir().unwrap().join(&act_file_name).to_str().unwrap().to_string();
+    } else {
+        file_name = current_dir()
+            .unwrap()
+            .join(&act_file_name)
+            .to_str()
+            .unwrap()
+            .to_string();
     }
     let temp_file_ext: String;
     let mut file_ext: String;
@@ -719,20 +894,27 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
         temp_filename += file_name.split(".").nth(i).unwrap();
     }
 
-    temp_file_ext = file_name.split(".").nth(file_name.split(".").count() - 1).unwrap().to_string();
-    file_ext = ".".to_string().to_owned()+&temp_file_ext.as_str();
+    temp_file_ext = file_name
+        .split(".")
+        .nth(file_name.split(".").count() - 1)
+        .unwrap()
+        .to_string();
+    file_ext = ".".to_string().to_owned() + &temp_file_ext.as_str();
 
     if temp_file_ext == file_name {
-        file_ext = "".to_string();    
-    } 
+        file_ext = "".to_string();
+    }
 
-    temp_filename = file_name.strip_suffix(&file_ext).unwrap_or(&file_name).to_string();
+    temp_filename = file_name
+        .strip_suffix(&file_ext)
+        .unwrap_or(&file_name)
+        .to_string();
     let mut is_file_existing = fs::metadata(&file_name).is_ok();
     let mut counter = 1;
     let mut final_filename: String = format!("{}{}", &temp_filename, file_ext);
 
     while is_file_existing {
-        final_filename = format!("{}_{}{}", &temp_filename, counter, file_ext); 
+        final_filename = format!("{}_{}{}", &temp_filename, counter, file_ext);
         is_file_existing = fs::metadata(&final_filename).is_ok();
         counter += 1;
     }
@@ -740,21 +922,24 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
     if is_dir {
         if is_for_dual_pane == "1" {
             let _ = copy_dir::copy_dir(&from_path, final_filename.replace("\\", "/"));
+        } else {
+            let _ = copy_dir::copy_dir(
+                current_dir().unwrap().join(&from_path.replace("\\", "/")),
+                final_filename.replace("\\", "/"),
+            );
         }
-        else { 
-            let _ = copy_dir::copy_dir(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/"));
-        }
-    }
-    else {
+    } else {
         if is_for_dual_pane == "1" {
             let _ = copy(&from_path, final_filename.replace("\\", "/"));
-        }
-        else {
-            let _ = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/"));
+        } else {
+            let _ = copy(
+                current_dir().unwrap().join(&from_path.replace("\\", "/")),
+                final_filename.replace("\\", "/"),
+            );
         }
     }
 
-    /* Copy file byte by byte -> To play around with later ... */ 
+    /* Copy file byte by byte -> To play around with later ... */
 
     /*let line_file = File::open(&from_path).unwrap();
     let mut reader = BufReader::new(line_file);
@@ -787,12 +972,15 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
 
 #[tauri::command]
 async fn delete_item(act_file_name: String) -> Vec<FDir> {
-    let is_dir = File::open(&act_file_name).unwrap().metadata().unwrap().is_dir();
+    let is_dir = File::open(&act_file_name)
+        .unwrap()
+        .metadata()
+        .unwrap()
+        .is_dir();
     dbg_log(String::from(&act_file_name));
     if is_dir {
         let _ = remove_dir_all(act_file_name.replace("\\", "/"));
-    }
-    else {
+    } else {
         let _ = remove_file(act_file_name.replace("\\", "/"));
     }
     return list_dirs().await;
@@ -801,7 +989,11 @@ async fn delete_item(act_file_name: String) -> Vec<FDir> {
 #[tauri::command]
 async fn extract_item(from_path: String) -> Vec<FDir> {
     // Check file extension
-    let file_ext = ".".to_string().to_owned()+from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
+    let file_ext = ".".to_string().to_owned()
+        + from_path
+            .split(".")
+            .nth(from_path.split(".").count() - 1)
+            .unwrap_or("");
 
     dbg_log(format!("Start unpacking {} - {}", &file_ext, &from_path));
 
@@ -812,20 +1004,23 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
         let _ = create_dir(&from_path.strip_suffix(&file_ext).unwrap());
         let new_dir = PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap());
         zip_extract(&file, &new_dir).unwrap();
-    }
-    else if file_ext == ".rar" {
+    } else if file_ext == ".rar" {
         let mut archive = Archive::new(&from_path).open_for_processing().unwrap();
         while let Some(header) = archive.read_header().unwrap() {
-            dbg_log(format!("{} bytes: {}", header.entry().unpacked_size, header.entry().filename.to_string_lossy()));
+            dbg_log(format!(
+                "{} bytes: {}",
+                header.entry().unpacked_size,
+                header.entry().filename.to_string_lossy()
+            ));
             archive = if header.entry().is_file() {
                 header.extract().unwrap()
             } else {
                 header.skip().unwrap()
             }
         }
-    }
-    else if file_ext == ".7z" {
-        let _ = sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
+    } else if file_ext == ".7z" {
+        let _ =
+            sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     }
 
     dbg_log(format!("Unpack time: {:?}", sw.elapsed()));
@@ -835,24 +1030,46 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
 #[tauri::command]
 async fn open_item(path: String) {
     dbg_log(format!("Opening: {}", &path));
-    let _ = open::that_detached(path); 
+    let _ = open::that_detached(path);
 }
 
 #[tauri::command]
 async fn compress_item(from_path: String) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
-    let file_ext = ".".to_string().to_owned()+from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
+    let file_ext = ".".to_string().to_owned()
+        + from_path
+            .split(".")
+            .nth(from_path.split(".").count() - 1)
+            .unwrap_or("");
     // let _ = sevenz_rust::compress_to_path(&from_path, from_path.to_string()+".7z").expect("complete");
-    let _ = File::create(from_path.strip_suffix(&file_ext).unwrap_or(&from_path).to_owned()+".zip").unwrap();
+    let _ = File::create(
+        from_path
+            .strip_suffix(&file_ext)
+            .unwrap_or(&from_path)
+            .to_owned()
+            + ".zip",
+    )
+    .unwrap();
     let source: PathBuf;
-    let archive = PathBuf::from(from_path.strip_suffix(&file_ext).unwrap_or(&from_path).to_owned()+".zip");
+    let archive = PathBuf::from(
+        from_path
+            .strip_suffix(&file_ext)
+            .unwrap_or(&from_path)
+            .to_owned()
+            + ".zip",
+    );
     if fs::metadata(&from_path).unwrap().is_dir() {
         source = PathBuf::from(&from_path);
-    }
-    else {
-        let file_name = &from_path.split("/").nth(&from_path.split("/").count() - 1).unwrap();
+    } else {
+        let file_name = &from_path
+            .split("/")
+            .nth(&from_path.split("/").count() - 1)
+            .unwrap();
         let _ = create_dir("compressed_dir");
-        let _ = copy(&from_path, "compressed_dir/".to_string().to_owned()+file_name);
+        let _ = copy(
+            &from_path,
+            "compressed_dir/".to_string().to_owned() + file_name,
+        );
         source = PathBuf::from("compressed_dir");
     }
     let _ = zip_create_from_directory(&archive, &source);
@@ -875,8 +1092,11 @@ async fn create_file(file_name: String) {
 
 #[tauri::command]
 async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
-    let _ = fs::rename(current_dir().unwrap().join(&path.replace("\\", "/")), current_dir().unwrap().join(&new_name.replace("\\", "/")));
-    dbg_log(format!("Renamed from {} to {}" , path, new_name));
+    let _ = fs::rename(
+        current_dir().unwrap().join(&path.replace("\\", "/")),
+        current_dir().unwrap().join(&new_name.replace("\\", "/")),
+    );
+    dbg_log(format!("Renamed from {} to {}", path, new_name));
     return list_dirs().await;
 }
 
@@ -892,15 +1112,22 @@ async fn save_config(
     search_depth: i32,
     max_items: i32,
     is_light_mode: String,
-    is_image_preview: String,) {
-    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
+    is_image_preview: String,
+    is_select_mode: String,
+) {
+    let app_config_file = File::open(
+        app_config_dir(&Config::default())
+            .unwrap()
+            .join("rdpFX/app_config.json"),
+    )
+    .unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     let app_config_json = AppConfig {
         view_mode: app_config["view_mode"].to_string().replace('"', ""),
         last_modified: chrono::offset::Local::now().to_string(),
         configured_path_one: configured_path_one.replace("\\", "/"),
-        configured_path_two: configured_path_two.replace("\\", "/"), 
+        configured_path_two: configured_path_two.replace("\\", "/"),
         configured_path_three: configured_path_three.replace("\\", "/"),
         is_open_in_terminal: is_open_in_terminal.replace("\\", ""),
         is_dual_pane_enabled: is_dual_pane_enabled.replace("\\", ""),
@@ -910,8 +1137,14 @@ async fn save_config(
         max_items: max_items,
         is_light_mode: is_light_mode.replace("\\", "/"),
         is_image_preview: is_image_preview.replace("\\", "/"),
+        is_select_mode: is_select_mode.replace("\\", "/"),
     };
-    let config_dir = app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json").to_str().unwrap().to_string();
+    let config_dir = app_config_dir(&Config::default())
+        .unwrap()
+        .join("rdpFX/app_config.json")
+        .to_str()
+        .unwrap()
+        .to_string();
     let _ = serde_json::to_writer_pretty(File::create(&config_dir).unwrap(), &app_config_json);
     dbg_log(format!("app_config was saved to {}", config_dir));
 }
