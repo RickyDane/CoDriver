@@ -16,6 +16,7 @@ use dialog::{backends::Dialog, DialogBox};
 use get_sys_info::{Platform, System};
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
+use tauri::{App, Manager};
 use std::fs::{self, ReadDir};
 #[allow(unused_imports)]
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Read, Write};
@@ -39,6 +40,7 @@ mod utils;
 #[allow(unused_imports)]
 use sysinfo::{Components, Disks, Networks};
 use utils::{dbg_log, err_log, wng_log};
+use tauri_plugin_drag;
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -74,6 +76,7 @@ fn main() {
             ftp_go_back,
             copy_from_ftp
         ])
+        .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -12,6 +12,11 @@
   },
   "tauri": {
     "allowlist": {
+      "http": {
+        "all": true,
+        "request": true,
+        "scope": ["asset://*"]
+      },
       "clipboard": {
         "all": true,
         "writeText": true,

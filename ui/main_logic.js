@@ -9,6 +9,9 @@ const { getVersion } = window.__TAURI__.app;
 const { getName } = window.__TAURI__.app;
 const { getMatches } = window.__TAURI__.cli;
 const { platform } = window.__TAURI__.os;
+const { fetch } = window.__TAURI__.http;
+const { startDrag } = window.__TAURI__.drag;
+const convertFileSrc  = window.__TAURI__.convertFileSrc;
 
 /* Window customization */
 
@@ -196,6 +199,7 @@ document.addEventListener("mousedown", (e) => {
       else {
         SelectedElement.children[0].children[0].style.backgroundColor = TransparentColor;
       }
+      SelectedElement = null;
     }
   }
 });
@@ -288,10 +292,10 @@ document.onkeydown = async (e) => {
           document.querySelectorAll(".explorer-container").forEach((item) => {
             if (ViewMode == "column") {
               item.style.marginTop = "35px";
-              item.style.height = "calc(100vh - 147px)";
+              item.style.height = "calc(100vh - 135px)";
               item.style.paddingBottom = "10px";
             } else {
-              item.style.height = "calc(100vh - 97px)";
+              item.style.height = "calc(100vh - 100px)";
               item.style.paddingBottom = "20px";
             }
           });
@@ -553,18 +557,14 @@ async function showItems(items, dualPaneSide = "") {
   if (!IsShowHiddenFiles) {
     items = items.filter((str) => !str.name.startsWith("."));
   }
-  DirectoryCount.innerHTML =
-    "Objects: " + items.length + " / " + hiddenItemsLength;
+  DirectoryCount.innerHTML = "Objects: " + items.length + " / " + hiddenItemsLength;
   delete hiddenItemsLength;
   let set = new Set(items);
   delete items;
   let counter = 0;
   set.forEach((item) => {
     let itemLink = document.createElement("button");
-    itemLink.setAttribute(
-      "onclick",
-      "openItem('" + item.is_dir + "', '" + dualPaneSide + "', this)",
-    );
+    itemLink.setAttribute("onclick", "openItem('" + item.is_dir + "', '" + dualPaneSide + "', this)");
     itemLink.setAttribute("itempath", item.path);
     itemLink.setAttribute("itemindex", counter++);
     itemLink.setAttribute("itempaneside", dualPaneSide);
@@ -702,7 +702,7 @@ async function showItems(items, dualPaneSide = "") {
           break;
       }
     }
-    itemLink.className = "item-link directory-entry";
+    itemLink.className = "item-link directory-entry dragout";
     let itemButton = document.createElement("div");
     itemButton.innerHTML = `
 			<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" style="object-fit: cover;" />
@@ -748,30 +748,14 @@ async function showItems(items, dualPaneSide = "") {
     item.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       // Reset so that the commands are not triggered multiple times
-      ContextMenu.children[0].replaceWith(
-        ContextMenu.children[0].cloneNode(true),
-      );
-      ContextMenu.children[1].replaceWith(
-        ContextMenu.children[1].cloneNode(true),
-      );
-      ContextMenu.children[2].replaceWith(
-        ContextMenu.children[2].cloneNode(true),
-      );
-      ContextMenu.children[3].replaceWith(
-        ContextMenu.children[3].cloneNode(true),
-      );
-      ContextMenu.children[4].replaceWith(
-        ContextMenu.children[4].cloneNode(true),
-      );
-      ContextMenu.children[6].replaceWith(
-        ContextMenu.children[6].cloneNode(true),
-      );
-      ContextMenu.children[7].replaceWith(
-        ContextMenu.children[7].cloneNode(true),
-      );
-      ContextMenu.children[8].replaceWith(
-        ContextMenu.children[8].cloneNode(true),
-      );
+      ContextMenu.children[0].replaceWith(ContextMenu.children[0].cloneNode(true));
+      ContextMenu.children[1].replaceWith(ContextMenu.children[1].cloneNode(true));
+      ContextMenu.children[2].replaceWith(ContextMenu.children[2].cloneNode(true));
+      ContextMenu.children[3].replaceWith(ContextMenu.children[3].cloneNode(true));
+      ContextMenu.children[4].replaceWith(ContextMenu.children[4].cloneNode(true));
+      ContextMenu.children[6].replaceWith(ContextMenu.children[6].cloneNode(true));
+      ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
+      ContextMenu.children[8].replaceWith(ContextMenu.children[8].cloneNode(true));
 
       ContextMenu.style.display = "flex";
       ContextMenu.style.left = e.clientX + "px";
@@ -799,63 +783,19 @@ async function showItems(items, dualPaneSide = "") {
         ContextMenu.children[1].removeAttribute("disabled");
         ContextMenu.children[1].classList.remove("c-item-disabled");
       }
-      ContextMenu.children[0].addEventListener(
-        "click",
-        () => {
-          deleteItem(item);
-        },
-        { once: true },
-      );
-      ContextMenu.children[1].addEventListener(
-        "click",
-        () => {
-          extractItem(item);
-        },
-        { once: true },
-      );
-      ContextMenu.children[2].addEventListener(
-        "click",
-        () => {
-          compressItem(item);
-        },
-        { once: true },
-      );
-      ContextMenu.children[3].addEventListener(
-        "click",
-        () => {
-          copyItem(item);
-        },
-        { once: true },
-      );
-      ContextMenu.children[5].addEventListener(
-        "click",
-        () => {
-          createFileInputPrompt(e);
-        },
-        { once: true },
-      );
-      ContextMenu.children[6].addEventListener(
-        "click",
-        () => {
-          createFolderInputPrompt(e);
-        },
-        { once: true },
-      );
-      ContextMenu.children[7].addEventListener(
-        "click",
-        () => {
-          renameElementInputPrompt(item);
-        },
-        { once: true },
-      );
-      ContextMenu.children[8].addEventListener(
-        "click",
-        () => {
-          showProperties(item);
-        },
-        { once: true },
-      );
+      ContextMenu.children[0].addEventListener("click", () => { deleteItem(item); }, { once: true });
+      ContextMenu.children[1].addEventListener("click", () => { extractItem(item); }, { once: true });
+      ContextMenu.children[2].addEventListener("click", () => { compressItem(item); }, { once: true });
+      ContextMenu.children[3].addEventListener("click", () => { copyItem(item); }, { once: true });
+      ContextMenu.children[5].addEventListener("click", () => { createFileInputPrompt(e); }, { once: true });
+      ContextMenu.children[6].addEventListener("click", () => { createFolderInputPrompt(e); }, { once: true });
+      ContextMenu.children[7].addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
+      ContextMenu.children[8].addEventListener("click", () => { showProperties(item); }, { once: true });
     });
+    // Drag and drop file
+    item.ondragstart = () => {
+      startDrag({ item: [convertFileSrc(item.getAttribute("itempath"))]});
+    };
   });
   if (IsTabsEnabled == true) {
     document
@@ -921,10 +861,7 @@ async function deleteItem(item) {
     showLoadingPopup(actFileName + " is being deleted");
     await invoke("delete_item", { actFileName }).then(async (items) => {
       ContextMenu.style.display = "none";
-      await showItems(
-        items.filter((str) => !str.name.startsWith(".")),
-        SelectedItemPaneSide,
-      );
+      await showItems(items.filter((str) => !str.name.startsWith(".")), SelectedItemPaneSide);
       closeLoadingPopup();
     });
   }
@@ -1827,7 +1764,7 @@ async function switchView() {
       document.querySelectorAll(".directory-list").forEach((list) => {
         // list.style.flexFlow = "wrap";
         list.style.gridTemplateColumns =
-          "repeat(auto-fill, minmax(157px, 1fr))";
+          "repeat(auto-fill, minmax(132px, 1fr))";
         list.style.rowGap = "15px";
       });
       document.querySelector(".switch-view-button").innerHTML =
@@ -2284,3 +2221,4 @@ function checkColorMode() {
 }
 
 checkAppConfig();
+$(".downdrag").dragout();

@@ -372,7 +372,7 @@ label {
 .item-button {
     position: relative;
     background-color: var(--transparentColor);
-    border-radius: 5px;
+    border-radius: 10px;
     cursor: pointer;
     text-align: left;
     font-size: small;
@@ -386,6 +386,7 @@ label {
     transition: 0.1s ease;
     margin: 0 auto;
     border: 1px solid var(--transparentColor);
+    -webkit-user-drag: element;
 }
 .item-button:hover {
     background-color: var(--transparentColorActive);
@@ -397,7 +398,7 @@ label {
     transition: 0.1s ease;
     width: auto;
     max-width: 80%;
-    margin-top: 7.5px;
+    margin-top: 10px;
     border-radius: 3px;
 }
 .item-button:hover > img {
@@ -409,12 +410,10 @@ label {
     left: 0;
     right: 0;
     background-color: var(--secondaryColor);
-    padding: 2px 5px;
+    padding: 2px 7.5px;
     font-size: var(--fontSize);
     line-height: 20px;
     max-height: 30px;
-    border-radius: 5px;
-    margin: 4px;
     overflow: hidden;
     transition: 0.1s ease;
 }
@@ -928,7 +927,7 @@ label {
 }
 .item-preview-popup > iframe {
     width: 40vw;
-    height: 70vh;
+    height: 80vh;
     border: none;
 }
 .item-preview-popup > div {
