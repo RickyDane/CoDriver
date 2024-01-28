@@ -266,7 +266,7 @@ body {
     border-radius: 10px;
     box-shadow: 0px 0px 15px 1px rgba(0, 0, 0, 0.3);
     overflow: hidden;
-    border: 1px solid var(--secondaryColor);
+    border: 1px solid var(--tertiaryColor);
     overflow-y: auto;
 }
 .settings-ui-header {
@@ -284,7 +284,6 @@ body {
     justify-content: space-between;
     align-items: center;
     z-index: 4;
-    border-bottom: 1px solid var(--secondaryColor);
 }
 .settings-ui-body {
     display: flex;
@@ -369,6 +368,13 @@ label {
 .button:active {
     background: var(--tertiaryColor);
 }
+.selected-item {
+    background: var(--transparentColorActive) !important;
+    border: 1px solid var(--transparentColorActive) !important;
+}
+.selected-item > p {
+    background-color: var(--transparentColorActive) !important;
+}
 .item-button {
     position: relative;
     background-color: var(--transparentColor);
@@ -386,13 +392,12 @@ label {
     transition: 0.1s ease;
     margin: 0 auto;
     border: 1px solid var(--transparentColor);
-    -webkit-user-drag: element;
 }
 .item-button:hover {
     background-color: var(--transparentColorActive);
 }
-.item-button > span {
-    /* gap: 15px; */
+.item-button:active {
+    background-color: var(--secondaryColor);
 }
 .item-button > img {
     transition: 0.1s ease;
@@ -447,6 +452,7 @@ label {
     word-wrap: normal;
     white-space: nowrap;
     transition: 0.1s ease;
+    border: 1px solid transparent;
 }
 .item-button-list > p {
     padding-right: 5px;
@@ -507,7 +513,7 @@ label {
     right: 0;
     bottom: 0;
     padding: 5px;
-    background-color: var(--transparentColor);
+    background-color: var(--tertiaryColor);
     height: 24px;
     overflow: hidden;
     display: flex;
@@ -519,7 +525,9 @@ label {
 .disk-item-bot > p {
     font-size: var(--fontSize);
     z-index: 3;
-    text-shadow: 0px 0px 1px black;
+    display: flex;
+    gap: 10px;
+    padding-left: 5px;
 }
 .disk-item-usage-bar {
     position: absolute;
@@ -529,7 +537,9 @@ label {
     bottom: 0;
     background-color: var(--transparentColorActive);
     z-index: 2;
-    border-right: 1px solid var(--tertiaryColor);
+    border-right: 2px solid var(--transparentColorActive);
+    margin: 1px;
+    border-radius: 2px 0px 0px 2px;
 }
 
 /* Menu buttons */
@@ -916,9 +926,9 @@ label {
     right: 0;
     bottom: 0;
     margin: auto;
-    min-height: 0;
     width: fit-content;
-    height: 70vh;
+    height: fit-content;
+    max-height: 60vh;
     border-radius: 10px;
     overflow: hidden;
     z-index: 999;
@@ -929,14 +939,20 @@ label {
     border: 1px solid var(--tertiaryColor);
 }
 .item-preview-popup > img {
-    max-height: 70vh;
+    min-height: 0px !important;
+    height: 60vh;
+    max-width: 80vw;
+    min-height: 0;
+    object-fit: contain;
+    object-position: 50%;
 }
 .item-preview-popup > iframe {
     width: 40vw;
-    height: 70vh;
+    height: 60vh;
     border: none;
 }
 .item-preview-popup > div {
+    min-height: 0;
     padding: 10px;
-    text-shadow: 0px 0px 2px var(--transparentColorActive);
+    text-shadow: 0px 0px 4px var(--transparentColorActive) !important;
 }

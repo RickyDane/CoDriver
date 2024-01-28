@@ -1,25 +1,12 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-#[allow(unused_imports)]
-use async_ftp::types::FileType::{Ascii, Binary, Ebcdic, Image, Local};
-#[allow(unused_imports)]
-use async_ftp::FtpError;
-#[allow(unused_imports)]
-use async_ftp::{DataStream, FtpStream};
-#[allow(unused_imports)]
-use async_std::io::Cursor;
-#[allow(unused_imports)]
-use chrono::prelude::{DateTime, NaiveDateTime, TimeZone, Utc};
-#[allow(unused_imports)]
-use dialog::{backends::Dialog, DialogBox};
-#[allow(unused_imports)]
-use get_sys_info::{Platform, System};
+use async_ftp::FtpStream;
+use chrono::prelude::{DateTime, Utc};
+use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
-use tauri::{App, Manager};
 use std::fs::{self, ReadDir};
-#[allow(unused_imports)]
-use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Read, Write};
+use std::io::{BufRead, BufReader, Read};
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_dir_all, remove_file, File},
@@ -37,8 +24,7 @@ use tauri::{
 use unrar::Archive;
 use zip_extensions::*;
 mod utils;
-#[allow(unused_imports)]
-use sysinfo::{Components, Disks, Networks};
+use sysinfo::Disks;
 use utils::{dbg_log, err_log, wng_log};
 use tauri_plugin_drag;
 

@@ -192,13 +192,13 @@ document.addEventListener("mousedown", (e) => {
 
     if (SelectedElement != null) {
       if (IsDualPaneEnabled) {
-        SelectedElement.children[0].style.backgroundColor = "transparent";
+        SelectedElement.children[0].classList.remove("selected-item");
       }
       else if (ViewMode == "column") {
-        SelectedElement.children[0].children[1].style.backgroundColor = TransparentColor;
+        SelectedElement.children[0].children[1].classList.remove("selected-item");
       }
       else {
-        SelectedElement.children[0].children[0].style.backgroundColor = TransparentColor;
+        SelectedElement.children[0].children[0].classList.remove("selected-item");
       }
       SelectedElement = null;
     }
@@ -463,7 +463,7 @@ document.onkeydown = async (e) => {
       e.stopPropagation();
     }
     // check if ctrl + f is pressed
-    if (e.ctrlKey && e.keyCode == 70) {
+    if (e.ctrlKey && e.keyCode == 70 && IsShowDisks == false) {
       openSearchBar();
       e.preventDefault();
       e.stopPropagation();
@@ -729,8 +729,7 @@ async function showItems(items, dualPaneSide = "") {
 			</span>
 		`;
     if (dualPaneSide != null && dualPaneSide != "") {
-      itemButtonList.className =
-        "item-button-list directory-entry dual-pane-list-item";
+      itemButtonList.className = "item-button-list directory-entry dual-pane-list-item";
     } else {
       itemButtonList.className = "item-button-list directory-entry";
     }
@@ -1267,7 +1266,7 @@ async function listDisks() {
 						</div>
 						<span class="disk-item-bot">
 							<div class="disk-item-usage-bar" style="width: ${evalCurrentLoad(item.avail, item.capacity)}%;"></div>
-							<p style="text-align: left;">${formatBytes(item.capacity)} / ${formatBytes(item.avail)}</p>
+							<p><b>Usage:</b> ${formatBytes(item.capacity)} / ${formatBytes(item.avail)} available (${evalCurrentLoad(item.avail, item.capacity)}%)</p>
 						</span>
 					</span>
 					`;
@@ -1292,7 +1291,7 @@ async function listDisks() {
       else {
         itemButtonList.style.display = "none";
         DirectoryList.style.gridTemplateColumns = "unset";
-        DirectoryList.style.rowGap = "5px";
+        DirectoryList.style.rowGap = "10px";
       }
       itemButton.style.width = "100%";
       newRow.append(itemButton);
@@ -1348,25 +1347,26 @@ async function openItem(
     // Interaction mode: Select
     if (element != null && SelectedElement != element && IsSelectMode == true) {
       if (SelectedElement != null) {
+        // Reset colored selection
         if (IsDualPaneEnabled) {
-          SelectedElement.children[0].style.backgroundColor = "transparent";
+          SelectedElement.children[0].classList.remove("selected-item");
         }
         else if (ViewMode == "column") {
-          SelectedElement.children[0].children[1].style.backgroundColor = TransparentColor;
+          SelectedElement.children[0].children[1].classList.remove("selected-item");
         }
         else {
-          SelectedElement.children[0].children[0].style.backgroundColor = TransparentColor;
+          SelectedElement.children[0].children[0].classList.remove("selected-item");
         }
       }
       SelectedElement = element; // Switch to new element / selection
       if (IsDualPaneEnabled) {
-        SelectedElement.children[0].style.backgroundColor = SelectedColor;
+        SelectedElement.children[0].classList.add("selected-item");
       }
       else if (ViewMode == "column") {
-        SelectedElement.children[0].children[1].style.backgroundColor = SelectedColor;
+        SelectedElement.children[0].children[1].classList.add("selected-item");
       }
       else {
-        SelectedElement.children[0].children[0].style.backgroundColor = SelectedColor;
+        SelectedElement.children[0].children[0].classList.add("selected-item");
       }
       SelectedItemPath = path;
       SelectedItemPaneSide = dualPaneSide;
@@ -2135,18 +2135,18 @@ function showItemPreview(item, isOverride = false) {
     case ".gif":
     case ".svg":
     case ".webp":
-      mod = `<img decoding="async" src="${window.__TAURI__.tauri.convertFileSrc(path)}" alt="${name}" />`;
+      mod = `<img decoding="async" src="${convertFileSrc(path)}" alt="${name}" />`;
       break;
     case ".pdf":
-      mod = `<iframe src="${window.__TAURI__.tauri.convertFileSrc(path)}" />`;
+      mod = `<iframe src="${convertFileSrc(path)}" />`;
       break;
     default:
       mod = `
         <div>
-          <h3>Name: ${name}</h3>
-          <p>Path: ${path}</p>
-          <p>Size: ${size}</p>
-          <p>Last modified: ${modified}</p>
+          <p><b>Name:</b> ${name}</p>
+          <p><b>Path:</b> ${path}</p>
+          <p><b>Size:</b> ${size}</p>
+          <p><b>Last modified:</b> ${modified}</p>
         </div>
       `;
       break;
