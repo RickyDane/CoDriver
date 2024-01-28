@@ -189,6 +189,7 @@ async fn check_app_config() -> AppConfig {
 #[derive(serde::Serialize)]
 struct DisksInfo {
     name: String,
+    dev: String,
     format: String,
     path: String,
     avail: String,
@@ -199,55 +200,17 @@ struct DisksInfo {
 async fn list_disks() -> Vec<DisksInfo> {
     let mut ls_disks: Vec<DisksInfo> = vec![];
     let disks = Disks::new_with_refreshed_list();
-    for disk in &disks {
+    for disk in disks.into_iter() {
         dbg_log(format!("{:?}", &disk));
         ls_disks.push(DisksInfo {
-            name: format!("{:?}", disk.mount_point())
-                .split("/")
-                .last()
-                .unwrap_or("/")
-                .to_string()
-                .replace("\"", ""),
-            format: format!("{:?}", disk.file_system()),
+            name: format!("{:?}", disk.mount_point()).split("/").last().unwrap_or("/").to_string().replace("\"", ""),
+            dev: format!("{:?}", disk.name()),
+            format: format!("{:?}", disk.file_system().to_string_lossy()),
             path: format!("{:?}", disk.mount_point()),
             avail: format!("{:?}", disk.available_space()),
             capacity: format!("{:?}", disk.total_space()),
         });
     }
-
-    // #[cfg(not(target_os = "macos"))]
-    // let disk_list = System::new().mounts().unwrap_or_else(|r| {
-    //         dbg_log(format!("Got mounts error: {}", r));
-    //         vec![]
-    //     });
-
-    // #[cfg(not(target_os = "macos"))]
-    // #[cfg(not(target_os = "windows"))]
-    // for disk in disk_list {
-    //     if disk.fs_mounted_from.starts_with("/dev/sda") || disk.fs_mounted_from.starts_with("/dev/nvme") || disk.fs_mounted_from.starts_with("/mnt"){
-    //         dbg_log(format!("Mounted on: {:?} - Mounted from: {:?} - Free: {:?} - FS-Type: {:?}", disk.fs_mounted_on, disk.fs_mounted_from, disk.free, disk.fs_type));
-    //         ls_disks.push(DisksInfo {
-    //             name: disk.fs_mounted_on.split("/").last().unwrap_or("/").to_string(),
-    //             format: disk.fs_type,
-    //             path: disk.fs_mounted_on,
-    //             avail: disk.avail.to_string(),
-    //             capacity: disk.total.to_string()
-    //         });
-    //     }
-    // }
-
-    // #[cfg(not(target_os = "macos"))]
-    // #[cfg(target_os = "windows")]
-    // for disk in disk_list {
-    //     ls_disks.push(DisksInfo {
-    //         name: disk.fs_mounted_from,
-    //         format: disk.fs_type,
-    //         path: disk.fs_mounted_on.replace("\\", "/"),
-    //         avail: disk.avail.to_string(),
-    //         capacity: disk.total.to_string()
-    //     });
-    // }
-
     return ls_disks;
 }
 

@@ -37,16 +37,14 @@
             <p class="nav-seperator-1">|</p>
             <button onclick="switchView()" class="header-nav-button switch-view-button"><i
                     class="fa-solid fa-list"></i></button>
-            <button onclick="switchHiddenFiles()" class="header-nav-button switch-hidden-files-button"><i
-                    class="fa-solid fa-eye-slash"></i></button>
+            <button onclick="switchHiddenFiles()" class="header-nav-button switch-hidden-files-button"><i class="fa-solid fa-eye-slash"></i></button>
+            <button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i class="fa-solid fa-table-columns"></i></button>
             <button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
-            <button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i
-                    class="fa-solid fa-table-columns"></i></button>
             <p>|</p>
             <h5 class="directory-entries-count"></h5>
         </div>
         <div class="file-searchbar">
-            <input class="search-bar-input text-input" type="text" placeholder="Searchinput" />
+            <input class="search-bar-input text-input" type="text" placeholder="Search ... (Ctrl + k)" />
             <button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
             <button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
         </div>

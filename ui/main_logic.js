@@ -132,6 +132,7 @@ function startFullSearch() {
 
 document.addEventListener("keyup", (e) => {
   if (e.keyCode === 27) {
+    $(".search-bar-input").blur();
     // Close all popups etc.
     ContextMenu.style.display = "none";
     closeAllPopups();
@@ -383,6 +384,7 @@ document.onkeydown = async (e) => {
       e.stopPropagation();
     }
   }
+
   // check if del is pressed
   if (e.keyCode == 46 || (IsMetaDown && e.keyCode == 8)) {
     await deleteItem(SelectedElement);
@@ -419,6 +421,11 @@ document.onkeydown = async (e) => {
     // await writeText(CurrentDir);
     alert("Current dir copied!");
   }
+  // Check if ctrl + k
+  if (e.key == "k" && (e.ctrlKey || e.metaKey)) {
+    $(".search-bar-input").focus();
+  }
+
   // Check if space is pressed on selected item
   if (e.key == " " && SelectedElement != null) {
     if (IsPopUpOpen == false || IsItemPreviewOpen == true) {
@@ -793,9 +800,9 @@ async function showItems(items, dualPaneSide = "") {
       ContextMenu.children[8].addEventListener("click", () => { showProperties(item); }, { once: true });
     });
     // Drag and drop file
-    item.ondragstart = () => {
-      startDrag({ item: [convertFileSrc(item.getAttribute("itempath"))]});
-    };
+    // item.ondragstart = () => {
+    //   startDrag({ item: [convertFileSrc(item.getAttribute("itempath"))]});
+    // };
   });
   if (IsTabsEnabled == true) {
     document
@@ -1249,14 +1256,18 @@ async function listDisks() {
 					<span class="disk-item-button">
 						<div class="disk-item-top">
 							<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="48" height="auto"/>
-							<span>
-								<span style="display: flex; gap: 10px; align-items: center;">${formatBytes(item.avail)}</span>
-								<span style="display: flex; gap: 10px; align-items: center;">${formatBytes(item.capacity)}</span>
-							</span>
+              <span>
+							  <span style="display: flex; gap: 10px; align-items: center;"><b>Description:</b><b>${item.name}</b></span>
+							  <span style="display: flex; gap: 10px; align-items: center;"><span>File-System:</span><span>${item.format.replace('"', "").replace('"', "")}</span></span>
+              </span>
+              <span>
+                <span style="display: flex; gap: 10px; align-items: center;"><b>Total space:</b><b>${formatBytes(item.capacity)}</b></span>
+                <span style="display: flex; gap: 10px; align-items: center;"><span>Available space:</span><span>${formatBytes(item.avail)}</span></span>
+              </span>
 						</div>
 						<span class="disk-item-bot">
 							<div class="disk-item-usage-bar" style="width: ${evalCurrentLoad(item.avail, item.capacity)}%;"></div>
-							<p style="text-align: left;">${item.name}</p>
+							<p style="text-align: left;">${formatBytes(item.capacity)} / ${formatBytes(item.avail)}</p>
 						</span>
 					</span>
 					`;
@@ -1277,9 +1288,13 @@ async function listDisks() {
         itemButton.style.display = "none";
         DirectoryList.style.gridTemplateColumns = "unset";
         DirectoryList.style.rowGap = "2px";
-      } else {
-        itemButtonList.style.display = "none";
       }
+      else {
+        itemButtonList.style.display = "none";
+        DirectoryList.style.gridTemplateColumns = "unset";
+        DirectoryList.style.rowGap = "5px";
+      }
+      itemButton.style.width = "100%";
       newRow.append(itemButton);
       newRow.append(itemButtonList);
       itemLink.append(newRow);
@@ -1762,10 +1777,14 @@ async function switchView() {
       });
     } else {
       document.querySelectorAll(".directory-list").forEach((list) => {
-        // list.style.flexFlow = "wrap";
-        list.style.gridTemplateColumns =
-          "repeat(auto-fill, minmax(132px, 1fr))";
-        list.style.rowGap = "15px";
+        if (IsShowDisks == false) {
+          // list.style.flexFlow = "wrap";
+          list.style.gridTemplateColumns = "repeat(auto-fill, minmax(132px, 1fr))";
+          list.style.rowGap = "15px";
+        }
+        else {
+          list.style.rowGap = "5px";
+        }
       });
       document.querySelector(".switch-view-button").innerHTML =
         `<i class="fa-solid fa-list"></i>`;
@@ -1808,8 +1827,8 @@ async function switchToDualPane() {
     document.querySelector(".dual-pane-container").style.display = "flex";
     document.querySelector(".switch-dualpane-view-button").innerHTML =
       `<i class="fa-regular fa-rectangle-xmark"></i>`;
-    document.querySelector(".go-back-button").style.display = "none";
-    document.querySelector(".nav-seperator-1").style.display = "none";
+    // document.querySelector(".go-back-button").style.display = "none";
+    // document.querySelector(".nav-seperator-1").style.display = "none";
     document.querySelector(".switch-view-button").style.display = "none";
     await saveConfig(false);
     await invoke("list_dirs").then(async (items) => {
