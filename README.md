@@ -27,6 +27,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Switch between "big buttons"- and list mode
 - Close popups with esc
 - Ctrl + f for a quicksearch in the current directory
+- Jump to a directory with ctrl + g by inputting a path
 
 ### Advanced features
 - Compress files and folders
