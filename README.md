@@ -25,8 +25,8 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Navigate through directories as you know it
 - Copy & Paste, delete, create and rename files and folders
 - Switch between "big buttons"- and list mode
-- Open / close tabs with Ctrl + t / Ctrl + w
 - Close popups with esc
+- Ctrl + f for a quicksearch in the current directory
 
 ### Advanced features
 - Compress files and folders
@@ -41,7 +41,6 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Create folder with F7
 - Dual-Pane view
   - Search for files with F8
-  - Ctrl + F for quicksearch in current directory
   - Copy current selected element to other pane with F5
 - Drag and drop files into the explorer to copy them into the current directory
 
@@ -49,7 +48,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - English
   - Option to choose between languages coming soon ...
 
-#### Known issues:
+#### ⚠️ Known issues:
 - On windows you may have to install [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
 - Permissions on ms-windows are a little bit strange
   - You may have to run the program as administrator if you encounter problems to copy elements or something similar
@@ -60,9 +59,9 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - List filtering (filter by name, last modified, file size)
 - FTP-Integration
 - Favorites
-- Item-preview
+- Multi rename
 <br>
-<img src="https://github.com/RickyDane/rdpFX/assets/82893522/89baafde-62b4-49b6-ae13-ca832e8eb2e2" />
+<img src="https://github.com/RickyDane/rdpFX/assets/82893522/bf07d08f-2aa7-4068-8a78-30a979ee662b" />
 
 
 ## Speed comparison
