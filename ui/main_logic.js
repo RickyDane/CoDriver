@@ -163,9 +163,11 @@ document.addEventListener("mousedown", (e) => {
     !e.target.classList.contains("item-button-list") &&
     !e.target.classList.contains("item-icon") &&
     !e.target.classList.contains("item-button-list-text") &&
-    !e.target.classList.contains("item-button-list-info-span")
+    !e.target.classList.contains("item-button-list-info-span") &&
+    !e.target.classList.contains("disk-item-top") && 
+    !e.target.classList.contains("disk-info")
     ) {
-    document.querySelector(".context-menu").style.display = "none";
+    ContextMenu.style.display = "none";
 
     // Reset context menu
     ContextMenu.children[0].setAttribute("disabled", "true"); 
@@ -729,8 +731,10 @@ async function showItems(items, dualPaneSide = "") {
 			</span>
 		`;
     if (dualPaneSide != null && dualPaneSide != "") {
-      itemButtonList.className = "item-button-list directory-entry dual-pane-list-item";
-    } else {
+
+      itemButtonList.className = "directory-entry dual-pane-list-item";
+    }
+    else {
       itemButtonList.className = "item-button-list directory-entry";
     }
     if (ViewMode == "column") {
@@ -1240,8 +1244,8 @@ async function listDisks() {
     DirectoryCount.innerHTML = "Objects: " + disks.length;
     disks.forEach((item) => {
       let itemLink = document.createElement("button");
-      itemLink.setAttribute("itempath", item.path);
-      itemLink.setAttribute("itemname", item.name);
+      itemLink.setAttribute("itempath", item.path.replace('"', '').replace('"', ''));
+      itemLink.setAttribute("itemname", item.name.replace('"', '').replace('"', ''));
       itemLink.setAttribute("isftp", 0);
       itemLink.setAttribute("onclick", "openItem('1', '', this)");
       let newRow = document.createElement("div");
@@ -1254,32 +1258,32 @@ async function listDisks() {
       itemButton.innerHTML = `
 					<span class="disk-item-button">
 						<div class="disk-item-top">
-							<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="48" height="auto"/>
-              <span>
-							  <span style="display: flex; gap: 10px; align-items: center;"><b>Description:</b><b>${item.name}</b></span>
-							  <span style="display: flex; gap: 10px; align-items: center;"><span>File-System:</span><span>${item.format.replace('"', "").replace('"', "")}</span></span>
+							<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto"/>
+              <span class="disk-info">
+							  <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><b class="disk-info">Description:</b><b>${item.name}</b></span>
+							  <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">File-System:</span><span>${item.format.replace('"', "").replace('"', "")}</span></span>
               </span>
-              <span>
-                <span style="display: flex; gap: 10px; align-items: center;"><b>Total space:</b><b>${formatBytes(item.capacity)}</b></span>
-                <span style="display: flex; gap: 10px; align-items: center;"><span>Available space:</span><span>${formatBytes(item.avail)}</span></span>
+              <span class="disk-info">
+                <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><b class="disk-info">Total space:</b><b>${formatBytes(item.capacity)}</b></span>
+                <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Available space:</span><span>${formatBytes(item.avail)}</span></span>
               </span>
 						</div>
 						<span class="disk-item-bot">
 							<div class="disk-item-usage-bar" style="width: ${evalCurrentLoad(item.avail, item.capacity)}%;"></div>
-							<p><b>Usage:</b> ${formatBytes(item.capacity)} / ${formatBytes(item.avail)} available (${evalCurrentLoad(item.avail, item.capacity)}%)</p>
+							<p class="disk-info"><b class="disk-info">Usage:</b> ${formatBytes(item.capacity)} / ${formatBytes(item.avail)} available (${evalCurrentLoad(item.avail, item.capacity)}%)</p>
 						</span>
 					</span>
 					`;
       itemButton.className = "item-button directory-entry";
       let itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
-					<span style="display: flex; gap: 10px; align-items: center; width: 50%;">
-					<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
-					<p style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+					<span class="disk-info" style="display: flex; gap: 10px; align-items: center; width: 50%;">
+            <img decoding="async" class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
+            <p class="disk-info" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 					</span>
-					<span style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-					<p style="width: auto; text-align: right;">${formatBytes(item.avail)}</p>
-					<p style="width: 75px; text-align: right;">${formatBytes(item.capacity)}</p>
+					<span class="disk-info" style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
+            <p class="disk-info" style="width: auto; text-align: right;">${formatBytes(item.avail)}</p>
+            <p class="disk-info" style="width: 75px; text-align: right;">${formatBytes(item.capacity)}</p>
 					</span>
 					`;
       itemButtonList.className = "item-button-list directory-entry";
@@ -1294,6 +1298,7 @@ async function listDisks() {
         DirectoryList.style.rowGap = "10px";
       }
       itemButton.style.width = "100%";
+      itemButton.style.height = "100px";
       newRow.append(itemButton);
       newRow.append(itemButtonList);
       itemLink.append(newRow);
@@ -1786,14 +1791,9 @@ async function switchView() {
           list.style.rowGap = "5px";
         }
       });
-      document.querySelector(".switch-view-button").innerHTML =
-        `<i class="fa-solid fa-list"></i>`;
-      document
-        .querySelectorAll(".item-button")
-        .forEach((item) => (item.style.display = "flex"));
-      document
-        .querySelectorAll(".item-button-list")
-        .forEach((item) => (item.style.display = "none"));
+      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
+      document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "flex"));
+      document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "none"));
       ViewMode = "wrap";
       document.querySelector(".list-column-header").style.display = "none";
       document.querySelectorAll(".explorer-container").forEach((item) => {
