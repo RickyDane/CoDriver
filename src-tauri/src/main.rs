@@ -3,6 +3,7 @@
 use async_ftp::FtpStream;
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
+use fs_extra::dir::get_size;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
 use std::fs::{self, ReadDir};
@@ -323,37 +324,26 @@ async fn list_dirs() -> Vec<FDir> {
     for item in current_dir {
         let temp_item = item.unwrap();
         let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item
-            .path()
-            .to_str()
-            .unwrap()
-            .to_string()
-            .replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()
-            + &path
-                .split(".")
-                .nth(&path.split(".").count() - 1)
-                .unwrap_or("");
+        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
+        let file_ext = ".".to_string().to_owned() + &path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
         let file_data = fs::metadata(&temp_item.path());
         let file_date: DateTime<Utc>;
+        let size = temp_item.metadata().unwrap().len();
         if file_data.is_ok() {
             file_date = file_data.unwrap().modified().unwrap().clone().into();
         } else {
             file_date = Utc::now();
         }
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        } else {
-            is_dir_int = 0;
-        }
+        let is_dir_int = match temp_item.path().is_dir() {
+           true => 1,
+           false => 0 
+        };
         dir_list.push(FDir {
             name: String::from(name),
             is_dir: is_dir_int,
             path: String::from(path),
             extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string(),
+            size: size.to_string(),
             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
             is_ftp: 0,
         });
@@ -373,56 +363,8 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 
 #[tauri::command]
 async fn open_dir(_path: String) -> Vec<FDir> {
-    let sw = Stopwatch::start_new();
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(&_path.replace('"', "")).unwrap_or_else(|r| {
-        alert_not_found_dir(r);
-        panic!()
-    });
     let _ = set_current_dir(_path);
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let mut is_dir_int: i8 = 0;
-        let path = &temp_item
-            .path()
-            .to_str()
-            .unwrap()
-            .to_string()
-            .replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()
-            + &path
-                .split(".")
-                .nth(&path.split(".").count() - 1)
-                .unwrap_or("");
-        let file_data = fs::metadata(&temp_item.path());
-        let file_date: DateTime<Utc>;
-        if file_data.is_ok() {
-            file_date = file_data.unwrap().modified().unwrap().clone().into();
-        } else {
-            file_date = Utc::now();
-        }
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        }
-        dir_list.push(FDir {
-            name: name.to_owned(),
-            is_dir: is_dir_int,
-            path: path.to_owned(),
-            extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0,
-        });
-    }
-    dbg_log(format!(
-        "Current dir: {:?} | Time: {:?}",
-        current_dir().unwrap(),
-        sw.elapsed()
-    ));
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    return dir_list;
+    return list_dirs().await;
 }
 
 #[tauri::command]

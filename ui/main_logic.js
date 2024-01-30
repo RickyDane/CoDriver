@@ -265,23 +265,23 @@ document.onkeydown = async (e) => {
   if (e.shiftKey) {
     IsShiftDown = false;
   }
-  if (IsAltDown == true && e.keyCode == 49) {
+  if (IsAltDown == true && e.key == "1") {
     if (ConfiguredPathOne == "") {
       return;
     }
-    interactWithItem(1, SelectedItemPaneSide, null, ConfiguredPathOne);
+    openItem(null, SelectedItemPaneSide, ConfiguredPathOne);
   }
-  if (IsAltDown == true && e.keyCode == 50) {
+  if (IsAltDown == true && e.key == "2") {
     if (ConfiguredPathTwo == "") {
       return;
     }
-    interactWithItem(1, SelectedItemPaneSide, null, ConfiguredPathTwo);
+    openItem(null, SelectedItemPaneSide, ConfiguredPathTwo);
   }
-  if (IsAltDown == true && e.keyCode == 51) {
+  if (IsAltDown == true && e.key == "3") {
     if (ConfiguredPathThree == "") {
       return;
     }
-    interactWithItem(1, SelectedItemPaneSide, null, ConfiguredPathThree);
+    openItem(null, SelectedItemPaneSide, ConfiguredPathThree);
   }
 
   if (false) {
@@ -592,7 +592,7 @@ async function showItems(items, dualPaneSide = "") {
   let counter = 0;
   set.forEach((item) => {
     let itemLink = document.createElement("button");
-    itemLink.setAttribute("onclick", "interactWithItem('" + item.is_dir + "', '" + dualPaneSide + "', this)");
+    itemLink.setAttribute("onclick", "interactWithItem(this, '" + dualPaneSide + "')");
     itemLink.setAttribute("itempath", item.path);
     itemLink.setAttribute("itemindex", counter++);
     itemLink.setAttribute("itempaneside", dualPaneSide);
@@ -811,7 +811,15 @@ async function showItems(items, dualPaneSide = "") {
         ContextMenu.children[1].removeAttribute("disabled");
         ContextMenu.children[1].classList.remove("c-item-disabled");
       }
-      ContextMenu.children[0].addEventListener("click", () => { deleteItem(item); }, { once: true });
+      ContextMenu.children[0].addEventListener("click", async () => {
+        if (await confirm("Dou you really want to delete "+item.getAttribute('itemname')+"?")) {
+          deleteItem(item);
+        }
+        else {
+          ContextMenu.style.display = "none";
+          return;
+        }
+      }, { once: true });
       ContextMenu.children[1].addEventListener("click", () => { extractItem(item); }, { once: true });
       ContextMenu.children[2].addEventListener("click", () => { compressItem(item); }, { once: true });
       ContextMenu.children[3].addEventListener("click", () => { copyItem(item); }, { once: true });
@@ -896,9 +904,13 @@ async function copyItem(item, toCut = false) {
   let tempCopyFilePath = item?.getAttribute("itempath").split("/");
   CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
 
-  for (let i = 0; i < ArrSelectedItems.length; i++) {
-    ArrCopyItems.push(ArrSelectedItems[i]);
-    console.log(i);
+  if (ArrSelectedItems.length > 0) {
+    for (let i = 0; i < ArrSelectedItems.length; i++) {
+      ArrCopyItems.push(ArrSelectedItems[i]);
+    }
+  }
+  else {
+    ArrCopyItems.push(item);
   }
 
   ContextMenu.style.display = "none";
@@ -1040,8 +1052,8 @@ async function pasteItem() {
     if (IsCopyToCut == true) {
       await invoke("delete_item", { actFileName: arr[i].getAttribute("itempath") });
     }
+    closeLoadingPopup();
   }
-  closeLoadingPopup();
 }
 
 function createFolderInputPrompt(e = null) {
@@ -1264,7 +1276,8 @@ async function listDisks() {
       itemLink.setAttribute("itempath", item.path.replace('"', '').replace('"', ''));
       itemLink.setAttribute("itemname", item.name.replace('"', '').replace('"', ''));
       itemLink.setAttribute("isftp", 0);
-      itemLink.setAttribute("onclick", "interactWithItem('1', '', this)");
+      itemLink.setAttribute("itemisdir", 1);
+      itemLink.setAttribute("onclick", "interactWithItem(this, '')");
       let newRow = document.createElement("div");
       newRow.className = "directory-item-entry";
       itemLink.className = "item-link directory-entry";
@@ -1277,12 +1290,12 @@ async function listDisks() {
 						<div class="disk-item-top">
 							<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto"/>
               <span class="disk-info">
-							  <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><b class="disk-info">Description:</b><b>${item.name}</b></span>
-							  <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">File-System:</span><span>${item.format.replace('"', "").replace('"', "")}</span></span>
+							  <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><b class="disk-info">Description:</b><b class="disk-info">${item.name}</b></span>
+							  <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">File-System:</span><span class="disk-info">${item.format.replace('"', "").replace('"', "")}</span></span>
               </span>
               <span class="disk-info">
-                <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><b class="disk-info">Total space:</b><b>${formatBytes(item.capacity)}</b></span>
-                <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Available space:</span><span>${formatBytes(item.avail)}</span></span>
+                <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><b class="disk-info">Total space:</b><b class="disk-info"${formatBytes(item.capacity)}</b></span>
+                <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Available space:</span><span class="disk-info">${formatBytes(item.avail)}</span></span>
               </span>
 						</div>
 						<span class="disk-item-bot">
@@ -1291,7 +1304,7 @@ async function listDisks() {
 						</span>
 					</span>
 					`;
-      itemButton.className = "item-button directory-entry";
+      itemButton.className = "disk-item-button-button directory-entry";
       let itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
 					<span class="disk-info" style="display: flex; gap: 10px; align-items: center; width: 50%;">
@@ -1343,7 +1356,7 @@ async function refreshView() {
   listDirectories();
 }
 
-async function interactWithItem(isDir, dualPaneSide = "", element = null, shortcutPath = null) {
+async function interactWithItem(element = null, dualPaneSide = "", shortcutPath = null) {
   let isFtp = element?.getAttribute("isftp");
 
   if (isFtp == false) {
@@ -1381,12 +1394,9 @@ async function interactWithItem(isDir, dualPaneSide = "", element = null, shortc
   // }
 }
 
-async function openItem(element, dualPaneSide, shortcutPath = null) {
-  let isDir = element.getAttribute("itemisdir");
-  let path = element.getAttribute("itempath");
-  if (shortcutPath != null) {
-    path = shortcutPath;
-  }
+async function openItem(element, dualPaneSide, shortcutDirPath = null) {
+  let isDir = element != null ? element.getAttribute("itemisdir") : shortcutDirPath != null;
+  let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
   if (IsItemPreviewOpen == false && isDir == 1 || (isDir == 1 && shortcut == true)) {
     // Open directory
     await invoke("open_dir", { path }).then(async (items) => {
@@ -1398,7 +1408,7 @@ async function openItem(element, dualPaneSide, shortcutPath = null) {
         goUp(false, true);
       }
       else {
-        showItems(items);
+        await showItems(items);
       }
     });
   }
