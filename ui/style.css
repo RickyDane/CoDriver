@@ -454,7 +454,7 @@ label {
     display: flex;
     flex-flow: row;
     justify-content: space-between;
-    background-color: var(--transparentColor);
+    /* background-color: var(--transparentColor); */
     border: none;
     gap: 5px;
     align-items: center;

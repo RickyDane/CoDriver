@@ -38,6 +38,7 @@ let IsShowDisks = false;
 let IsShowHiddenFiles = false;
 let IsAltDown = false;
 let IsMetaDown = false;
+let IsCtrlDown = false;
 let IsQuickSearchOpen = false;
 let ConfiguredPathOne = "";
 let ConfiguredPathTwo = "";
@@ -67,7 +68,8 @@ let IsPopUpOpen = false;
 let SettingsSearchDepth = 10;
 let SettingsMaxItems = 1000;
 let IsFullSearching = false;
-let ArrItems = []; // Todo: select more elements to copy / cut / delete at once
+let ArrSelectedItems = []; // Todo: select more elements to copy / cut / delete at once
+let ArrCopyItems = [];
 let IsLightMode = false;
 let IsImagePreview = false;
 let IsFtpActive = false;
@@ -157,20 +159,20 @@ document.addEventListener("mousedown", (e) => {
     !e.target.classList.contains("context-item") &&
     !e.target.classList.contains("input-dialog") &&
     !e.target.classList.contains("directory-item-entry") &&
-    !e.target.classList.contains("directory-entry") && 
+    !e.target.classList.contains("directory-entry") &&
     !e.target.classList.contains("disk-item") &&
     !e.target.classList.contains("item-button") &&
     !e.target.classList.contains("item-button-list") &&
     !e.target.classList.contains("item-icon") &&
     !e.target.classList.contains("item-button-list-text") &&
     !e.target.classList.contains("item-button-list-info-span") &&
-    !e.target.classList.contains("disk-item-top") && 
+    !e.target.classList.contains("disk-item-top") &&
     !e.target.classList.contains("disk-info")
     ) {
     ContextMenu.style.display = "none";
 
     // Reset context menu
-    ContextMenu.children[0].setAttribute("disabled", "true"); 
+    ContextMenu.children[0].setAttribute("disabled", "true");
     ContextMenu.children[0].classList.add("c-item-disabled");
     ContextMenu.children[1].setAttribute("disabled", "true");
     ContextMenu.children[1].classList.add("c-item-disabled");
@@ -192,17 +194,20 @@ document.addEventListener("mousedown", (e) => {
     ContextMenu.children[8].setAttribute("disabled", "true");
     ContextMenu.children[8].classList.add("c-item-disabled");
 
-    if (SelectedElement != null) {
-      if (IsDualPaneEnabled) {
-        SelectedElement.children[0].classList.remove("selected-item");
-      }
-      else if (ViewMode == "column") {
-        SelectedElement.children[0].children[1].classList.remove("selected-item");
-      }
-      else {
-        SelectedElement.children[0].children[0].classList.remove("selected-item");
+    if (ArrSelectedItems.length > 0) {
+      for (let i = 0; i < ArrSelectedItems.length; i++) {
+        if (IsDualPaneEnabled) {
+          ArrSelectedItems[i].children[0].classList.remove("selected-item");
+        }
+        else if (ViewMode == "column") {
+          ArrSelectedItems[i].children[0].children[1].classList.remove("selected-item");
+        }
+        else {
+          ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
+        }
       }
       SelectedElement = null;
+      ArrSelectedItems = [];
     }
   }
 });
@@ -389,7 +394,21 @@ document.onkeydown = async (e) => {
 
   // check if del is pressed
   if (e.keyCode == 46 || (IsMetaDown && e.keyCode == 8)) {
-    await deleteItem(SelectedElement);
+    let msg = "Do you really want to delete: ";
+    for (let i = 0; i < ArrSelectedItems.length; i++) {
+      if (i == 0)  {
+        msg += ArrSelectedItems[i].getAttribute("itemname");
+      }
+      else {
+        msg += ", " + ArrSelectedItems[i].getAttribute("itemname");
+      }
+    }
+    let isConfirm = await confirm(msg);
+    if (isConfirm == true) {
+      for (let i = 0; i < ArrSelectedItems.length; i++) {
+        await deleteItem(ArrSelectedItems[i]);
+      }
+    }
     goUp();
     e.preventDefault();
     e.stopPropagation();
@@ -861,27 +880,28 @@ async function deleteItem(item) {
   let fromPath = item.getAttribute("itempath");
   let SelectedItemPaneSide = item.getAttribute("itempaneside");
   let actFileName = fromPath.split("/")[fromPath.split("/").length - 1];
-  let isConfirm = await confirm(
-    "Do you really want to delete " + actFileName + "?",
-  );
   if (IsMetaDown == true) {
     IsMetaDown = false;
   }
-  if (isConfirm == true) {
-    showLoadingPopup(actFileName + " is being deleted");
-    await invoke("delete_item", { actFileName }).then(async (items) => {
-      ContextMenu.style.display = "none";
-      await showItems(items.filter((str) => !str.name.startsWith(".")), SelectedItemPaneSide);
-      closeLoadingPopup();
-    });
-  }
+  showLoadingPopup(actFileName + " is being deleted");
+  await invoke("delete_item", { actFileName }).then(async (items) => {
+    ContextMenu.style.display = "none";
+    await showItems(items.filter((str) => !str.name.startsWith(".")), SelectedItemPaneSide);
+    closeLoadingPopup();
+  });
   IsCopyToCut = false;
 }
 
 async function copyItem(item, toCut = false) {
-  CopyFilePath = item.getAttribute("itempath");
-  let tempCopyFilePath = item.getAttribute("itempath").split("/");
+  CopyFilePath = item?.getAttribute("itempath");
+  let tempCopyFilePath = item?.getAttribute("itempath").split("/");
   CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
+
+  for (let i = 0; i < ArrSelectedItems.length; i++) {
+    ArrCopyItems.push(ArrSelectedItems[i]);
+    console.log(i);
+  }
+
   ContextMenu.style.display = "none";
   await writeText(CopyFilePath);
   if (toCut == true) {
@@ -894,9 +914,7 @@ async function extractItem(item) {
   let compressFileName = compressFilePath
     .split("/")
     [compressFilePath.split("/").length - 1].replace("'", "");
-  let isExtracting = await confirm(
-    "Do you want to unpack " + compressFileName + "?",
-  );
+  let isExtracting = await confirm("Do you want to unpack " + compressFileName + "?");
   if (isExtracting == true) {
     ContextMenu.style.display = "none";
     let extractFilePath = item.getAttribute("itempath");
@@ -979,47 +997,47 @@ function closeInputPopup() {
 }
 
 async function pasteItem() {
+  console.log(ArrCopyItems);
+  console.log(ArrSelectedItems);
   ContextMenu.style.display = "none";
-  if (IsDualPaneEnabled == true) {
-    let actFileName = SelectedItemPath.split("/")[
-      SelectedItemPath.split("/").length - 1
-    ].replace("'", "");
-    let fromPath = SelectedItemPath;
-    showLoadingPopup(actFileName + " is being copied over");
-    let isForDualPane = "1";
-    if (SelectedItemPaneSide == "left") {
-      actFileName = RightDualPanePath + "/" + actFileName;
-      await invoke("set_dir", { currentDir: RightDualPanePath });
+  for (let i = 0; i < ArrCopyItems.length; i++) {
+    if (IsDualPaneEnabled == true) {
+      let actFileName = ArrCopyItems[i].getAttribute("itempath").split("/")[ArrCopyItems[i].getAttribute("itempath").split("/").length - 1].replace("'", "");
+      let fromPath = ArrCopyItems[i].getAttribute("itempath");
+      showLoadingPopup(actFileName + " is being copied over");
+      let isForDualPane = "1";
+      if (SelectedItemPaneSide == "left") {
+        actFileName = RightDualPanePath + "/" + actFileName;
+        await invoke("set_dir", { currentDir: RightDualPanePath });
+        await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then((items) => {
+            showItems(items, "right");
+          },
+        );
+      } else if (SelectedItemPaneSide == "right") {
+        actFileName = LeftDualPanePath + "/" + actFileName;
+        await invoke("set_dir", { currentDir: LeftDualPanePath });
+        await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then((items) => {
+            showItems(items, "left");
+          },
+        );
+      }
+    } else {
+      let actFileName = ArrCopyItems[i].getAttribute("itempath").split("/")[ArrCopyItems[i].getAttribute("itempath").split("/").length - 1].replace("'", "");
+      showLoadingPopup(actFileName + " is being copied over");
+      let fromPath = ArrCopyItems[i].getAttribute("itempath");
+      let isForDualPane = "0";
       await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then(
-        (items) => {
-          showItems(items, "right");
+        async (items) => {
+          await showItems(items);
         },
       );
-    } else if (SelectedItemPaneSide == "right") {
-      actFileName = LeftDualPanePath + "/" + actFileName;
-      await invoke("set_dir", { currentDir: LeftDualPanePath });
-      await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then(
-        (items) => {
-          showItems(items, "left");
-        },
-      );
+      ContextMenu.style.display = "none";
     }
-  } else if (CopyFileName != "") {
-    let actFileName = CopyFileName;
-    showLoadingPopup(actFileName + " is being copied over");
-    let fromPath = CopyFilePath.toString();
-    let isForDualPane = "0";
-    await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then(
-      async (items) => {
-        await showItems(items);
-      },
-    );
-    ContextMenu.style.display = "none";
+    if (IsCopyToCut == true) {
+      await invoke("delete_item", { actFileName: ArrCopyItems[i].getAttribute("itempath") });
+    }
   }
   closeLoadingPopup();
-  if (IsCopyToCut == true) {
-    await invoke("delete_item", { actFileName: CopyFilePath });
-  }
 }
 
 function createFolderInputPrompt(e = null) {
@@ -1326,13 +1344,7 @@ async function refreshView() {
   listDirectories();
 }
 
-async function openItem(
-  isDir,
-  dualPaneSide = "",
-  element = null,
-  shortcut = false,
-  shortcutPath = null,
-) {
+async function openItem(isDir, dualPaneSide = "", element = null, shortcut = false, shortcutPath = null, keyEvent = null) {
   let name = element?.getAttribute("itemname");
   let path = element?.getAttribute("itempath");
   let isFtp = element?.getAttribute("isftp");
@@ -1351,17 +1363,21 @@ async function openItem(
     }
     // Interaction mode: Select
     if (element != null && SelectedElement != element && IsSelectMode == true) {
-      if (SelectedElement != null) {
-        // Reset colored selection
-        if (IsDualPaneEnabled) {
-          SelectedElement.children[0].classList.remove("selected-item");
-        }
-        else if (ViewMode == "column") {
-          SelectedElement.children[0].children[1].classList.remove("selected-item");
-        }
-        else {
-          SelectedElement.children[0].children[0].classList.remove("selected-item");
-        }
+      // Reset colored selection
+      if (SelectedElement != null && IsMetaDown == false) {
+        ArrSelectedItems.forEach(item => {
+          if (IsDualPaneEnabled) {
+            item.children[0].classList.remove("selected-item");
+          }
+          else if (ViewMode == "column") {
+            item.children[0].children[1].classList.remove("selected-item");
+          }
+          else {
+            item.children[0].children[0].classList.remove("selected-item");
+          }
+        });
+        ArrSelectedItems = [];
+        ArrCopyItems = [];
       }
       SelectedElement = element; // Switch to new element / selection
       if (IsDualPaneEnabled) {
@@ -1385,6 +1401,7 @@ async function openItem(
       if (IsItemPreviewOpen == true) {
         showItemPreview(SelectedElement, true);
       }
+      ArrSelectedItems.push(SelectedElement);
     }
     // Interaction mode: Open item
     else if (IsItemPreviewOpen == false && isDir == 1 || (isDir == 1 && shortcut == true)) {
@@ -1464,7 +1481,7 @@ async function goBack() {
 
 function goUp(isSwitched = false, toFirst = false) {
   let element = null;
-  let selectedItemIndex = 0; 
+  let selectedItemIndex = 0;
   if (toFirst == false) {
     if (SelectedElement != null) {
       if (SelectedItemPaneSide == "left") {
