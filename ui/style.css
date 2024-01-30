@@ -9,7 +9,7 @@
     box-sizing: border-box;
     color: var(--textColor);
     font-family: system-ui, "Inter";
-    font-display: swap;
+    font-weight: 500;
     outline: none;
     -webkit-user-select: none;
     -ms-user-select: none;
@@ -121,7 +121,7 @@ body {
 }
 .site-nav-bar-button {
     background-color: var(--transparentColor);
-    border: none;
+    border: 1px solid var(--transparentColor);
     width: 100%;
     text-align: left;
     border-radius: 5px;
@@ -301,6 +301,7 @@ body {
     justify-content: space-between;
     align-items: center;
     z-index: 4;
+    border-bottom: 1px solid var(--transparentColor);
 }
 .settings-ui-body {
     display: flex;
@@ -392,27 +393,31 @@ label {
 .selected-item > p {
     background-color: var(--transparentColorActive) !important;
 }
+.item-icon {
+    filter: saturate(1.2);
+}
 .item-button {
     position: relative;
-    background-color: var(--transparentColor);
     border-radius: 5px;
     cursor: pointer;
     text-align: left;
     font-size: small;
-    height: 85px;
-    width: 125px;
+    height: 75px;
+    width: 100px;
     overflow: hidden;
     display: flex;
     flex-flow: column;
     align-items: center;
     text-align: center;
+    gap: 10px;
     transition: 0.1s ease;
     margin: 0 auto;
+    background-color: var(--transparentColor);
     border: 1px solid var(--transparentColor);
 }
-.item-button:hover {
+/* .item-button:hover {
     background-color: var(--transparentColorActive);
-}
+} */
 .item-button:active {
     background-color: var(--secondaryColor);
 }
@@ -420,24 +425,25 @@ label {
     transition: 0.1s ease;
     width: auto;
     max-width: 80%;
-    margin-top: 10px;
+    margin-top: 7.5px;
     border-radius: 3px;
 }
 .item-button:hover > img {
-    filter: brightness(0.75);
+    filter: brightness(0.85);
 }
 .item-button > p {
     position: absolute;
     bottom: 0;
-    left: 0;
-    right: 0;
+    width: 100%;
     background-color: var(--secondaryColor);
-    padding: 2px 7.5px;
     font-size: var(--fontSize);
+    padding: 1px 5px;
     line-height: 20px;
-    max-height: 30px;
     overflow: hidden;
     transition: 0.1s ease;
+    border-radius: 5px;
+    text-align: center !important;
+    
 }
 .item-button:hover > p {
     background-color: var(--transparentColorActive);
@@ -761,7 +767,7 @@ label {
     max-width: 100%;
     overflow: hidden;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     margin: 0 auto;
     will-change: transform;
     padding-top: 2.5px;

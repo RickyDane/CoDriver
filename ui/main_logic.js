@@ -36,9 +36,12 @@ let CopyFilePath = "";
 let CurrentDir = "/Home";
 let IsShowDisks = false;
 let IsShowHiddenFiles = false;
+
 let IsAltDown = false;
 let IsMetaDown = false;
 let IsCtrlDown = false;
+let IsShiftDown = false;
+
 let IsQuickSearchOpen = false;
 let ConfiguredPathOne = "";
 let ConfiguredPathTwo = "";
@@ -167,7 +170,8 @@ document.addEventListener("mousedown", (e) => {
     !e.target.classList.contains("item-button-list-text") &&
     !e.target.classList.contains("item-button-list-info-span") &&
     !e.target.classList.contains("disk-item-top") &&
-    !e.target.classList.contains("disk-info")
+    !e.target.classList.contains("disk-info") &&
+    !e.target.classList.contains("item-button-text")
     ) {
     ContextMenu.style.display = "none";
 
@@ -194,21 +198,7 @@ document.addEventListener("mousedown", (e) => {
     ContextMenu.children[8].setAttribute("disabled", "true");
     ContextMenu.children[8].classList.add("c-item-disabled");
 
-    if (ArrSelectedItems.length > 0) {
-      for (let i = 0; i < ArrSelectedItems.length; i++) {
-        if (IsDualPaneEnabled) {
-          ArrSelectedItems[i].children[0].classList.remove("selected-item");
-        }
-        else if (ViewMode == "column") {
-          ArrSelectedItems[i].children[0].children[1].classList.remove("selected-item");
-        }
-        else {
-          ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
-        }
-      }
-      SelectedElement = null;
-      ArrSelectedItems = [];
-    }
+    unSelectAllItems();
   }
 });
 
@@ -269,23 +259,29 @@ document.onkeydown = async (e) => {
   if (e.keyCode === 91) {
     IsMetaDown = true;
   }
+  if (e.ctrlKey) {
+    IsCtrlDown = true;
+  }
+  if (e.shiftKey) {
+    IsShiftDown = false;
+  }
   if (IsAltDown == true && e.keyCode == 49) {
     if (ConfiguredPathOne == "") {
       return;
     }
-    openItem(1, SelectedItemPaneSide, null, true, ConfiguredPathOne);
+    interactWithItem(1, SelectedItemPaneSide, null, ConfiguredPathOne);
   }
   if (IsAltDown == true && e.keyCode == 50) {
     if (ConfiguredPathTwo == "") {
       return;
     }
-    openItem(1, SelectedItemPaneSide, null, true, ConfiguredPathTwo);
+    interactWithItem(1, SelectedItemPaneSide, null, ConfiguredPathTwo);
   }
   if (IsAltDown == true && e.keyCode == 51) {
     if (ConfiguredPathThree == "") {
       return;
     }
-    openItem(1, SelectedItemPaneSide, null, true, ConfiguredPathThree);
+    interactWithItem(1, SelectedItemPaneSide, null, ConfiguredPathThree);
   }
 
   if (false) {
@@ -492,25 +488,7 @@ document.onkeydown = async (e) => {
   }
 };
 
-// check for click on one of the dual pane containers and set directory accordingly
-document.querySelector(".dual-pane-left").addEventListener("click", () => {
-  setCurrentDir(LeftDualPanePath, "left");
-});
-document
-  .querySelector(".dual-pane-left")
-  .addEventListener("contextmenu", () => {
-    setCurrentDir(LeftDualPanePath, "left");
-  });
-document.querySelector(".dual-pane-right").addEventListener("click", () => {
-  setCurrentDir(RightDualPanePath, "right");
-});
-document
-  .querySelector(".dual-pane-right")
-  .addEventListener("contextmenu", () => {
-    setCurrentDir(RightDualPanePath, "right");
-  });
-
-// Reset
+// Reset key toggle
 document.onkeyup = (e) => {
   if (e.keyCode == 18) {
     IsAltDown = false;
@@ -521,7 +499,29 @@ document.onkeyup = (e) => {
   if (e.keyCode === 91) {
     IsMetaDown = false;
   }
+  if (e.ctrlKey) {
+    IsCtrlDown = false;
+  }
+  if (e.shiftKey) {
+    IsShiftDown = false;
+  }
 };
+
+/* End of shortcut config */
+
+// check for click on one of the dual pane containers and set directory accordingly
+document.querySelector(".dual-pane-left").addEventListener("click", () => {
+  setCurrentDir(LeftDualPanePath, "left");
+});
+document.querySelector(".dual-pane-left").addEventListener("contextmenu", () => {
+  setCurrentDir(LeftDualPanePath, "left");
+});
+document.querySelector(".dual-pane-right").addEventListener("click", () => {
+  setCurrentDir(RightDualPanePath, "right");
+});
+document.querySelector(".dual-pane-right").addEventListener("contextmenu", () => {
+  setCurrentDir(RightDualPanePath, "right");
+});
 
 // Main function to handle directory visualization
 async function showItems(items, dualPaneSide = "") {
@@ -592,7 +592,7 @@ async function showItems(items, dualPaneSide = "") {
   let counter = 0;
   set.forEach((item) => {
     let itemLink = document.createElement("button");
-    itemLink.setAttribute("onclick", "openItem('" + item.is_dir + "', '" + dualPaneSide + "', this)");
+    itemLink.setAttribute("onclick", "interactWithItem('" + item.is_dir + "', '" + dualPaneSide + "', this)");
     itemLink.setAttribute("itempath", item.path);
     itemLink.setAttribute("itemindex", counter++);
     itemLink.setAttribute("itempaneside", dualPaneSide);
@@ -734,7 +734,7 @@ async function showItems(items, dualPaneSide = "") {
     let itemButton = document.createElement("div");
     itemButton.innerHTML = `
 			<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" style="object-fit: cover;" />
-			<p style="text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+			<p class="item-button-text" style="text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 		`;
     delete fileIcon;
     itemButton.className = "item-button directory-entry";
@@ -762,8 +762,7 @@ async function showItems(items, dualPaneSide = "") {
       DirectoryList.style.rowGap = "2px";
     } else {
       itemButtonList.style.display = "none";
-      DirectoryList.style.gridTemplateColumns =
-        "repeat(auto-fill, minmax(132px, 1fr))";
+      DirectoryList.style.gridTemplateColumns = "repeat(auto-fill, minmax(110px, 1fr))";
       DirectoryList.style.rowGap = "15px";
     }
     newRow.append(itemButton);
@@ -997,13 +996,18 @@ function closeInputPopup() {
 }
 
 async function pasteItem() {
-  console.log(ArrCopyItems);
-  console.log(ArrSelectedItems);
+  let arr = [];
+  if (IsDualPaneEnabled == true) {
+    arr = ArrSelectedItems;
+  }
+  else {
+    arr = ArrCopyItems;
+  }
   ContextMenu.style.display = "none";
-  for (let i = 0; i < ArrCopyItems.length; i++) {
+  for (let i = 0; i < arr.length; i++) {
     if (IsDualPaneEnabled == true) {
-      let actFileName = ArrCopyItems[i].getAttribute("itempath").split("/")[ArrCopyItems[i].getAttribute("itempath").split("/").length - 1].replace("'", "");
-      let fromPath = ArrCopyItems[i].getAttribute("itempath");
+      let actFileName = arr[i].getAttribute("itempath").split("/")[arr[i].getAttribute("itempath").split("/").length - 1].replace("'", "");
+      let fromPath = arr[i].getAttribute("itempath");
       showLoadingPopup(actFileName + " is being copied over");
       let isForDualPane = "1";
       if (SelectedItemPaneSide == "left") {
@@ -1022,9 +1026,9 @@ async function pasteItem() {
         );
       }
     } else {
-      let actFileName = ArrCopyItems[i].getAttribute("itempath").split("/")[ArrCopyItems[i].getAttribute("itempath").split("/").length - 1].replace("'", "");
+      let actFileName = arr[i].getAttribute("itempath").split("/")[arr[i].getAttribute("itempath").split("/").length - 1].replace("'", "");
       showLoadingPopup(actFileName + " is being copied over");
-      let fromPath = ArrCopyItems[i].getAttribute("itempath");
+      let fromPath = arr[i].getAttribute("itempath");
       let isForDualPane = "0";
       await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then(
         async (items) => {
@@ -1034,7 +1038,7 @@ async function pasteItem() {
       ContextMenu.style.display = "none";
     }
     if (IsCopyToCut == true) {
-      await invoke("delete_item", { actFileName: ArrCopyItems[i].getAttribute("itempath") });
+      await invoke("delete_item", { actFileName: arr[i].getAttribute("itempath") });
     }
   }
   closeLoadingPopup();
@@ -1214,17 +1218,12 @@ async function checkAppConfig() {
       document.querySelector(".image-preview-checkbox").checked = false;
     }
 
-    document.querySelector(".configured-path-one-input").value =
-      ConfiguredPathOne = appConfig.configured_path_one;
-    document.querySelector(".configured-path-two-input").value =
-      ConfiguredPathTwo = appConfig.configured_path_two;
-    document.querySelector(".configured-path-three-input").value =
-      ConfiguredPathThree = appConfig.configured_path_three;
+    document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
+    document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
+    document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
     document.querySelector(".launch-path-input").value = appConfig.launch_path;
-    document.querySelector(".search-depth-input").value = SettingsSearchDepth =
-      parseInt(appConfig.search_depth);
-    document.querySelector(".max-items-input").value = SettingsMaxItems =
-      parseInt(appConfig.max_items);
+    document.querySelector(".search-depth-input").value = SettingsSearchDepth = parseInt(appConfig.search_depth);
+    document.querySelector(".max-items-input").value = SettingsMaxItems = parseInt(appConfig.max_items);
 
     if (appConfig.is_dual_pane_active.includes("1")) {
       if (IsDualPaneEnabled == false) {
@@ -1265,7 +1264,7 @@ async function listDisks() {
       itemLink.setAttribute("itempath", item.path.replace('"', '').replace('"', ''));
       itemLink.setAttribute("itemname", item.name.replace('"', '').replace('"', ''));
       itemLink.setAttribute("isftp", 0);
-      itemLink.setAttribute("onclick", "openItem('1', '', this)");
+      itemLink.setAttribute("onclick", "interactWithItem('1', '', this)");
       let newRow = document.createElement("div");
       newRow.className = "directory-item-entry";
       itemLink.className = "item-link directory-entry";
@@ -1344,15 +1343,10 @@ async function refreshView() {
   listDirectories();
 }
 
-async function openItem(isDir, dualPaneSide = "", element = null, shortcut = false, shortcutPath = null, keyEvent = null) {
-  let name = element?.getAttribute("itemname");
-  let path = element?.getAttribute("itempath");
+async function interactWithItem(isDir, dualPaneSide = "", element = null, shortcutPath = null) {
   let isFtp = element?.getAttribute("isftp");
-  let index = element?.getAttribute("itemindex");
-  if (isFtp == false || isFtp == null) {
-    if (shortcut == true) {
-      path = shortcutPath;
-    }
+
+  if (isFtp == false) {
     if (dualPaneSide == "left") {
       document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
       document.querySelector(".dual-pane-right").style.boxShadow = "none";
@@ -1363,81 +1357,116 @@ async function openItem(isDir, dualPaneSide = "", element = null, shortcut = fal
     }
     // Interaction mode: Select
     if (element != null && SelectedElement != element && IsSelectMode == true) {
-      // Reset colored selection
-      if (SelectedElement != null && IsMetaDown == false) {
-        ArrSelectedItems.forEach(item => {
-          if (IsDualPaneEnabled) {
-            item.children[0].classList.remove("selected-item");
-          }
-          else if (ViewMode == "column") {
-            item.children[0].children[1].classList.remove("selected-item");
-          }
-          else {
-            item.children[0].children[0].classList.remove("selected-item");
-          }
-        });
-        ArrSelectedItems = [];
-        ArrCopyItems = [];
-      }
-      SelectedElement = element; // Switch to new element / selection
-      if (IsDualPaneEnabled) {
-        SelectedElement.children[0].classList.add("selected-item");
-      }
-      else if (ViewMode == "column") {
-        SelectedElement.children[0].children[1].classList.add("selected-item");
-      }
-      else {
-        SelectedElement.children[0].children[0].classList.add("selected-item");
-      }
-      SelectedItemPath = path;
-      SelectedItemPaneSide = dualPaneSide;
-      if (dualPaneSide == "left") {
-        LeftPaneItemIndex = index;
-      }
-      else if (dualPaneSide == "right") {
-        RightPaneItemIndex = index;
-      }
-      // Switch item preview when already open
-      if (IsItemPreviewOpen == true) {
-        showItemPreview(SelectedElement, true);
-      }
-      ArrSelectedItems.push(SelectedElement);
+      selectItem(element, dualPaneSide);
     }
     // Interaction mode: Open item
-    else if (IsItemPreviewOpen == false && isDir == 1 || (isDir == 1 && shortcut == true)) {
-      // Open directory
-      await invoke("open_dir", { path }).then(async (items) => {
-        if (IsDualPaneEnabled == true && dualPaneSide != "") {
-          document.querySelector(
-            ".tab-container-" + CurrentActiveTab,
-          ).innerHTML = "";
-          await showItems(items, dualPaneSide);
-          goUp(false, true);
-        }
-        else {
-          showItems(items);
-        }
-      });
-    }
-    else if (IsItemPreviewOpen == false) {
-      // Open element with default application / Todo: "open with / as"
-      await invoke("open_item", { path });
+    else {
+      openItem(element, dualPaneSide, shortcutPath);
     }
   }
-  else { // Test for future ftp integration
-    if (isDir == 1) {
-      DirectoryList.innerHTML = `<img decoding="async" src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
-      DirectoryList.classList.add("dir-preloader-container");
-      await invoke("open_ftp_dir", { path }).then(async (items) => {
-        await showItems(items);
-        CurrentFtpPath = path;
-      });
-      document.querySelector(".fullsearch-loader").style.display = "none";
-      DirectoryList.classList.remove("dir-preloader-container");
+  // else { // Test for future ftp integration
+  //   if (isDir == 1) {
+  //     DirectoryList.innerHTML = `<img decoding="async" src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+  //     DirectoryList.classList.add("dir-preloader-container");
+  //     await invoke("open_ftp_dir", { path }).then(async (items) => {
+  //       await showItems(items);
+  //       CurrentFtpPath = path;
+  //     });
+  //     document.querySelector(".fullsearch-loader").style.display = "none";
+  //     DirectoryList.classList.remove("dir-preloader-container");
+  //   }
+  //   else {
+  //     await invoke("copy_from_ftp", { path });
+  //   }
+  // }
+}
+
+async function openItem(element, dualPaneSide, shortcutPath = null) {
+  let isDir = element.getAttribute("itemisdir");
+  let path = element.getAttribute("itempath");
+  if (shortcutPath != null) {
+    path = shortcutPath;
+  }
+  if (IsItemPreviewOpen == false && isDir == 1 || (isDir == 1 && shortcut == true)) {
+    // Open directory
+    await invoke("open_dir", { path }).then(async (items) => {
+      if (IsDualPaneEnabled == true && dualPaneSide != "") {
+        document.querySelector(
+          ".tab-container-" + CurrentActiveTab,
+        ).innerHTML = "";
+        await showItems(items, dualPaneSide);
+        goUp(false, true);
+      }
+      else {
+        showItems(items);
+      }
+    });
+  }
+  else if (IsItemPreviewOpen == false) {
+    // Open element with default application / Todo: "open with / as"
+    await invoke("open_item", { path });
+  }
+}
+
+function selectItem(element, dualPaneSide = "") {
+  let path = element?.getAttribute("itempath");
+  let index = element?.getAttribute("itemindex");
+  // Reset colored selection
+  if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false) {
+    ArrSelectedItems.forEach(item => {
+      if (IsDualPaneEnabled) {
+        item.children[0].classList.remove("selected-item");
+      }
+      else if (ViewMode == "column") {
+        item.children[0].children[1].classList.remove("selected-item");
+      }
+      else {
+        item.children[0].children[0].classList.remove("selected-item");
+      }
+    });
+    ArrSelectedItems = [];
+    ArrCopyItems = [];
+  }
+  SelectedElement = element; // Switch to new element / selection
+  if (IsDualPaneEnabled) {
+    SelectedElement.children[0].classList.add("selected-item");
+  }
+  else if (ViewMode == "column") {
+    SelectedElement.children[0].children[1].classList.add("selected-item");
+  }
+  else {
+    SelectedElement.children[0].children[0].classList.add("selected-item");
+  }
+  SelectedItemPath = path;
+  SelectedItemPaneSide = dualPaneSide;
+  if (dualPaneSide == "left") {
+    LeftPaneItemIndex = index;
+  }
+  else if (dualPaneSide == "right") {
+    RightPaneItemIndex = index;
+  }
+  // Switch item preview when already open
+  if (IsItemPreviewOpen == true) {
+    showItemPreview(SelectedElement, true);
+  }
+  ArrSelectedItems.push(SelectedElement);
+}
+
+function unSelectAllItems() {
+  if (ArrSelectedItems.length > 0) {
+    for (let i = 0; i < ArrSelectedItems.length; i++) {
+      if (IsDualPaneEnabled) {
+        ArrSelectedItems[i].children[0].classList.remove("selected-item");
+      }
+      else if (ViewMode == "column") {
+        ArrSelectedItems[i].children[0].children[1].classList.remove("selected-item");
+      }
+      else {
+        ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
+      }
     }
-    else {
-      await invoke("copy_from_ftp", { path });
-    }
+    SelectedElement = null;
+    ArrSelectedItems = [];
   }
 }
 
@@ -1801,7 +1830,7 @@ async function switchView() {
       document.querySelectorAll(".directory-list").forEach((list) => {
         if (IsShowDisks == false) {
           // list.style.flexFlow = "wrap";
-          list.style.gridTemplateColumns = "repeat(auto-fill, minmax(132px, 1fr))";
+          list.style.gridTemplateColumns = "repeat(auto-fill, minmax(110px, 1fr))";
           list.style.rowGap = "15px";
         }
         else {
@@ -2245,14 +2274,14 @@ function checkColorMode() {
     r.style.setProperty("--secondaryColor", "whitesmoke");
     SecondaryColor = "whitesmoke";
     r.style.setProperty("--tertiaryColor", "rgba(240, 240, 240, 1)");
-    r.style.setProperty("--textColor", "rgb(55, 55, 55)");
+    r.style.setProperty("--textColor", "rgb(75, 75, 75)");
   } else {
     r.style.setProperty("--primaryColor", "#3f4352");
     PrimaryColor = "#3f4352";
     r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
     SecondaryColor = "rgba(56, 59, 71, 1)";
     r.style.setProperty("--tertiaryColor", "#474b5c");
-    r.style.setProperty("--textColor", "white");
+    r.style.setProperty("--textColor", "rgba(255, 255, 255, 0.8)");
   }
 }
 
