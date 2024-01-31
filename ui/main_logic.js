@@ -1252,7 +1252,7 @@ async function checkAppConfig() {
       });
     }
   });
-  checkColorMode("light_mode");
+  checkColorMode();
   applyPlatformFeatures();
 }
 
@@ -2309,18 +2309,18 @@ function checkColorMode() {
   var r = document.querySelector(":root");
   if (IsLightMode) {
     r.style.setProperty("--primaryColor", "white");
-    PrimaryColor = "white";
     r.style.setProperty("--secondaryColor", "whitesmoke");
-    SecondaryColor = "whitesmoke";
-    r.style.setProperty("--tertiaryColor", "rgba(240, 240, 240, 1)");
+    r.style.setProperty("--tertiaryColor", "rgba(220, 220, 220, 1)");
     r.style.setProperty("--textColor", "rgb(75, 75, 75)");
+    SecondaryColor = "whitesmoke";
+    PrimaryColor = "white";
   } else {
     r.style.setProperty("--primaryColor", "#3f4352");
-    PrimaryColor = "#3f4352";
     r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
-    SecondaryColor = "rgba(56, 59, 71, 1)";
     r.style.setProperty("--tertiaryColor", "#474b5c");
     r.style.setProperty("--textColor", "rgba(255, 255, 255, 0.8)");
+    SecondaryColor = "rgba(56, 59, 71, 1)";
+    PrimaryColor = "#3f4352";
   }
 }
 

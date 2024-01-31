@@ -18,8 +18,8 @@
 
 :root {
     --primaryColor: #3f4352;
-    --secondaryColor: rgba(56, 59, 71, 1);
-    --tertiaryColor: #474b5c;
+    --secondaryColor: rgb(70, 74, 89);
+    --tertiaryColor: #515567;
     --transparentColor: rgba(0, 0, 0, 0.1);
     --transparentColorActive: rgba(0, 0, 0, 0.25);
     --textColor: white;
@@ -35,11 +35,13 @@ html {
 }
 body {
     height: 100vh;
-    background-color: var(--tertiaryColor);
+    background-color: var(--secondaryColor);
     overflow: hidden;
     outline: none;
     border: none;
     border-radius: 10px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 .explorer-container {
     margin: 0 0 0 calc(150px + 10px);
@@ -101,7 +103,8 @@ body {
     padding: 0px 10px;
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
     z-index: 3;
-    border-bottom: 1px solid var(--secondaryColor);
+    border-bottom: 1px solid var(--tertiaryColor);
+    color: #3d404f;
 }
 .site-nav-bar {
     background-color: var(--primaryColor);
@@ -116,7 +119,7 @@ body {
     padding: 10px;
     z-index: 2;
     gap: 4px;
-    border-right: 1px solid var(--secondaryColor);
+    border-right: 1px solid var(--tertiaryColor);
     border-radius: 0px 0px 0px 10px;
 }
 .site-nav-bar-button {
@@ -411,6 +414,7 @@ label {
 }
 .selected-item > p {
     background-color: var(--transparentColorActive) !important;
+    border: 1px solid transparent !important;
 }
 .item-icon {
     filter: saturate(1.2);
@@ -454,7 +458,7 @@ label {
     position: absolute;
     bottom: 0;
     width: 100%;
-    background-color: var(--secondaryColor);
+    background-color: var(--primaryColor);
     font-size: var(--fontSize);
     padding: 1px 5px;
     line-height: 20px;
@@ -462,10 +466,11 @@ label {
     transition: 0.1s ease;
     border-radius: 5px;
     text-align: center !important;
-
+    border: 1px solid var(--tertiaryColor);
 }
 .item-button:hover > p {
     background-color: var(--transparentColorActive);
+    border: 1px solid transparent !important;
 }
 .item-button > div {
     position: relative;
