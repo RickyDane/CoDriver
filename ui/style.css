@@ -169,9 +169,13 @@ body {
     display: flex;
     flex-flow: row;
     gap: 8px;
+    margin-left: 5px;
 }
 .macos-red-button:hover {
-    background-color: darkred !important;
+    background-color: red !important;
+}
+.macos-yellow-button:hover {
+    background-color: orange !important;
 }
 .titlebar-button {
     display: inline-flex;

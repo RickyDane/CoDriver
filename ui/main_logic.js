@@ -13,18 +13,6 @@ const { fetch } = window.__TAURI__.http;
 const { startDrag } = window.__TAURI__.drag;
 const convertFileSrc  = window.__TAURI__.convertFileSrc;
 
-/* Window customization */
-
-document
-  .getElementById("titlebar-minimize")
-  .addEventListener("click", () => appWindow.minimize());
-document
-  .getElementById("titlebar-maximize")
-  .addEventListener("click", () => appWindow.toggleMaximize());
-document
-  .getElementById("titlebar-close")
-  .addEventListener("click", () => appWindow.close());
-
 /* region Global Variables */
 
 let ViewMode = "wrap";
@@ -1271,12 +1259,21 @@ async function checkAppConfig() {
 
 async function applyPlatformFeatures() {
   Platform = await platform();
-
   // Check for macOS and position titlebar buttons on the left
   if (Platform == "darwin") {
     $(".titlebar").css("flex-flow", "row-reverse");
+    $(".titlebar-buttons").remove();
+    $(".titlebar-buttons-macos").css("display", "flex");
+    document.querySelectorAll(".titlebar-button").forEach(item => item.style.display = "none");
     // $(".titlebar-buttons").css("flex-flow", "row-reverse");
   }
+  else {
+    $(".titlebar-buttons").css("display", "flex");
+    $(".titlebar-buttons-macos").remove();
+  }
+  document.getElementById("titlebar-minimize").addEventListener("click", () => appWindow.minimize());
+  document.getElementById("titlebar-maximize").addEventListener("click", () => appWindow.toggleMaximize());
+  document.getElementById("titlebar-close").addEventListener("click", () => appWindow.close());
 }
 
 async function listDisks() {
