@@ -27,7 +27,6 @@ use zip_extensions::*;
 mod utils;
 use sysinfo::Disks;
 use utils::{dbg_log, err_log, wng_log};
-use tauri_plugin_drag;
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -63,7 +62,6 @@ fn main() {
             ftp_go_back,
             copy_from_ftp
         ])
-        .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -801,12 +799,8 @@ async fn search_for(
 }
 
 #[tauri::command]
-async fn copy_paste(
-    act_file_name: String,
-    from_path: String,
-    is_for_dual_pane: String,
-) -> Vec<FDir> {
-    dbg_log("Copying starting ...".into());
+async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
+    dbg_log(format!("Copying: {} ...", &act_file_name));
     let is_dir: bool;
     let file = fs::metadata(&from_path);
     if &file.is_ok() == &true {
@@ -922,7 +916,7 @@ async fn delete_item(act_file_name: String) -> Vec<FDir> {
         .metadata()
         .unwrap()
         .is_dir();
-    dbg_log(String::from(&act_file_name));
+    dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
     if is_dir {
         let _ = remove_dir_all(act_file_name.replace("\\", "/"));
     } else {

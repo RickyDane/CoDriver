@@ -10,7 +10,6 @@ const { getName } = window.__TAURI__.app;
 const { getMatches } = window.__TAURI__.cli;
 const { platform } = window.__TAURI__.os;
 const { fetch } = window.__TAURI__.http;
-const { startDrag } = window.__TAURI__.drag;
 const convertFileSrc  = window.__TAURI__.convertFileSrc;
 
 /* region Global Variables */
@@ -244,7 +243,7 @@ document.addEventListener("contextmenu", (e) => {
 
 document.onkeydown = async (e) => {
   // Shortcut for jumping to configured directory
-  if (e.keyCode == 18) {
+  if (e.keyCode == 18 || e.altKey) {
     IsAltDown = true;
   }
   if (e.keyCode === 91) {
@@ -330,7 +329,7 @@ document.onkeydown = async (e) => {
       e.stopPropagation();
     }
     // check if return is pressed
-    if (!IsAltDown && e.keyCode == 13) {
+    if (IsAltDown == false && e.keyCode == 13) {
       openSelectedItem();
       e.preventDefault();
       e.stopPropagation();
@@ -494,7 +493,7 @@ document.onkeydown = async (e) => {
 
 // Reset key toggle
 document.onkeyup = (e) => {
-  if (e.keyCode == 18) {
+  if (e.altKey) {
     IsAltDown = false;
   }
   if (e.keyCode == 71) {
@@ -832,10 +831,6 @@ async function showItems(items, dualPaneSide = "") {
       ContextMenu.children[7].addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
       ContextMenu.children[8].addEventListener("click", () => { showProperties(item); }, { once: true });
     });
-    // Drag and drop file
-    // item.ondragstart = () => {
-    //   startDrag({ item: [convertFileSrc(item.getAttribute("itempath"))]});
-    // };
   });
   if (IsTabsEnabled == true) {
     document
@@ -1013,6 +1008,8 @@ function closeInputPopup() {
 }
 
 async function pasteItem() {
+  console.log(ArrCopyItems);
+  console.log(ArrSelectedItems);
   let arr = [];
   if (IsDualPaneEnabled == true) {
     arr = ArrSelectedItems;
@@ -1034,7 +1031,8 @@ async function pasteItem() {
             showItems(items, "right");
           },
         );
-      } else if (SelectedItemPaneSide == "right") {
+      }
+      else if (SelectedItemPaneSide == "right") {
         actFileName = LeftDualPanePath + "/" + actFileName;
         await invoke("set_dir", { currentDir: LeftDualPanePath });
         await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then((items) => {
@@ -1042,7 +1040,9 @@ async function pasteItem() {
           },
         );
       }
-    } else {
+    }
+    else {
+      console.log(arr);
       let actFileName = arr[i].getAttribute("itempath").split("/")[arr[i].getAttribute("itempath").split("/").length - 1].replace("'", "");
       showLoadingPopup(actFileName + " is being copied over");
       let fromPath = arr[i].getAttribute("itempath");
@@ -1449,7 +1449,6 @@ function selectItem(element, dualPaneSide = "") {
       }
     });
     ArrSelectedItems = [];
-    ArrCopyItems = [];
   }
   SelectedElement = element; // Switch to new element / selection
   if (IsDualPaneEnabled) {
@@ -1474,6 +1473,20 @@ function selectItem(element, dualPaneSide = "") {
     showItemPreview(SelectedElement, true);
   }
   ArrSelectedItems.push(SelectedElement);
+}
+
+function deSelectitem(item) {
+  if (IsDualPaneEnabled) {
+    item.children[0].classList.remove("selected-item");
+  }
+  else if (ViewMode == "column") {
+    item.children[0].children[1].classList.remove("selected-item");
+  }
+  else {
+    item.children[0].children[0].classList.remove("selected-item");
+  }
+  let index = ArrSelectedItems.indexOf(item);
+  ArrSelected.splice(index, index);
 }
 
 async function unSelectAllItems() {
