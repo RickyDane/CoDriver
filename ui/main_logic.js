@@ -1275,7 +1275,7 @@ async function applyPlatformFeatures() {
   // Check for macOS and position titlebar buttons on the left
   if (Platform == "darwin") {
     $(".titlebar").css("flex-flow", "row-reverse");
-    $(".titlebar-buttons").css("flex-flow", "row-reverse");
+    // $(".titlebar-buttons").css("flex-flow", "row-reverse");
   }
 }
 
@@ -1890,12 +1890,8 @@ async function switchToDualPane() {
     IsDualPaneEnabled = true;
     document.querySelector(".site-nav-bar").style.display = "none";
     document.querySelector(".file-searchbar").style.display = "none";
-    document
-      .querySelectorAll(".item-button")
-      .forEach((item) => (item.style.display = "none"));
-    document
-      .querySelectorAll(".item-button-list")
-      .forEach((item) => (item.style.display = "flex"));
+    document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
+    document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "flex"));
     document.querySelector(".non-dual-pane-container").style.display = "none";
     document.querySelector(".dual-pane-container").style.display = "flex";
     document.querySelector(".switch-dualpane-view-button").innerHTML =
@@ -1912,25 +1908,26 @@ async function switchToDualPane() {
     document.querySelectorAll(".explorer-container").forEach((item) => {
       item.style.display = "none";
     });
-  } else {
-    // enables tab functionality and show shows just one directory container
+  }
+  else {
+    // re - enables tab functionality and show shows just one directory container
     IsTabsEnabled = true;
     IsDualPaneEnabled = false;
-    ViewMode = "wrap";
     document.querySelector(".site-nav-bar").style.display = "flex";
     document.querySelector(".file-searchbar").style.display = "flex";
-    document
-      .querySelectorAll(".item-button")
-      .forEach((item) => (item.style.display = "flex"));
-    document
-      .querySelectorAll(".item-button-list")
-      .forEach((item) => (item.style.display = "none"));
+    if (ViewMode == "column") {
+      document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "flex"));
+      document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "none"));
+    }
+    else {
+      document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
+      document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "flex"));
+    }
     document.querySelector(".non-dual-pane-container").style.display = "block";
     document.querySelector(".dual-pane-container").style.display = "none";
-    document.querySelector(".switch-dualpane-view-button").innerHTML =
-      `<i class="fa-solid fa-table-columns"></i>`;
-    document.querySelector(".go-back-button").style.display = "block";
-    document.querySelector(".nav-seperator-1").style.display = "block";
+    document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-solid fa-table-columns"></i>`;
+    // document.querySelector(".go-back-button").style.display = "block";
+    // document.querySelector(".nav-seperator-1").style.display = "block";
     document.querySelector(".switch-view-button").style.display = "block";
     await saveConfig(false);
     await invoke("list_dirs").then(async (items) => {

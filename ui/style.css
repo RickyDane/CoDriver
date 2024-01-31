@@ -154,10 +154,24 @@ body {
     border-bottom: 1px solid var(--transparentColor);
     border-radius: 10px 10px 0px 0px;
 }
+.titlebar-button-macos {
+    width: 12px;
+    height: 12px;
+    border-radius: 100%;
+    border: 1px solid var(--transparentColor);
+}
 .titlebar-buttons {
     display: flex;
     flex-flow: row;
     gap: 5px;
+}
+.titlebar-buttons-macos {
+    display: flex;
+    flex-flow: row;
+    gap: 8px;
+}
+.macos-red-button:hover {
+    background-color: darkred !important;
 }
 .titlebar-button {
     display: inline-flex;
@@ -375,6 +389,7 @@ label {
     border-radius: 5px;
     cursor: pointer;
     display: flex;
+    font-size: 0.75em;
     flex-flow: row;
     gap: 10px;
     align-items: center;
@@ -412,8 +427,8 @@ label {
     gap: 10px;
     transition: 0.1s ease;
     margin: 0 auto;
-    background-color: var(--transparentColor);
-    border: 1px solid var(--transparentColor);
+    /* background-color: var(--transparentColor); */
+    /* border: 1px solid var(--transparentColor); */
 }
 /* .item-button:hover {
     background-color: var(--transparentColorActive);
@@ -443,7 +458,7 @@ label {
     transition: 0.1s ease;
     border-radius: 5px;
     text-align: center !important;
-    
+
 }
 .item-button:hover > p {
     background-color: var(--transparentColorActive);

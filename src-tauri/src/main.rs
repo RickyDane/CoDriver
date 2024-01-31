@@ -3,7 +3,7 @@
 use async_ftp::FtpStream;
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
-use fs_extra::dir::get_size;
+// use fs_extra::dir::get_size;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
 use std::fs::{self, ReadDir};
