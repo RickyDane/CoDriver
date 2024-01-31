@@ -29,6 +29,7 @@ document
 
 let ViewMode = "wrap";
 let DirectoryList;
+let ArrDirectoryItems = [];
 let DirectoryCount = document.querySelector(".directory-entries-count");
 let ContextMenu = document.querySelector(".context-menu");
 let CopyFileName = "";
@@ -71,8 +72,10 @@ let IsPopUpOpen = false;
 let SettingsSearchDepth = 10;
 let SettingsMaxItems = 1000;
 let IsFullSearching = false;
-let ArrSelectedItems = []; // Todo: select more elements to copy / cut / delete at once
+
+let ArrSelectedItems = [];
 let ArrCopyItems = [];
+
 let IsLightMode = false;
 let IsImagePreview = false;
 let IsFtpActive = false;
@@ -322,13 +325,9 @@ document.onkeydown = async (e) => {
     }
   }
 
-  if (
-    IsDualPaneEnabled == true &&
-    IsDisableShortcuts == false &&
-    IsPopUpOpen == false
-  ) {
+  if (IsDualPaneEnabled == true && IsDisableShortcuts == false && IsPopUpOpen == false) {
     // check if f5 is pressed
-    if (e.keyCode == 116 && IsTabsEnabled == false) {
+    if (e.key == "F5" && IsTabsEnabled == false) {
       let isToCopy = await confirm("Current selection will be copied over");
       if (isToCopy == true) {
         pasteItem();
@@ -410,37 +409,54 @@ document.onkeydown = async (e) => {
     e.stopPropagation();
   }
   // check if ctrl + r is pressed
-  if (e.ctrlKey && e.key == "r") {
+  if ((e.metaKey || e.ctrlKey) && e.key == "r") {
     refreshView();
     e.preventDefault();
     e.stopPropagation();
   }
+  // check if cmd / ctrl + c is pressed
+  if ((e.ctrlKey || e.metaKey) && e.key == "c") {
+    copyItem(SelectedElement);
+  }
+  // check if cmd / ctrl + x is pressed
+  if ((e.ctrlKey || e.metaKey) && e.key == "x") {
+    copyItem(SelectedElement, true);
+  }
   // check if ctrl + v is pressed
-  if (Platform == "darwin" && e.key == "v" && e.metaKey) {
-    pasteItem();
-  } else if (e.ctrlKey && e.key == "v") {
+  if ((e.ctrlKey || e.metaKey) && e.key == "v") {
     pasteItem();
   }
-  // check if ctrl + c is pressed
-  if (Platform == "darwin" && e.key == "c" && e.metaKey) {
-    copyItem(SelectedElement);
-  } else if (e.ctrlKey && e.key == "c") {
-    copyItem(SelectedElement);
+  // Check if cmd / ctrl + shift + c is pressed
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key == "c") {
+    await writeText(CurrentDir);
+    alert("Current dir path copied!");
   }
-  // check if ctrl + c is pressed
-  if (Platform == "darwin" && e.key == "x" && e.metaKey) {
-    copyItem(SelectedElement, true);
-  } else if (e.ctrlKey && e.key == "x") {
-    copyItem(SelectedElement, true);
-  }
-  // Check if ctrl + shift + c is pressed
-  if (e.ctrlKey && e.shiftKey && e.key == "c") {
-    // await writeText(CurrentDir);
-    alert("Current dir copied!");
-  }
-  // Check if ctrl + k
+  // Check if cmd / ctrl + k is pressed
   if (e.key == "k" && (e.ctrlKey || e.metaKey)) {
     $(".search-bar-input").focus();
+  }
+  // Check if cmd / ctrl + a is pressed
+  if ((e.ctrlKey || e.metaKey) && e.key == "a") {
+    if (IsDualPaneEnabled) {
+      if (SelectedItemPaneSide == "left") {
+        await unSelectAllItems();
+          for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
+            selectItem(LeftPaneItemCollection.children[i]);
+          }
+      }
+      else {
+        await unSelectAllItems();
+          for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
+            selectItem(RightPaneItemCollection.children[i]);
+          }
+      }
+    }
+    else {
+      await unSelectAllItems();
+      for (let i = 0; i < DirectoryList.children.length; i++) {
+        selectItem(DirectoryList.children[i]);
+      }
+    }
   }
 
   // Check if space is pressed on selected item
@@ -462,7 +478,7 @@ document.onkeydown = async (e) => {
       renameElementInputPrompt(SelectedElement);
     }
     // check if ctrl + g is pressed | Path input
-    if (e.ctrlKey && e.key == "g") {
+    if ((e.ctrlKey || e.metaKey) && e.key == "g") {
       showInputPopup("Input path to jump to");
       e.preventDefault();
       e.stopPropagation();
@@ -480,7 +496,7 @@ document.onkeydown = async (e) => {
       e.stopPropagation();
     }
     // check if ctrl + f is pressed
-    if (e.ctrlKey && e.keyCode == 70 && IsShowDisks == false) {
+    if ((e.ctrlKey || e.metaKey) && e.keyCode == 70 && IsShowDisks == false) {
       openSearchBar();
       e.preventDefault();
       e.stopPropagation();
@@ -855,7 +871,6 @@ async function showItems(items, dualPaneSide = "") {
       LeftDualPanePath = RightDualPanePath = CurrentDir;
     }
   }
-  delete DirectoryList;
 }
 
 async function getCurrentDir() {
@@ -903,7 +918,7 @@ async function copyItem(item, toCut = false) {
   CopyFilePath = item?.getAttribute("itempath");
   let tempCopyFilePath = item?.getAttribute("itempath").split("/");
   CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
-
+  ArrCopyItems = [];
   if (ArrSelectedItems.length > 0) {
     for (let i = 0; i < ArrSelectedItems.length; i++) {
       ArrCopyItems.push(ArrSelectedItems[i]);
@@ -912,6 +927,8 @@ async function copyItem(item, toCut = false) {
   else {
     ArrCopyItems.push(item);
   }
+
+  console.log(ArrCopyItems);
 
   ContextMenu.style.display = "none";
   await writeText(CopyFilePath);
@@ -1462,7 +1479,7 @@ function selectItem(element, dualPaneSide = "") {
   ArrSelectedItems.push(SelectedElement);
 }
 
-function unSelectAllItems() {
+async function unSelectAllItems() {
   if (ArrSelectedItems.length > 0) {
     for (let i = 0; i < ArrSelectedItems.length; i++) {
       if (IsDualPaneEnabled) {

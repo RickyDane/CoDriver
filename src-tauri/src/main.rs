@@ -336,7 +336,7 @@ async fn list_dirs() -> Vec<FDir> {
         }
         let is_dir_int = match temp_item.path().is_dir() {
            true => 1,
-           false => 0 
+           false => 0
         };
         dir_list.push(FDir {
             name: String::from(name),
@@ -864,16 +864,19 @@ async fn copy_paste(
     if is_dir {
         if is_for_dual_pane == "1" {
             let _ = copy_dir::copy_dir(&from_path, final_filename.replace("\\", "/"));
-        } else {
+        }
+        else {
             let _ = copy_dir::copy_dir(
                 current_dir().unwrap().join(&from_path.replace("\\", "/")),
                 final_filename.replace("\\", "/"),
             );
         }
-    } else {
+    }
+    else {
         if is_for_dual_pane == "1" {
             let _ = copy(&from_path, final_filename.replace("\\", "/"));
-        } else {
+        }
+        else {
             let _ = copy(
                 current_dir().unwrap().join(&from_path.replace("\\", "/")),
                 final_filename.replace("\\", "/"),
