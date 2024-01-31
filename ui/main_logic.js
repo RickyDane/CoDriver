@@ -1184,8 +1184,7 @@ async function showAppInfo() {
 async function checkAppConfig() {
   await invoke("check_app_config").then((appConfig) => {
     if (appConfig.view_mode.includes("column")) {
-      document.querySelector(".switch-view-button").innerHTML =
-        `<i class="fa-solid fa-grip"></i>`;
+      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
       ViewMode = "column";
       let firstContainer = document.querySelector(".explorer-container");
       document.querySelector(".list-column-header").style.display = "flex";
@@ -1892,10 +1891,9 @@ async function switchToDualPane() {
   if (IsDualPaneEnabled == false) {
     // disable tab functionality and show two panels side by side
     IsTabsEnabled = false;
+    let orgViewMode = ViewMode;
     ViewMode = "column";
-    if (ViewMode == "column") {
-      await switchView();
-    }
+    await switchView();
     ViewMode = "column";
     IsDualPaneEnabled = true;
     document.querySelector(".site-nav-bar").style.display = "none";
@@ -1918,6 +1916,7 @@ async function switchToDualPane() {
     document.querySelectorAll(".explorer-container").forEach((item) => {
       item.style.display = "none";
     });
+    ViewMode = orgViewMode;
   }
   else {
     // re - enables tab functionality and show shows just one directory container
@@ -1939,6 +1938,12 @@ async function switchToDualPane() {
     // document.querySelector(".go-back-button").style.display = "block";
     // document.querySelector(".nav-seperator-1").style.display = "block";
     document.querySelector(".switch-view-button").style.display = "block";
+    if (ViewMode == "column") {
+      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+    }
+    else {
+      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
+    }
     await saveConfig(false);
     await invoke("list_dirs").then(async (items) => {
       await showItems(items);
