@@ -566,7 +566,7 @@ label {
     margin: 0 auto;
 }
 .disk-item-button-button:hover {
-    background-color: var(--secondaryColor);
+    background-color: var(--transparentColor);
 }
 .disk-item-button {
     display: flex;
