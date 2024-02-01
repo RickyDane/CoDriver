@@ -113,17 +113,12 @@ document
 function startFullSearch() {
   IsFullSearching = true;
   let fileName = document.querySelector(".full-dualpane-search-input").value;
-  let maxItems = parseInt(
-    document.querySelector(".full-search-max-items-input").value,
-  );
+  let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
   maxItems = maxItems >= 1 ? maxItems : 9999999;
-  let searchDepth = parseInt(
-    document.querySelector(".full-search-search-depth-input").value,
-  );
+let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
   searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
-  let fileContent = document.querySelector(
-    ".full-dualpane-search-file-content-input",
-  ).value;
+  let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
+  console.log(fileName, maxItems, searchDepth, false, fileContent);
   searchFor(fileName, maxItems, searchDepth, false, fileContent);
 }
 
@@ -314,7 +309,7 @@ document.onkeydown = async (e) => {
     }
   }
 
-  if (IsDualPaneEnabled == true && IsDisableShortcuts == false && (IsPopUpOpen == false || (IsPopUpOpen == true && IsItemPreviewOpen == true)) ) {
+  if (IsDualPaneEnabled == true && IsDisableShortcuts == false && IsPopUpOpen == false) {
     // check if f5 is pressed
     if (e.key == "F5" && IsTabsEnabled == false) {
       let isToCopy = await confirm("Current selection will be copied over");
@@ -375,6 +370,20 @@ document.onkeydown = async (e) => {
       e.stopPropagation();
     }
   }
+  else if (IsItemPreviewOpen == true) {
+    // check if arrow up is pressed
+    if (e.keyCode == 38) {
+      goUp();
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // check if arrow down is pressed
+    if (e.keyCode == 40) {
+      goDown(e);
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
 
   // check if del is pressed
   if (e.keyCode == 46 || (IsMetaDown && e.keyCode == 8)) {
@@ -406,30 +415,6 @@ document.onkeydown = async (e) => {
   if (e.key == "k" && (e.ctrlKey || e.metaKey)) {
     $(".search-bar-input").focus();
   }
-  // Check if cmd / ctrl + a is pressed
-  if ((e.ctrlKey || e.metaKey) && e.key == "a") {
-    if (IsDualPaneEnabled) {
-      if (SelectedItemPaneSide == "left") {
-        await unSelectAllItems();
-          for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
-            selectItem(LeftPaneItemCollection.children[i]);
-          }
-      }
-      else {
-        await unSelectAllItems();
-          for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
-            selectItem(RightPaneItemCollection.children[i]);
-          }
-      }
-    }
-    else {
-      await unSelectAllItems();
-      for (let i = 0; i < DirectoryList.children.length; i++) {
-        selectItem(DirectoryList.children[i]);
-      }
-    }
-  }
-
   // Check if space is pressed on selected item
   if (e.key == " " && SelectedElement != null) {
     if (IsPopUpOpen == false || IsItemPreviewOpen == true) {
@@ -445,6 +430,29 @@ document.onkeydown = async (e) => {
   }
 
   if (IsPopUpOpen == false) {
+    // Check if cmd / ctrl + a is pressed
+    if ((e.ctrlKey || e.metaKey) && e.key == "a") {
+      if (IsDualPaneEnabled) {
+        if (SelectedItemPaneSide == "left") {
+          await unSelectAllItems();
+            for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
+              selectItem(LeftPaneItemCollection.children[i]);
+            }
+        }
+        else {
+          await unSelectAllItems();
+            for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
+              selectItem(RightPaneItemCollection.children[i]);
+            }
+        }
+      }
+      else {
+        await unSelectAllItems();
+        for (let i = 0; i < DirectoryList.children.length; i++) {
+          selectItem(DirectoryList.children[i]);
+        }
+      }
+    }
     if ((IsAltDown && e.key == "Enter") || e.key == "F2") {
       // check if alt + enter is pressed
       renameElementInputPrompt(SelectedElement);
@@ -1759,13 +1767,7 @@ async function openInTerminal() {
   ContextMenu.style.display = "none";
 }
 
-async function searchFor(
-  fileName = "",
-  maxItems = SettingsMaxItems,
-  searchDepth = SettingsSearchDepth,
-  isQuickSearch = false,
-  fileContent = "",
-) {
+async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth = SettingsSearchDepth, isQuickSearch = false, fileContent = "") {
   document.querySelector(".fullsearch-loader").style.display = "block";
   if (fileName.length > 1 || isQuickSearch == true) {
     document.querySelector(".cancel-search-button").style.display = "block";
@@ -1773,20 +1775,17 @@ async function searchFor(
       DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
       DirectoryList.classList.add("dir-preloader-container");
     }
-    await invoke("search_for", {
-      fileName,
-      maxItems,
-      searchDepth,
-      fileContent,
-    }).then(async (items) => {
+    await invoke("search_for", { fileName, maxItems, searchDepth, fileContent }).then(async (items) => {
       if (IsDualPaneEnabled == true) {
         await showItems(items, SelectedItemPaneSide);
         goUp(false, true);
-      } else {
+      }
+      else {
         await showItems(items);
       }
     });
-  } else {
+  }
+  else {
     alert("Type in a minimum of 2 characters");
   }
   IsFullSearching = false;
@@ -1807,12 +1806,11 @@ function closeFullSearchContainer() {
   IsDisableShortcuts = false;
 }
 
-document
-  .querySelector(".dualpane-search-input")
-  .addEventListener("keyup", (e) => {
+document.querySelector(".dualpane-search-input").addEventListener("keyup", (e) => {
     if (e.keyCode === 13) {
       closeSearchBar();
-    } else if (IsQuickSearchOpen == true && e.ctrlKey == false) {
+    }
+    else if (IsQuickSearchOpen == true && e.ctrlKey == false) {
       searchFor($(".dualpane-search-input").val(), 999999, 1, true);
     }
   });
@@ -1823,11 +1821,7 @@ function openSearchBar() {
   IsDisableShortcuts = true;
   IsQuickSearchOpen = true;
   IsPopUpOpen = true;
-  document
-    .querySelector(".dualpane-search-input")
-    .addEventListener("focusout", () => {
-      closeAllPopups();
-    });
+  document.querySelector(".dualpane-search-input").addEventListener("focusout", () => { closeAllPopups(); });
 }
 
 function closeSearchBar() {

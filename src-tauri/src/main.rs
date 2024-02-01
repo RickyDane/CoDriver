@@ -574,33 +574,37 @@ async fn go_home() -> Vec<FDir> {
 
 #[tauri::command]
 async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, file_content: String) -> Vec<FDir> {
+    dbg_log(format!("{}{}", &max_items, &search_depth));
     dbg_log(format!("Start searching for {}", &file_name));
+    let temp_file_name = String::from(&file_name);
+    if temp_file_name.split(".").nth(0).unwrap().contains("*") {
+        file_name = temp_file_name.trim().replace("*", "");
+    }
+
     let mut file_ext = ".".to_string().to_owned() + file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
     println!("");
 
     let sw = Stopwatch::start_new();
     let mut search: Vec<String>;
-    if String::from(&file_name) == String::from("*") {
-        file_name = "".into();
-    }
     if file_ext != ".".to_string().to_owned() + &file_name {
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
-            .search_input(*&file_name.strip_suffix(&file_ext).unwrap())
+            .search_input(file_name.strip_suffix(&file_ext).unwrap())
             .ignore_case()
-            .depth(search_depth.clone() as usize)
-            .ext(&file_ext)
             .hidden()
+            .depth(search_depth as usize)
             .limit(max_items as usize)
+            .ext(&file_ext)
             .build()
             .collect();
-    } else {
+    }
+    else {
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
             .search_input(&file_name)
             .ignore_case()
-            .depth(search_depth as usize)
             .hidden()
+            .depth(search_depth as usize)
             .limit(max_items as usize)
             .build()
             .collect();
@@ -674,7 +678,7 @@ async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, fi
                             ),
                             is_ftp: 0,
                         });
-                        dbg_log(format!("Found it in line: {}", idx));
+                        break;
                     }
                     else { continue; }
                 }
