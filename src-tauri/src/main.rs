@@ -26,7 +26,8 @@ use zip_extensions::*;
 mod utils;
 use sysinfo::Disks;
 use utils::{dbg_log, err_log, wng_log};
-use tauri_plugin_drag;
+#[allow(unused_imports)]
+use rayon::prelude::*;
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -62,7 +63,6 @@ fn main() {
             ftp_go_back,
             copy_from_ftp
         ])
-        .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -186,7 +186,7 @@ struct DisksInfo {
 async fn list_disks() -> Vec<DisksInfo> {
     let mut ls_disks: Vec<DisksInfo> = vec![];
     let disks = Disks::new_with_refreshed_list();
-    for disk in disks.into_iter() {
+    for disk in &disks {
         dbg_log(format!("{:?}", &disk));
         ls_disks.push(DisksInfo {
             name: format!("{:?}", disk.mount_point()).split("/").last().unwrap_or("/").to_string().replace("\"", ""),
@@ -323,37 +323,26 @@ async fn list_dirs() -> Vec<FDir> {
     for item in current_dir {
         let temp_item = item.unwrap();
         let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item
-            .path()
-            .to_str()
-            .unwrap()
-            .to_string()
-            .replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()
-            + &path
-                .split(".")
-                .nth(&path.split(".").count() - 1)
-                .unwrap_or("");
+        let path = &temp_item.path().to_str().unwrap().to_string().replace("\\", "/");
+        let file_ext = ".".to_string().to_owned() + &path.split(".").nth(&path.split(".").count() - 1).unwrap_or("");
         let file_data = fs::metadata(&temp_item.path());
         let file_date: DateTime<Utc>;
+        let size = temp_item.metadata().unwrap().len();
         if file_data.is_ok() {
             file_date = file_data.unwrap().modified().unwrap().clone().into();
         } else {
             file_date = Utc::now();
         }
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        } else {
-            is_dir_int = 0;
-        }
+        let is_dir_int = match temp_item.path().is_dir() {
+           true => 1,
+           false => 0
+        };
         dir_list.push(FDir {
             name: String::from(name),
             is_dir: is_dir_int,
             path: String::from(path),
             extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string(),
+            size: size.to_string(),
             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
             is_ftp: 0,
         });
@@ -373,108 +362,18 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 
 #[tauri::command]
 async fn open_dir(_path: String) -> Vec<FDir> {
-    let sw = Stopwatch::start_new();
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(&_path.replace('"', "")).unwrap_or_else(|r| {
-        alert_not_found_dir(r);
-        panic!()
-    });
     let _ = set_current_dir(_path);
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let mut is_dir_int: i8 = 0;
-        let path = &temp_item
-            .path()
-            .to_str()
-            .unwrap()
-            .to_string()
-            .replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()
-            + &path
-                .split(".")
-                .nth(&path.split(".").count() - 1)
-                .unwrap_or("");
-        let file_data = fs::metadata(&temp_item.path());
-        let file_date: DateTime<Utc>;
-        if file_data.is_ok() {
-            file_date = file_data.unwrap().modified().unwrap().clone().into();
-        } else {
-            file_date = Utc::now();
-        }
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        }
-        dir_list.push(FDir {
-            name: name.to_owned(),
-            is_dir: is_dir_int,
-            path: path.to_owned(),
-            extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0,
-        });
-    }
-    dbg_log(format!(
-        "Current dir: {:?} | Time: {:?}",
-        current_dir().unwrap(),
-        sw.elapsed()
-    ));
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    return dir_list;
+    return list_dirs().await;
 }
 
 #[tauri::command]
 async fn go_back() -> Vec<FDir> {
-    let _ = set_current_dir(current_dir().unwrap().to_str().unwrap().to_owned() + "/../");
-    dbg_log(format!("Current dir: {:?}", current_dir().unwrap()));
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_dir = fs::read_dir(current_dir().unwrap()).unwrap();
-    for item in current_dir {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item
-            .path()
-            .to_str()
-            .unwrap()
-            .to_string()
-            .replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()
-            + &path
-                .split(".")
-                .nth(&path.split(".").count() - 1)
-                .unwrap_or("");
-        let file_data = fs::metadata(&temp_item.path());
-        let file_date: DateTime<Utc>;
-        if file_data.is_ok() {
-            file_date = file_data.unwrap().modified().unwrap().clone().into();
-        } else {
-            file_date = Utc::now();
-        }
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        } else {
-            is_dir_int = 0;
-        }
-        dir_list.push(FDir {
-            name: String::from(name),
-            is_dir: is_dir_int,
-            path: String::from(path),
-            extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0,
-        });
-    }
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    return dir_list;
+    let _ = set_current_dir("./../");
+    return list_dirs().await;
 }
 
 #[tauri::command]
-fn go_to_dir(directory: u8) -> Vec<FDir> {
+async fn go_to_dir(directory: u8) -> Vec<FDir> {
     let wanted_directory = match directory {
         0 => set_current_dir(desktop_dir().unwrap_or_default()),
         1 => set_current_dir(download_dir().unwrap_or_default()),
@@ -489,47 +388,7 @@ fn go_to_dir(directory: u8) -> Vec<FDir> {
     } else {
         dbg_log(format!("Current dir: {:?}", current_dir().unwrap()));
     }
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_directory = fs::read_dir(current_dir().unwrap()).unwrap();
-    for item in current_directory {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let is_dir = &temp_item.path().is_dir();
-        let is_dir_int: i8;
-        let path = &temp_item
-            .path()
-            .to_str()
-            .unwrap()
-            .to_string()
-            .replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()
-            + &path
-                .split(".")
-                .nth(&path.split(".").count() - 1)
-                .unwrap_or("");
-        let file_date: DateTime<Utc> = fs::metadata(&temp_item.path())
-            .unwrap()
-            .modified()
-            .unwrap()
-            .clone()
-            .into();
-        if is_dir.to_owned() {
-            is_dir_int = 1;
-        } else {
-            is_dir_int = 0;
-        }
-        dir_list.push(FDir {
-            name: String::from(name),
-            is_dir: is_dir_int,
-            path: String::from(path),
-            extension: file_ext,
-            size: temp_item.metadata().unwrap().len().to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0,
-        });
-    }
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    return dir_list;
+    return list_dirs().await;
 }
 
 #[tauri::command]
@@ -710,47 +569,42 @@ async fn open_in_terminal() {
 #[tauri::command]
 async fn go_home() -> Vec<FDir> {
     let _ = set_current_dir(home_dir().unwrap());
-    return open_dir(String::from(current_dir().unwrap().to_string_lossy())).await;
+    return list_dirs().await;
 }
 
 #[tauri::command]
-async fn search_for(
-    mut file_name: String,
-    max_items: i32,
-    search_depth: i32,
-    file_content: String,
-) -> Vec<FDir> {
+async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, file_content: String) -> Vec<FDir> {
+    dbg_log(format!("{}{}", &max_items, &search_depth));
     dbg_log(format!("Start searching for {}", &file_name));
-    let mut file_ext = ".".to_string().to_owned()
-        + file_name
-            .split(".")
-            .nth(file_name.split(".").count() - 1)
-            .unwrap_or("");
+    let temp_file_name = String::from(&file_name);
+    if temp_file_name.split(".").nth(0).unwrap().contains("*") {
+        file_name = temp_file_name.trim().replace("*", "");
+    }
+
+    let mut file_ext = ".".to_string().to_owned() + file_name.split(".").nth(file_name.split(".").count() - 1).unwrap_or("");
     println!("");
 
     let sw = Stopwatch::start_new();
     let mut search: Vec<String>;
-    if String::from(&file_name) == String::from("*") {
-        file_name = "".into();
-    }
     if file_ext != ".".to_string().to_owned() + &file_name {
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
-            .search_input(*&file_name.strip_suffix(&file_ext).unwrap())
+            .search_input(file_name.strip_suffix(&file_ext).unwrap())
             .ignore_case()
-            .depth(search_depth.clone() as usize)
-            .ext(&file_ext)
             .hidden()
+            .depth(search_depth as usize)
             .limit(max_items as usize)
+            .ext(&file_ext)
             .build()
             .collect();
-    } else {
+    }
+    else {
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
             .search_input(&file_name)
             .ignore_case()
-            .depth(search_depth as usize)
             .hidden()
+            .depth(search_depth as usize)
             .limit(max_items as usize)
             .build()
             .collect();
@@ -763,11 +617,7 @@ async fn search_for(
 
     let mut dir_list: Vec<FDir> = Vec::new();
     for item in search {
-        file_ext = ".".to_string().to_owned()
-            + item
-                .split(".")
-                .nth(item.split(".").count() - 1)
-                .unwrap_or("");
+        file_ext = ".".to_string().to_owned() + item.split(".").nth(item.split(".").count() - 1).unwrap_or("");
         let item = item.replace("\\", "/");
         let temp_item = &item.split("/").collect::<Vec<&str>>();
         let name = &temp_item[*&temp_item.len() - 1];
@@ -778,21 +628,16 @@ async fn search_for(
 
         if &temp_file.is_ok() == &true {
             file_size = String::from(fs::metadata(&item).unwrap().len().to_string());
-            file_date = fs::metadata(&item)
-                .unwrap()
-                .modified()
-                .unwrap()
-                .clone()
-                .into();
-        } else {
-            continue;
+            file_date = fs::metadata(&item).unwrap().modified().unwrap().clone().into();
         }
+        else { continue; }
 
         // Check if the item is a directory
         let is_dir_int;
         if &temp_file.is_ok() == &true && *&temp_file.unwrap().is_dir() {
             is_dir_int = 1;
-        } else {
+        }
+        else {
             is_dir_int = 0;
         }
 
@@ -802,9 +647,9 @@ async fn search_for(
         }
 
         // Search for file contents
-        if &file_content != "" {
+        if *&file_content.as_str() != "" {
             let check_file = fs::File::open(&path);
-            let file: File;
+            let mut file: File;
             if &check_file.is_ok() == &true {
                 file = check_file.unwrap();
             }
@@ -812,32 +657,34 @@ async fn search_for(
                 err_log("Couldn't access file. Probably due to insufficient permissions".into());
                 continue;
             }
-            let mut reader = BufReader::new(&file);
-            let mut contents = String::from("");
-            dbg_log(format!("Checking {}", &path));
+            let mut buffer = String::from("");
+            // dbg_log(format!("Checking {}", &path));
 
             if &file.metadata().unwrap().is_dir() == &false {
-                reader.read_to_string(&mut contents).unwrap_or_else(|x| {
+                file.read_to_string(&mut buffer).unwrap_or_else(|x| {
                     err_log(format!("Error reading: {}", x));
                     0 as usize
                 });
-                if contents.contains(&file_content) {
-                    dir_list.push(FDir {
-                        name: name.to_string(),
-                        is_dir: is_dir_int,
-                        path: path.to_string(),
-                        extension: String::from(&file_ext),
-                        size: file_size.clone(),
-                        last_modified: String::from(
-                            file_date.to_string().split(".").nth(0).unwrap(),
-                        ),
-                        is_ftp: 0,
-                    });
-                } else {
-                    continue;
+                for (idx, line) in buffer.lines().enumerate() {
+                    if line.contains(&file_content) {
+                        dir_list.push(FDir {
+                            name: name.to_string(),
+                            is_dir: is_dir_int,
+                            path: path.to_string(),
+                            extension: String::from(&file_ext),
+                            size: file_size.clone(),
+                            last_modified: String::from(
+                                file_date.to_string().split(".").nth(0).unwrap(),
+                            ),
+                            is_ftp: 0,
+                        });
+                        break;
+                    }
+                    else { continue; }
                 }
             }
-        } else {
+        }
+        else {
             dir_list.push(FDir {
                 name: name.to_string(),
                 is_dir: is_dir_int,
@@ -859,12 +706,8 @@ async fn search_for(
 }
 
 #[tauri::command]
-async fn copy_paste(
-    act_file_name: String,
-    from_path: String,
-    is_for_dual_pane: String,
-) -> Vec<FDir> {
-    dbg_log("Copying starting ...".into());
+async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
+    dbg_log(format!("Copying: {} ...", &act_file_name));
     let is_dir: bool;
     let file = fs::metadata(&from_path);
     if &file.is_ok() == &true {
@@ -919,65 +762,65 @@ async fn copy_paste(
         counter += 1;
     }
 
+    // Execute the copy process for either a dir or file
     if is_dir {
         if is_for_dual_pane == "1" {
             let _ = copy_dir::copy_dir(&from_path, final_filename.replace("\\", "/"));
-        } else {
+        }
+        else {
             let _ = copy_dir::copy_dir(
                 current_dir().unwrap().join(&from_path.replace("\\", "/")),
                 final_filename.replace("\\", "/"),
             );
         }
-    } else {
+    }
+    else {
         if is_for_dual_pane == "1" {
             let _ = copy(&from_path, final_filename.replace("\\", "/"));
-        } else {
-            let _ = copy(
-                current_dir().unwrap().join(&from_path.replace("\\", "/")),
-                final_filename.replace("\\", "/"),
-            );
+        }
+        else {
+            let _ = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/"));
+
+            /* Copy file byte by byte -> To play around with later ... */
+
+            // let line_file = File::open(&from_path).unwrap();
+            // let mut reader = BufReader::new(line_file);
+
+            // let mut buffer = Vec::new();
+            // reader.read_to_end(&mut buffer).expect("Failed to read file");
+
+            // let line_count = buffer.iter().len() as f64;
+
+            // let new_file = File::create(&final_filename).unwrap();
+            // let mut new_file = BufWriter::new(new_file);
+
+            // let mut counter = 0;
+            // for (num, &byte) in buffer.iter().enumerate() {
+            //     let progress = num as f64;
+            //     new_file.write(&[byte]).unwrap();
+            //     if counter % 10000000 == 0 {
+            //         let percentage = format!("{:?}", (100.0/line_count) * progress);
+            //         println!("{} %", &percentage.to_string());
+            //     }
+            //     counter += 1;
+            // }
         }
     }
-
-    /* Copy file byte by byte -> To play around with later ... */
-
-    /*let line_file = File::open(&from_path).unwrap();
-    let mut reader = BufReader::new(line_file);
-
-    let mut buffer = Vec::new();
-    reader.read_to_end(&mut buffer).expect("Failed to read file");
-
-    let line_count = buffer.iter().len() as f64;
-
-    let file = File::open(&from_path).unwrap();
-    let file = BufReader::new(file);
-    let new_file = File::create(&final_filename).unwrap();
-    let mut new_file = BufWriter::new(new_file);
-
-    let mut counter = 0;
-    for (num, &byte) in buffer.iter().enumerate() {
-        let progress = num as f64;
-        new_file.write(&[byte]).unwrap();
-        if counter % 10000000 == 0 {
-            let percentage = (100.0/line_count) * progress;
-            println!("{} %", &percentage.to_string());
-            print!("{}[2J", 27 as char);
-        }
-        counter += 1;
-    }*/
-
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
     return list_dirs().await;
 }
 
 #[tauri::command]
 async fn delete_item(act_file_name: String) -> Vec<FDir> {
-    let is_dir = File::open(&act_file_name)
-        .unwrap()
-        .metadata()
-        .unwrap()
-        .is_dir();
-    dbg_log(String::from(&act_file_name));
+    let dir = File::open(&act_file_name);
+    let mut is_dir: bool = false;
+    if dir.is_ok() {
+        is_dir = dir.unwrap().metadata().unwrap().is_dir();
+    }
+    else {
+        return list_dirs().await;
+    }
+    dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
     if is_dir {
         let _ = remove_dir_all(act_file_name.replace("\\", "/"));
     } else {

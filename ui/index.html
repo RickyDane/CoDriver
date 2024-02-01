@@ -28,6 +28,14 @@
                 <i class="fa-solid fa-xmark"></i>
             </div>
         </div>
+        <div class="titlebar-buttons-macos">
+            <div class="titlebar-button-macos macos-red-button" id="titlebar-close" style="background-color: rgb(239, 68, 66);">
+            </div>
+            <div class="titlebar-button-macos macos-yellow-button" id="titlebar-minimize" style="background-color:  rgb(243, 174, 17);">
+            </div>
+            <div class="titlebar-button-macos macos-green-button" id="titlebar-maximize" style="background-color: rgb(62, 193, 41);">
+            </div>
+        </div>
     </div>
     <div class="header-nav">
         <div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 65%;">
@@ -35,8 +43,7 @@
             <p class="nav-seperator-1">|</p>
             <button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
             <p class="nav-seperator-1">|</p>
-            <button onclick="switchView()" class="header-nav-button switch-view-button"><i
-                    class="fa-solid fa-list"></i></button>
+            <button onclick="switchView()" class="header-nav-button switch-view-button"><i class="fa-solid fa-list"></i></button>
             <button onclick="switchHiddenFiles()" class="header-nav-button switch-hidden-files-button"><i class="fa-solid fa-eye-slash"></i></button>
             <button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i class="fa-solid fa-table-columns"></i></button>
             <button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
@@ -66,12 +73,9 @@
         <div class="list-column-header">
             <button class="list-column-header-button" style="margin-left: 20px;" onclick="sortByName()">Name</button>
             <div style="display: flex; flex-flow: row; justify-content: flex-end;">
-                <button class="list-column-header-button disk-list-column-header"
-                    onclick="sortByLoad()">Available</button>
-                <button class="list-column-header-button normal-list-column-header" onclick="sortByDate()">Last
-                    modified</button>
-                <button class="list-column-header-button" onclick="sortBySize()"
-                    style="width: 75px; text-align: center;">Size</button>
+                <button class="list-column-header-button disk-list-column-header" onclick="sortByLoad()">Available</button>
+                <button class="list-column-header-button normal-list-column-header" onclick="sortByDate()">Last modified</button>
+                <button class="list-column-header-button" onclick="sortBySize()" style="width: 75px; text-align: center;">Size</button>
             </div>
         </div>
         <div class="explorer-container tab-container-1 non-dual-pane-container">
