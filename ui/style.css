@@ -61,7 +61,7 @@ body {
     flex-flow: row;
     justify-content: center;
     overflow: hidden;
-    background-color: var(--tertiaryColor);
+    background-color: var(--secondaryColor);
 }
 .dual-pane-left, .dual-pane-right {
     width: 50%;
@@ -174,11 +174,22 @@ body {
     gap: 8px;
     margin-left: 5px;
 }
+.titlebar-button-macos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 .macos-red-button:hover {
     background-color: red !important;
 }
-.macos-yellow-button:hover {
-    background-color: orange !important;
+.macos-red-button:active {
+    background-color: darkred !important;
+}
+.macos-yellow-button:active {
+    background-color: darkorange !important;
+}
+.macos-green-button:active {
+    background-color: green !important;
 }
 .titlebar-button {
     display: inline-flex;
@@ -223,8 +234,9 @@ body {
     color: var(--textColor);
     padding: 10px 0px;
     background-color: var(--primaryColor);
-    z-index: 2;
+    z-index: 1;
     border-bottom: 1px solid var(--secondaryColor);
+    box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
 }
 .list-column-header-button {
     background-color: transparent;
@@ -795,7 +807,7 @@ label {
 }
 
 .current-path {
-    background-color: var(--secondaryColor);
+    background-color: var(--primaryColor);
     position: fixed;
     bottom: 0;
     right: 0;
@@ -803,7 +815,7 @@ label {
     border-radius: 5px 0px 10px 0px;
     text-align: right;
     padding: 5px;
-    border: 1px solid var(--transparentColor);
+    border: 1px solid var(--tertiaryColor);
 }
 
 .directory-list {
