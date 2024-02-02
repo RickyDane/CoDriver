@@ -39,7 +39,7 @@
     </div>
     <div class="header-nav">
         <div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 65%;">
-            <button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i> Back</button>
+            <button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i></button>
             <p class="nav-seperator-1">|</p>
             <button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
             <p class="nav-seperator-1">|</p>
@@ -108,14 +108,15 @@
             <button class="button" onclick="showAppInfo()"><i class="fa-solid fa-info"></i></button>
         </div>
         <div class="settings-ui-body">
+            <h3>Shortcuts</h3>
+            <hr/>
             <p>Configure up to 3 paths to switch to in an instant (Alt + 1, 2, 3)</p>
-            <input type="text" class="settings-ui-input text-input configured-path-one-input"
-                placeholder="/home/user" />
-            <input type="text" class="settings-ui-input text-input configured-path-two-input"
-                placeholder="/home/user/folder1" />
-            <input type="text" class="settings-ui-input text-input configured-path-three-input"
-                placeholder="/home/user/folder2" />
+            <input type="text" class="settings-ui-input text-input configured-path-one-input" placeholder="/home/user" />
+            <input type="text" class="settings-ui-input text-input configured-path-two-input" placeholder="/home/user/folder1" />
+            <input type="text" class="settings-ui-input text-input configured-path-three-input" placeholder="/home/user/folder2" />
             <br />
+            <h3>Search settings</h3>
+            <hr/>
             <p>Search depth (higher = slower) | Standard: 10</p>
             <input style="width: 100px;" type="number" class="settings-ui-input number-input search-depth-input"
                 placeholder="0 = off" />
@@ -125,7 +126,8 @@
             <p>Path to launch at start</p>
             <input type="text" class="settings-ui-input text-input launch-path-input" placeholder="/home" />
             <br />
-            <p>Extra options</p>
+            <h3>Extra options</h3>
+            <hr/>
             <!--<span style="display: flex; gap: 10px; margin-top: 5px;">
 					<input id="open-in-terminal-checkbox" type="checkbox" class="settings-ui-checkbox openin-terminal-checkbox" />
 					<label for="open-in-terminal-checkbox">Enable "Open in terminal" (Experimental)</p>
@@ -133,8 +135,7 @@
             <span style="display: flex; gap: 10px; margin-top: 5px;">
                 <input id="choose-interaction-mode" type="checkbox"
                     class="settings-ui-checkbox choose-interaction-mode-checkbox" />
-                <label for="choose-interaction-mode">Interaction mode (On = Select item first and then open it | Off =
-                    Open immediately on click)</p>
+                <label for="choose-interaction-mode">Interaction mode (On = Select item first and then open it | Off = Open immediately on click)</p>
             </span>
             <span style="display: flex; gap: 10px; margin-top: 5px;">
                 <input id="show-dual-pane" type="checkbox" class="settings-ui-checkbox show-dual-pane-checkbox" />
@@ -147,12 +148,12 @@
             </span>
             <span style="display: flex; gap: 10px; margin-top: 5px;">
                 <input id="switch-image-preview" type="checkbox" class="settings-ui-checkbox image-preview-checkbox" />
-                <label for="switch-image-preview">Image preview (.gif, .jpeg, .jpg, .png)</p>
+                <label for="switch-image-preview">Image preview (.gif, .jpeg, .jpg, .png, .svg)</p>
             </span>
-            <span class="settings-ui-body-buttons">
-                <button class="button" onclick="closeSettings()"><i class="fa-solid fa-ban"></i>Cancel</button>
-                <button class="button" onclick="saveConfig()"><i class="fa-solid fa-floppy-disk"></i>Save</button>
-            </span>
+        </div>
+        <div class="settings-ui-controls">
+            <button class="button" onclick="closeSettings()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
+            <button class="button" onclick="saveConfig()"><span class="button-icon"><i class="fa-solid fa-floppy-disk"></span></i>Save</button>
         </div>
     </div>
     <div class="search-bar-container">

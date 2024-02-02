@@ -1958,7 +1958,7 @@ function switchHiddenFiles() {
 
 function openSettings() {
   if (IsPopUpOpen == false) {
-    document.querySelector(".settings-ui").style.display = "block";
+    document.querySelector(".settings-ui").style.display = "flex";
     IsDisableShortcuts = true;
     IsPopUpOpen = true;
   }
