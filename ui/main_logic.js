@@ -403,7 +403,8 @@ document.onkeydown = async (e) => {
   // Check if cmd / ctrl + shift + c is pressed
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key == "c") {
     await writeText(CurrentDir);
-    alert("Current dir path copied!");
+    showToast("Info", "Current dir path copied", "success");
+    // alert("Current dir path copied!");
   }
   // Check if cmd / ctrl + k is pressed
   if (e.key == "k" && (e.ctrlKey || e.metaKey)) {
@@ -903,6 +904,7 @@ async function deleteItem(item) {
 }
 
 async function copyItem(item, toCut = false) {
+  if (item == null) { return; }
   CopyFilePath = item?.getAttribute("itempath");
   let tempCopyFilePath = item?.getAttribute("itempath").split("/");
   CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
@@ -1064,6 +1066,7 @@ async function pasteItem() {
     }
     closeLoadingPopup();
   }
+  showToast("Copy", "Done copying some files", "success");
 }
 
 function createFolderInputPrompt(e = null) {
@@ -1181,9 +1184,7 @@ async function renameElement(path, newName) {
 }
 
 async function showAppInfo() {
-  alert(
-    `Application: ${await getName()}\nTauri version: ${await getTauriVersion()}\nApp version: ${await getVersion()}\nDeveloper: Ricky Dane`,
-  );
+  alert(`Application: ${await getName()}\nTauri version: ${await getTauriVersion()}\nApp version: ${await getVersion()}\nDeveloper: Ricky Dane`);
 }
 
 async function checkAppConfig() {
