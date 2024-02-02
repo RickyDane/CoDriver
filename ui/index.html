@@ -167,23 +167,19 @@
         </div>
         <div class="search-full-container-body">
             <p>Search input</p>
-            <input class="full-dualpane-search-input text-input" type="text" placeholder="example.txt" />
+            <input class="full-dualpane-search-input trigger-for-full-search text-input" type="text" placeholder="example.txt" />
             <p>File content</p>
-            <input class="full-dualpane-search-file-content-input text-input" type="text" placeholder="example.txt" />
+            <input class="full-dualpane-search-file-content-input trigger-for-full-search text-input" type="text" placeholder="example.txt" />
             <p>Max count of search results (0 = off)</p>
-            <input style="width: 100px;" type="number" class="number-input full-search-max-items-input"
-                placeholder="1000" value="1000" />
+            <input style="width: 100px;" type="number" class="number-input trigger-for-full-search full-search-max-items-input" placeholder="1000" value="1000" />
             <p>Search depth (0 = off)</p>
-            <input style="width: 100px;" type="number" class="number-input full-search-search-depth-input"
-                placeholder="10" value="10" />
+            <input style="width: 100px;" type="number" class="number-input trigger-for-full-search full-search-search-depth-input" placeholder="10" value="10" />
             <div class="search-full-container-body-buttons">
-                <button class="button" onclick="closeFullSearchContainer()"><i
-                        class="fa-solid fa-ban"></i>Cancel</button>
-                <button class="button" onclick="startFullSearch()">
+                <button class="button-invert" onclick="closeFullSearchContainer()"><i class="fa-solid fa-ban"></i>Cancel</button>
+                <button class="button-invert" onclick="startFullSearch()">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <span>Start</span>
-                    <img style="display: none;" class="fullsearch-loader" src="resources/preloader.gif" width="16px"
-                        height="auto" />
+                    <img style="display: none;" class="fullsearch-loader" src="resources/preloader.gif" width="16px" height="auto" />
                 </button>
             </div>
         </div>

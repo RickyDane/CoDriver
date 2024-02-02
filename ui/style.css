@@ -436,6 +436,26 @@ label {
 .button:active {
     background: var(--transparentColorActive);
 }
+.button-invert {
+    padding: 10px 15px;
+    color: var(--textColor);
+    background-color: var(--secondaryColor);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    font-size: 0.75em;
+    flex-flow: row;
+    gap: 10px;
+    align-items: center;
+    transition: 0.1s ease;
+}
+.button-invert:hover {
+    background: var(--transparentColorActive);
+}
+.button-invert:active {
+    background: var(--tertiaryColor);
+}
 .selected-item {
     background: var(--transparentColorActive) !important;
     /* border: 1px solid var(--transparentColorActive) !important; */

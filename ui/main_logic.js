@@ -74,13 +74,14 @@ let Platform = "";
 let IsSelectMode = true;
 let IsItemPreviewOpen = false;
 
-/* endregion */
-
 /* Colors  */
 let PrimaryColor = "#3f4352";
 let SecondaryColor = "rgb(56, 59, 71)";
 let SelectedColor = "rgba(0, 0, 0, 0.5)";
 let TransparentColor = "rgba(0, 0, 0, 0.1)";
+
+/* endregion */
+
 
 /* Upper right search bar logic */
 
@@ -88,34 +89,27 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
   if (e.keyCode === 13) {
     let fileName = document.querySelector(".search-bar-input").value;
     searchFor(fileName);
-  } else if (e.keyCode === 27) {
+  }
+  else if (e.keyCode === 27) {
     cancelSearch();
   }
 });
 
 /* Quicksearch for dual pane view */
 
-document
-  .querySelector(".full-dualpane-search-input")
-  .addEventListener("keyup", (e) => {
+document.querySelectorAll(".trigger-for-full-search").forEach(item => item.addEventListener("keyup", (e) => {
     if (e.keyCode === 13 && IsFullSearching == false) {
       startFullSearch();
     }
-  });
-document
-  .querySelector(".full-dualpane-search-file-content-input")
-  .addEventListener("keyup", (e) => {
-    if (e.keyCode === 13 && IsFullSearching == false) {
-      startFullSearch();
-    }
-  });
+  })
+);
 
 function startFullSearch() {
   IsFullSearching = true;
   let fileName = document.querySelector(".full-dualpane-search-input").value;
   let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
   maxItems = maxItems >= 1 ? maxItems : 9999999;
-let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
+  let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
   searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
   let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
   console.log(fileName, maxItems, searchDepth, false, fileContent);
