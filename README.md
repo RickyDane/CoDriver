@@ -62,7 +62,8 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Favorites
 - Multi rename
 <br>
-<img src="https://github.com/RickyDane/rdpFX/assets/82893522/bf07d08f-2aa7-4068-8a78-30a979ee662b" />
+<img width="800" alt="Bildschirmfoto 2024-02-07 um 20 02 20" src="https://github.com/RickyDane/rdpFX/assets/82893522/8fef0adc-c480-4141-a4ce-9f5b94366a7c">
+
 
 
 ## Speed comparison
