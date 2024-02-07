@@ -813,7 +813,7 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
 #[tauri::command]
 async fn delete_item(act_file_name: String) -> Vec<FDir> {
     let dir = File::open(&act_file_name);
-    let mut is_dir: bool = false;
+    let mut is_dir: bool;
     if dir.is_ok() {
         is_dir = dir.unwrap().metadata().unwrap().is_dir();
     }
@@ -823,7 +823,8 @@ async fn delete_item(act_file_name: String) -> Vec<FDir> {
     dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
     if is_dir {
         let _ = remove_dir_all(act_file_name.replace("\\", "/"));
-    } else {
+    }
+    else {
         let _ = remove_file(act_file_name.replace("\\", "/"));
     }
     return list_dirs().await;
