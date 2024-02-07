@@ -73,8 +73,7 @@ let IsCopyToCut = false;
 let Platform = "";
 let IsSelectMode = true;
 let IsItemPreviewOpen = false;
-
-/* endregion */
+let IsInputFocused = false;
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -82,40 +81,39 @@ let SecondaryColor = "rgb(56, 59, 71)";
 let SelectedColor = "rgba(0, 0, 0, 0.5)";
 let TransparentColor = "rgba(0, 0, 0, 0.1)";
 
+/* endregion */
+
+
 /* Upper right search bar logic */
+
+document.querySelector(".search-bar-input").addEventListener("focusin", (e) => { IsInputFocused = true; });
+document.querySelector(".search-bar-input").addEventListener("focusout", (e) => { IsInputFocused = false; });
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
   if (e.keyCode === 13) {
     let fileName = document.querySelector(".search-bar-input").value;
     searchFor(fileName);
-  } else if (e.keyCode === 27) {
+  }
+  else if (e.keyCode === 27) {
     cancelSearch();
   }
 });
 
 /* Quicksearch for dual pane view */
 
-document
-  .querySelector(".full-dualpane-search-input")
-  .addEventListener("keyup", (e) => {
+document.querySelectorAll(".trigger-for-full-search").forEach(item => item.addEventListener("keyup", (e) => {
     if (e.keyCode === 13 && IsFullSearching == false) {
       startFullSearch();
     }
-  });
-document
-  .querySelector(".full-dualpane-search-file-content-input")
-  .addEventListener("keyup", (e) => {
-    if (e.keyCode === 13 && IsFullSearching == false) {
-      startFullSearch();
-    }
-  });
+  })
+);
 
 function startFullSearch() {
   IsFullSearching = true;
   let fileName = document.querySelector(".full-dualpane-search-input").value;
   let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
   maxItems = maxItems >= 1 ? maxItems : 9999999;
-let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
+  let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
   searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
   let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
   console.log(fileName, maxItems, searchDepth, false, fileContent);
@@ -200,14 +198,16 @@ document.addEventListener("contextmenu", (e) => {
   if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
     ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
     ContextMenu.style.bottom = null;
-  } else {
+  }
+  else {
     ContextMenu.style.bottom = null;
     ContextMenu.style.top = e.clientY + "px";
   }
   if (ContextMenu.clientWidth + e.clientX >= window.innerWidth) {
     ContextMenu.style.left = e.clientX - ContextMenu.clientWidth + "px";
     console.log("ContextMenu.style.left");
-  } else {
+  }
+  else {
     ContextMenu.style.left = e.clientX + "px";
   }
 
@@ -409,11 +409,13 @@ document.onkeydown = async (e) => {
   // Check if cmd / ctrl + shift + c is pressed
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key == "c") {
     await writeText(CurrentDir);
-    alert("Current dir path copied!");
+    showToast("Info", "Current dir path copied", "success");
+    // alert("Current dir path copied!");
   }
   // Check if cmd / ctrl + k is pressed
   if (e.key == "k" && (e.ctrlKey || e.metaKey)) {
     $(".search-bar-input").focus();
+    IsInputFocused = true;
   }
   // Check if space is pressed on selected item
   if (e.key == " " && SelectedElement != null) {
@@ -431,7 +433,7 @@ document.onkeydown = async (e) => {
 
   if (IsPopUpOpen == false) {
     // Check if cmd / ctrl + a is pressed
-    if ((e.ctrlKey || e.metaKey) && e.key == "a") {
+    if ((e.ctrlKey || e.metaKey) && e.key == "a" && IsInputFocused == false) {
       if (IsDualPaneEnabled) {
         if (SelectedItemPaneSide == "left") {
           await unSelectAllItems();
@@ -464,16 +466,22 @@ document.onkeydown = async (e) => {
       e.stopPropagation();
     }
     // check if cmd / ctrl + c is pressed
-    if ((e.ctrlKey || e.metaKey) && e.key == "c") {
+    if ((e.ctrlKey || e.metaKey) && e.key == "c" && IsInputFocused == false) {
       copyItem(SelectedElement);
+      e.preventDefault();
+      e.stopPropagation();
     }
     // check if cmd / ctrl + x is pressed
-    if ((e.ctrlKey || e.metaKey) && e.key == "x") {
+    if ((e.ctrlKey || e.metaKey) && e.key == "x" && IsInputFocused == false) {
       copyItem(SelectedElement, true);
+      e.preventDefault();
+      e.stopPropagation();
     }
     // check if ctrl + v is pressed
-    if ((e.ctrlKey || e.metaKey) && e.key == "v") {
+    if ((e.ctrlKey || e.metaKey) && e.key == "v" && IsInputFocused == false) {
       pasteItem();
+      e.preventDefault();
+      e.stopPropagation();
     }
     // check if ctrl + g is pressed | Path input
     if ((e.ctrlKey || e.metaKey) && e.key == "g") {
@@ -626,66 +634,77 @@ async function showItems(items, dualPaneSide = "") {
       // Check for dir name to apply custom icons
       if (item.name.toLowerCase().includes("downloads")) {
         fileIcon = "resources/folder-downloads.png";
-      } else if (
+      }
+      else if (
         item.name.toLowerCase().includes("desktop") ||
         item.name.toLowerCase().includes("schreibtisch")
       ) {
         fileIcon = "resources/folder-desktop.png";
-      } else if (
+      }
+      else if (
         item.name.toLowerCase().includes("dokumente") ||
         item.name.toLowerCase().includes("documents") ||
         item.name.toLowerCase().includes("docs")
       ) {
         fileIcon = "resources/folder-docs.png";
-      } else if (
+      }
+      else if (
         item.name.toLowerCase().includes("musik") ||
         item.name.toLowerCase().includes("music")
       ) {
         fileIcon = "resources/folder-music.png";
-      } else if (
+      }
+      else if (
         item.name.toLowerCase().includes("bilder") ||
         item.name.toLowerCase().includes("pictures") ||
         item.name.toLowerCase().includes("images")
       ) {
         fileIcon = "resources/folder-images.png";
-      } else if (
+      }
+      else if (
         item.name.toLowerCase().includes("videos") ||
         item.name.toLowerCase().includes("movies") ||
         item.name.toLowerCase().includes("films") ||
         item.name.toLowerCase().includes("filme")
       ) {
         fileIcon = "resources/folder-videos.png";
-      } else if (
+      }
+      else if (
         item.name.toLowerCase().includes("coding") ||
         item.name.toLowerCase().includes("programming") ||
         item.name.toLowerCase().includes("programmieren") ||
         item.name.toLowerCase().includes("code")
       ) {
         fileIcon = "resources/folder-coding.png";
-      } else if (
+      }
+      else if (
         item.name.toLowerCase().includes("werkzeuge") ||
         item.name.toLowerCase().includes("tools")
       ) {
         fileIcon = "resources/folder-tools.png";
-      } else if (
+      }
+      else if (
         item.name.toLowerCase().includes("public") ||
         item.name.toLowerCase().includes("öffentlich") ||
         item.name.toLowerCase().includes("shared") ||
         item.name.toLowerCase().includes("geteilt")
       ) {
         fileIcon = "resources/folder-public.png";
-      } else if (
+      }
+      else if (
         item.name.toLowerCase().includes("games") ||
         item.name.toLowerCase().includes("spiele")
       ) {
         fileIcon = "resources/folder-games.png";
-      } else if (
+      }
+      else if (
         item.name.toLowerCase().includes("developer") ||
         item.name.toLowerCase().includes("development")
       ) {
         fileIcon = "resources/folder-development.png";
       }
-    } else {
+    }
+    else {
       switch (item.extension.toLowerCase()) {
         case ".json":
         case ".sql":
@@ -695,9 +714,10 @@ async function showItems(items, dualPaneSide = "") {
         case ".cs":
         case ".c":
         case ".rs":
+        case ".xml":
+        case ".htm":
         case ".html":
         case ".php":
-        case ".htm":
         case ".py":
           fileIcon = "resources/code-file.png";
           break;
@@ -909,6 +929,7 @@ async function deleteItem(item) {
 }
 
 async function copyItem(item, toCut = false) {
+  if (item == null) { return; }
   CopyFilePath = item?.getAttribute("itempath");
   let tempCopyFilePath = item?.getAttribute("itempath").split("/");
   CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
@@ -1008,9 +1029,11 @@ function showInputPopup(msg) {
   });
   body.append(popup);
   popup.children[1].focus();
+  IsInputFocused = true;
   IsPopUpOpen = true;
   popup.children[1].addEventListener("focusout", () => {
     closeAllPopups();
+    IsInputFocused = false;
   });
 }
 function closeInputPopup() {
@@ -1070,6 +1093,7 @@ async function pasteItem() {
     }
     closeLoadingPopup();
   }
+  showToast("Copy", "Done copying some files", "success");
 }
 
 function createFolderInputPrompt(e = null) {
@@ -1085,6 +1109,7 @@ function createFolderInputPrompt(e = null) {
   document.querySelector("body").append(nameInput);
   ContextMenu.style.display = "none";
   nameInput.children[1].focus();
+  IsInputFocused = true;
   IsDisableShortcuts = true;
   IsPopUpOpen = false;
   nameInput.addEventListener("keyup", (e) => {
@@ -1097,6 +1122,7 @@ function createFolderInputPrompt(e = null) {
   IsPopUpOpen = true;
   nameInput.addEventListener("focusout", () => {
     closeAllPopups();
+    IsInputFocused = false;
   });
 }
 
@@ -1113,6 +1139,7 @@ function createFileInputPrompt(e) {
   document.querySelector("body").append(nameInput);
   ContextMenu.style.display = "none";
   nameInput.children[1].focus();
+  IsInputFocused = true;
   IsDisableShortcuts = true;
   nameInput.addEventListener("keyup", (e) => {
     if (e.keyCode === 13) {
@@ -1124,6 +1151,7 @@ function createFileInputPrompt(e) {
   IsPopUpOpen = true;
   nameInput.addEventListener("focusout", () => {
     closeAllPopups();
+    IsInputFocused = false;
   });
 }
 
@@ -1156,6 +1184,7 @@ function renameElementInputPrompt(item) {
   IsDisableShortcuts = true;
   IsPopUpOpen = true;
   nameInput.children[1].focus();
+  IsInputFocused = true;
   nameInput.addEventListener("keydown", (e) => {
     if (e.key == "Enter" && IsPopUpOpen == true) {
       renameElement(tempFilePath, nameInput.children[1].value);
@@ -1166,6 +1195,7 @@ function renameElementInputPrompt(item) {
   });
   nameInput.addEventListener("focusout", () => {
     closeAllPopups();
+    IsInputFocused = false;
   });
   IsPopUpOpen = true;
 }
@@ -1187,9 +1217,7 @@ async function renameElement(path, newName) {
 }
 
 async function showAppInfo() {
-  alert(
-    `Application: ${await getName()}\nTauri version: ${await getTauriVersion()}\nApp version: ${await getVersion()}\nDeveloper: Ricky Dane`,
-  );
+  alert(`Application: ${await getName()}\nTauri version: ${await getTauriVersion()}\nApp version: ${await getVersion()}\nDeveloper: Ricky Dane`);
 }
 
 async function checkAppConfig() {
@@ -1796,6 +1824,7 @@ async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth
 function openFullSearchContainer() {
   document.querySelector(".search-full-container").style.display = "flex";
   document.querySelector(".full-dualpane-search-input").focus();
+  IsInputFocused = true;
   IsPopUpOpen = true;
   IsDisableShortcuts = true;
 }
@@ -1804,6 +1833,7 @@ function closeFullSearchContainer() {
   document.querySelector(".search-full-container").style.display = "none";
   IsPopUpOpen = false;
   IsDisableShortcuts = false;
+  IsInputFocused = false;
 }
 
 document.querySelector(".dualpane-search-input").addEventListener("keyup", (e) => {
@@ -1818,10 +1848,14 @@ document.querySelector(".dualpane-search-input").addEventListener("keyup", (e) =
 function openSearchBar() {
   document.querySelector(".search-bar-container").style.display = "flex";
   document.querySelector(".dualpane-search-input").focus();
+  IsInputFocused = true;
   IsDisableShortcuts = true;
   IsQuickSearchOpen = true;
   IsPopUpOpen = true;
-  document.querySelector(".dualpane-search-input").addEventListener("focusout", () => { closeAllPopups(); });
+  document.querySelector(".dualpane-search-input").addEventListener("focusout", () => {
+    closeAllPopups();
+    IsInputFocused = false;
+  });
 }
 
 function closeSearchBar() {
@@ -1952,7 +1986,7 @@ function switchHiddenFiles() {
 
 function openSettings() {
   if (IsPopUpOpen == false) {
-    document.querySelector(".settings-ui").style.display = "block";
+    document.querySelector(".settings-ui").style.display = "flex";
     IsDisableShortcuts = true;
     IsPopUpOpen = true;
   }
