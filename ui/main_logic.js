@@ -243,10 +243,10 @@ document.onkeydown = async (e) => {
   if (e.altKey) {
     IsAltDown = true;
   }
-  if (e.keyCode === 91) {
+  if (e.metaKey) {
     IsMetaDown = true;
   }
-  if (e.ctrlKey) {
+  if (e.ctrlKey && Platform != "darwin") {
     IsCtrlDown = true;
   }
   if (e.shiftKey) {
@@ -433,7 +433,7 @@ document.onkeydown = async (e) => {
 
   if (IsPopUpOpen == false) {
     // Check if cmd / ctrl + a is pressed
-    if ((e.ctrlKey || e.metaKey) && e.key == "a" && IsInputFocused == false) {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "a" && IsInputFocused == false) {
       if (IsDualPaneEnabled) {
         if (SelectedItemPaneSide == "left") {
           await unSelectAllItems();
@@ -459,32 +459,32 @@ document.onkeydown = async (e) => {
       // check if alt + enter is pressed
       renameElementInputPrompt(SelectedElement);
     }
-    // check if ctrl + r is pressed
-    if ((e.metaKey || e.ctrlKey) && e.key == "r") {
+    // check if cmd / ctrl + r is pressed
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "r") {
       refreshView();
       e.preventDefault();
       e.stopPropagation();
     }
     // check if cmd / ctrl + c is pressed
-    if ((e.ctrlKey || e.metaKey) && e.key == "c" && IsInputFocused == false) {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "c" && IsInputFocused == false) {
       copyItem(SelectedElement);
       e.preventDefault();
       e.stopPropagation();
     }
     // check if cmd / ctrl + x is pressed
-    if ((e.ctrlKey || e.metaKey) && e.key == "x" && IsInputFocused == false) {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "x" && IsInputFocused == false) {
       copyItem(SelectedElement, true);
       e.preventDefault();
       e.stopPropagation();
     }
-    // check if ctrl + v is pressed
-    if ((e.ctrlKey || e.metaKey) && e.key == "v" && IsInputFocused == false) {
+    // check if cmd / ctrl + v is pressed
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "v" && IsInputFocused == false) {
       pasteItem();
       e.preventDefault();
       e.stopPropagation();
     }
     // check if ctrl + g is pressed | Path input
-    if ((e.ctrlKey || e.metaKey) && e.key == "g") {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
       showInputPopup("Input path to jump to");
       e.preventDefault();
       e.stopPropagation();
@@ -502,7 +502,7 @@ document.onkeydown = async (e) => {
       e.stopPropagation();
     }
     // check if ctrl + f is pressed
-    if ((e.ctrlKey || e.metaKey) && e.keyCode == 70 && IsShowDisks == false) {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.keyCode == 70 && IsShowDisks == false) {
       openSearchBar();
       e.preventDefault();
       e.stopPropagation();
@@ -521,7 +521,7 @@ document.onkeyup = (e) => {
   if (e.keyCode === 91) {
     IsMetaDown = false;
   }
-  if (e.ctrlKey) {
+  if (e.ctrlKey && Platform != "darwin") {
     IsCtrlDown = false;
   }
   if (e.shiftKey) {
@@ -1546,13 +1546,14 @@ async function unSelectAllItems() {
 }
 
 async function goHome() {
-  await invoke("go_home").then((items) => {
+  await invoke("go_home").then(async (items) => {
     if (IsDualPaneEnabled == true) {
-      showItems(items, "left");
-      showItems(items, "right");
+      await showItems(items, "left");
+      await showItems(items, "right");
     } else {
-      showItems(items);
+      await showItems(items);
     }
+    goUp(false, true);
   });
 }
 
@@ -1840,7 +1841,7 @@ document.querySelector(".dualpane-search-input").addEventListener("keyup", (e) =
     if (e.keyCode === 13) {
       closeSearchBar();
     }
-    else if (IsQuickSearchOpen == true && e.ctrlKey == false) {
+    else if (IsQuickSearchOpen == true) {
       searchFor($(".dualpane-search-input").val(), 999999, 1, true);
     }
   });
