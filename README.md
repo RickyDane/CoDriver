@@ -53,7 +53,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - On windows you may have to install [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
 - Permissions on ms-windows are a little bit strange
   - You may have to run the program as administrator if you encounter problems to copy elements or something similar
-- Tabs are not fully worked out yet
+- ~~Tabs are not fully worked out yet~~
 
 #### 📝 Todos:
 - Multiple languages
