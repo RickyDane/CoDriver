@@ -2276,33 +2276,35 @@ function showMultiRenamePopup() {
     <h3 class="multi-rename-popup-header">
       <div>
         <i class="fa-solid fa-pen-to-square" style="padding-right: 5px;"></i>
-        Multirename
+        Multi-Rename
       </div>
       <button onclick="closeMultiRenamePopup()" class="popup-close-button">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </h3>
     <h4 style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">Options</h4>
-    <div style="padding: 10px; display: flex; flex-flow: row; gap: 10px; border-bottom: 1px solid var(--tertiaryColor);">
-      <div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
-        <p class="text-2">New name</p>
-        <input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
-      </div>
-      <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-        <p class="text-2">Start at</p>
-          <input class="text-input multi-rename-input multi-rename-startat" placeholder="0" type="number" />
-      </div>
-      <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-        <p class="text-2">Step by</p>
-          <input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" type="number" />
-      </div>
-      <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-        <p class="text-2">Digits</p>
-          <input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" type="number" />
-      </div>
-      <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-        <p class="text-2">Extension</p>
-          <input class="text-input multi-rename-input multi-rename-ext" placeholder="" type="text" />
+    <div style="border-bottom: 1px solid var(--tertiaryColor);">
+      <div style="padding: 10px; display: flex; flex-flow: row; gap: 10px;">
+        <div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
+          <p class="text-2">New name</p>
+          <input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
+        </div>
+        <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+          <p class="text-2">Start at</p>
+            <input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
+        </div>
+        <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+          <p class="text-2">Step by</p>
+            <input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
+        </div>
+        <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+          <p class="text-2">Digits</p>
+            <input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
+        </div>
+        <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+          <p class="text-2">Extension</p>
+            <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
+        </div>
       </div>
     </div>
     <h4 style="padding: 10px;">Selected items to rename</h4>
@@ -2319,6 +2321,7 @@ function showMultiRenamePopup() {
   }
   popup.append(list);
   document.querySelector("body").append(popup);
+  $(".multi-rename-newname").focus();
   document.querySelectorAll(".multi-rename-input")
     .forEach(input => input.addEventListener("keyup", (e) => {
       if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
@@ -2334,7 +2337,7 @@ function showMultiRenamePopup() {
     }))
 }
 
-async function renameItemsWithFormat(arrElements, newName, startAt, stepBy, nDigits, ext) {
+async function renameItemsWithFormat(arrElements = [], newName = "", startAt = 0, stepBy = 1, nDigits = 1, ext = "") {
   startAt = parseInt(startAt);
   stepBy = parseInt(stepBy);
   nDigits = parseInt(nDigits);

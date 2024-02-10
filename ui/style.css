@@ -90,7 +90,7 @@ body {
     display: flex;
     flex-flow: row;
     overflow: hidden;
-    border-radius: 15px;
+    border-radius: 0px 0px 10px 10px;
 }
 .header-nav {
     display: flex;
@@ -343,7 +343,7 @@ body {
     display: flex;
     flex-flow: column;
     gap: 10px;
-    padding: 20px;
+    padding: 10px;
     overflow-y: auto;
     z-index: 3;
 }
