@@ -5,6 +5,7 @@ use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
+use std::borrow::Borrow;
 use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, Read};
 use std::{
@@ -61,7 +62,8 @@ fn main() {
             open_fav_ftp,
             open_ftp_dir,
             ftp_go_back,
-            copy_from_ftp
+            copy_from_ftp,
+            rename_elements_with_format
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -991,4 +993,18 @@ async fn save_config(
         .to_string();
     let _ = serde_json::to_writer_pretty(File::create(&config_dir).unwrap(), &app_config_json);
     dbg_log(format!("app_config was saved to {}", config_dir));
+}
+
+#[tauri::command]
+async fn rename_elements_with_format(arr_elements: Vec<String>, new_name: String, start_at: i32, step_by: i32, n_digits: usize, ext: String) {
+    let mut counter = start_at;
+    for element in arr_elements {
+        let mut item_ext: String = ext.to_string();
+        if element.split(".").last().unwrap().len() > 0 && ext.len() == 0 {
+            item_ext = format!("{}", ".".to_string() + element.split(".").last().unwrap());
+        }
+        let _ = fs::rename(&element, format!("{}{:0>n_digits$}{}", new_name, counter, item_ext));
+        println!("Renamed from {} to {}", element, format!("{}{:0>n_digits$}{}", new_name, counter, item_ext));
+        counter += step_by;
+    }
 }

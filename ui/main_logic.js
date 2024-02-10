@@ -137,6 +137,7 @@ function closeAllPopups() {
   closeFtpConfig();
   closeInputPopup();
   closeItemPreview();
+  closeMultiRenamePopup();
   IsPopUpOpen = false;
 }
 
@@ -157,7 +158,7 @@ document.addEventListener("mousedown", (e) => {
     !e.target.classList.contains("disk-item-top") &&
     !e.target.classList.contains("disk-info") &&
     !e.target.classList.contains("item-button-text")
-    ) {
+  ) {
     ContextMenu.style.display = "none";
 
     // Reset context menu
@@ -233,7 +234,6 @@ document.addEventListener("contextmenu", (e) => {
     ContextMenu.children[4].removeAttribute("disabled");
     ContextMenu.children[4].classList.remove("c-item-disabled");
   }
-  closeInputDialog();
 });
 
 /* Shortcuts configuration */
@@ -483,7 +483,7 @@ document.onkeydown = async (e) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    // check if ctrl + g is pressed | Path input
+    // check if ctrl / cmd + g is pressed | Path input
     if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
       showInputPopup("Input path to jump to");
       e.preventDefault();
@@ -501,9 +501,16 @@ document.onkeydown = async (e) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    // check if ctrl + f is pressed
+    // check if ctrl / cmd + f is pressed
     if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.keyCode == 70 && IsShowDisks == false) {
       openSearchBar();
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // check if ctrl / cmd + m is pressed
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.shiftKey && e.key == "m") {
+      showMultiRenamePopup();
       e.preventDefault();
       e.stopPropagation();
     }
@@ -1076,7 +1083,6 @@ async function pasteItem() {
       }
     }
     else {
-      console.log(arr);
       let actFileName = arr[i].getAttribute("itempath").split("/")[arr[i].getAttribute("itempath").split("/").length - 1].replace("'", "");
       showLoadingPopup(actFileName + " is being copied over");
       let fromPath = arr[i].getAttribute("itempath");
@@ -1550,7 +1556,8 @@ async function goHome() {
     if (IsDualPaneEnabled == true) {
       await showItems(items, "left");
       await showItems(items, "right");
-    } else {
+    }
+    else {
       await showItems(items);
     }
     goUp(false, true);
@@ -1571,8 +1578,7 @@ async function goBack() {
       });
     }
   } else {
-    await invoke("ftp_go_back", { path: CurrentFtpPath }).then(
-      async (items) => {
+    await invoke("ftp_go_back", { path: CurrentFtpPath }).then(async (items) => {
         await showItems(items);
         console.log(CurrentFtpPath);
         CurrentFtpPath = CurrentFtpPath.replace(
@@ -2208,14 +2214,10 @@ function showProperties(item) {
   let size = item.getAttribute("itemsize");
   let modifiedAt = item.getAttribute("itemmodified");
   alert(
-    "Name: " +
-      name +
-      "\nModified: " +
-      modifiedAt +
-      "\nPath: " +
-      path +
-      "\nSize: " +
-      size,
+    "Name: " + name +
+    "\nModified: " + modifiedAt +
+    "\nPath: " + path +
+    "\nSize: " + size
   );
   ContextMenu.style.display = "none";
 }
@@ -2266,6 +2268,88 @@ function showItemPreview(item, isOverride = false) {
   IsItemPreviewOpen = true;
 }
 
+function showMultiRenamePopup() {
+  IsPopUpOpen = true;
+  let popup = document.createElement("div");
+  popup.className = "uni-popup multi-rename-popup";
+  popup.innerHTML = `
+    <h3 class="multi-rename-popup-header">
+      <div>
+        <i class="fa-solid fa-pen-to-square" style="padding-right: 5px;"></i>
+        Multirename
+      </div>
+      <button onclick="closeMultiRenamePopup()" class="popup-close-button">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </h3>
+    <h4 style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">Options</h4>
+    <div style="padding: 10px; display: flex; flex-flow: row; gap: 10px; border-bottom: 1px solid var(--tertiaryColor);">
+      <div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
+        <p class="text-2">New name</p>
+        <input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
+      </div>
+      <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+        <p class="text-2">Start at</p>
+          <input class="text-input multi-rename-input multi-rename-startat" placeholder="0" type="number" />
+      </div>
+      <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+        <p class="text-2">Step by</p>
+          <input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" type="number" />
+      </div>
+      <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+        <p class="text-2">Digits</p>
+          <input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" type="number" />
+      </div>
+      <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+        <p class="text-2">Extension</p>
+          <input class="text-input multi-rename-input multi-rename-ext" placeholder="" type="text" />
+      </div>
+    </div>
+    <h4 style="padding: 10px;">Selected items to rename</h4>
+  `;
+  let arrItemsToRename = ArrSelectedItems;
+  let list = document.createElement("div");
+  list.className = "list";
+  for (let i = 0; i < arrItemsToRename.length; i++) {
+    let item = document.createElement("div");
+    item.className = "list-item";
+    item.innerHTML = `${arrItemsToRename[i].getAttribute("itemname")}`;
+    item.style.fontSize = "var(--fontSize)";
+    list.append(item);
+  }
+  popup.append(list);
+  document.querySelector("body").append(popup);
+  document.querySelectorAll(".multi-rename-input")
+    .forEach(input => input.addEventListener("keyup", (e) => {
+      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+        renameItemsWithFormat(
+          arrItemsToRename.map(item => item.getAttribute("itempath")),
+          $(".multi-rename-newname").val(),
+          $(".multi-rename-startat").val(),
+          $(".multi-rename-stepby").val(),
+          $(".multi-rename-ndigits").val(),
+          $(".multi-rename-ext").val()
+        );
+      }
+    }))
+}
+
+async function renameItemsWithFormat(arrElements, newName, startAt, stepBy, nDigits, ext) {
+  startAt = parseInt(startAt);
+  stepBy = parseInt(stepBy);
+  nDigits = parseInt(nDigits);
+  await invoke("rename_elements_with_format", { arrElements, newName, startAt, stepBy, nDigits, ext })
+    .then(async () => {
+      listDirectories();
+      closeMultiRenamePopup();
+    });
+}
+
+function closeMultiRenamePopup() {
+  IsPopUpOpen = false;
+  $(".multi-rename-popup").remove();
+}
+
 async function closeItemPreview() {
   $(".item-preview-popup").fadeOut(200, () => {
     $(".item-preview-popup")?.remove();
@@ -2275,24 +2359,8 @@ async function closeItemPreview() {
 }
 
 function evalCurrentLoad(available, total) {
-  available = parseFloat(
-    available
-      .replace("TB", "")
-      .replace("GB", "")
-      .replace("MB", "")
-      .replace("KB", "")
-      .replace("B", "")
-      .trim(),
-  );
-  total = parseFloat(
-    total
-      .replace("TB", "")
-      .replace("GB", "")
-      .replace("MB", "")
-      .replace("KB", "")
-      .replace("B", "")
-      .trim(),
-  );
+  available = parseFloat(available.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
+  total = parseFloat(total.replace("TB", "").replace("GB", "").replace("MB", "").replace("KB", "").replace("B", "").trim());
   let result = 100 - (100 / total) * available;
   return result.toFixed(0);
 }
@@ -2333,6 +2401,7 @@ function checkColorMode() {
     r.style.setProperty("--secondaryColor", "whitesmoke");
     r.style.setProperty("--tertiaryColor", "rgba(220, 220, 220, 1)");
     r.style.setProperty("--textColor", "rgb(75, 75, 75)");
+    r.style.setProperty("--textColor2", "rgba(0, 0, 0, 0.6)");
     SecondaryColor = "whitesmoke";
     PrimaryColor = "white";
   } else {
@@ -2340,6 +2409,7 @@ function checkColorMode() {
     r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
     r.style.setProperty("--tertiaryColor", "#474b5c");
     r.style.setProperty("--textColor", "rgba(255, 255, 255, 0.8)");
+    r.style.setProperty("--textColor2", "rgba(255, 255, 255, 0.6)");
     SecondaryColor = "rgba(56, 59, 71, 1)";
     PrimaryColor = "#3f4352";
   }
