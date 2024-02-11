@@ -5,7 +5,6 @@ use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
-use std::borrow::Borrow;
 use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, Read};
 use std::{
@@ -107,8 +106,7 @@ async fn check_app_config() -> AppConfig {
             .to_str()
             .unwrap()
             .to_string(),
-    )
-    .await;
+    ).await;
 
     // If config doesn't exist, create it
     if fs::metadata(config_dir().unwrap().join("rdpFX/app_config.json")).is_err() {
@@ -150,23 +148,14 @@ async fn check_app_config() -> AppConfig {
     return AppConfig {
         view_mode: app_config["view_mode"].to_string(),
         last_modified: app_config["last_modified"].to_string(),
-        configured_path_one: app_config["configured_path_one"]
-            .to_string()
-            .replace('"', ""),
-        configured_path_two: app_config["configured_path_two"]
-            .to_string()
-            .replace('"', ""),
-        configured_path_three: app_config["configured_path_three"]
-            .to_string()
-            .replace('"', ""),
+        configured_path_one: app_config["configured_path_one"].to_string().replace('"', ""),
+        configured_path_two: app_config["configured_path_two"].to_string().replace('"', ""),
+        configured_path_three: app_config["configured_path_three"].to_string().replace('"', ""),
         is_open_in_terminal: app_config["is_open_in_terminal"].to_string(),
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string(),
         launch_path: app_config["launch_path"].to_string().replace('"', ""),
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string(),
-        search_depth: app_config["search_depth"]
-            .to_string()
-            .parse::<i32>()
-            .unwrap(),
+        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
         max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
         is_light_mode: app_config["is_light_mode"].to_string(),
         is_image_preview: app_config["is_image_preview"].to_string(),
@@ -667,7 +656,7 @@ async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, fi
                     err_log(format!("Error reading: {}", x));
                     0 as usize
                 });
-                for (idx, line) in buffer.lines().enumerate() {
+                for (_idx, line) in buffer.lines().enumerate() {
                     if line.contains(&file_content) {
                         dir_list.push(FDir {
                             name: name.to_string(),
@@ -815,7 +804,7 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
 #[tauri::command]
 async fn delete_item(act_file_name: String) -> Vec<FDir> {
     let dir = File::open(&act_file_name);
-    let mut is_dir: bool;
+    let is_dir: bool;
     if dir.is_ok() {
         is_dir = dir.unwrap().metadata().unwrap().is_dir();
     }
@@ -1004,7 +993,7 @@ async fn rename_elements_with_format(arr_elements: Vec<String>, new_name: String
             item_ext = format!("{}", ".".to_string() + element.split(".").last().unwrap());
         }
         let _ = fs::rename(&element, format!("{}{:0>n_digits$}{}", new_name, counter, item_ext));
-        println!("Renamed from {} to {}", element, format!("{}{:0>n_digits$}{}", new_name, counter, item_ext));
+        dbg_log(format!("Renamed from {} to {}", element, format!("{}{:0>n_digits$}{}", new_name, counter, item_ext)));
         counter += step_by;
     }
 }
