@@ -33,7 +33,7 @@ html {
     background-color: transparent;
     border: none;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: 10px 10px 15px 15px;
 }
 body {
     height: 100vh;
@@ -41,7 +41,7 @@ body {
     overflow: hidden;
     outline: none;
     border: none;
-    border-radius: 10px;
+    border-radius: 10px 10px 15px 15px;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
@@ -90,7 +90,7 @@ body {
     display: flex;
     flex-flow: row;
     overflow: hidden;
-    border-radius: 0px 0px 10px 10px;
+    border-radius: 0px 0px 15px 15px;
 }
 .header-nav {
     display: flex;
@@ -343,7 +343,7 @@ body {
     display: flex;
     flex-flow: column;
     gap: 10px;
-    padding: 10px;
+    padding: 20px;
     overflow-y: auto;
     z-index: 3;
 }
@@ -356,22 +356,6 @@ body {
     background-color: var(--secondaryColor);
     z-index: 3;
     border-top: 1px solid var(--tertiaryColor);
-}
-.settings-ui-controls > button {
-    padding: 0;
-    padding-right: 15px;
-    width: unset;
-    background-color: var(--primaryColor);
-    overflow: hidden;
-    gap: 15px;
-}
-.settings-ui-controls > button:hover > .button-icon {
-    background-color: var(--primaryColor);
-}
-.settings-ui-controls > button > .button-icon {
-    padding: 7.5px 10px;
-    background-color: var(--tertiaryColor);
-    transition: 0.1s ease;
 }
 .settings-ui > button {
     float: right;
@@ -423,7 +407,7 @@ label {
 .button {
     padding: 10px 15px;
     color: var(--textColor);
-    background-color: var(--primaryColor);
+    background-color: var(--tertiaryColor);
     border: none;
     border-radius: 5px;
     cursor: pointer;
@@ -443,7 +427,7 @@ label {
 .button-invert {
     padding: 10px 15px;
     color: var(--textColor);
-    background-color: var(--secondaryColor);
+    background-color: var(--tertiaryColor);
     border: none;
     border-radius: 5px;
     cursor: pointer;
@@ -455,10 +439,10 @@ label {
     transition: 0.1s ease;
 }
 .button-invert:hover {
-    background: var(--transparentColorActive);
+    background: var(--transparentColor);
 }
 .button-invert:active {
-    background: var(--tertiaryColor);
+    background: var(--transparentColorActive);
 }
 .selected-item {
     background: var(--transparentColorActive) !important;
@@ -487,12 +471,7 @@ label {
     gap: 10px;
     transition: 0.1s ease;
     margin: 0 auto;
-    /* background-color: var(--transparentColor); */
-    /* border: 1px solid var(--transparentColor); */
 }
-/* .item-button:hover {
-    background-color: var(--transparentColorActive);
-} */
 .item-button:active {
     background-color: var(--secondaryColor);
 }
@@ -573,7 +552,6 @@ label {
     width: 24px;
 }
 .dual-pane-list-item {
-    /* background-color: var(--transparentColor); */
     height: 34px;
     padding: 5px;
     padding-left: 7.5px;
@@ -586,7 +564,7 @@ label {
     cursor: pointer;
 }
 .dual-pane-list-item:hover {
-    background-color: var(--transparentColorActive);
+    background-color: var(--transparentColor);
 }
 .directory-item-entry {
     width: 100%;
@@ -671,6 +649,39 @@ label {
     margin: 1px;
     border-radius: 2px 0px 0px 2px;
 }
+.icon-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--tertiaryColor);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.1s ease;
+    overflow: hidden;
+    gap: 15px;
+    padding-right: 15px;
+    border: 1px solid var(--tertiaryColor);
+}
+.icon-button:hover {
+    background-color: var(--transparentColor);
+}
+.icon-button:active {
+    background-color: var(--transparentColorActive);
+}
+.button-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 32px;
+    width: 32px;
+    transition: 0.1s ease;
+    background-color: var(--transparentColor);
+    border-radius: 5px 0px 0px 5px;
+}
+.icon-button:hover > .button-icon {
+    background-color: var(--secondaryColorActive);
+}
+
 
 /* Menu buttons */
 .go-back-button {

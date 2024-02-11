@@ -461,6 +461,7 @@ document.onkeydown = async (e) => {
     }
     // check if cmd / ctrl + r is pressed
     if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "r") {
+      await unSelectAllItems();
       refreshView();
       e.preventDefault();
       e.stopPropagation();
@@ -556,7 +557,6 @@ document.querySelector(".dual-pane-right").addEventListener("contextmenu", () =>
 async function showItems(items, dualPaneSide = "") {
   await getCurrentDir();
   IsShowDisks = false;
-
   // Check which tab is currently active and write CurrentDir to TabOnePath and so on
   // Todo: Make more "dynamic friendly"
   switch (CurrentActiveTab) {
@@ -576,7 +576,6 @@ async function showItems(items, dualPaneSide = "") {
       TabFivePath = CurrentDir;
       break;
   }
-
   window.scrollTo(0, 0);
   if (IsTabsEnabled == true) {
     document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = "";
@@ -585,10 +584,12 @@ async function showItems(items, dualPaneSide = "") {
     if (dualPaneSide == "left") {
       document.querySelector(".dual-pane-left").innerHTML = "";
       document.querySelector(".dual-pane-left").scrollTop = 0;
-    } else if (dualPaneSide == "right") {
+    }
+    else if (dualPaneSide == "right") {
       document.querySelector(".dual-pane-right").innerHTML = "";
       document.querySelector(".dual-pane-right").scrollTop = 0;
-    } else {
+    }
+    else {
       document.querySelector(".dual-pane-left").innerHTML = "";
       document.querySelector(".dual-pane-right").innerHTML = "";
     }
@@ -608,9 +609,7 @@ async function showItems(items, dualPaneSide = "") {
   } else {
     DirectoryList.className = "directory-list";
   }
-  let hiddenItemsLength = items.filter((str) =>
-    str.name.startsWith("."),
-  ).length;
+  let hiddenItemsLength = items.filter((str) => str.name.startsWith(".")).length;
   if (!IsShowHiddenFiles) {
     items = items.filter((str) => !str.name.startsWith("."));
   }
@@ -736,7 +735,8 @@ async function showItems(items, dualPaneSide = "") {
         case ".svg":
           if (IsImagePreview) {
             fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
-          } else {
+          }
+          else {
             fileIcon = "resources/img-file.png";
           }
           break;
@@ -791,7 +791,6 @@ async function showItems(items, dualPaneSide = "") {
 			</span>
 		`;
     if (dualPaneSide != null && dualPaneSide != "") {
-
       itemButtonList.className = "directory-entry dual-pane-list-item";
     }
     else {
@@ -801,7 +800,8 @@ async function showItems(items, dualPaneSide = "") {
       itemButton.style.display = "none";
       DirectoryList.style.gridTemplateColumns = "unset";
       DirectoryList.style.rowGap = "2px";
-    } else {
+    }
+    else {
       itemButtonList.style.display = "none";
       DirectoryList.style.gridTemplateColumns = "repeat(auto-fill, minmax(110px, 1fr))";
       DirectoryList.style.rowGap = "15px";
@@ -811,7 +811,6 @@ async function showItems(items, dualPaneSide = "") {
     itemLink.append(newRow);
     DirectoryList.append(itemLink);
   });
-
   DirectoryList.querySelectorAll(".directory-entry").forEach((item) => {
     // Open context menu when right-clicking on file/folder
     item.addEventListener("contextmenu", (e) => {
@@ -853,8 +852,8 @@ async function showItems(items, dualPaneSide = "") {
         ContextMenu.children[1].classList.remove("c-item-disabled");
       }
       ContextMenu.children[0].addEventListener("click", async () => {
-        if (await confirm("Dou you really want to delete "+item.getAttribute('itemname')+"?")) {
-          deleteItem(item);
+        if (await confirm("Dou you really want to delete "+item.getAttribute('itemname')+"?") == true) {
+          await deleteItem(item);
         }
         else {
           ContextMenu.style.display = "none";
@@ -880,15 +879,15 @@ async function showItems(items, dualPaneSide = "") {
       document.querySelector(".dual-pane-left").append(DirectoryList);
       LeftDualPanePath = CurrentDir;
       LeftPaneItemCollection = DirectoryList;
-    } else if (dualPaneSide == "right") {
+    }
+    else if (dualPaneSide == "right") {
       document.querySelector(".dual-pane-right").append(DirectoryList);
       RightDualPanePath = CurrentDir;
       RightPaneItemCollection = DirectoryList;
-    } else {
+    }
+    else {
       document.querySelector(".dual-pane-left").append(DirectoryList);
-      document
-        .querySelector(".dual-pane-right")
-        .append(DirectoryList.cloneNode(true));
+      document.querySelector(".dual-pane-right").append(DirectoryList.cloneNode(true));
       LeftDualPanePath = RightDualPanePath = CurrentDir;
     }
   }
@@ -908,12 +907,11 @@ async function setCurrentDir(currentDir, dualPaneSide) {
   });
 
   if (dualPaneSide == "left") {
-    document.querySelector(".dual-pane-left").style.boxShadow =
-      "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+    document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
     document.querySelector(".dual-pane-right").style.boxShadow = "none";
-  } else if (dualPaneSide == "right") {
-    document.querySelector(".dual-pane-right").style.boxShadow =
-      "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+  }
+  else if (dualPaneSide == "right") {
+    document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
     document.querySelector(".dual-pane-left").style.boxShadow = "none";
   }
 }
@@ -1310,7 +1308,6 @@ async function applyPlatformFeatures() {
     $(".titlebar-buttons").remove();
     $(".titlebar-buttons-macos").css("display", "flex");
     document.querySelectorAll(".titlebar-button").forEach(item => item.style.display = "none");
-    // $(".titlebar-buttons").css("flex-flow", "row-reverse");
   }
   else {
     $(".titlebar-buttons").css("display", "flex");
@@ -1395,9 +1392,7 @@ async function listDisks() {
       document.querySelector(".current-path").textContent = "Disks/";
     });
   });
-  document
-    .querySelector(".tab-container-" + CurrentActiveTab)
-    .append(DirectoryList);
+  document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
 }
 
 async function listDirectories() {
@@ -1405,14 +1400,15 @@ async function listDirectories() {
     if (IsDualPaneEnabled == true) {
       await showItems(items, SelectedItemPaneSide);
       goUp(false, true);
-    } else {
+    }
+    else {
       await showItems(items);
     }
   });
 }
 
 async function refreshView() {
-  listDirectories();
+  await listDirectories();
 }
 
 async function interactWithItem(element = null, dualPaneSide = "", shortcutPath = null) {
@@ -1505,7 +1501,9 @@ function selectItem(element, dualPaneSide = "") {
     SelectedElement.children[0].children[0].classList.add("selected-item");
   }
   SelectedItemPath = path;
-  SelectedItemPaneSide = dualPaneSide;
+  if (dualPaneSide != "" && dualPaneSide != null) {
+    SelectedItemPaneSide = dualPaneSide;
+  }
   if (dualPaneSide == "left") {
     LeftPaneItemIndex = index;
   }
@@ -1642,7 +1640,7 @@ function goUp(isSwitched = false, toFirst = false) {
         RightPaneItemIndex = selectedItemIndex;
       }
     }
-    if (element != SelectedElement && element != null) {
+    if (element != SelectedElement && SelectedElement != null && element != null) {
       SelectedElement.style.backgroundColor = "transparent";
       element.onclick();
     }
@@ -2282,9 +2280,12 @@ function showMultiRenamePopup() {
         <i class="fa-solid fa-xmark"></i>
       </button>
     </h3>
-    <h4 style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">Options</h4>
-    <div style="border-bottom: 1px solid var(--tertiaryColor);">
-      <div style="padding: 10px; display: flex; flex-flow: row; gap: 10px;">
+    <div style="padding: 20px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
+      <h4>Options</h4>
+      <p class="text-2">If no extension is supplied the extension won't be changed</p>
+    </div>
+    <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
+      <div style="display: flex; flex-flow: row; gap: 10px;">
         <div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
           <p class="text-2">New name</p>
           <input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
@@ -2334,7 +2335,7 @@ function showMultiRenamePopup() {
           $(".multi-rename-ext").val()
         );
       }
-    }))
+    }));
 }
 
 async function renameItemsWithFormat(arrElements = [], newName = "", startAt = 0, stepBy = 1, nDigits = 1, ext = "") {
@@ -2342,9 +2343,9 @@ async function renameItemsWithFormat(arrElements = [], newName = "", startAt = 0
   stepBy = parseInt(stepBy);
   nDigits = parseInt(nDigits);
   await invoke("rename_elements_with_format", { arrElements, newName, startAt, stepBy, nDigits, ext })
-    .then(async () => {
-      listDirectories();
+    .then(() => {
       closeMultiRenamePopup();
+      listDirectories();
     });
 }
 

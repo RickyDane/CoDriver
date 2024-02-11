@@ -153,8 +153,8 @@
             </span>
         </div>
         <div class="settings-ui-controls">
-            <button class="button" onclick="closeSettings()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
-            <button class="button" onclick="saveConfig()"><span class="button-icon"><i class="fa-solid fa-floppy-disk"></span></i>Save</button>
+            <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
+            <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i class="fa-solid fa-floppy-disk"></span></i>Save</button>
         </div>
     </div>
     <div class="search-bar-container">
@@ -176,10 +176,13 @@
             <p>Search depth (0 = off)</p>
             <input style="width: 100px;" type="number" class="number-input trigger-for-full-search full-search-search-depth-input" placeholder="10" value="10" />
             <div class="search-full-container-body-buttons">
-                <button class="button-invert" onclick="closeFullSearchContainer()"><i class="fa-solid fa-ban"></i>Cancel</button>
-                <button class="button-invert" onclick="startFullSearch()">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <span>Start</span>
+                <button class="icon-button" onclick="closeFullSearchContainer()">
+                    <div class="button-icon"><i class="fa-solid fa-ban"></i></div>
+                    Cancel
+                </button>
+                <button class="icon-button" onclick="startFullSearch()">
+                    <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                    Start
                     <img style="display: none;" class="fullsearch-loader" src="resources/preloader.gif" width="16px" height="auto" />
                 </button>
             </div>
