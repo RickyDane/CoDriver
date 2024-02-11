@@ -959,20 +959,21 @@ async function copyItem(item, toCut = false) {
 
 async function extractItem(item) {
   let compressFilePath = item.getAttribute("itempath");
-  let compressFileName = compressFilePath
-    .split("/")
-    [compressFilePath.split("/").length - 1].replace("'", "");
+  let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
   let isExtracting = await confirm("Do you want to unpack " + compressFileName + "?");
   if (isExtracting == true) {
     ContextMenu.style.display = "none";
     let extractFilePath = item.getAttribute("itempath");
-    let extractFileName = extractFilePath
-      .split("/")
-      [extractFilePath.split("/").length - 1].replace("'", "");
+    let extractFileName = extractFilePath.split("/")[extractFilePath.split("/").length - 1].replace("'", "");
     if (extractFileName != "") {
       let fromPath = extractFilePath.toString();
       await invoke("extract_item", { fromPath }).then(async (items) => {
-        await showItems(items.filter((str) => !str.name.startsWith(".")));
+        if (SelectedItemPaneSide != null && SelectedItemPaneSide != "") {
+          await showItems(items.filter((str) => !str.name.startsWith(".")), SelectedItemPaneSide);
+        }
+        else {
+          await showItems(items.filter((str) => !str.name.startsWith(".")));
+        }
         await message("Unpack complete");
       });
     }
@@ -981,15 +982,13 @@ async function extractItem(item) {
 
 async function compressItem(item) {
   let compressFilePath = item.getAttribute("itempath");
-  let compressFileName = compressFilePath
-    .split("/")
-    [compressFilePath.split("/").length - 1].replace("'", "");
+  let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
   if (compressFileName != "") {
     // open compressing... popup
     showLoadingPopup("File is being compressed");
     let fromPath = compressFilePath.toString();
     ContextMenu.style.display = "none";
-    let SelectedItemPaneSide = item.getAttribute("itempaneside");
+    SelectedItemPaneSide = item.getAttribute("itempaneside");
     await invoke("compress_item", { fromPath }).then(async (items) => {
       await showItems(items, SelectedItemPaneSide);
       closeLoadingPopup();
@@ -1453,22 +1452,24 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
   let isDir = element != null ? element.getAttribute("itemisdir") : (shortcutDirPath != null ? 1 : 0);
   let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
   console.log(isDir, path);
-  if (IsItemPreviewOpen == false && isDir == 1 || (isDir == 1 && shortcut == true)) {
-    // Open directory
-    await invoke("open_dir", { path }).then(async (items) => {
-      if (IsDualPaneEnabled == true && dualPaneSide != "") {
-        document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = "";
-        await showItems(items, dualPaneSide);
-        goUp(false, true);
-      }
-      else {
-        await showItems(items);
-      }
-    });
-  }
-  else if (IsItemPreviewOpen == false) {
-    // Open element with default application / Todo: "open with / as"
-    await invoke("open_item", { path });
+  if (IsPopUpOpen == false) {
+    if (IsItemPreviewOpen == false && isDir == 1 || (isDir == 1 && shortcut == true)) {
+      // Open directory
+      await invoke("open_dir", { path }).then(async (items) => {
+        if (IsDualPaneEnabled == true && dualPaneSide != "") {
+          document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = "";
+          await showItems(items, dualPaneSide);
+          goUp(false, true);
+        }
+        else {
+          await showItems(items);
+        }
+      });
+    }
+    else if (IsItemPreviewOpen == false) {
+      // Open element with default application / Todo: "open with / as"
+      await invoke("open_item", { path });
+    }
   }
 }
 

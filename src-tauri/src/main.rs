@@ -5,6 +5,7 @@ use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
+use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, Read};
 use std::{
@@ -895,7 +896,8 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
     );
     if fs::metadata(&from_path).unwrap().is_dir() {
         source = PathBuf::from(&from_path);
-    } else {
+    }
+    else {
         let file_name = &from_path
             .split("/")
             .nth(&from_path.split("/").count() - 1)
@@ -907,7 +909,7 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
         );
         source = PathBuf::from("compressed_dir");
     }
-    let _ = zip_create_from_directory(&archive, &source);
+    let _ = zip_create_from_directory_with_options(&archive, &source, FileOptions::default().compression_method(zip::CompressionMethod::Deflated).compression_level(Option::from(9)));
     let _ = remove_dir_all("compressed_dir");
     dbg_log(format!("Pack time: {:?}", sw.elapsed()));
     return list_dirs().await;
