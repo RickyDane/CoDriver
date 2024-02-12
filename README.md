@@ -44,7 +44,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
   - Search for files with F8
   - Copy current selected element to other pane with F5
 - Drag and drop files into the explorer to copy them into the current directory
-- Multi rename your selection with Ctrl + LShift + M
+- Multi rename your selection with Ctrl / Cmd + LShift + M
 
 #### Language Support
 - English
