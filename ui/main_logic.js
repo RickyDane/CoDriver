@@ -138,6 +138,7 @@ function closeAllPopups() {
   closeInputPopup();
   closeItemPreview();
   closeMultiRenamePopup();
+  closeCompressPopup();
   IsPopUpOpen = false;
 }
 
@@ -541,16 +542,24 @@ document.onkeyup = (e) => {
 
 // check for click on one of the dual pane containers and set directory accordingly
 document.querySelector(".dual-pane-left").addEventListener("click", () => {
-  setCurrentDir(LeftDualPanePath, "left");
+  if (IsPopUpOpen == false) {
+    setCurrentDir(LeftDualPanePath, "left");
+  }
 });
 document.querySelector(".dual-pane-left").addEventListener("contextmenu", () => {
-  setCurrentDir(LeftDualPanePath, "left");
+  if (IsPopUpOpen == false) {
+    setCurrentDir(LeftDualPanePath, "left");
+  }
 });
 document.querySelector(".dual-pane-right").addEventListener("click", () => {
-  setCurrentDir(RightDualPanePath, "right");
+  if (IsPopUpOpen == false) {
+    setCurrentDir(RightDualPanePath, "right");
+  }
 });
 document.querySelector(".dual-pane-right").addEventListener("contextmenu", () => {
-  setCurrentDir(RightDualPanePath, "right");
+  if (IsPopUpOpen == false) {
+    setCurrentDir(RightDualPanePath, "right");
+  }
 });
 
 // Main function to handle directory visualization
@@ -861,7 +870,7 @@ async function showItems(items, dualPaneSide = "") {
         }
       }, { once: true });
       ContextMenu.children[1].addEventListener("click", () => { extractItem(item); }, { once: true });
-      ContextMenu.children[2].addEventListener("click", () => { compressItem(item); }, { once: true });
+      ContextMenu.children[2].addEventListener("click", () => { showCompressPopup(item); }, { once: true });
       ContextMenu.children[3].addEventListener("click", () => { copyItem(item); }, { once: true });
       ContextMenu.children[5].addEventListener("click", () => { createFileInputPrompt(e); }, { once: true });
       ContextMenu.children[6].addEventListener("click", () => { createFolderInputPrompt(e); }, { once: true });
@@ -960,11 +969,12 @@ async function copyItem(item, toCut = false) {
 async function extractItem(item) {
   let compressFilePath = item.getAttribute("itempath");
   let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
-  let isExtracting = await confirm("Do you want to unpack " + compressFileName + "?");
+  let isExtracting = await confirm("Do you want to extract " + compressFileName + "?");
   if (isExtracting == true) {
+    showLoadingPopup("Extracting item")
     ContextMenu.style.display = "none";
     let extractFilePath = item.getAttribute("itempath");
-    let extractFileName = extractFilePath.split("/")[extractFilePath.split("/").length - 1].replace("'", "");
+    let extractFileName = item.getAttribute("itemname");
     if (extractFileName != "") {
       let fromPath = extractFilePath.toString();
       await invoke("extract_item", { fromPath }).then(async (items) => {
@@ -978,23 +988,70 @@ async function extractItem(item) {
       });
     }
   }
+  closeLoadingPopup();
 }
 
-async function compressItem(item) {
+async function compressItem(item, compressionLevel = 6) {
   let compressFilePath = item.getAttribute("itempath");
-  let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
+  let compressFileName = item.getAttribute("itemname");
   if (compressFileName != "") {
     // open compressing... popup
     showLoadingPopup("File is being compressed");
-    let fromPath = compressFilePath.toString();
     ContextMenu.style.display = "none";
     SelectedItemPaneSide = item.getAttribute("itempaneside");
-    await invoke("compress_item", { fromPath }).then(async (items) => {
+    await invoke("compress_item", { fromPath: compressFilePath, compressionLevel: parseInt(compressionLevel) }).then(async (items) => {
       await showItems(items, SelectedItemPaneSide);
-      closeLoadingPopup();
-      await message("Compressing done");
     });
+    closeLoadingPopup();
+    showToast("Compression", "Compressing done", "success");
   }
+}
+
+async function showCompressPopup(item) {
+  ContextMenu.style.display = "none";
+  let compressFileName = item.getAttribute("itemname");
+  if (compressFileName != "") {
+    let popup = document.createElement("div");
+    popup.innerHTML = `
+      <h4 class="popup-header">
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <i class="fa-solid fa-compress"></i>
+          Compression options
+        </div>
+      </h4>
+      <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
+        <p class="text-2">Selected item</p>
+        <h5>${compressFileName}</h5>
+      </div>
+      <div class="popup-body">
+        <div style="display: flex; flex-flow: column; gap: 5px; width: 100%;">
+          <p class="text-2">Compression level (0-9)</p>
+          <input class="text-input compression-popup-level-input" type="number" value="6" placeholder="0-9" />
+        </div>
+      </div>
+      <div class="popup-controls">
+        <button class="icon-button" onclick="closeCompressPopup()">
+          <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+          Cancel
+        </button>
+        <button class="icon-button compress-item-button">
+          <div class="button-icon"><i class="fa-solid fa-minimize"></i></div>
+          Compress
+        </button>
+      </div>
+    `;
+    popup.className = "uni-popup compression-popup";
+    document.querySelector("body").append(popup);
+    document.querySelector(".compress-item-button").addEventListener("click", async () => {
+      await compressItem(item, $(".compression-popup-level-input").val());
+    });
+    IsPopUpOpen = true;
+  }
+}
+
+async function closeCompressPopup() {
+  $(".compression-popup").remove();
+  IsPopUpOpen = false;
 }
 
 function showLoadingPopup(msg) {
@@ -1763,7 +1820,8 @@ function goToOtherPane() {
   if (SelectedItemPaneSide == "right") {
     SelectedItemPaneSide = "left";
     setCurrentDir(LeftDualPanePath, "left");
-  } else {
+  }
+  else {
     SelectedItemPaneSide = "right";
     setCurrentDir(RightDualPanePath, "right");
   }
@@ -2009,24 +2067,16 @@ async function saveConfig(isToReload = true) {
     ".configured-path-three-input",
   ).value);
   let isOpenInTerminal = false; //document.querySelector(".openin-terminal-checkbox").checked;
-  let isDualPaneEnabled = document.querySelector(
-    ".show-dual-pane-checkbox",
-  ).checked;
+  let isDualPaneEnabled = document.querySelector(".show-dual-pane-checkbox").checked;
   let launchPath = document.querySelector(".launch-path-input").value;
   let isDualPaneActive = IsDualPaneEnabled;
   let searchDepth = parseInt(
     document.querySelector(".search-depth-input").value,
   );
   let maxItems = parseInt(document.querySelector(".max-items-input").value);
-  let isLightMode = document.querySelector(
-    ".switch-light-dark-mode-checkbox",
-  ).checked;
-  let isImagePreview = (IsImagePreview = document.querySelector(
-    ".image-preview-checkbox",
-  ).checked);
-  let isSelectMode = (IsSelectMode = $("#choose-interaction-mode").is(
-    ":checked",
-  ));
+  let isLightMode = document.querySelector(".switch-light-dark-mode-checkbox").checked;
+  let isImagePreview = (IsImagePreview = document.querySelector(".image-preview-checkbox").checked);
+  let isSelectMode = (IsSelectMode = $("#choose-interaction-mode").is(":checked"));
   closeSettings();
 
   if (isOpenInTerminal == true) {
@@ -2281,7 +2331,7 @@ function showMultiRenamePopup() {
         <i class="fa-solid fa-xmark"></i>
       </button>
     </h3>
-    <div style="padding: 20px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
+    <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
       <h4>Options</h4>
       <p class="text-2">If no extension is supplied the extension won't be changed</p>
     </div>

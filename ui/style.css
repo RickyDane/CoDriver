@@ -992,8 +992,9 @@ label {
     border-radius: 10px;
     width: fit-content;
     height: fit-content;
-    box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     padding-bottom: 10px;
+    z-index: 99;
 }
 .loading-popup > h4 {
     padding: 10px;
@@ -1032,9 +1033,8 @@ label {
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     border: 1px solid var(--tertiaryColor);
     border-radius: 10px;
-    z-index: 999;
+    z-index: 98;
 }
-
 .multi-rename-popup {
     width: 50%;
     height: fit-content;
@@ -1049,7 +1049,11 @@ label {
     align-items: center;
     padding: 10px 10px 10px 15px;
 }
-
+.compression-popup {
+    width: fit-content;
+    height: fit-content;
+    overflow: hidden;
+}
 .item-preview-popup {
     position: fixed;
     top: 0;
@@ -1103,6 +1107,26 @@ label {
 }
 .popup-close-button:active {
     background-color: var(--transparentColorActive);
+}
+.popup-header {
+    background-color: var(--secondaryColor);
+    border-bottom: 1px solid var(--tertiaryColor);
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 10px 10px 15px;
+}
+.popup-body {
+    padding: 10px;
+    border-bottom: 1px solid var(--tertiaryColor);
+}
+.popup-controls {
+    display: flex;
+    flex-flow: row;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 10px;
 }
 
 

@@ -870,17 +870,12 @@ async fn open_item(path: String) {
 }
 
 #[tauri::command]
-async fn compress_item(from_path: String) -> Vec<FDir> {
+async fn compress_item(from_path: String, compression_level: i32) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
-    let file_ext = ".".to_string().to_owned()
-        + from_path
-            .split(".")
-            .nth(from_path.split(".").count() - 1)
-            .unwrap_or("");
-    // let _ = sevenz_rust::compress_to_path(&from_path, from_path.to_string()+".7z").expect("complete");
+    dbg_log(format!("Compression of '{}' started with compression level: {}", &from_path.split("/").last().unwrap(), &compression_level));
+    let file_ext = ".".to_string().to_owned() + from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
     let _ = File::create(
-        from_path
-            .strip_suffix(&file_ext)
+        from_path.strip_suffix(&file_ext)
             .unwrap_or(&from_path)
             .to_owned()
             + ".zip",
@@ -888,8 +883,7 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
     .unwrap();
     let source: PathBuf;
     let archive = PathBuf::from(
-        from_path
-            .strip_suffix(&file_ext)
+        from_path.strip_suffix(&file_ext)
             .unwrap_or(&from_path)
             .to_owned()
             + ".zip",
@@ -902,16 +896,16 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
             .split("/")
             .nth(&from_path.split("/").count() - 1)
             .unwrap();
-        let _ = create_dir("compressed_dir");
-        let _ = copy(
-            &from_path,
-            "compressed_dir/".to_string().to_owned() + file_name,
-        );
-        source = PathBuf::from("compressed_dir");
+        let _ = create_dir("__compressed_dir");
+        let _ = copy(&from_path, "__compressed_dir/".to_string().to_owned() + file_name);
+        source = PathBuf::from("__compressed_dir");
     }
-    let _ = zip_create_from_directory_with_options(&archive, &source, FileOptions::default().compression_method(zip::CompressionMethod::Deflated).compression_level(Option::from(9)));
-    let _ = remove_dir_all("compressed_dir");
-    dbg_log(format!("Pack time: {:?}", sw.elapsed()));
+    let options = FileOptions::default()
+        .compression_method(zip::CompressionMethod::Bzip2)
+        .compression_level(Option::from(compression_level));
+    let _ = zip_create_from_directory_with_options(&archive, &source, options);
+    let _ = remove_dir_all("__compressed_dir");
+    dbg_log(format!("Compression time: {:?}", sw.elapsed()));
     return list_dirs().await;
 }
 
