@@ -5,6 +5,7 @@ use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
+use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, Read};
 use std::{
@@ -61,7 +62,8 @@ fn main() {
             open_fav_ftp,
             open_ftp_dir,
             ftp_go_back,
-            copy_from_ftp
+            copy_from_ftp,
+            rename_elements_with_format
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -105,8 +107,7 @@ async fn check_app_config() -> AppConfig {
             .to_str()
             .unwrap()
             .to_string(),
-    )
-    .await;
+    ).await;
 
     // If config doesn't exist, create it
     if fs::metadata(config_dir().unwrap().join("rdpFX/app_config.json")).is_err() {
@@ -148,23 +149,14 @@ async fn check_app_config() -> AppConfig {
     return AppConfig {
         view_mode: app_config["view_mode"].to_string(),
         last_modified: app_config["last_modified"].to_string(),
-        configured_path_one: app_config["configured_path_one"]
-            .to_string()
-            .replace('"', ""),
-        configured_path_two: app_config["configured_path_two"]
-            .to_string()
-            .replace('"', ""),
-        configured_path_three: app_config["configured_path_three"]
-            .to_string()
-            .replace('"', ""),
+        configured_path_one: app_config["configured_path_one"].to_string().replace('"', ""),
+        configured_path_two: app_config["configured_path_two"].to_string().replace('"', ""),
+        configured_path_three: app_config["configured_path_three"].to_string().replace('"', ""),
         is_open_in_terminal: app_config["is_open_in_terminal"].to_string(),
         is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string(),
         launch_path: app_config["launch_path"].to_string().replace('"', ""),
         is_dual_pane_active: app_config["is_dual_pane_active"].to_string(),
-        search_depth: app_config["search_depth"]
-            .to_string()
-            .parse::<i32>()
-            .unwrap(),
+        search_depth: app_config["search_depth"].to_string().parse::<i32>().unwrap(),
         max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
         is_light_mode: app_config["is_light_mode"].to_string(),
         is_image_preview: app_config["is_image_preview"].to_string(),
@@ -665,7 +657,7 @@ async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, fi
                     err_log(format!("Error reading: {}", x));
                     0 as usize
                 });
-                for (idx, line) in buffer.lines().enumerate() {
+                for (_idx, line) in buffer.lines().enumerate() {
                     if line.contains(&file_content) {
                         dir_list.push(FDir {
                             name: name.to_string(),
@@ -813,7 +805,7 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
 #[tauri::command]
 async fn delete_item(act_file_name: String) -> Vec<FDir> {
     let dir = File::open(&act_file_name);
-    let mut is_dir: bool;
+    let is_dir: bool;
     if dir.is_ok() {
         is_dir = dir.unwrap().metadata().unwrap().is_dir();
     }
@@ -878,17 +870,12 @@ async fn open_item(path: String) {
 }
 
 #[tauri::command]
-async fn compress_item(from_path: String) -> Vec<FDir> {
+async fn compress_item(from_path: String, compression_level: i32) -> Vec<FDir> {
     let sw = Stopwatch::start_new();
-    let file_ext = ".".to_string().to_owned()
-        + from_path
-            .split(".")
-            .nth(from_path.split(".").count() - 1)
-            .unwrap_or("");
-    // let _ = sevenz_rust::compress_to_path(&from_path, from_path.to_string()+".7z").expect("complete");
+    dbg_log(format!("Compression of '{}' started with compression level: {}", &from_path.split("/").last().unwrap(), &compression_level));
+    let file_ext = ".".to_string().to_owned() + from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
     let _ = File::create(
-        from_path
-            .strip_suffix(&file_ext)
+        from_path.strip_suffix(&file_ext)
             .unwrap_or(&from_path)
             .to_owned()
             + ".zip",
@@ -896,29 +883,29 @@ async fn compress_item(from_path: String) -> Vec<FDir> {
     .unwrap();
     let source: PathBuf;
     let archive = PathBuf::from(
-        from_path
-            .strip_suffix(&file_ext)
+        from_path.strip_suffix(&file_ext)
             .unwrap_or(&from_path)
             .to_owned()
             + ".zip",
     );
     if fs::metadata(&from_path).unwrap().is_dir() {
         source = PathBuf::from(&from_path);
-    } else {
+    }
+    else {
         let file_name = &from_path
             .split("/")
             .nth(&from_path.split("/").count() - 1)
             .unwrap();
-        let _ = create_dir("compressed_dir");
-        let _ = copy(
-            &from_path,
-            "compressed_dir/".to_string().to_owned() + file_name,
-        );
-        source = PathBuf::from("compressed_dir");
+        let _ = create_dir("__compressed_dir");
+        let _ = copy(&from_path, "__compressed_dir/".to_string().to_owned() + file_name);
+        source = PathBuf::from("__compressed_dir");
     }
-    let _ = zip_create_from_directory(&archive, &source);
-    let _ = remove_dir_all("compressed_dir");
-    dbg_log(format!("Pack time: {:?}", sw.elapsed()));
+    let options = FileOptions::default()
+        .compression_method(zip::CompressionMethod::Zstd)
+        .compression_level(Option::from(compression_level));
+    let _ = zip_create_from_directory_with_options(&archive, &source, options);
+    let _ = remove_dir_all("__compressed_dir");
+    dbg_log(format!("Compression time: {:?}", sw.elapsed()));
     return list_dirs().await;
 }
 
@@ -991,4 +978,18 @@ async fn save_config(
         .to_string();
     let _ = serde_json::to_writer_pretty(File::create(&config_dir).unwrap(), &app_config_json);
     dbg_log(format!("app_config was saved to {}", config_dir));
+}
+
+#[tauri::command]
+async fn rename_elements_with_format(arr_elements: Vec<String>, new_name: String, start_at: i32, step_by: i32, n_digits: usize, ext: String) {
+    let mut counter = start_at;
+    for element in arr_elements {
+        let mut item_ext: String = ext.to_string();
+        if element.split(".").last().unwrap().len() > 0 && ext.len() == 0 {
+            item_ext = format!("{}", ".".to_string() + element.split(".").last().unwrap());
+        }
+        let _ = fs::rename(&element, format!("{}{:0>n_digits$}{}", new_name, counter, item_ext));
+        dbg_log(format!("Renamed from {} to {}", element, format!("{}{:0>n_digits$}{}", new_name, counter, item_ext)));
+        counter += step_by;
+    }
 }
