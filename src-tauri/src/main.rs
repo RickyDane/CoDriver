@@ -901,7 +901,7 @@ async fn compress_item(from_path: String, compression_level: i32) -> Vec<FDir> {
         source = PathBuf::from("__compressed_dir");
     }
     let options = FileOptions::default()
-        .compression_method(zip::CompressionMethod::Bzip2)
+        .compression_method(zip::CompressionMethod::Zstd)
         .compression_level(Option::from(compression_level));
     let _ = zip_create_from_directory_with_options(&archive, &source, options);
     let _ = remove_dir_all("__compressed_dir");

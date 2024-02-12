@@ -27,7 +27,6 @@ let CurrentDir = "/Home";
 let IsShowDisks = false;
 let IsShowHiddenFiles = false;
 
-let IsAltDown = false;
 let IsMetaDown = false;
 let IsCtrlDown = false;
 let IsShiftDown = false;
@@ -241,9 +240,6 @@ document.addEventListener("contextmenu", (e) => {
 
 document.onkeydown = async (e) => {
   // Shortcut for jumping to configured directory
-  if (e.altKey) {
-    IsAltDown = true;
-  }
   if (e.metaKey) {
     IsMetaDown = true;
   }
@@ -327,7 +323,7 @@ document.onkeydown = async (e) => {
       e.stopPropagation();
     }
     // check if return is pressed
-    if (IsAltDown == false && e.keyCode == 13) {
+    if (!e.altKey && e.keyCode == 13) {
       openSelectedItem();
       e.preventDefault();
       e.stopPropagation();
@@ -335,12 +331,18 @@ document.onkeydown = async (e) => {
     // check if arrow up is pressed
     if (e.keyCode == 38) {
       goUp();
+      if (SelectedElement == null) {
+        goUp(false, true);
+      }
       e.preventDefault();
       e.stopPropagation();
     }
     // check if arrow down is pressed
     if (e.keyCode == 40) {
-      goDown(e);
+      goDown();
+      if (SelectedElement == null) {
+        goUp(false, true);
+      }
       e.preventDefault();
       e.stopPropagation();
     }
@@ -456,7 +458,7 @@ document.onkeydown = async (e) => {
         }
       }
     }
-    if ((IsAltDown && e.key == "Enter") || e.key == "F2") {
+    if ((e.altKey && e.key == "Enter") || e.key == "F2") {
       // check if alt + enter is pressed
       renameElementInputPrompt(SelectedElement);
     }
@@ -521,9 +523,6 @@ document.onkeydown = async (e) => {
 
 // Reset key toggle
 document.onkeyup = (e) => {
-  if (e.altKey) {
-    IsAltDown = false;
-  }
   if (e.keyCode == 71) {
     IsGDown = false;
   }
@@ -542,22 +541,22 @@ document.onkeyup = (e) => {
 
 // check for click on one of the dual pane containers and set directory accordingly
 document.querySelector(".dual-pane-left").addEventListener("click", () => {
-  if (IsPopUpOpen == false) {
+  if (IsPopUpOpen == false && SelectedItemPaneSide != "left") {
     setCurrentDir(LeftDualPanePath, "left");
   }
 });
 document.querySelector(".dual-pane-left").addEventListener("contextmenu", () => {
-  if (IsPopUpOpen == false) {
+  if (IsPopUpOpen == false && SelectedItemPaneSide != "left") {
     setCurrentDir(LeftDualPanePath, "left");
   }
 });
 document.querySelector(".dual-pane-right").addEventListener("click", () => {
-  if (IsPopUpOpen == false) {
+  if (IsPopUpOpen == false && SelectedItemPaneSide != "right") {
     setCurrentDir(RightDualPanePath, "right");
   }
 });
 document.querySelector(".dual-pane-right").addEventListener("contextmenu", () => {
-  if (IsPopUpOpen == false) {
+  if (IsPopUpOpen == false && SelectedItemPaneSide != "right") {
     setCurrentDir(RightDualPanePath, "right");
   }
 });
@@ -910,6 +909,7 @@ async function getCurrentDir() {
 }
 
 async function setCurrentDir(currentDir, dualPaneSide) {
+  SelectedItemPaneSide = dualPaneSide;
   await invoke("set_dir", { currentDir }).then(() => {
     CurrentDir = currentDir;
     document.querySelector(".current-path").textContent = CurrentDir;
@@ -1028,8 +1028,8 @@ async function showCompressPopup(item) {
       </div>
       <div class="popup-body">
         <div style="display: flex; flex-flow: column; gap: 5px; width: 100%;">
-          <p class="text-2">Compression level (0-9)</p>
-          <input class="text-input compression-popup-level-input" type="number" value="6" placeholder="0-9" />
+          <p class="text-2">Compression level (-7 - 22)</p>
+          <input class="text-input compression-popup-level-input" type="number" value="3" placeholder="-7-22" />
         </div>
       </div>
       <div class="popup-controls">
@@ -1118,23 +1118,25 @@ async function pasteItem() {
   ContextMenu.style.display = "none";
   for (let i = 0; i < arr.length; i++) {
     if (IsDualPaneEnabled == true) {
-      let actFileName = arr[i].getAttribute("itempath").split("/")[arr[i].getAttribute("itempath").split("/").length - 1].replace("'", "");
+      let actFileName = arr[i].getAttribute("itemname");
       let fromPath = arr[i].getAttribute("itempath");
       showLoadingPopup(actFileName + " is being copied over");
       let isForDualPane = "1";
       if (SelectedItemPaneSide == "left") {
         actFileName = RightDualPanePath + "/" + actFileName;
         await invoke("set_dir", { currentDir: RightDualPanePath });
-        await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then((items) => {
-            showItems(items, "right");
+        await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then(async (items) => {
+            await showItems(items, "right");
+            showToast("Copy", "Done copying some files", "success");
           },
         );
       }
       else if (SelectedItemPaneSide == "right") {
         actFileName = LeftDualPanePath + "/" + actFileName;
         await invoke("set_dir", { currentDir: LeftDualPanePath });
-        await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then((items) => {
-            showItems(items, "left");
+        await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then(async (items) => {
+            await showItems(items, "left");
+            showToast("Copy", "Done copying some files", "success");
           },
         );
       }
@@ -1156,7 +1158,6 @@ async function pasteItem() {
     }
     closeLoadingPopup();
   }
-  showToast("Copy", "Done copying some files", "success");
 }
 
 function createFolderInputPrompt(e = null) {
@@ -1511,18 +1512,14 @@ async function interactWithItem(element = null, dualPaneSide = "", shortcutPath 
 async function openItem(element, dualPaneSide, shortcutDirPath = null) {
   let isDir = element != null ? element.getAttribute("itemisdir") : (shortcutDirPath != null ? 1 : 0);
   let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
-  console.log(isDir, path);
   if (IsPopUpOpen == false) {
-    if (IsItemPreviewOpen == false && isDir == 1 || (isDir == 1 && shortcut == true)) {
+    if (IsItemPreviewOpen == false && isDir == 1) {
       // Open directory
       await invoke("open_dir", { path }).then(async (items) => {
+        await showItems(items, dualPaneSide);
         if (IsDualPaneEnabled == true && dualPaneSide != "") {
-          document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = "";
-          await showItems(items, dualPaneSide);
+          // document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = ""; // Disabled tab functionality
           goUp(false, true);
-        }
-        else {
-          await showItems(items);
         }
       });
     }
@@ -1636,7 +1633,8 @@ async function goBack() {
         }
       });
     }
-  } else {
+  }
+  else {
     await invoke("ftp_go_back", { path: CurrentFtpPath }).then(async (items) => {
         await showItems(items);
         console.log(CurrentFtpPath);
@@ -1739,7 +1737,7 @@ function goUp(isSwitched = false, toFirst = false) {
   }
 }
 
-function goDown(e) {
+function goDown() {
   let element = null;
   let selectedItemIndex = 0;
   if (SelectedElement != null) {
@@ -1794,7 +1792,7 @@ function goDown(e) {
       RightPaneItemIndex = selectedItemIndex;
     }
   }
-  if (element != SelectedElement) {
+  if (element != SelectedElement && SelectedElement != null) {
     SelectedElement.children[0].style.backgroundColor = "transparent";
     element.onclick();
   }
