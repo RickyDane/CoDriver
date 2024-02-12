@@ -984,7 +984,10 @@ async function extractItem(item) {
         else {
           await showItems(items.filter((str) => !str.name.startsWith(".")));
         }
-        await message("Unpack complete");
+        showToast("Extraction", "Extraction done", "success")
+      }).catch((err) => {
+        showToast("Extraction", "Extraction failed", "error");
+        console.log(err);
       });
     }
   }
