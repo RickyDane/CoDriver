@@ -7,13 +7,17 @@ listen('tauri://file-drop', event => {
         CopyFilePath = item;
         let tempCopyFilePath = CopyFilePath.split("/");
         CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
-        pasteItem();
+        let element = document.createElement("button");
+        element.setAttribute("itemname", CopyFileName);
+        element.setAttribute("itempath", CopyFilePath);
+        ArrSelectedItems.push(element);
+        ArrCopyItems.push(element);
     });
+    pasteItem();
 })
 
 
-// Toasts
-
+/* Toasts */
 function showToast(title, message, type = "info") {
     let toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
@@ -37,7 +41,7 @@ function showToast(title, message, type = "info") {
             <p>${message}</p>
         </div>
     `;
-    
+
     $(".toast-container").append(toast);
     setTimeout(() => {
         toast.style.opacity = 0;
