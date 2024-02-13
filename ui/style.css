@@ -26,6 +26,8 @@
     --fontSize: 12px;
     --textColor2: rgba(255, 255, 255, 0.6);
     --fontSize2: 16px;
+    --successColor: #00aa00;
+    --errorColor: #bb0000;
 }
 
 html {
@@ -1190,17 +1192,16 @@ label {
 	align-items: center;
 	width: 75px;
 	font-size: 1.5em;
+	fill: white;
 }
 .toast-icon-info {
 	background-color: var(--secondaryColor);
 }
 .toast-icon-error {
-	background-color: rgba(255, 0, 0, 0.1);
-	color: var(--errorColor);
+	background-color: var(--errorColor);
 }
 .toast-icon-success {
-	background-color: rgba(0, 100, 0, 1);
-	color: var(--successColor);
+	background-color: var(--successColor);
 }
 .toast > .toast-content > h5 {
 	display: flex;
