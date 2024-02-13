@@ -139,6 +139,7 @@ function closeAllPopups() {
   closeMultiRenamePopup();
   closeCompressPopup();
   IsPopUpOpen = false;
+  IsInputFocused = false;
 }
 
 // Close context menu or new folder input dialog when click elsewhere
@@ -1419,7 +1420,7 @@ async function listDisks() {
 							<p class="disk-info"><b class="disk-info">Usage:</b> ${formatBytes(item.capacity)} / ${formatBytes(item.avail)} available (${evalCurrentLoad(item.avail, item.capacity)}%)</p>
 						</span>
 					</span>
-					`;
+				`;
       itemButton.className = "disk-item-button-button directory-entry";
       let itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
@@ -1431,7 +1432,7 @@ async function listDisks() {
             <p class="disk-info" style="width: auto; text-align: right;">${formatBytes(item.avail)}</p>
             <p class="disk-info" style="width: 75px; text-align: right;">${formatBytes(item.capacity)}</p>
 					</span>
-					`;
+				`;
       itemButtonList.className = "item-button-list directory-entry";
       if (ViewMode == "column") {
         itemButton.style.display = "none";
@@ -1610,13 +1611,14 @@ async function unSelectAllItems() {
 async function goHome() {
   await invoke("go_home").then(async (items) => {
     if (IsDualPaneEnabled == true) {
-      await showItems(items, "left");
-      await showItems(items, "right");
+      await showItems(items, SelectedItemPaneSide);
     }
     else {
       await showItems(items);
     }
-    goUp(false, true);
+    if (IsDualPaneEnabled == true) {
+      goUp(false, true);
+    }
   });
 }
 
@@ -1657,8 +1659,7 @@ function goUp(isSwitched = false, toFirst = false) {
         selectedItemIndex = LeftPaneItemIndex;
         if (LeftPaneItemIndex > 0 && isSwitched == true) {
           selectedItemIndex = LeftPaneItemIndex;
-          element =
-            LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
+          element = LeftPaneItemCollection.querySelectorAll(".item-link")[selectedItemIndex];
         }
         else if (parseInt(selectedItemIndex) < 1) {
           selectedItemIndex = 0;
@@ -1781,37 +1782,32 @@ function goDown() {
       }
       RightPaneItemIndex = selectedItemIndex;
     }
-  } else {
+  }
+  else {
     if (SelectedItemPaneSide == "left") {
       element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
       selectedItemIndex = 0;
       LeftPaneItemIndex = selectedItemIndex;
-    } else if (SelectedItemPaneSide == "right") {
+    }
+    else if (SelectedItemPaneSide == "right") {
       element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
       selectedItemIndex = 0;
       RightPaneItemIndex = selectedItemIndex;
     }
   }
-  if (element != SelectedElement && SelectedElement != null) {
+  if (element != null && element != SelectedElement && SelectedElement != null) {
     SelectedElement.children[0].style.backgroundColor = "transparent";
     element.onclick();
   }
 
   /* Scroll logic */
   if (SelectedItemPaneSide == "left") {
-    if (
-      parseInt(selectedItemIndex) * 36 -
-        document.querySelector(".dual-pane-left").scrollTop >
-      window.innerHeight - 200
-    ) {
+    if (parseInt(selectedItemIndex) * 36 - document.querySelector(".dual-pane-left").scrollTop > window.innerHeight - 200) {
       document.querySelector(".dual-pane-left").scrollTop += 36;
     }
-  } else if (SelectedItemPaneSide == "right") {
-    if (
-      parseInt(selectedItemIndex) * 36 -
-        document.querySelector(".dual-pane-right").scrollTop >
-      window.innerHeight - 200
-    ) {
+  }
+  else if (SelectedItemPaneSide == "right") {
+    if (parseInt(selectedItemIndex) * 36 - document.querySelector(".dual-pane-right").scrollTop > window.innerHeight - 200) {
       document.querySelector(".dual-pane-right").scrollTop += 36;
     }
   }
@@ -1837,7 +1833,8 @@ async function goToDir(directory) {
   await invoke("go_to_dir", { directory }).then(async (items) => {
     if (IsDualPaneEnabled == true) {
       await showItems(items, SelectedItemPaneSide);
-    } else {
+    }
+    else {
       await showItems(items);
     }
     IsFtpActive = false;
@@ -1948,6 +1945,7 @@ async function switchView() {
       document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
       document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
       document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "flex"));
+      document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "none"));
       ViewMode = "column";
       document.querySelectorAll(".explorer-container").forEach((item) => {
         item.style.marginTop = "35px";
@@ -1958,17 +1956,17 @@ async function switchView() {
     else {
       document.querySelectorAll(".directory-list").forEach((list) => {
         if (IsShowDisks == false) {
-          // list.style.flexFlow = "wrap";
           list.style.gridTemplateColumns = "repeat(auto-fill, minmax(110px, 1fr))";
           list.style.rowGap = "15px";
         }
         else {
-          list.style.rowGap = "5px";
+          list.style.rowGap = "10px";
         }
       });
       document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
       document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "flex"));
       document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "none"));
+      document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
       ViewMode = "wrap";
       document.querySelector(".list-column-header").style.display = "none";
       document.querySelectorAll(".explorer-container").forEach((item) => {
@@ -2359,6 +2357,16 @@ function showMultiRenamePopup() {
             <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
         </div>
       </div>
+      <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="icon-button" onclick="closeMultiRenamePopup()">
+          <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+          Cancel
+        </button>
+        <button class="icon-button multi-rename-button-run">
+          <div class="button-icon"><i class="fa-solid fa-pencil"></i></div>
+          Rename
+        </button>
+      </div>
     </div>
     <h4 style="padding: 10px;">Selected items to rename</h4>
   `;
@@ -2388,6 +2396,16 @@ function showMultiRenamePopup() {
         );
       }
     }));
+  document.querySelector(".multi-rename-button-run").addEventListener("click", () => {
+    renameItemsWithFormat(
+      arrItemsToRename.map(item => item.getAttribute("itempath")),
+      $(".multi-rename-newname").val(),
+      $(".multi-rename-startat").val(),
+      $(".multi-rename-stepby").val(),
+      $(".multi-rename-ndigits").val(),
+      $(".multi-rename-ext").val()
+    );
+  });
 }
 
 async function renameItemsWithFormat(arrElements = [], newName = "", startAt = 0, stepBy = 1, nDigits = 1, ext = "") {

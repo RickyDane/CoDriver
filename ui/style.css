@@ -454,6 +454,7 @@ label {
 }
 .item-icon {
     filter: saturate(1.2);
+    border-radius: 5px;
 }
 .item-button {
     position: relative;
