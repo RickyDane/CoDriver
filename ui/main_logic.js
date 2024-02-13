@@ -1107,8 +1107,6 @@ function closeInputPopup() {
 }
 
 async function pasteItem() {
-  console.log(ArrCopyItems);
-  console.log(ArrSelectedItems);
   let arr = [];
   if (IsDualPaneEnabled == true) {
     arr = ArrSelectedItems;
@@ -1122,43 +1120,38 @@ async function pasteItem() {
       let actFileName = arr[i].getAttribute("itemname");
       let fromPath = arr[i].getAttribute("itempath");
       showLoadingPopup(actFileName + " is being copied over");
-      let isForDualPane = "1";
       if (SelectedItemPaneSide == "left") {
         actFileName = RightDualPanePath + "/" + actFileName;
         await invoke("set_dir", { currentDir: RightDualPanePath });
-        await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then(async (items) => {
-            await showItems(items, "right");
-            showToast("Copy", "Done copying some files", "success");
-          },
-        );
+        await invoke("copy_paste", { actFileName, fromPath, isForDualPane: "1" }).then(async (items) => {
+          await showItems(items, "right");
+        });
       }
       else if (SelectedItemPaneSide == "right") {
         actFileName = LeftDualPanePath + "/" + actFileName;
         await invoke("set_dir", { currentDir: LeftDualPanePath });
-        await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then(async (items) => {
-            await showItems(items, "left");
-            showToast("Copy", "Done copying some files", "success");
-          },
-        );
+        await invoke("copy_paste", { actFileName, fromPath, isForDualPane: "1" }).then(async (items) => {
+          await showItems(items, "left");
+        });
       }
     }
     else {
-      let actFileName = arr[i].getAttribute("itempath").split("/")[arr[i].getAttribute("itempath").split("/").length - 1].replace("'", "");
-      showLoadingPopup(actFileName + " is being copied over");
+      let actFileName = arr[i].getAttribute("itemname");
       let fromPath = arr[i].getAttribute("itempath");
-      let isForDualPane = "0";
-      await invoke("copy_paste", { actFileName, fromPath, isForDualPane }).then(
-        async (items) => {
-          await showItems(items);
-        },
-      );
+      showLoadingPopup(actFileName + " is being copied over");
+      await invoke("copy_paste", { actFileName, fromPath, isForDualPane: "0" }).then(async (items) => {
+        await showItems(items);
+      });
       ContextMenu.style.display = "none";
     }
     if (IsCopyToCut == true) {
       await invoke("delete_item", { actFileName: arr[i].getAttribute("itempath") });
     }
     closeLoadingPopup();
+    ArrCopyItems = [];
+    ArrSelectedItems = [];
   }
+  showToast("Copy", "Done copying some files", "success");
 }
 
 function createFolderInputPrompt(e = null) {
