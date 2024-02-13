@@ -46,9 +46,9 @@ function showToast(title, message, type = "info") {
     setTimeout(() => {
         toast.style.opacity = 0;
         toast.style.translate = "100px";
-    }, 3000);
+    }, 2000);
 
     setTimeout(() => {
         toast?.remove();
-    }, 3300);
+    }, 2200);
 }

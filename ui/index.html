@@ -2,40 +2,31 @@
 <html>
 
 <head>
-    <link rel="stylesheet" href="font-awesome/css/all.min.css" />
-    <link rel="stylesheet" href="style.css" />
-    <script src="jquery.js"></script>
+    <script src="jquery.js" defer></script>
+    <script src="jquery-ui/jquery-ui.js" defer></script>
     <script src="jquery-dragout.js" defer></script>
     <script src="font-awesome/js/all.min.js" async></script>
     <script src="utils.js" async defer></script>
     <script src="main_logic.js" async defer></script>
+    <link rel="stylesheet" href="font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="style.css" />
+    <link href="jquery-ui/jquery-ui.css"></script>
     <meta charset="utf-8" />
 </head>
 
 <body>
 	<div class="toast-container"></div>
     <div data-tauri-drag-region class="titlebar">
-        <div class="titlebar-title">
-            <div class="tab-header"></div>
-        </div>
+        <div class="titlebar-title"><div class="tab-header"></div></div>
         <div class="titlebar-buttons">
-            <div class="titlebar-button" id="titlebar-minimize">
-                <i class="fa-solid fa-window-minimize"></i>
-            </div>
-            <div class="titlebar-button" id="titlebar-maximize">
-                <i class="fa-regular fa-window-maximize"></i>
-            </div>
-            <div class="titlebar-button" id="titlebar-close">
-                <i class="fa-solid fa-xmark"></i>
-            </div>
+            <div class="titlebar-button" id="titlebar-minimize"><i class="fa-solid fa-window-minimize"></i></div>
+            <div class="titlebar-button" id="titlebar-maximize"><i class="fa-regular fa-window-maximize"></i></div>
+            <div class="titlebar-button" id="titlebar-close"><i class="fa-solid fa-xmark"></i></div>
         </div>
         <div class="titlebar-buttons-macos">
-            <div class="titlebar-button-macos macos-red-button" id="titlebar-close" style="background-color: rgb(239, 68, 66);">
-            </div>
-            <div class="titlebar-button-macos macos-yellow-button" id="titlebar-minimize" style="background-color:  rgb(243, 174, 17);">
-            </div>
-            <div class="titlebar-button-macos macos-green-button" id="titlebar-maximize" style="background-color: rgb(62, 193, 41);">
-            </div>
+            <div class="titlebar-button-macos macos-red-button" id="titlebar-close" style="background-color: rgb(239, 68, 66);"></div>
+            <div class="titlebar-button-macos macos-yellow-button" id="titlebar-minimize" style="background-color:  rgb(243, 174, 17);"></div>
+            <div class="titlebar-button-macos macos-green-button" id="titlebar-maximize" style="background-color: rgb(62, 193, 41);"></div>
         </div>
     </div>
     <div class="header-nav">
@@ -94,7 +85,7 @@
         <button class="context-item">Copy<i class="fa-solid fa-copy"></i></button>
         <button class="context-item" onclick="pasteItem()">Paste<i class="fa-solid fa-paste"></i></button>
         <button class="context-item">New file<i class="fa-solid fa-file"></i></button>
-        <button class="context-item">New folder<i class="fa-solid fa-folder"></i></button>
+        <button class="context-item">New folder<i class="fa-solid fa-folder-plus"></i></button>
         <button class="context-item">Rename<i class="fa-solid fa-file-signature"></i></button>
         <button class="context-item">Properties<i class="fa-solid fa-info-circle"></i></button>
         <button class="context-item context-open-in-terminal" onclick="openInTerminal()">Open in Terminal<i

@@ -73,6 +73,7 @@ let Platform = "";
 let IsSelectMode = true;
 let IsItemPreviewOpen = false;
 let IsInputFocused = false;
+let ArrFavorites = [];
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -216,7 +217,7 @@ document.addEventListener("contextmenu", (e) => {
   ContextMenu.children[6].addEventListener(
     "click",
     function () {
-      createFolderInputPrompt(e);
+      createFolderInputPrompt();
     },
     { once: true },
   );
@@ -331,18 +332,22 @@ document.onkeydown = async (e) => {
     }
     // check if arrow up is pressed
     if (e.keyCode == 38) {
-      goUp();
       if (SelectedElement == null) {
         goUp(false, true);
+      }
+      else {
+        goUp();
       }
       e.preventDefault();
       e.stopPropagation();
     }
     // check if arrow down is pressed
     if (e.keyCode == 40) {
-      goDown();
       if (SelectedElement == null) {
         goUp(false, true);
+      }
+      else {
+        goDown();
       }
       e.preventDefault();
       e.stopPropagation();
@@ -639,6 +644,10 @@ async function showItems(items, dualPaneSide = "") {
     itemLink.setAttribute("itemname", item.name);
     itemLink.setAttribute("itemsize", formatBytes(item.size));
     itemLink.setAttribute("itemmodified", item.last_modified);
+    itemLink.setAttribute("id", "item-link");
+    itemLink.ondragstart = (e) => {
+      e.dataTransfer.setData("text/plain", e.target.getAttribute("itemname"));
+    }
 
     let newRow = document.createElement("div");
     newRow.className = "directory-item-entry";
@@ -818,7 +827,9 @@ async function showItems(items, dualPaneSide = "") {
     newRow.append(itemButton);
     newRow.append(itemButtonList);
     itemLink.append(newRow);
+    delete newRow;
     DirectoryList.append(itemLink);
+    delete itemLink;
   });
   DirectoryList.querySelectorAll(".directory-entry").forEach((item) => {
     // Open context menu when right-clicking on file/folder
@@ -861,7 +872,7 @@ async function showItems(items, dualPaneSide = "") {
         ContextMenu.children[1].classList.remove("c-item-disabled");
       }
       ContextMenu.children[0].addEventListener("click", async () => {
-        if (await confirm("Dou you really want to delete "+item.getAttribute('itemname')+"?") == true) {
+        if (await confirm("Dou you really want to delete " + item.getAttribute('itemname') + "?") == true) {
           await deleteItem(item);
         }
         else {
@@ -873,7 +884,7 @@ async function showItems(items, dualPaneSide = "") {
       ContextMenu.children[2].addEventListener("click", () => { showCompressPopup(item); }, { once: true });
       ContextMenu.children[3].addEventListener("click", () => { copyItem(item); }, { once: true });
       ContextMenu.children[5].addEventListener("click", () => { createFileInputPrompt(e); }, { once: true });
-      ContextMenu.children[6].addEventListener("click", () => { createFolderInputPrompt(e); }, { once: true });
+      ContextMenu.children[6].addEventListener("click", () => { createFolderInputPrompt(); }, { once: true });
       ContextMenu.children[7].addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
       ContextMenu.children[8].addEventListener("click", () => { showProperties(item); }, { once: true });
     });
@@ -1049,7 +1060,13 @@ async function showCompressPopup(item) {
     document.querySelector(".compress-item-button").addEventListener("click", async () => {
       await compressItem(item, $(".compression-popup-level-input").val());
     });
-    IsPopUpOpen = true;
+    $(".compression-popup-level-input").on("focus", () => IsInputFocused = true);
+    $(".compression-popup-level-input").on("blur", () => IsInputFocused = false);
+    $(".compression-popup-level-input").on("keyup", (e) => {
+      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "Enter") {
+        $(".compress-item-button").click();
+      }
+    });
   }
 }
 
@@ -1149,12 +1166,11 @@ async function pasteItem() {
     }
     closeLoadingPopup();
     ArrCopyItems = [];
-    ArrSelectedItems = [];
   }
   showToast("Copy", "Done copying some files", "success");
 }
 
-function createFolderInputPrompt(e = null) {
+function createFolderInputPrompt() {
   document.querySelectorAll(".input-dialog").forEach((item) => {
     item.remove();
   });
@@ -1819,7 +1835,9 @@ function goToOtherPane() {
 }
 
 function openSelectedItem() {
-  SelectedElement.onclick();
+  if (SelectedElement != null) {
+    SelectedElement.onclick();
+  }
 }
 
 async function goToDir(directory) {
@@ -2049,63 +2067,26 @@ function openSettings() {
 }
 
 async function saveConfig(isToReload = true) {
-  let configuredPathOne = (ConfiguredPathOne = document.querySelector(
-    ".configured-path-one-input",
-  ).value);
-  let configuredPathTwo = (ConfiguredPathTwo = document.querySelector(
-    ".configured-path-two-input",
-  ).value);
-  let configuredPathThree = (ConfiguredPathThree = document.querySelector(
-    ".configured-path-three-input",
-  ).value);
-  let isOpenInTerminal = false; //document.querySelector(".openin-terminal-checkbox").checked;
+  let configuredPathOne = (ConfiguredPathOne = document.querySelector(".configured-path-one-input").value);
+  let configuredPathTwo = (ConfiguredPathTwo = document.querySelector(".configured-path-two-input").value);
+  let configuredPathThree = (ConfiguredPathThree = document.querySelector(".configured-path-three-input").value);
+  let isOpenInTerminal = false; // document.querySelector(".openin-terminal-checkbox").checked;
   let isDualPaneEnabled = document.querySelector(".show-dual-pane-checkbox").checked;
   let launchPath = document.querySelector(".launch-path-input").value;
   let isDualPaneActive = IsDualPaneEnabled;
-  let searchDepth = parseInt(
-    document.querySelector(".search-depth-input").value,
-  );
+  let searchDepth = parseInt(document.querySelector(".search-depth-input").value);
   let maxItems = parseInt(document.querySelector(".max-items-input").value);
   let isLightMode = document.querySelector(".switch-light-dark-mode-checkbox").checked;
   let isImagePreview = (IsImagePreview = document.querySelector(".image-preview-checkbox").checked);
   let isSelectMode = (IsSelectMode = $("#choose-interaction-mode").is(":checked"));
   closeSettings();
 
-  if (isOpenInTerminal == true) {
-    isOpenInTerminal = "1";
-  } else {
-    isOpenInTerminal = "0";
-  }
-
-  if (isDualPaneEnabled == true) {
-    isDualPaneEnabled = "1";
-  } else {
-    isDualPaneEnabled = "0";
-  }
-
-  if (isDualPaneActive == true) {
-    isDualPaneActive = "1";
-  } else {
-    isDualPaneActive = "0";
-  }
-
-  if (isLightMode == true) {
-    isLightMode = "1";
-  } else {
-    isLightMode = "0";
-  }
-
-  if (isImagePreview == true) {
-    isImagePreview = "1";
-  } else {
-    isImagePreview = "0";
-  }
-
-  if (isSelectMode == true) {
-    isSelectMode = "1";
-  } else {
-    isSelectMode = "0";
-  }
+  if (isOpenInTerminal == true) { isOpenInTerminal = "1"; } else { isOpenInTerminal = "0"; }
+  if (isDualPaneEnabled == true) { isDualPaneEnabled = "1"; } else { isDualPaneEnabled = "0"; }
+  if (isDualPaneActive == true) {isDualPaneActive = "1"; } else { isDualPaneActive = "0"; }
+  if (isLightMode == true) { isLightMode = "1"; } else { isLightMode = "0"; }
+  if (isImagePreview == true) { isImagePreview = "1"; } else { isImagePreview = "0"; }
+  if (isSelectMode == true) { isSelectMode = "1"; } else { isSelectMode = "0"; }
 
   await invoke("save_config", {
     configuredPathOne,
@@ -2121,10 +2102,17 @@ async function saveConfig(isToReload = true) {
     isLightMode,
     isImagePreview,
     isSelectMode,
+    arrFavorites: ArrFavorites
   });
   if (isToReload == true) {
     checkAppConfig();
   }
+}
+
+async function addFavorites(item) {
+  ArrFavorites.push(item);
+  console.log(ArrFavorites);
+  // await invoke("save_favorites", { arrFavorites: ArrFavorites });
 }
 
 function closeSettings() {
@@ -2137,9 +2125,9 @@ function createTab(tabCount, isInitial) {
   let tab = document.createElement("div");
   tab.className = "fx-tab fx-tab-" + tabCount;
   if (isInitial) {
-    var tabName =
-      CurrentDir.split("/")[CurrentDir.split("/").length - 1] ?? "Home";
-  } else {
+    var tabName = CurrentDir.split("/")[CurrentDir.split("/").length - 1] ?? "Home";
+  }
+  else {
     var tabName = "New tab";
   }
   tab.innerHTML = `
@@ -2152,7 +2140,8 @@ function createTab(tabCount, isInitial) {
       "explorer-container tab-container-" + tabCount;
     if (ViewMode == "wrap") {
       explorerContainer.style.height = "calc(100vh - 100px)";
-    } else {
+    }
+    else {
       explorerContainer.style.marginTop = "35px";
       explorerContainer.style.height = "calc(100vh - 135px)";
     }
@@ -2483,4 +2472,3 @@ function checkColorMode() {
 }
 
 checkAppConfig();
-$(".downdrag").dragout();

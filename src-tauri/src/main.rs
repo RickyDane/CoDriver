@@ -63,7 +63,8 @@ fn main() {
             open_ftp_dir,
             ftp_go_back,
             copy_from_ftp,
-            rename_elements_with_format
+            rename_elements_with_format,
+            add_favorite
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -96,6 +97,7 @@ struct AppConfig {
     is_light_mode: String,
     is_image_preview: String,
     is_select_mode: String,
+    arr_favorites: Vec<String>
 }
 
 #[tauri::command]
@@ -127,6 +129,7 @@ async fn check_app_config() -> AppConfig {
             is_light_mode: "0".to_string(),
             is_image_preview: "0".to_string(),
             is_select_mode: "1".to_string(),
+            arr_favorites: vec![]
         };
         let _ = serde_json::to_writer_pretty(
             File::create(
@@ -146,6 +149,7 @@ async fn check_app_config() -> AppConfig {
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
 
+    let default_vec: Vec<Value> = vec![];
     return AppConfig {
         view_mode: app_config["view_mode"].to_string(),
         last_modified: app_config["last_modified"].to_string(),
@@ -161,6 +165,7 @@ async fn check_app_config() -> AppConfig {
         is_light_mode: app_config["is_light_mode"].to_string(),
         is_image_preview: app_config["is_image_preview"].to_string(),
         is_select_mode: app_config["is_select_mode"].to_string(),
+        arr_favorites: app_config["arr_favorites"].as_array().unwrap_or_else(|| { &default_vec }).iter().map(|x| x.to_string().replace('"', "")).collect()
     };
 }
 
@@ -199,83 +204,10 @@ async fn switch_to_directory(current_dir: String) {
 }
 #[tauri::command]
 async fn switch_view(view_mode: String) -> Vec<FDir> {
-    let app_config_file = File::open(
-        app_config_dir(&Config::default())
-            .unwrap()
-            .join("rdpFX/app_config.json"),
-    )
-    .unwrap();
+    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
-    let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
-    let app_config_json = AppConfig {
-        view_mode,
-        last_modified: chrono::offset::Local::now().to_string(),
-        configured_path_one: app_config["configured_path_one"]
-            .to_string()
-            .replace('"', "")
-            .replace("\\", "/")
-            .trim()
-            .to_string(),
-        configured_path_two: app_config["configured_path_two"]
-            .to_string()
-            .replace('"', "")
-            .replace("\\", "/")
-            .trim()
-            .to_string(),
-        configured_path_three: app_config["configured_path_three"]
-            .to_string()
-            .replace('"', "")
-            .replace("\\", "/")
-            .trim()
-            .to_string(),
-        is_open_in_terminal: app_config["is_open_in_terminal"]
-            .to_string()
-            .replace('"', "")
-            .replace("\\", "/")
-            .trim()
-            .to_string(),
-        is_dual_pane_enabled: app_config["is_dual_pane_enabled"]
-            .to_string()
-            .replace('"', "")
-            .replace("\\", "/")
-            .trim()
-            .to_string(),
-        launch_path: app_config["launch_path"]
-            .to_string()
-            .replace('"', "")
-            .replace("\\", "/")
-            .trim()
-            .to_string(),
-        is_dual_pane_active: app_config["is_dual_pane_active"]
-            .to_string()
-            .replace('"', "")
-            .replace("\\", "/")
-            .trim()
-            .to_string(),
-        search_depth: app_config["search_depth"]
-            .to_string()
-            .parse::<i32>()
-            .unwrap(),
-        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
-        is_light_mode: app_config["is_light_mode"]
-            .to_string()
-            .replace('"', "")
-            .replace("\\", "/")
-            .trim()
-            .to_string(),
-        is_image_preview: app_config["is_image_preview"]
-            .to_string()
-            .replace('"', "")
-            .replace("\\", "/")
-            .trim()
-            .to_string(),
-        is_select_mode: app_config["is_select_mode"]
-            .to_string()
-            .replace('"', "")
-            .replace("\\", "/")
-            .trim()
-            .to_string(),
-    };
+    let mut app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+    app_config["view_mode"] = Value::from(String::from(&view_mode));
     let _ = serde_json::to_writer_pretty(
         File::create(
             app_config_dir(&Config::default())
@@ -286,8 +218,9 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
                 .to_string(),
         )
         .unwrap(),
-        &app_config_json,
+        &app_config,
     );
+    dbg_log(format!("View-style switched to: {}", view_mode));
     return list_dirs().await;
 }
 
@@ -566,7 +499,6 @@ async fn go_home() -> Vec<FDir> {
 
 #[tauri::command]
 async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, file_content: String) -> Vec<FDir> {
-    dbg_log(format!("{}{}", &max_items, &search_depth));
     dbg_log(format!("Start searching for {}", &file_name));
     let temp_file_name = String::from(&file_name);
     if temp_file_name.split(".").nth(0).unwrap().contains("*") {
@@ -945,13 +877,9 @@ async fn save_config(
     is_light_mode: String,
     is_image_preview: String,
     is_select_mode: String,
+    arr_favorites: Vec<String>
 ) {
-    let app_config_file = File::open(
-        app_config_dir(&Config::default())
-            .unwrap()
-            .join("rdpFX/app_config.json"),
-    )
-    .unwrap();
+    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     let app_config_json = AppConfig {
@@ -964,11 +892,12 @@ async fn save_config(
         is_dual_pane_enabled: is_dual_pane_enabled.replace("\\", ""),
         launch_path: launch_path.replace("\\", "/"),
         is_dual_pane_active: is_dual_pane_active.replace("\\", ""),
-        search_depth: search_depth,
-        max_items: max_items,
+        search_depth,
+        max_items,
         is_light_mode: is_light_mode.replace("\\", "/"),
         is_image_preview: is_image_preview.replace("\\", "/"),
         is_select_mode: is_select_mode.replace("\\", "/"),
+        arr_favorites
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
@@ -992,4 +921,23 @@ async fn rename_elements_with_format(arr_elements: Vec<String>, new_name: String
         dbg_log(format!("Renamed from {} to {}", element, format!("{}{:0>n_digits$}{}", new_name, counter, item_ext)));
         counter += step_by;
     }
+}
+
+#[tauri::command]
+async fn add_favorite(arr_favorites: Vec<String>) {
+    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_reader = BufReader::new(app_config_file);
+    let mut app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+    app_config["arr_favorites"] = arr_favorites.clone().into_iter().map(|x| Value::String(x)).collect();
+    let _ = serde_json::to_writer_pretty(
+        File::create(app_config_dir(&Config::default())
+            .unwrap()
+            .join("rdpFX/app_config.json")
+            .to_str()
+            .unwrap()
+            .to_string(),
+        ).unwrap(),
+        &app_config,
+    );
+    dbg_log(format!("Saved favorites: {:?}", arr_favorites));
 }
