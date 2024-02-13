@@ -319,7 +319,7 @@ document.onkeydown = async (e) => {
       e.stopPropagation();
     }
     // check if backspace is pressed
-    if (e.keyCode == 8) {
+    if (e.keyCode == 8 && IsPopUpOpen == false) {
       goBack();
       e.preventDefault();
       e.stopPropagation();
@@ -519,7 +519,7 @@ document.onkeydown = async (e) => {
     }
 
     // check if ctrl / cmd + m is pressed
-    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.shiftKey && e.key == "m") {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.shiftKey && (e.key == "M" || e.key == "m")) {
       showMultiRenamePopup();
       e.preventDefault();
       e.stopPropagation();
@@ -1023,6 +1023,7 @@ async function compressItem(item, compressionLevel = 6) {
 }
 
 async function showCompressPopup(item) {
+  IsPopUpOpen = true;
   ContextMenu.style.display = "none";
   let compressFileName = item.getAttribute("itemname");
   if (compressFileName != "") {
@@ -1082,7 +1083,7 @@ function showLoadingPopup(msg) {
 		<h4>${msg}</h4>
 		<img width="32px" height="auto" src="resources/preloader.gif" />
 	`;
-  popup.className = "loading-popup";
+  popup.className = "uni-popup loading-popup";
   body.append(popup);
   IsPopUpOpen = true;
 }
