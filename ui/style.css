@@ -120,13 +120,13 @@ body {
     width: 150px;
     display: flex;
     flex-flow: column;
-    align-items: center;
     padding: 10px;
     z-index: 2;
     gap: 4px;
     border-right: 1px solid var(--tertiaryColor);
     border-radius: 0px 0px 0px 10px;
 }
+
 .site-nav-bar-button {
     background-color: var(--transparentColor);
     border: 1px solid var(--transparentColor);
@@ -752,7 +752,7 @@ label {
     margin-left: -1px;
     padding: 10px 10px 10px 12px;
     border: none;
-    background-color: var(--secondaryColor);
+    background-color: var(--transparentColor);
     cursor: pointer;
     z-index: 2;
 }
@@ -761,7 +761,7 @@ label {
 }
 .search-button:hover,
 .cancel-search-button:hover {
-    background-color: var(--secondaryColorActive);
+    background-color: var(--transparentColorActive);
 }
 .search-bar-container {
     display: none;
@@ -1122,14 +1122,15 @@ label {
 }
 .popup-body {
     padding: 10px;
-    border-bottom: 1px solid var(--tertiaryColor);
 }
 .popup-controls {
     display: flex;
     flex-flow: row;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 10px;
+    gap: 5px;
+    padding: 5px;
+    border-top: 1px solid var(--tertiaryColor);
+    background-color: var(--secondaryColor);
 }
 
 

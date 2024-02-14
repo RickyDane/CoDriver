@@ -2340,16 +2340,6 @@ function showMultiRenamePopup() {
             <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
         </div>
       </div>
-      <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
-        <button class="icon-button" onclick="closeMultiRenamePopup()">
-          <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-          Cancel
-        </button>
-        <button class="icon-button multi-rename-button-run">
-          <div class="button-icon"><i class="fa-solid fa-pencil"></i></div>
-          Rename
-        </button>
-      </div>
     </div>
     <h4 style="padding: 10px;">Selected items to rename</h4>
   `;
@@ -2364,21 +2354,33 @@ function showMultiRenamePopup() {
     list.append(item);
   }
   popup.append(list);
+  let popupControls = document.createElement("div");
+  popupControls.className = "popup-controls";
+  popupControls.innerHTML = `
+    <button class="icon-button" onclick="closeMultiRenamePopup()">
+      <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+      Cancel
+    </button>
+    <button class="icon-button multi-rename-button-run">
+      <div class="button-icon"><i class="fa-solid fa-pencil"></i></div>
+      Rename
+    </button>
+  `;
+  popup.append(popupControls);
   document.querySelector("body").append(popup);
   $(".multi-rename-newname").focus();
-  document.querySelectorAll(".multi-rename-input")
-    .forEach(input => input.addEventListener("keyup", (e) => {
-      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
-        renameItemsWithFormat(
-          arrItemsToRename.map(item => item.getAttribute("itempath")),
-          $(".multi-rename-newname").val(),
-          $(".multi-rename-startat").val(),
-          $(".multi-rename-stepby").val(),
-          $(".multi-rename-ndigits").val(),
-          $(".multi-rename-ext").val()
-        );
-      }
-    }));
+  document.querySelectorAll(".multi-rename-input").forEach(input => input.addEventListener("keyup", (e) => {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+      renameItemsWithFormat(
+        arrItemsToRename.map(item => item.getAttribute("itempath")),
+        $(".multi-rename-newname").val(),
+        $(".multi-rename-startat").val(),
+        $(".multi-rename-stepby").val(),
+        $(".multi-rename-ndigits").val(),
+        $(".multi-rename-ext").val()
+      );
+    }
+  }));
   document.querySelector(".multi-rename-button-run").addEventListener("click", () => {
     renameItemsWithFormat(
       arrItemsToRename.map(item => item.getAttribute("itempath")),
