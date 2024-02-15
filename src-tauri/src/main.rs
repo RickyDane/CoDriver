@@ -8,7 +8,7 @@ use serde_json::Value;
 use tauri::Window;
 use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+use std::io::{BufRead, BufReader, Read};
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_dir_all, remove_file, File},
@@ -27,7 +27,7 @@ use unrar::Archive;
 use zip_extensions::*;
 mod utils;
 use sysinfo::Disks;
-use utils::{dbg_log, err_log, wng_log, copy_to};
+use utils::{copy_to, count_entries, dbg_log, err_log, wng_log, COPY_COUNTER, TO_COPY_COUNTER};
 #[allow(unused_imports)]
 use rayon::prelude::*;
 
@@ -66,7 +66,9 @@ fn main() {
             copy_from_ftp,
             rename_elements_with_format,
             add_favorite,
-            test_window
+            test_window,
+            arr_copy_paste,
+            arr_delete_items
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -604,9 +606,7 @@ async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, fi
                             path: path.to_string(),
                             extension: String::from(&file_ext),
                             size: file_size.clone(),
-                            last_modified: String::from(
-                                file_date.to_string().split(".").nth(0).unwrap(),
-                            ),
+                            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
                             is_ftp: 0,
                         });
                         break;
@@ -637,23 +637,65 @@ async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, fi
 }
 
 #[tauri::command]
-async fn copy_paste(app_window: Window, act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
-    let _ = &app_window.eval("document.querySelector('.progress-bar-container-popup').style.display = 'block'");
-    dbg_log(format!("Copying: {} ...", &act_file_name));
-    let is_dir: bool;
-    let file = fs::metadata(&from_path);
-    if &file.is_ok() == &true {
-        is_dir = file.unwrap().is_dir();
+async fn copy_paste(app_window: Window, act_file_name: String, from_path: String, is_for_dual_pane: String) {
+    unsafe {
+        COPY_COUNTER = 0.0;
     }
-    else {
-        err_log("File could not be copied".into());
-        return list_dirs().await;
+    let _ = &app_window.eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
+    dbg_log(format!("Copying: {} ...", &act_file_name));
+    let final_filename = get_final_filename(act_file_name, from_path.clone(), is_for_dual_pane).await;
+
+    unsafe {
+        TO_COPY_COUNTER = count_entries(&from_path);
+        if TO_COPY_COUNTER == 1.0 {
+            let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'none'");
+        }
+        else {
+            let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
+        }
     }
     let sw = Stopwatch::start_new();
+    // Execute the copy process for either a dir or file
+    copy_to(&app_window, final_filename, from_path);
+    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
+}
+
+#[tauri::command]
+async fn arr_copy_paste(app_window: Window, arr_items: Vec<String>, is_for_dual_pane: String) {
+    unsafe {
+        COPY_COUNTER = 0.0;
+        TO_COPY_COUNTER = 0.0
+    }
+    let _ = &app_window.eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
+    let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
+    let mut filename: String;
+    for item in arr_items.clone() {
+        unsafe {
+            TO_COPY_COUNTER += count_entries(&item);
+        }
+    }
+    let sw = Stopwatch::start_new();
+    for item_path in arr_items {
+        filename = item_path.replace("\\", "/").split("/").last().unwrap().to_string();
+        let final_filename = get_final_filename(filename, item_path.clone(), is_for_dual_pane.clone()).await;
+        // Execute the copy process for either a dir or file
+        copy_to(&app_window, final_filename, item_path);
+    }
+    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
+}
+
+#[tauri::command]
+async fn get_final_filename(act_file_name: String, from_path: String, is_for_dual_pane: String) -> String {
+    let file = fs::metadata(&from_path);
+    if &file.is_ok() != &true {
+        err_log("File could not be copied".into());
+        return "".into();
+    }
     let file_name: String;
     if is_for_dual_pane == "1" {
         file_name = act_file_name;
-    } else {
+    }
+    else {
         file_name = current_dir()
             .unwrap()
             .join(&act_file_name)
@@ -693,37 +735,19 @@ async fn copy_paste(app_window: Window, act_file_name: String, from_path: String
         is_file_existing = fs::metadata(&final_filename).is_ok();
         counter += 1;
     }
-
-    // Execute the copy process for either a dir or file
-    if is_dir {
-        if is_for_dual_pane == "1" {
-            let _ = copy_dir::copy_dir(&from_path, final_filename.replace("\\", "/"));
-        }
-        else {
-            let _ = copy_dir::copy_dir(
-                current_dir().unwrap().join(&from_path.replace("\\", "/")),
-                final_filename.replace("\\", "/"),
-            );
-        }
-    }
-    else {
-        copy_to(&app_window, final_filename.replace("\\", "/"), from_path);
-    }
-    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
-    let _ = app_window.eval("document.querySelector('.progress-bar-fill').style.width = '0%'");
-    let _ = &app_window.eval("document.querySelector('.progress-bar-container-popup').style.display = 'none'");
-    return list_dirs().await;
+    final_filename = final_filename.replace("\\", "/");
+    return final_filename;
 }
 
 #[tauri::command]
-async fn delete_item(act_file_name: String) -> Vec<FDir> {
-    let dir = File::open(&act_file_name);
+async fn delete_item(act_file_name: String) {
+    let file = File::open(&act_file_name);
     let is_dir: bool;
-    if dir.is_ok() {
-        is_dir = dir.unwrap().metadata().unwrap().is_dir();
+    if file.is_ok() {
+        is_dir = file.unwrap().metadata().unwrap().is_dir();
     }
     else {
-        return list_dirs().await;
+        return;
     }
     dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
     if is_dir {
@@ -732,7 +756,13 @@ async fn delete_item(act_file_name: String) -> Vec<FDir> {
     else {
         let _ = remove_file(act_file_name.replace("\\", "/"));
     }
-    return list_dirs().await;
+}
+
+#[tauri::command]
+async fn arr_delete_items(arr_items: Vec<String>) {
+    for path in arr_items {
+        delete_item(path).await;
+    }
 }
 
 #[tauri::command]

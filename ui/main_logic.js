@@ -407,10 +407,12 @@ document.onkeydown = async (e) => {
     }
     let isConfirm = await confirm(msg);
     if (isConfirm == true) {
-      for (let i = 0; i < ArrSelectedItems.length; i++) {
-        await deleteItem(ArrSelectedItems[i]);
-      }
+      showLoadingPopup("Items are being deleted");
+      await invoke("arr_delete_items",  {arrItems: ArrSelectedItems.map((item) => item.getAttribute("itempath"))});
+      ArrSelectedItems = [];
+      closeLoadingPopup();
     }
+    listDirectories();
     goUp();
     e.preventDefault();
     e.stopPropagation();
@@ -941,13 +943,9 @@ async function deleteItem(item) {
   let actFileName = fromPath.split("/")[fromPath.split("/").length - 1];
   if (IsMetaDown == true) {
     IsMetaDown = false;
-  }
-  showLoadingPopup(actFileName + " is being deleted");
-  await invoke("delete_item", { actFileName }).then(async (items) => {
-    ContextMenu.style.display = "none";
-    await showItems(items.filter((str) => !str.name.startsWith(".")), SelectedItemPaneSide);
-    closeLoadingPopup();
-  });
+  };
+  ContextMenu.style.display = "none";
+  await invoke("delete_item", { actFileName });
   IsCopyToCut = false;
 }
 
@@ -1113,6 +1111,7 @@ function showInputPopup(msg) {
     IsInputFocused = false;
   });
 }
+
 function closeInputPopup() {
   $(".input-popup").remove();
   IsPopUpOpen = false;
@@ -1127,50 +1126,39 @@ async function pasteItem() {
     arr = ArrCopyItems;
   }
   ContextMenu.style.display = "none";
-  for (let i = 0; i < arr.length; i++) {
-    if (IsDualPaneEnabled == true) {
-      let actFileName = arr[i].getAttribute("itemname");
-      let fromPath = arr[i].getAttribute("itempath");
-      showLoadingPopup(actFileName + " is being copied over");
-      if (SelectedItemPaneSide == "left") {
-        actFileName = RightDualPanePath + "/" + actFileName;
-        await invoke("set_dir", { currentDir: RightDualPanePath });
-        await invoke("copy_paste", { appWindow, actFileName, fromPath, isForDualPane: "1" })
-          .then(async (items) => {
-            await showItems(items, "right");
-          }
-        );
-      }
-      else if (SelectedItemPaneSide == "right") {
-        actFileName = LeftDualPanePath + "/" + actFileName;
-        await invoke("set_dir", { currentDir: LeftDualPanePath });
-        await invoke("copy_paste", { appWindow, actFileName, fromPath, isForDualPane: "1" })
-          .then(async (items) => {
-            await showItems(items, "left");
-          }
-        );
-      }
+  if (IsDualPaneEnabled == true) {
+    if (SelectedItemPaneSide == "left") {
+      await invoke("set_dir", { currentDir: RightDualPanePath });
+      let arrItems = arr.map((item) => item.getAttribute("itempath"));
+      await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "1" })
     }
-    else {
-      let actFileName = arr[i].getAttribute("itemname");
-      let fromPath = arr[i].getAttribute("itempath");
-      showLoadingPopup(actFileName + " is being copied over");
-      await invoke("copy_paste", { appWindow, actFileName, fromPath, isForDualPane: "0" })
-        .then(async (items) => {
-          await showItems(items);
-        }
-      );
-      ContextMenu.style.display = "none";
+    else if (SelectedItemPaneSide == "right") {
+      await invoke("set_dir", { currentDir: LeftDualPanePath });
+      let arrItems = arr.map((item) => item.getAttribute("itempath"));
+        await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "1" })
     }
-    if (IsCopyToCut == true) {
-      await invoke("delete_item", { actFileName: arr[i].getAttribute("itempath") });
-    }
-    closeLoadingPopup();
+  }
+  else {
+    let arrItems = arr.map((item) => item.getAttribute("itempath"));
+    await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "0" })
+    ContextMenu.style.display = "none";
+  }
+  if (IsCopyToCut == true) {
+    await invoke("delete_item", { actFileName: arr[i].getAttribute("itempath") });
     ArrCopyItems = [];
   }
+  closeLoadingPopup();
   if (arr.length >= 1) {
     showToast("Copy", "Done copying some files", "success");
   }
+  await listDirectories(true);
+  resetProgressBar();
+}
+
+function resetProgressBar() {
+  document.querySelector('.progress-bar-fill').style.width = '0px';
+  document.querySelector('.progress-bar-container-popup').style.display = 'none';
+  document.querySelector('.progress-bar-2-fill').style.width = '0px';
 }
 
 function createFolderInputPrompt() {
@@ -1468,10 +1456,20 @@ async function listDisks() {
   document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
 }
 
-async function listDirectories() {
+async function listDirectories(fromDualPaneCopy = false) {
   await invoke("list_dirs").then(async (items) => {
     if (IsDualPaneEnabled == true) {
-      await showItems(items, SelectedItemPaneSide);
+      if (fromDualPaneCopy == true) {
+        if (SelectedItemPaneSide == "left") {
+          await showItems(items, "right");
+        }
+        else if (SelectedItemPaneSide == "right") {
+          await showItems(items, "left");
+        }
+      }
+      else {
+        await showItems(items, SelectedItemPaneSide);
+      }
       goUp(false, true);
     }
     else {
