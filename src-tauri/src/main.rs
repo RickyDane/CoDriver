@@ -5,9 +5,10 @@ use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
+use tauri::Window;
 use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_dir_all, remove_file, File},
@@ -26,7 +27,7 @@ use unrar::Archive;
 use zip_extensions::*;
 mod utils;
 use sysinfo::Disks;
-use utils::{dbg_log, err_log, wng_log};
+use utils::{dbg_log, err_log, wng_log, copy_to};
 #[allow(unused_imports)]
 use rayon::prelude::*;
 
@@ -64,10 +65,16 @@ fn main() {
             ftp_go_back,
             copy_from_ftp,
             rename_elements_with_format,
-            add_favorite
+            add_favorite,
+            test_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[tauri::command]
+async fn test_window (app_window: Window) {
+    let _ = app_window.eval("alert('Hey whats up?')");
 }
 
 #[derive(serde::Serialize)]
@@ -630,7 +637,8 @@ async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, fi
 }
 
 #[tauri::command]
-async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
+async fn copy_paste(app_window: Window, act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
+    let _ = &app_window.eval("document.querySelector('.progress-bar-container-popup').style.display = 'block'");
     dbg_log(format!("Copying: {} ...", &act_file_name));
     let is_dir: bool;
     let file = fs::metadata(&from_path);
@@ -699,38 +707,11 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
         }
     }
     else {
-        if is_for_dual_pane == "1" {
-            let _ = copy(&from_path, final_filename.replace("\\", "/"));
-        }
-        else {
-            let _ = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/"));
-
-            /* Copy file byte by byte -> To play around with later ... */
-
-            // let line_file = File::open(&from_path).unwrap();
-            // let mut reader = BufReader::new(line_file);
-
-            // let mut buffer = Vec::new();
-            // reader.read_to_end(&mut buffer).expect("Failed to read file");
-
-            // let line_count = buffer.iter().len() as f64;
-
-            // let new_file = File::create(&final_filename).unwrap();
-            // let mut new_file = BufWriter::new(new_file);
-
-            // let mut counter = 0;
-            // for (num, &byte) in buffer.iter().enumerate() {
-            //     let progress = num as f64;
-            //     new_file.write(&[byte]).unwrap();
-            //     if counter % 10000000 == 0 {
-            //         let percentage = format!("{:?}", (100.0/line_count) * progress);
-            //         println!("{} %", &percentage.to_string());
-            //     }
-            //     counter += 1;
-            // }
-        }
+        copy_to(&app_window, final_filename.replace("\\", "/"), from_path);
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
+    let _ = app_window.eval("document.querySelector('.progress-bar-fill').style.width = '0%'");
+    let _ = &app_window.eval("document.querySelector('.progress-bar-container-popup').style.display = 'none'");
     return list_dirs().await;
 }
 

@@ -645,9 +645,6 @@ async function showItems(items, dualPaneSide = "") {
     itemLink.setAttribute("itemsize", formatBytes(item.size));
     itemLink.setAttribute("itemmodified", item.last_modified);
     itemLink.setAttribute("id", "item-link");
-    itemLink.ondragstart = (e) => {
-      e.dataTransfer.setData("text/plain", e.target.getAttribute("itemname"));
-    }
 
     let newRow = document.createElement("div");
     newRow.className = "directory-item-entry";
@@ -968,9 +965,6 @@ async function copyItem(item, toCut = false) {
   else {
     ArrCopyItems.push(item);
   }
-
-  console.log(ArrCopyItems);
-
   ContextMenu.style.display = "none";
   await writeText(CopyFilePath);
   if (toCut == true) {
@@ -1141,25 +1135,31 @@ async function pasteItem() {
       if (SelectedItemPaneSide == "left") {
         actFileName = RightDualPanePath + "/" + actFileName;
         await invoke("set_dir", { currentDir: RightDualPanePath });
-        await invoke("copy_paste", { actFileName, fromPath, isForDualPane: "1" }).then(async (items) => {
-          await showItems(items, "right");
-        });
+        await invoke("copy_paste", { appWindow, actFileName, fromPath, isForDualPane: "1" })
+          .then(async (items) => {
+            await showItems(items, "right");
+          }
+        );
       }
       else if (SelectedItemPaneSide == "right") {
         actFileName = LeftDualPanePath + "/" + actFileName;
         await invoke("set_dir", { currentDir: LeftDualPanePath });
-        await invoke("copy_paste", { actFileName, fromPath, isForDualPane: "1" }).then(async (items) => {
-          await showItems(items, "left");
-        });
+        await invoke("copy_paste", { appWindow, actFileName, fromPath, isForDualPane: "1" })
+          .then(async (items) => {
+            await showItems(items, "left");
+          }
+        );
       }
     }
     else {
       let actFileName = arr[i].getAttribute("itemname");
       let fromPath = arr[i].getAttribute("itempath");
       showLoadingPopup(actFileName + " is being copied over");
-      await invoke("copy_paste", { actFileName, fromPath, isForDualPane: "0" }).then(async (items) => {
-        await showItems(items);
-      });
+      await invoke("copy_paste", { appWindow, actFileName, fromPath, isForDualPane: "0" })
+        .then(async (items) => {
+          await showItems(items);
+        }
+      );
       ContextMenu.style.display = "none";
     }
     if (IsCopyToCut == true) {
@@ -1168,7 +1168,9 @@ async function pasteItem() {
     closeLoadingPopup();
     ArrCopyItems = [];
   }
-  showToast("Copy", "Done copying some files", "success");
+  if (arr.length >= 1) {
+    showToast("Copy", "Done copying some files", "success");
+  }
 }
 
 function createFolderInputPrompt() {
@@ -1499,7 +1501,7 @@ async function interactWithItem(element = null, dualPaneSide = "", shortcutPath 
       selectItem(element, dualPaneSide);
     }
     // Interaction mode: Open item
-    else {
+    else if (element != null) {
       openItem(element, dualPaneSide, shortcutPath);
     }
   }
@@ -1521,7 +1523,7 @@ async function interactWithItem(element = null, dualPaneSide = "", shortcutPath 
 }
 
 async function openItem(element, dualPaneSide, shortcutDirPath = null) {
-  let isDir = element != null ? element.getAttribute("itemisdir") : (shortcutDirPath != null ? 1 : 0);
+  let isDir = element != null ? parseInt(element.getAttribute("itemisdir")) : (shortcutDirPath != null ? 1 : 0);
   let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
   if (IsPopUpOpen == false) {
     if (IsItemPreviewOpen == false && isDir == 1) {
@@ -2341,7 +2343,7 @@ function showMultiRenamePopup() {
         </div>
       </div>
     </div>
-    <h4 style="padding: 10px;">Selected items to rename</h4>
+    <h4 style="padding: 10px; background-color: var(--secondaryColor);">Selected items to rename</h4>
   `;
   let arrItemsToRename = ArrSelectedItems;
   let list = document.createElement("div");
@@ -2463,7 +2465,8 @@ function checkColorMode() {
     r.style.setProperty("--textColor2", "rgba(0, 0, 0, 0.6)");
     SecondaryColor = "whitesmoke";
     PrimaryColor = "white";
-  } else {
+  }
+  else {
     r.style.setProperty("--primaryColor", "#3f4352");
     r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
     r.style.setProperty("--tertiaryColor", "#474b5c");
