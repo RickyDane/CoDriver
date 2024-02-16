@@ -63,11 +63,11 @@
             <!-- <button class="site-nav-bar-button" onclick="showFtpConfig()"><i class="fa-solid fa-network-wired"></i> FTP</button> -->
         </div>
         <div class="list-column-header">
-            <button class="list-column-header-button" style="margin-left: 20px;" onclick="sortByName()">Name</button>
+            <button class="list-column-header-button" style="margin-left: 20px;" onclick="sortItems('name')">Name</button>
             <div style="display: flex; flex-flow: row; justify-content: flex-end;">
                 <button class="list-column-header-button disk-list-column-header" onclick="sortByLoad()">Available</button>
-                <button class="list-column-header-button normal-list-column-header" onclick="sortByDate()">Last modified</button>
-                <button class="list-column-header-button" onclick="sortBySize()" style="width: 75px; text-align: center;">Size</button>
+                <button class="list-column-header-button normal-list-column-header" onclick="sortItems('date')">Last modified</button>
+                <button class="list-column-header-button" onclick="sortItems('size')" style="width: 75px;">Size</button>
             </div>
         </div>
         <div class="explorer-container tab-container-1 non-dual-pane-container">
@@ -88,8 +88,7 @@
         <button class="context-item">New folder<i class="fa-solid fa-folder-plus"></i></button>
         <button class="context-item">Rename<i class="fa-solid fa-file-signature"></i></button>
         <button class="context-item">Properties<i class="fa-solid fa-info-circle"></i></button>
-        <button class="context-item context-open-in-terminal" onclick="openInTerminal()">Open in Terminal<i
-                class="fa-solid fa-terminal"></i></button>
+        <button class="context-item context-open-in-terminal" onclick="openInTerminal()">Open in Terminal<i class="fa-solid fa-terminal"></i></button>
     </div>
     <div class="settings-ui">
         <div class="settings-ui-header">

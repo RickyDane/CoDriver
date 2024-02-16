@@ -5,11 +5,10 @@ use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
-use tauri::{Icon, Window};
+use tauri::Window;
 use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, Read};
-use std::path::Path;
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_dir_all, remove_file, File},

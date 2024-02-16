@@ -29,6 +29,8 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
         let mut s = 0;
         let mut speed = 0.0;
         let sw = Stopwatch::start_new();
+        let mut byte_counter = 0;
+        let mut progress = 0.0;
         unsafe {
             update_progressbar_2(app_window, (100.0/TO_COPY_COUNTER) * COPY_COUNTER, final_filename.split("/").last().unwrap());
             COPY_COUNTER += 1.0;
@@ -41,16 +43,14 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                         break;
                     }
                     fw.write_all(&buf[..ds]).unwrap();
-                    // Calculate transfer speed
-                    if s % 50_000_000 == 0 {
+                    // Calculate transfer speed and progres
+                    if byte_counter % 5 == 0 {
                         speed = calc_transfer_speed(s as f64, sw.elapsed_ms() as f64 / 1000.0);
                         if speed.is_infinite() { speed = 0.0 }
-                        unsafe {
-                            update_progressbar(app_window, (100.0/&file_size) * s as f32, format!("{}/{}", COPY_COUNTER, TO_COPY_COUNTER).as_str(), speed);
-                        };
-                    }
+                        progress = (100.0/file_size) * s as f32;
+                    };
                     unsafe {
-                        update_progressbar(app_window, (100.0/&file_size) * s as f32, format!("{}/{}", COPY_COUNTER, TO_COPY_COUNTER).as_str(), speed);
+                        update_progressbar(app_window, progress, format!("{}/{}", COPY_COUNTER, TO_COPY_COUNTER).as_str(), speed);
                     };
                 }
                 Err(e) => {
@@ -58,6 +58,7 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                     break;
                 }
             }
+            byte_counter += 32;
         }
     }
     else if metadata.is_dir() {

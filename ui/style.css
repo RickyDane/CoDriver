@@ -50,7 +50,7 @@ body {
     margin: 0 0 0 calc(150px + 10px);
     padding: 10px 10px 10px 0px;
     width: 100%;
-    height: calc(100vh - 100px);
+    height: calc(100vh - 95px);
     max-width: 100%;
     overflow: auto;
     position: relative;
@@ -59,7 +59,7 @@ body {
 .dual-pane-container {
     width: 100%;
     max-width: 100%;
-    height: calc(100vh - 100px);
+    height: calc(100vh - 95px);
     display: none;
     flex-flow: row;
     justify-content: center;
@@ -87,7 +87,7 @@ body {
     gap: 2px;
 }
 .main-container {
-    margin-top: 100px;
+    margin-top: 95px;
     display: flex;
     flex-flow: row;
     overflow: hidden;
@@ -98,13 +98,13 @@ body {
     flex-flow: row;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
     position: fixed;
     top: 40px;
     background-color: var(--primaryColor);
     width: 100%;
-    height: 60px;
-    padding: 0px 10px;
+    height: 55px;
+    padding: 5px 10px;
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
     z-index: 3;
     border-bottom: 1px solid var(--tertiaryColor);
@@ -113,7 +113,7 @@ body {
 .site-nav-bar {
     background-color: var(--primaryColor);
     position: fixed;
-    top: 100px;
+    top: 95px;
     left: 0;
     bottom: 0;
     width: 150px;
@@ -221,7 +221,6 @@ body {
     align-items: center;
     gap: 20px;
 }
-
 .tab-header {
     display: none;
     flex-flow: row;
@@ -237,7 +236,7 @@ body {
     left: 150px;
     width: calc(100% - 150px);
     color: var(--textColor);
-    padding: 10px 0px;
+    padding: 5px;
     background-color: var(--primaryColor);
     z-index: 1;
     border-bottom: 1px solid var(--tertiaryColor);
@@ -247,16 +246,22 @@ body {
     background-color: transparent;
     border: none;
     font-weight: 550;
-    min-width: 110px;
+    width: 100px !important;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+    text-align: center;
 }
-.disk-list-column-header {
+.list-column-header-button:hover {
+    background-color: var(--transparentColorActive);
+}
+/* .disk-list-column-header {
     display: none;
     text-align: right !important;
 }
 .normal-list-column-header {
     text-align: right !important;
-}
-
+} */
 .fx-tab {
     position: relative;
     background-color: var(--secondaryColor);
@@ -1195,7 +1200,7 @@ label {
 	fill: white;
 }
 .toast-icon-info {
-	background-color: var(--secondaryColor);
+	background-color: var(--tertiaryColor);
 }
 .toast-icon-error {
 	background-color: var(--errorColor);

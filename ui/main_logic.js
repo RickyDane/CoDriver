@@ -74,6 +74,9 @@ let IsSelectMode = true;
 let IsItemPreviewOpen = false;
 let IsInputFocused = false;
 let ArrFavorites = [];
+let IsFilteredBySize = false;
+let IsFilteredByDate = false;
+let IsFilteredByName = false;
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -395,21 +398,9 @@ document.onkeydown = async (e) => {
   }
 
   // check if del is pressed
-  if (e.keyCode == 46 || (IsMetaDown && e.keyCode == 8)) {
-    let msg = "Do you really want to delete: ";
-    for (let i = 0; i < ArrSelectedItems.length; i++) {
-      if (i == 0)  {
-        msg += ArrSelectedItems[i].getAttribute("itemname");
-      }
-      else {
-        msg += ", " + ArrSelectedItems[i].getAttribute("itemname");
-      }
-    }
-    let isConfirm = await confirm(msg);
-    if (isConfirm == true) {
-      showLoadingPopup("Items are being deleted");
-      await invoke("arr_delete_items",  {arrItems: ArrSelectedItems.map((item) => item.getAttribute("itempath"))});
-      ArrSelectedItems = [];
+  if (e.keyCode == 46 || (e.metaKey && e.keyCode == 8)) {
+    {
+      await deleteItems(ArrSelectedItems);
       closeLoadingPopup();
     }
     listDirectories();
@@ -610,7 +601,7 @@ async function showItems(items, dualPaneSide = "") {
       document.querySelector(".dual-pane-right").innerHTML = "";
     }
   }
-  document.querySelector(".normal-list-column-header").style.display = "flex";
+  document.querySelector(".normal-list-column-header").style.display = "block";
   document.querySelector(".disk-list-column-header").style.display = "none";
 
   let currentTab = document.querySelector(".fx-tab-" + CurrentActiveTab);
@@ -631,10 +622,8 @@ async function showItems(items, dualPaneSide = "") {
   }
   DirectoryCount.innerHTML = "Objects: " + items.length + " / " + hiddenItemsLength;
   delete hiddenItemsLength;
-  let set = new Set(items);
-  delete items;
   let counter = 0;
-  set.forEach((item) => {
+  items.forEach((item) => {
     let itemLink = document.createElement("button");
     itemLink.setAttribute("onclick", "interactWithItem(this, '" + dualPaneSide + "')");
     itemLink.setAttribute("itempath", item.path);
@@ -645,6 +634,7 @@ async function showItems(items, dualPaneSide = "") {
     itemLink.setAttribute("isftp", item.is_ftp);
     itemLink.setAttribute("itemname", item.name);
     itemLink.setAttribute("itemsize", formatBytes(item.size));
+    itemLink.setAttribute("itemrawsize", item.size);
     itemLink.setAttribute("itemmodified", item.last_modified);
     itemLink.setAttribute("id", "item-link");
 
@@ -752,14 +742,6 @@ async function showItems(items, dualPaneSide = "") {
         case ".svg":
           if (IsImagePreview) {
             fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);// Beispiel für die Verwendung der Funktion
-            const path = fileIcon;
-            const icon = getPreviewIcon(path);
-            if (icon) {
-              console.log(`Das Vorschau-Icon für ${path} ist ${icon}`);
-            }
-            else {
-              console.log(`Es konnte kein Vorschau-Icon für ${path} gefunden werden`);
-            }
           }
           else {
             fileIcon = "resources/img-file.png";
@@ -837,6 +819,7 @@ async function showItems(items, dualPaneSide = "") {
     delete newRow;
     DirectoryList.append(itemLink);
     delete itemLink;
+    delete items;
   });
   DirectoryList.querySelectorAll(".directory-entry").forEach((item) => {
     // Open context menu when right-clicking on file/folder
@@ -879,13 +862,10 @@ async function showItems(items, dualPaneSide = "") {
         ContextMenu.children[1].classList.remove("c-item-disabled");
       }
       ContextMenu.children[0].addEventListener("click", async () => {
-        if (await confirm("Dou you really want to delete " + item.getAttribute('itemname') + "?") == true) {
-          await deleteItem(item);
+        if (ArrSelectedItems.length == 0) {
+          selectItem(item);
         }
-        else {
-          ContextMenu.style.display = "none";
-          return;
-        }
+        await deleteItems(ArrSelectedItems);
       }, { once: true });
       ContextMenu.children[1].addEventListener("click", () => { extractItem(item); }, { once: true });
       ContextMenu.children[2].addEventListener("click", () => { showCompressPopup(item); }, { once: true });
@@ -944,19 +924,33 @@ async function setCurrentDir(currentDir, dualPaneSide) {
   }
 }
 
-async function deleteItem(item) {
-  ContextMenu.style.display = "none";
-  let fromPath = item.getAttribute("itempath");
-  let SelectedItemPaneSide = item.getAttribute("itempaneside");
-  let actFileName = fromPath.split("/")[fromPath.split("/").length - 1];
-  if (IsMetaDown == true) {
-    IsMetaDown = false;
-  };
-  ContextMenu.style.display = "none";
-  await invoke("delete_item", { actFileName }).then(async () => {
-    await listDirectories();
-  });
-  IsCopyToCut = false;
+async function deleteItems(arrItems) {
+  let msg = "Do you really want to delete: ";
+  for (let i = 0; i < ArrSelectedItems.length; i++) {
+    if (i == 0)  {
+      msg += ArrSelectedItems[i].getAttribute("itemname");
+    }
+    else {
+      msg += ", " + ArrSelectedItems[i].getAttribute("itemname");
+    }
+  }
+  let isConfirm = await confirm(msg);
+  if (isConfirm == true) {
+    showLoadingPopup("Items are being deleted");
+    ContextMenu.style.display = "none";
+    for (let i = 0; i < arrItems.length; i++) {
+      let actFileName = arrItems[i].getAttribute("itempath");
+      await invoke("delete_item", { actFileName });
+      await listDirectories();
+      IsCopyToCut = false;
+    }
+    ArrSelectedItems = [];
+    showToast("Deletion", "Deletion of items is done", "success");
+  }
+  else {
+    showToast("Deletion", "Deletion of items was canceled", "info");
+  }
+  closeLoadingPopup();
 }
 
 async function copyItem(item, toCut = false) {
@@ -1077,8 +1071,8 @@ async function compressItem(arrItems, compressionLevel = 6) {
     showLoadingPopup("File is being compressed");
     ContextMenu.style.display = "none";
     await invoke("arr_compress_items", { arrItems: arrItems.map((item) => item.getAttribute("itempath")), compressionLevel: parseInt(compressionLevel) });
-    await listDirectories();
     closeLoadingPopup();
+    await listDirectories();
     showToast("Compression", "Compressing done", "success");
   }
   else {
@@ -1090,10 +1084,9 @@ async function compressItem(arrItems, compressionLevel = 6) {
       showLoadingPopup("File is being compressed");
       ContextMenu.style.display = "none";
       SelectedItemPaneSide = item.getAttribute("itempaneside");
-      await invoke("compress_item", { fromPath: compressFilePath, compressionLevel: parseInt(compressionLevel) }).then(async (items) => {
-        await showItems(items, SelectedItemPaneSide);
-      });
+      await invoke("compress_item", { fromPath: compressFilePath, compressionLevel: parseInt(compressionLevel) });
       closeLoadingPopup();
+      await listDirectories();
       showToast("Compression", "Compressing done", "success");
     }
   }
@@ -1328,8 +1321,8 @@ async function checkAppConfig() {
       ViewMode = "column";
       let firstContainer = document.querySelector(".explorer-container");
       document.querySelector(".list-column-header").style.display = "flex";
-      firstContainer.style.marginTop = "35px";
-      firstContainer.style.height = "calc(100vh - 135px)";
+      firstContainer.style.marginTop = "30px";
+      firstContainer.style.height = "calc(100vh - 125px)";
     }
 
     // if (appConfig.is_open_in_terminal.includes("1")) {
@@ -1677,7 +1670,7 @@ async function goBack() {
           goUp(false, true);
         }
         else {
-          showItems(items);
+          await showItems(items);
         }
       });
     }
@@ -1996,8 +1989,8 @@ async function switchView() {
       document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "none"));
       ViewMode = "column";
       document.querySelectorAll(".explorer-container").forEach((item) => {
-        item.style.marginTop = "35px";
-        item.style.height = "calc(100vh - 135px)";
+        item.style.marginTop = "30px";
+        item.style.height = "calc(100vh - 125px)";
       });
       document.querySelector(".list-column-header").style.display = "flex";
     }
@@ -2018,7 +2011,7 @@ async function switchView() {
       ViewMode = "wrap";
       document.querySelector(".list-column-header").style.display = "none";
       document.querySelectorAll(".explorer-container").forEach((item) => {
-        item.style.height = "calc(100vh - 100px)";
+        item.style.height = "calc(100vh - 95px)";
         item.style.marginTop = "0";
       });
     }
@@ -2480,43 +2473,6 @@ function connectToFtp() {
   closeFtpConfig();
 }
 
-function getPreviewIcon(path) {
-  // Abrufen des Dateisystems
-  const fs = require('fs');
-  const stats = fs.statSync(path);
-
-  // Prüfen, ob es sich um eine Datei handelt
-  if (!stats.isFile()) {
-    return null;
-  }
-
-  // Abrufen des MIME-Typs
-  const mimeType = require('mime').getType(path);
-
-  // Abrufen des Vorschau-Icons für den MIME-Typ
-  let icon = null;
-  switch (mimeType) {
-    // Abrufen von Standard-Icons für einige gängige MIME-Typen
-    case 'image/png':
-      icon = 'image-png';
-      break;
-    case 'image/jpeg':
-      icon = 'image-jpeg';
-      break;
-    case 'image/gif':
-      icon = 'image-gif';
-      break;
-    case 'text/plain':
-      icon = 'text-plain';
-      break;
-    case 'application/pdf':
-      icon = 'application-pdf';
-      break;
-  }
-
-  return icon;
-}
-
 function formatBytes(bytes, decimals = 2) {
   if (!+bytes) return "0 Bytes";
   const k = 1000;
@@ -2524,6 +2480,59 @@ function formatBytes(bytes, decimals = 2) {
   const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
+async function sortItems(sortMethod) {
+  if (IsShowDisks == false) {
+    let arr = [...DirectoryList.children];
+    arr = getObjectFromDirectoryList(arr);
+    if (sortMethod == "size") {
+      if (IsFilteredBySize == true) {
+        arr.sort((a, b) => { return parseInt(b.size) - (parseInt(a.size)) });
+        IsFilteredBySize = false;
+      }
+      else {
+        arr.sort((a, b) => { return parseInt(a.size) - (parseInt(b.size)) });
+        IsFilteredBySize = true;
+      }
+    }
+    if (sortMethod == "name") {
+      if (IsFilteredByName == true) {
+        arr.sort((a, b) => { return a.name.localeCompare(b.name) });
+        IsFilteredByName = false;
+      }
+      else {
+        arr.sort((a, b) => { return b.name.localeCompare(a.name) });
+        IsFilteredByName = true;
+      }
+    }
+    if (sortMethod == "date") {
+      if (IsFilteredByDate == true) {
+        arr.sort((a, b) => { return new Date(b.last_modified) - new Date(a.last_modified) });
+        IsFilteredByDate = false;
+      }
+      else {
+        arr.sort((a, b) => { return new Date(a.last_modified) - new Date(b.last_modified) });
+        IsFilteredByDate = true;
+      }
+    }
+    console.log(arr);
+    await showItems(arr)
+  };
+}
+
+function getFDirObjectListFromDirectoryList(arrElements) {
+  return arrElements.map((item) => {
+    return {
+      name: item.getAttribute("itemname"),
+      size: item.getAttribute("itemrawsize"),
+      path: item.getAttribute("itempath"),
+      extension: item.getAttribute("itemext"),
+      last_modified: item.getAttribute("itemmodified"),
+      is_dir: item.getAttribute("itemisdir"),
+      is_ftp: item.getAttribute("isftp")
+    }
+  })
 }
 
 function checkColorMode() {
