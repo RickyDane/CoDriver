@@ -5,6 +5,7 @@ use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
+use tauri::Window;
 use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, Read};
@@ -26,7 +27,7 @@ use unrar::Archive;
 use zip_extensions::*;
 mod utils;
 use sysinfo::Disks;
-use utils::{dbg_log, err_log, wng_log};
+use utils::{copy_to, count_entries, dbg_log, err_log, wng_log, COPY_COUNTER, TO_COPY_COUNTER};
 #[allow(unused_imports)]
 use rayon::prelude::*;
 
@@ -64,10 +65,19 @@ fn main() {
             ftp_go_back,
             copy_from_ftp,
             rename_elements_with_format,
-            add_favorite
+            add_favorite,
+            test_window,
+            arr_copy_paste,
+            arr_delete_items,
+            arr_compress_items
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[tauri::command]
+async fn test_window (app_window: Window) {
+    let _ = app_window.eval("alert('Hey whats up?')");
 }
 
 #[derive(serde::Serialize)]
@@ -597,9 +607,7 @@ async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, fi
                             path: path.to_string(),
                             extension: String::from(&file_ext),
                             size: file_size.clone(),
-                            last_modified: String::from(
-                                file_date.to_string().split(".").nth(0).unwrap(),
-                            ),
+                            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
                             is_ftp: 0,
                         });
                         break;
@@ -630,22 +638,65 @@ async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, fi
 }
 
 #[tauri::command]
-async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: String) -> Vec<FDir> {
-    dbg_log(format!("Copying: {} ...", &act_file_name));
-    let is_dir: bool;
-    let file = fs::metadata(&from_path);
-    if &file.is_ok() == &true {
-        is_dir = file.unwrap().is_dir();
+async fn copy_paste(app_window: Window, act_file_name: String, from_path: String, is_for_dual_pane: String) {
+    unsafe {
+        COPY_COUNTER = 0.0;
     }
-    else {
-        err_log("File could not be copied".into());
-        return list_dirs().await;
+    let _ = &app_window.eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
+    dbg_log(format!("Copying: {} ...", &act_file_name));
+    let final_filename = get_final_filename(act_file_name, from_path.clone(), is_for_dual_pane).await;
+
+    unsafe {
+        TO_COPY_COUNTER = count_entries(&from_path);
+        if TO_COPY_COUNTER == 1.0 {
+            let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'none'");
+        }
+        else {
+            let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
+        }
     }
     let sw = Stopwatch::start_new();
+    // Execute the copy process for either a dir or file
+    copy_to(&app_window, final_filename, from_path);
+    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
+}
+
+#[tauri::command]
+async fn arr_copy_paste(app_window: Window, arr_items: Vec<String>, is_for_dual_pane: String) {
+    unsafe {
+        COPY_COUNTER = 0.0;
+        TO_COPY_COUNTER = 0.0
+    }
+    let _ = &app_window.eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
+    let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
+    let mut filename: String;
+    for item in arr_items.clone() {
+        unsafe {
+            TO_COPY_COUNTER += count_entries(&item);
+        }
+    }
+    let sw = Stopwatch::start_new();
+    for item_path in arr_items {
+        filename = item_path.replace("\\", "/").split("/").last().unwrap().to_string();
+        let final_filename = get_final_filename(filename, item_path.clone(), is_for_dual_pane.clone()).await;
+        // Execute the copy process for either a dir or file
+        copy_to(&app_window, final_filename, item_path);
+    }
+    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
+}
+
+#[tauri::command]
+async fn get_final_filename(act_file_name: String, from_path: String, is_for_dual_pane: String) -> String {
+    let file = fs::metadata(&from_path);
+    if &file.is_ok() != &true {
+        err_log("File could not be copied".into());
+        return "".into();
+    }
     let file_name: String;
     if is_for_dual_pane == "1" {
         file_name = act_file_name;
-    } else {
+    }
+    else {
         file_name = current_dir()
             .unwrap()
             .join(&act_file_name)
@@ -685,64 +736,19 @@ async fn copy_paste(act_file_name: String, from_path: String, is_for_dual_pane: 
         is_file_existing = fs::metadata(&final_filename).is_ok();
         counter += 1;
     }
-
-    // Execute the copy process for either a dir or file
-    if is_dir {
-        if is_for_dual_pane == "1" {
-            let _ = copy_dir::copy_dir(&from_path, final_filename.replace("\\", "/"));
-        }
-        else {
-            let _ = copy_dir::copy_dir(
-                current_dir().unwrap().join(&from_path.replace("\\", "/")),
-                final_filename.replace("\\", "/"),
-            );
-        }
-    }
-    else {
-        if is_for_dual_pane == "1" {
-            let _ = copy(&from_path, final_filename.replace("\\", "/"));
-        }
-        else {
-            let _ = copy(current_dir().unwrap().join(&from_path.replace("\\", "/")), final_filename.replace("\\", "/"));
-
-            /* Copy file byte by byte -> To play around with later ... */
-
-            // let line_file = File::open(&from_path).unwrap();
-            // let mut reader = BufReader::new(line_file);
-
-            // let mut buffer = Vec::new();
-            // reader.read_to_end(&mut buffer).expect("Failed to read file");
-
-            // let line_count = buffer.iter().len() as f64;
-
-            // let new_file = File::create(&final_filename).unwrap();
-            // let mut new_file = BufWriter::new(new_file);
-
-            // let mut counter = 0;
-            // for (num, &byte) in buffer.iter().enumerate() {
-            //     let progress = num as f64;
-            //     new_file.write(&[byte]).unwrap();
-            //     if counter % 10000000 == 0 {
-            //         let percentage = format!("{:?}", (100.0/line_count) * progress);
-            //         println!("{} %", &percentage.to_string());
-            //     }
-            //     counter += 1;
-            // }
-        }
-    }
-    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
-    return list_dirs().await;
+    final_filename = final_filename.replace("\\", "/");
+    return final_filename;
 }
 
 #[tauri::command]
-async fn delete_item(act_file_name: String) -> Vec<FDir> {
-    let dir = File::open(&act_file_name);
+async fn delete_item(act_file_name: String) {
+    let file = File::open(&act_file_name);
     let is_dir: bool;
-    if dir.is_ok() {
-        is_dir = dir.unwrap().metadata().unwrap().is_dir();
+    if file.is_ok() {
+        is_dir = file.unwrap().metadata().unwrap().is_dir();
     }
     else {
-        return list_dirs().await;
+        return;
     }
     dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
     if is_dir {
@@ -751,7 +757,13 @@ async fn delete_item(act_file_name: String) -> Vec<FDir> {
     else {
         let _ = remove_file(act_file_name.replace("\\", "/"));
     }
-    return list_dirs().await;
+}
+
+#[tauri::command]
+async fn arr_delete_items(arr_items: Vec<String>) {
+    for path in arr_items {
+        delete_item(path).await;
+    }
 }
 
 #[tauri::command]
@@ -802,17 +814,11 @@ async fn open_item(path: String) {
 }
 
 #[tauri::command]
-async fn compress_item(from_path: String, compression_level: i32) -> Vec<FDir> {
+async fn compress_item(from_path: String, compression_level: i32) {
     let sw = Stopwatch::start_new();
     dbg_log(format!("Compression of '{}' started with compression level: {}", &from_path.split("/").last().unwrap(), &compression_level));
-    let file_ext = ".".to_string().to_owned() + from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
-    let _ = File::create(
-        from_path.strip_suffix(&file_ext)
-            .unwrap_or(&from_path)
-            .to_owned()
-            + ".zip",
-    )
-    .unwrap();
+    let file_ext = ".".to_string().to_owned() + from_path.split(".").last().unwrap_or("");
+    let _ = File::create(from_path.strip_suffix(&file_ext).unwrap_or(&from_path).to_owned() + ".zip").unwrap();
     let source: PathBuf;
     let archive = PathBuf::from(
         from_path.strip_suffix(&file_ext)
@@ -824,10 +830,7 @@ async fn compress_item(from_path: String, compression_level: i32) -> Vec<FDir> {
         source = PathBuf::from(&from_path);
     }
     else {
-        let file_name = &from_path
-            .split("/")
-            .nth(&from_path.split("/").count() - 1)
-            .unwrap();
+        let file_name = &from_path.split("/").last().unwrap();
         let _ = create_dir("__compressed_dir");
         let _ = copy(&from_path, "__compressed_dir/".to_string().to_owned() + file_name);
         source = PathBuf::from("__compressed_dir");
@@ -838,7 +841,17 @@ async fn compress_item(from_path: String, compression_level: i32) -> Vec<FDir> {
     let _ = zip_create_from_directory_with_options(&archive, &source, options);
     let _ = remove_dir_all("__compressed_dir");
     dbg_log(format!("Compression time: {:?}", sw.elapsed()));
-    return list_dirs().await;
+}
+
+#[tauri::command]
+async fn arr_compress_items(arr_items: Vec<String>, compression_level: i32) {
+    let _ = create_dir("compressed_items_archive");
+    for item_path in arr_items {
+        let file_name = &item_path.split("/").last().unwrap();
+        let _ = copy(&item_path, "compressed_items_archive/".to_string().to_owned() + file_name);
+    }
+    compress_item(current_dir().unwrap().to_owned().join("compressed_items_archive").to_string_lossy().to_string(), compression_level).await;
+    let _ = remove_dir_all("compressed_items_archive");
 }
 
 #[tauri::command]

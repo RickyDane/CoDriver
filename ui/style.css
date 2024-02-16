@@ -18,7 +18,7 @@
 
 :root {
     --primaryColor: #3f4352;
-    --secondaryColor: rgb(70, 74, 89);
+    --secondaryColor: rgba(56, 59, 71, 1);
     --tertiaryColor: #515567;
     --transparentColor: rgba(0, 0, 0, 0.1);
     --transparentColorActive: rgba(0, 0, 0, 0.25);
@@ -26,10 +26,9 @@
     --fontSize: 12px;
     --textColor2: rgba(255, 255, 255, 0.6);
     --fontSize2: 16px;
-    --successColor: #00aa00;
+    --successColor: green;
     --errorColor: #bb0000;
 }
-
 html {
     overflow: hidden;
     background-color: transparent;
@@ -51,7 +50,7 @@ body {
     margin: 0 0 0 calc(150px + 10px);
     padding: 10px 10px 10px 0px;
     width: 100%;
-    height: calc(100vh - 100px);
+    height: calc(100vh - 95px);
     max-width: 100%;
     overflow: auto;
     position: relative;
@@ -60,7 +59,7 @@ body {
 .dual-pane-container {
     width: 100%;
     max-width: 100%;
-    height: calc(100vh - 100px);
+    height: calc(100vh - 95px);
     display: none;
     flex-flow: row;
     justify-content: center;
@@ -88,7 +87,7 @@ body {
     gap: 2px;
 }
 .main-container {
-    margin-top: 100px;
+    margin-top: 95px;
     display: flex;
     flex-flow: row;
     overflow: hidden;
@@ -99,13 +98,13 @@ body {
     flex-flow: row;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
     position: fixed;
     top: 40px;
     background-color: var(--primaryColor);
     width: 100%;
-    height: 60px;
-    padding: 0px 10px;
+    height: 55px;
+    padding: 5px 10px;
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
     z-index: 3;
     border-bottom: 1px solid var(--tertiaryColor);
@@ -114,21 +113,22 @@ body {
 .site-nav-bar {
     background-color: var(--primaryColor);
     position: fixed;
-    top: 100px;
+    top: 95px;
     left: 0;
     bottom: 0;
     width: 150px;
     display: flex;
     flex-flow: column;
+    align-items: center;
     padding: 10px;
     z-index: 2;
-    gap: 4px;
+    gap: 5px;
     border-right: 1px solid var(--tertiaryColor);
     border-radius: 0px 0px 0px 10px;
 }
 
 .site-nav-bar-button {
-    background-color: var(--transparentColor);
+    background-color: var(--secondaryColor);
     border: 1px solid var(--transparentColor);
     width: 100%;
     text-align: left;
@@ -138,7 +138,7 @@ body {
     display: flex;
     flex-flow: row;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: small;
     transition: 0.1s ease;
 }
@@ -221,7 +221,6 @@ body {
     align-items: center;
     gap: 20px;
 }
-
 .tab-header {
     display: none;
     flex-flow: row;
@@ -237,7 +236,7 @@ body {
     left: 150px;
     width: calc(100% - 150px);
     color: var(--textColor);
-    padding: 10px 0px;
+    padding: 5px;
     background-color: var(--primaryColor);
     z-index: 1;
     border-bottom: 1px solid var(--tertiaryColor);
@@ -247,16 +246,22 @@ body {
     background-color: transparent;
     border: none;
     font-weight: 550;
-    min-width: 110px;
+    width: 100px !important;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+    text-align: center;
 }
-.disk-list-column-header {
+.list-column-header-button:hover {
+    background-color: var(--transparentColorActive);
+}
+/* .disk-list-column-header {
     display: none;
     text-align: right !important;
 }
 .normal-list-column-header {
     text-align: right !important;
-}
-
+} */
 .fx-tab {
     position: relative;
     background-color: var(--secondaryColor);
@@ -1143,7 +1148,6 @@ label {
     gap: 1px;
     height: 200px;
     overflow-y: auto;
-    background-color: var(--secondaryColor);
 }
 .list-item {
     width: 100%;
@@ -1196,7 +1200,7 @@ label {
 	fill: white;
 }
 .toast-icon-info {
-	background-color: var(--secondaryColor);
+	background-color: var(--tertiaryColor);
 }
 .toast-icon-error {
 	background-color: var(--errorColor);
@@ -1222,4 +1226,65 @@ label {
     font-size: var(--fontSize);
     color: var(--textColor2);
     font-weight: 300;
+}
+
+
+/* Progressbar */
+.progress-bar-container-popup {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 25px;
+    margin: auto;
+    width: 300px;
+    height: fit-content;
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid var(--tertiaryColor);
+    background-color: var(--primaryColor);
+    box-shadow: 0px 0px 10px 1px var(--transparentColor);
+    flex-flow: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+}
+.progress-bar {
+    width: 100%;
+    height: 25px;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--tertiaryColor);
+    background-color: var(--secondaryColor);
+}
+.progress-bar-fill {
+    width: 0%;
+    height: 100%;
+    background-color: var(--successColor);
+    border-right: 2px solid var(--transparentColorActive);
+    transition: width 0.05s ease;
+}
+.progress-bar-text {
+    position: absolute;
+    padding: 5px;
+    margin: auto;
+}
+.progress-bar-text-2 {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+    font-size: var(--fontSize);
+    color: var(--textColor2);
+    width: 100%;
+    padding: 10px;
+    text-align: right;
+}
+.progress-bar-2 {
+    height: 5px;
+}
+.progress-bar-2-fill {
+    width: 0px;
+    transition: none;
 }

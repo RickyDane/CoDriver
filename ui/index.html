@@ -63,11 +63,11 @@
             <!-- <button class="site-nav-bar-button" onclick="showFtpConfig()"><i class="fa-solid fa-network-wired"></i> FTP</button> -->
         </div>
         <div class="list-column-header">
-            <button class="list-column-header-button" style="margin-left: 20px;" onclick="sortByName()">Name</button>
+            <button class="list-column-header-button" style="margin-left: 20px;" onclick="sortItems('name')">Name</button>
             <div style="display: flex; flex-flow: row; justify-content: flex-end;">
                 <button class="list-column-header-button disk-list-column-header" onclick="sortByLoad()">Available</button>
-                <button class="list-column-header-button normal-list-column-header" onclick="sortByDate()">Last modified</button>
-                <button class="list-column-header-button" onclick="sortBySize()" style="width: 75px; text-align: center;">Size</button>
+                <button class="list-column-header-button normal-list-column-header" onclick="sortItems('date')">Last modified</button>
+                <button class="list-column-header-button" onclick="sortItems('size')" style="width: 75px;">Size</button>
             </div>
         </div>
         <div class="explorer-container tab-container-1 non-dual-pane-container">
@@ -88,8 +88,7 @@
         <button class="context-item">New folder<i class="fa-solid fa-folder-plus"></i></button>
         <button class="context-item">Rename<i class="fa-solid fa-file-signature"></i></button>
         <button class="context-item">Properties<i class="fa-solid fa-info-circle"></i></button>
-        <button class="context-item context-open-in-terminal" onclick="openInTerminal()">Open in Terminal<i
-                class="fa-solid fa-terminal"></i></button>
+        <button class="context-item context-open-in-terminal" onclick="openInTerminal()">Open in Terminal<i class="fa-solid fa-terminal"></i></button>
     </div>
     <div class="settings-ui">
         <div class="settings-ui-header">
@@ -196,11 +195,23 @@
             <br><br>
             <span class="settings-ui-body-buttons">
                 <button class="button" onclick="closeFtpConfig()"><i class="fa-solid fa-ban"></i>Cancel</button>
-                <button class="button" onclick="connectToFtp()"><i class="fa-solid fa-forward"></i></i>Connect</button>
+                <button class="button" onclick="connectToFtp()"><i class="fa-solid fa-forward"></i>Connect</button>
             </span>
         </div>
     </div>
     <div class="current-path">...</div>
+    <div class="progress-bar-container-popup">
+        <div class="progress-bar">
+            <p class="text-2 progress-bar-text"></p>
+            <div class="progress-bar-fill"></div>
+            <div class="progress-bar-text-2">0/0</div>
+        </div>
+        <div class="progress-bar progress-bar-2">
+            <div class="progress-bar-fill progress-bar-2-fill"></div>
+        </div>
+        <div class="horizontal-seperator"></div>
+        <p class="text-2 progress-bar-item-text"></p>
+    </div>
 </body>
 
 </html>

@@ -74,6 +74,9 @@ let IsSelectMode = true;
 let IsItemPreviewOpen = false;
 let IsInputFocused = false;
 let ArrFavorites = [];
+let IsFilteredBySize = false;
+let IsFilteredByDate = false;
+let IsFilteredByName = false;
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -395,22 +398,12 @@ document.onkeydown = async (e) => {
   }
 
   // check if del is pressed
-  if (e.keyCode == 46 || (IsMetaDown && e.keyCode == 8)) {
-    let msg = "Do you really want to delete: ";
-    for (let i = 0; i < ArrSelectedItems.length; i++) {
-      if (i == 0)  {
-        msg += ArrSelectedItems[i].getAttribute("itemname");
-      }
-      else {
-        msg += ", " + ArrSelectedItems[i].getAttribute("itemname");
-      }
+  if (e.keyCode == 46 || (e.metaKey && e.keyCode == 8)) {
+    {
+      await deleteItems(ArrSelectedItems);
+      closeLoadingPopup();
     }
-    let isConfirm = await confirm(msg);
-    if (isConfirm == true) {
-      for (let i = 0; i < ArrSelectedItems.length; i++) {
-        await deleteItem(ArrSelectedItems[i]);
-      }
-    }
+    listDirectories();
     goUp();
     e.preventDefault();
     e.stopPropagation();
@@ -608,7 +601,7 @@ async function showItems(items, dualPaneSide = "") {
       document.querySelector(".dual-pane-right").innerHTML = "";
     }
   }
-  document.querySelector(".normal-list-column-header").style.display = "flex";
+  document.querySelector(".normal-list-column-header").style.display = "block";
   document.querySelector(".disk-list-column-header").style.display = "none";
 
   let currentTab = document.querySelector(".fx-tab-" + CurrentActiveTab);
@@ -629,10 +622,8 @@ async function showItems(items, dualPaneSide = "") {
   }
   DirectoryCount.innerHTML = "Objects: " + items.length + " / " + hiddenItemsLength;
   delete hiddenItemsLength;
-  let set = new Set(items);
-  delete items;
   let counter = 0;
-  set.forEach((item) => {
+  items.forEach((item) => {
     let itemLink = document.createElement("button");
     itemLink.setAttribute("onclick", "interactWithItem(this, '" + dualPaneSide + "')");
     itemLink.setAttribute("itempath", item.path);
@@ -643,11 +634,9 @@ async function showItems(items, dualPaneSide = "") {
     itemLink.setAttribute("isftp", item.is_ftp);
     itemLink.setAttribute("itemname", item.name);
     itemLink.setAttribute("itemsize", formatBytes(item.size));
+    itemLink.setAttribute("itemrawsize", item.size);
     itemLink.setAttribute("itemmodified", item.last_modified);
     itemLink.setAttribute("id", "item-link");
-    itemLink.ondragstart = (e) => {
-      e.dataTransfer.setData("text/plain", e.target.getAttribute("itemname"));
-    }
 
     let newRow = document.createElement("div");
     newRow.className = "directory-item-entry";
@@ -752,7 +741,7 @@ async function showItems(items, dualPaneSide = "") {
         case ".webp":
         case ".svg":
           if (IsImagePreview) {
-            fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
+            fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);// Beispiel für die Verwendung der Funktion
           }
           else {
             fileIcon = "resources/img-file.png";
@@ -830,6 +819,7 @@ async function showItems(items, dualPaneSide = "") {
     delete newRow;
     DirectoryList.append(itemLink);
     delete itemLink;
+    delete items;
   });
   DirectoryList.querySelectorAll(".directory-entry").forEach((item) => {
     // Open context menu when right-clicking on file/folder
@@ -872,13 +862,10 @@ async function showItems(items, dualPaneSide = "") {
         ContextMenu.children[1].classList.remove("c-item-disabled");
       }
       ContextMenu.children[0].addEventListener("click", async () => {
-        if (await confirm("Dou you really want to delete " + item.getAttribute('itemname') + "?") == true) {
-          await deleteItem(item);
+        if (ArrSelectedItems.length == 0) {
+          selectItem(item);
         }
-        else {
-          ContextMenu.style.display = "none";
-          return;
-        }
+        await deleteItems(ArrSelectedItems);
       }, { once: true });
       ContextMenu.children[1].addEventListener("click", () => { extractItem(item); }, { once: true });
       ContextMenu.children[2].addEventListener("click", () => { showCompressPopup(item); }, { once: true });
@@ -937,21 +924,33 @@ async function setCurrentDir(currentDir, dualPaneSide) {
   }
 }
 
-async function deleteItem(item) {
-  ContextMenu.style.display = "none";
-  let fromPath = item.getAttribute("itempath");
-  let SelectedItemPaneSide = item.getAttribute("itempaneside");
-  let actFileName = fromPath.split("/")[fromPath.split("/").length - 1];
-  if (IsMetaDown == true) {
-    IsMetaDown = false;
+async function deleteItems(arrItems) {
+  let msg = "Do you really want to delete: ";
+  for (let i = 0; i < ArrSelectedItems.length; i++) {
+    if (i == 0)  {
+      msg += ArrSelectedItems[i].getAttribute("itemname");
+    }
+    else {
+      msg += ", " + ArrSelectedItems[i].getAttribute("itemname");
+    }
   }
-  showLoadingPopup(actFileName + " is being deleted");
-  await invoke("delete_item", { actFileName }).then(async (items) => {
+  let isConfirm = await confirm(msg);
+  if (isConfirm == true) {
+    showLoadingPopup("Items are being deleted");
     ContextMenu.style.display = "none";
-    await showItems(items.filter((str) => !str.name.startsWith(".")), SelectedItemPaneSide);
-    closeLoadingPopup();
-  });
-  IsCopyToCut = false;
+    for (let i = 0; i < arrItems.length; i++) {
+      let actFileName = arrItems[i].getAttribute("itempath");
+      await invoke("delete_item", { actFileName });
+      await listDirectories();
+      IsCopyToCut = false;
+    }
+    ArrSelectedItems = [];
+    showToast("Deletion", "Deletion of items is done", "success");
+  }
+  else {
+    showToast("Deletion", "Deletion of items was canceled", "info");
+  }
+  closeLoadingPopup();
 }
 
 async function copyItem(item, toCut = false) {
@@ -968,9 +967,6 @@ async function copyItem(item, toCut = false) {
   else {
     ArrCopyItems.push(item);
   }
-
-  console.log(ArrCopyItems);
-
   ContextMenu.style.display = "none";
   await writeText(CopyFilePath);
   if (toCut == true) {
@@ -1006,26 +1002,25 @@ async function extractItem(item) {
   closeLoadingPopup();
 }
 
-async function compressItem(item, compressionLevel = 6) {
-  let compressFilePath = item.getAttribute("itempath");
-  let compressFileName = item.getAttribute("itemname");
-  if (compressFileName != "") {
-    // open compressing... popup
-    showLoadingPopup("File is being compressed");
-    ContextMenu.style.display = "none";
-    SelectedItemPaneSide = item.getAttribute("itempaneside");
-    await invoke("compress_item", { fromPath: compressFilePath, compressionLevel: parseInt(compressionLevel) }).then(async (items) => {
-      await showItems(items, SelectedItemPaneSide);
-    });
-    closeLoadingPopup();
-    showToast("Compression", "Compressing done", "success");
-  }
-}
-
 async function showCompressPopup(item) {
   IsPopUpOpen = true;
   ContextMenu.style.display = "none";
-  let compressFileName = item.getAttribute("itemname");
+  let arrCompressItems = ArrSelectedItems;
+  if (ArrSelectedItems.length > 1) {
+    arrCompressItems = ArrSelectedItems;
+  }
+  else {
+    arrCompressItems = [item];
+  }
+  let compressFileName = "";
+  if (arrCompressItems.length > 1) {
+    for (let i = 0; i < arrCompressItems.length; i++) {
+      compressFileName += arrCompressItems[i].getAttribute("itemname") + "<br>";
+    }
+  }
+  else {
+    compressFileName = item.getAttribute("itemname");
+  }
   if (compressFileName != "") {
     let popup = document.createElement("div");
     popup.innerHTML = `
@@ -1045,7 +1040,7 @@ async function showCompressPopup(item) {
           <input class="text-input compression-popup-level-input" type="number" value="3" placeholder="-7-22" />
         </div>
       </div>
-      <div class="popup-controls">
+      <div class="popup-controls" style="justify-content: space-evenly;">
         <button class="icon-button" onclick="closeCompressPopup()">
           <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
           Cancel
@@ -1059,7 +1054,7 @@ async function showCompressPopup(item) {
     popup.className = "uni-popup compression-popup";
     document.querySelector("body").append(popup);
     document.querySelector(".compress-item-button").addEventListener("click", async () => {
-      await compressItem(item, $(".compression-popup-level-input").val());
+      await compressItem(arrCompressItems, $(".compression-popup-level-input").val());
     });
     $(".compression-popup-level-input").on("focus", () => IsInputFocused = true);
     $(".compression-popup-level-input").on("blur", () => IsInputFocused = false);
@@ -1068,6 +1063,32 @@ async function showCompressPopup(item) {
         $(".compress-item-button").click();
       }
     });
+  }
+}
+
+async function compressItem(arrItems, compressionLevel = 6) {
+  if (arrItems.length > 1) {
+    showLoadingPopup("File is being compressed");
+    ContextMenu.style.display = "none";
+    await invoke("arr_compress_items", { arrItems: arrItems.map((item) => item.getAttribute("itempath")), compressionLevel: parseInt(compressionLevel) });
+    closeLoadingPopup();
+    await listDirectories();
+    showToast("Compression", "Compressing done", "success");
+  }
+  else {
+    let item = arrItems[0];
+    let compressFilePath = item.getAttribute("itempath");
+    let compressFileName = item.getAttribute("itemname");
+    if (compressFileName != "") {
+      // open compressing... popup
+      showLoadingPopup("File is being compressed");
+      ContextMenu.style.display = "none";
+      SelectedItemPaneSide = item.getAttribute("itempaneside");
+      await invoke("compress_item", { fromPath: compressFilePath, compressionLevel: parseInt(compressionLevel) });
+      closeLoadingPopup();
+      await listDirectories();
+      showToast("Compression", "Compressing done", "success");
+    }
   }
 }
 
@@ -1119,6 +1140,7 @@ function showInputPopup(msg) {
     IsInputFocused = false;
   });
 }
+
 function closeInputPopup() {
   $(".input-popup").remove();
   IsPopUpOpen = false;
@@ -1133,42 +1155,39 @@ async function pasteItem() {
     arr = ArrCopyItems;
   }
   ContextMenu.style.display = "none";
-  for (let i = 0; i < arr.length; i++) {
-    if (IsDualPaneEnabled == true) {
-      let actFileName = arr[i].getAttribute("itemname");
-      let fromPath = arr[i].getAttribute("itempath");
-      showLoadingPopup(actFileName + " is being copied over");
-      if (SelectedItemPaneSide == "left") {
-        actFileName = RightDualPanePath + "/" + actFileName;
-        await invoke("set_dir", { currentDir: RightDualPanePath });
-        await invoke("copy_paste", { actFileName, fromPath, isForDualPane: "1" }).then(async (items) => {
-          await showItems(items, "right");
-        });
-      }
-      else if (SelectedItemPaneSide == "right") {
-        actFileName = LeftDualPanePath + "/" + actFileName;
-        await invoke("set_dir", { currentDir: LeftDualPanePath });
-        await invoke("copy_paste", { actFileName, fromPath, isForDualPane: "1" }).then(async (items) => {
-          await showItems(items, "left");
-        });
-      }
+  if (IsDualPaneEnabled == true) {
+    if (SelectedItemPaneSide == "left") {
+      await invoke("set_dir", { currentDir: RightDualPanePath });
+      let arrItems = arr.map((item) => item.getAttribute("itempath"));
+      await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "1" })
     }
-    else {
-      let actFileName = arr[i].getAttribute("itemname");
-      let fromPath = arr[i].getAttribute("itempath");
-      showLoadingPopup(actFileName + " is being copied over");
-      await invoke("copy_paste", { actFileName, fromPath, isForDualPane: "0" }).then(async (items) => {
-        await showItems(items);
-      });
-      ContextMenu.style.display = "none";
+    else if (SelectedItemPaneSide == "right") {
+      await invoke("set_dir", { currentDir: LeftDualPanePath });
+      let arrItems = arr.map((item) => item.getAttribute("itempath"));
+        await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "1" })
     }
-    if (IsCopyToCut == true) {
-      await invoke("delete_item", { actFileName: arr[i].getAttribute("itempath") });
-    }
-    closeLoadingPopup();
+  }
+  else {
+    let arrItems = arr.map((item) => item.getAttribute("itempath"));
+    await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "0" })
+    ContextMenu.style.display = "none";
+  }
+  if (IsCopyToCut == true) {
+    await invoke("delete_item", { actFileName: arr[i].getAttribute("itempath") });
     ArrCopyItems = [];
   }
-  showToast("Copy", "Done copying some files", "success");
+  closeLoadingPopup();
+  if (arr.length >= 1) {
+    showToast("Copy", "Done copying some files", "success");
+  }
+  await listDirectories(true);
+  resetProgressBar();
+}
+
+function resetProgressBar() {
+  document.querySelector('.progress-bar-fill').style.width = '0px';
+  document.querySelector('.progress-bar-container-popup').style.display = 'none';
+  document.querySelector('.progress-bar-2-fill').style.width = '0px';
 }
 
 function createFolderInputPrompt() {
@@ -1302,8 +1321,8 @@ async function checkAppConfig() {
       ViewMode = "column";
       let firstContainer = document.querySelector(".explorer-container");
       document.querySelector(".list-column-header").style.display = "flex";
-      firstContainer.style.marginTop = "35px";
-      firstContainer.style.height = "calc(100vh - 135px)";
+      firstContainer.style.marginTop = "30px";
+      firstContainer.style.height = "calc(100vh - 125px)";
     }
 
     // if (appConfig.is_open_in_terminal.includes("1")) {
@@ -1466,10 +1485,20 @@ async function listDisks() {
   document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
 }
 
-async function listDirectories() {
+async function listDirectories(fromDualPaneCopy = false) {
   await invoke("list_dirs").then(async (items) => {
     if (IsDualPaneEnabled == true) {
-      await showItems(items, SelectedItemPaneSide);
+      if (fromDualPaneCopy == true) {
+        if (SelectedItemPaneSide == "left") {
+          await showItems(items, "right");
+        }
+        else if (SelectedItemPaneSide == "right") {
+          await showItems(items, "left");
+        }
+      }
+      else {
+        await showItems(items, SelectedItemPaneSide);
+      }
       goUp(false, true);
     }
     else {
@@ -1499,7 +1528,7 @@ async function interactWithItem(element = null, dualPaneSide = "", shortcutPath 
       selectItem(element, dualPaneSide);
     }
     // Interaction mode: Open item
-    else {
+    else if (element != null) {
       openItem(element, dualPaneSide, shortcutPath);
     }
   }
@@ -1521,7 +1550,7 @@ async function interactWithItem(element = null, dualPaneSide = "", shortcutPath 
 }
 
 async function openItem(element, dualPaneSide, shortcutDirPath = null) {
-  let isDir = element != null ? element.getAttribute("itemisdir") : (shortcutDirPath != null ? 1 : 0);
+  let isDir = element != null ? parseInt(element.getAttribute("itemisdir")) : (shortcutDirPath != null ? 1 : 0);
   let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
   if (IsPopUpOpen == false) {
     if (IsItemPreviewOpen == false && isDir == 1) {
@@ -1641,7 +1670,7 @@ async function goBack() {
           goUp(false, true);
         }
         else {
-          showItems(items);
+          await showItems(items);
         }
       });
     }
@@ -1960,8 +1989,8 @@ async function switchView() {
       document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "none"));
       ViewMode = "column";
       document.querySelectorAll(".explorer-container").forEach((item) => {
-        item.style.marginTop = "35px";
-        item.style.height = "calc(100vh - 135px)";
+        item.style.marginTop = "30px";
+        item.style.height = "calc(100vh - 125px)";
       });
       document.querySelector(".list-column-header").style.display = "flex";
     }
@@ -1982,7 +2011,7 @@ async function switchView() {
       ViewMode = "wrap";
       document.querySelector(".list-column-header").style.display = "none";
       document.querySelectorAll(".explorer-container").forEach((item) => {
-        item.style.height = "calc(100vh - 100px)";
+        item.style.height = "calc(100vh - 95px)";
         item.style.marginTop = "0";
       });
     }
@@ -2341,7 +2370,7 @@ function showMultiRenamePopup() {
         </div>
       </div>
     </div>
-    <h4 style="padding: 10px;">Selected items to rename</h4>
+    <h4 style="padding: 10px; background-color: var(--secondaryColor);">Selected items to rename</h4>
   `;
   let arrItemsToRename = ArrSelectedItems;
   let list = document.createElement("div");
@@ -2453,6 +2482,59 @@ function formatBytes(bytes, decimals = 2) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
+async function sortItems(sortMethod) {
+  if (IsShowDisks == false) {
+    let arr = [...DirectoryList.children];
+    arr = getFDirObjectListFromDirectoryList(arr);
+    if (sortMethod == "size") {
+      if (IsFilteredBySize == true) {
+        arr.sort((a, b) => { return parseInt(b.size) - (parseInt(a.size)) });
+        IsFilteredBySize = false;
+      }
+      else {
+        arr.sort((a, b) => { return parseInt(a.size) - (parseInt(b.size)) });
+        IsFilteredBySize = true;
+      }
+    }
+    if (sortMethod == "name") {
+      if (IsFilteredByName == true) {
+        arr.sort((a, b) => { return a.name.localeCompare(b.name) });
+        IsFilteredByName = false;
+      }
+      else {
+        arr.sort((a, b) => { return b.name.localeCompare(a.name) });
+        IsFilteredByName = true;
+      }
+    }
+    if (sortMethod == "date") {
+      if (IsFilteredByDate == true) {
+        arr.sort((a, b) => { return new Date(b.last_modified) - new Date(a.last_modified) });
+        IsFilteredByDate = false;
+      }
+      else {
+        arr.sort((a, b) => { return new Date(a.last_modified) - new Date(b.last_modified) });
+        IsFilteredByDate = true;
+      }
+    }
+    console.log(arr);
+    await showItems(arr)
+  };
+}
+
+function getFDirObjectListFromDirectoryList(arrElements) {
+  return arrElements.map((item) => {
+    return {
+      name: item.getAttribute("itemname"),
+      size: item.getAttribute("itemrawsize"),
+      path: item.getAttribute("itempath"),
+      extension: item.getAttribute("itemext"),
+      last_modified: item.getAttribute("itemmodified"),
+      is_dir: item.getAttribute("itemisdir"),
+      is_ftp: item.getAttribute("isftp")
+    }
+  })
+}
+
 function checkColorMode() {
   var r = document.querySelector(":root");
   if (IsLightMode) {
@@ -2463,7 +2545,8 @@ function checkColorMode() {
     r.style.setProperty("--textColor2", "rgba(0, 0, 0, 0.6)");
     SecondaryColor = "whitesmoke";
     PrimaryColor = "white";
-  } else {
+  }
+  else {
     r.style.setProperty("--primaryColor", "#3f4352");
     r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
     r.style.setProperty("--tertiaryColor", "#474b5c");
