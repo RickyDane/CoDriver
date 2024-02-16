@@ -5,10 +5,11 @@ use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
-use tauri::Window;
+use tauri::{Icon, Window};
 use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, Read};
+use std::path::Path;
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_dir_all, remove_file, File},
@@ -68,7 +69,8 @@ fn main() {
             add_favorite,
             test_window,
             arr_copy_paste,
-            arr_delete_items
+            arr_delete_items,
+            arr_compress_items
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -813,17 +815,11 @@ async fn open_item(path: String) {
 }
 
 #[tauri::command]
-async fn compress_item(from_path: String, compression_level: i32) -> Vec<FDir> {
+async fn compress_item(from_path: String, compression_level: i32) {
     let sw = Stopwatch::start_new();
     dbg_log(format!("Compression of '{}' started with compression level: {}", &from_path.split("/").last().unwrap(), &compression_level));
-    let file_ext = ".".to_string().to_owned() + from_path.split(".").nth(from_path.split(".").count() - 1).unwrap_or("");
-    let _ = File::create(
-        from_path.strip_suffix(&file_ext)
-            .unwrap_or(&from_path)
-            .to_owned()
-            + ".zip",
-    )
-    .unwrap();
+    let file_ext = ".".to_string().to_owned() + from_path.split(".").last().unwrap_or("");
+    let _ = File::create(from_path.strip_suffix(&file_ext).unwrap_or(&from_path).to_owned() + ".zip").unwrap();
     let source: PathBuf;
     let archive = PathBuf::from(
         from_path.strip_suffix(&file_ext)
@@ -835,10 +831,7 @@ async fn compress_item(from_path: String, compression_level: i32) -> Vec<FDir> {
         source = PathBuf::from(&from_path);
     }
     else {
-        let file_name = &from_path
-            .split("/")
-            .nth(&from_path.split("/").count() - 1)
-            .unwrap();
+        let file_name = &from_path.split("/").last().unwrap();
         let _ = create_dir("__compressed_dir");
         let _ = copy(&from_path, "__compressed_dir/".to_string().to_owned() + file_name);
         source = PathBuf::from("__compressed_dir");
@@ -849,7 +842,17 @@ async fn compress_item(from_path: String, compression_level: i32) -> Vec<FDir> {
     let _ = zip_create_from_directory_with_options(&archive, &source, options);
     let _ = remove_dir_all("__compressed_dir");
     dbg_log(format!("Compression time: {:?}", sw.elapsed()));
-    return list_dirs().await;
+}
+
+#[tauri::command]
+async fn arr_compress_items(arr_items: Vec<String>, compression_level: i32) {
+    let _ = create_dir("compressed_items_archive");
+    for item_path in arr_items {
+        let file_name = &item_path.split("/").last().unwrap();
+        let _ = copy(&item_path, "compressed_items_archive/".to_string().to_owned() + file_name);
+    }
+    compress_item(current_dir().unwrap().to_owned().join("compressed_items_archive").to_string_lossy().to_string(), compression_level).await;
+    let _ = remove_dir_all("compressed_items_archive");
 }
 
 #[tauri::command]

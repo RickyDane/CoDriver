@@ -751,7 +751,15 @@ async function showItems(items, dualPaneSide = "") {
         case ".webp":
         case ".svg":
           if (IsImagePreview) {
-            fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);
+            fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);// Beispiel für die Verwendung der Funktion
+            const path = fileIcon;
+            const icon = getPreviewIcon(path);
+            if (icon) {
+              console.log(`Das Vorschau-Icon für ${path} ist ${icon}`);
+            }
+            else {
+              console.log(`Es konnte kein Vorschau-Icon für ${path} gefunden werden`);
+            }
           }
           else {
             fileIcon = "resources/img-file.png";
@@ -945,7 +953,9 @@ async function deleteItem(item) {
     IsMetaDown = false;
   };
   ContextMenu.style.display = "none";
-  await invoke("delete_item", { actFileName });
+  await invoke("delete_item", { actFileName }).then(async () => {
+    await listDirectories();
+  });
   IsCopyToCut = false;
 }
 
@@ -998,26 +1008,25 @@ async function extractItem(item) {
   closeLoadingPopup();
 }
 
-async function compressItem(item, compressionLevel = 6) {
-  let compressFilePath = item.getAttribute("itempath");
-  let compressFileName = item.getAttribute("itemname");
-  if (compressFileName != "") {
-    // open compressing... popup
-    showLoadingPopup("File is being compressed");
-    ContextMenu.style.display = "none";
-    SelectedItemPaneSide = item.getAttribute("itempaneside");
-    await invoke("compress_item", { fromPath: compressFilePath, compressionLevel: parseInt(compressionLevel) }).then(async (items) => {
-      await showItems(items, SelectedItemPaneSide);
-    });
-    closeLoadingPopup();
-    showToast("Compression", "Compressing done", "success");
-  }
-}
-
 async function showCompressPopup(item) {
   IsPopUpOpen = true;
   ContextMenu.style.display = "none";
-  let compressFileName = item.getAttribute("itemname");
+  let arrCompressItems = ArrSelectedItems;
+  if (ArrSelectedItems.length > 1) {
+    arrCompressItems = ArrSelectedItems;
+  }
+  else {
+    arrCompressItems = [item];
+  }
+  let compressFileName = "";
+  if (arrCompressItems.length > 1) {
+    for (let i = 0; i < arrCompressItems.length; i++) {
+      compressFileName += arrCompressItems[i].getAttribute("itemname") + "<br>";
+    }
+  }
+  else {
+    compressFileName = item.getAttribute("itemname");
+  }
   if (compressFileName != "") {
     let popup = document.createElement("div");
     popup.innerHTML = `
@@ -1037,7 +1046,7 @@ async function showCompressPopup(item) {
           <input class="text-input compression-popup-level-input" type="number" value="3" placeholder="-7-22" />
         </div>
       </div>
-      <div class="popup-controls">
+      <div class="popup-controls" style="justify-content: space-evenly;">
         <button class="icon-button" onclick="closeCompressPopup()">
           <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
           Cancel
@@ -1051,7 +1060,7 @@ async function showCompressPopup(item) {
     popup.className = "uni-popup compression-popup";
     document.querySelector("body").append(popup);
     document.querySelector(".compress-item-button").addEventListener("click", async () => {
-      await compressItem(item, $(".compression-popup-level-input").val());
+      await compressItem(arrCompressItems, $(".compression-popup-level-input").val());
     });
     $(".compression-popup-level-input").on("focus", () => IsInputFocused = true);
     $(".compression-popup-level-input").on("blur", () => IsInputFocused = false);
@@ -1060,6 +1069,33 @@ async function showCompressPopup(item) {
         $(".compress-item-button").click();
       }
     });
+  }
+}
+
+async function compressItem(arrItems, compressionLevel = 6) {
+  if (arrItems.length > 1) {
+    showLoadingPopup("File is being compressed");
+    ContextMenu.style.display = "none";
+    await invoke("arr_compress_items", { arrItems: arrItems.map((item) => item.getAttribute("itempath")), compressionLevel: parseInt(compressionLevel) });
+    await listDirectories();
+    closeLoadingPopup();
+    showToast("Compression", "Compressing done", "success");
+  }
+  else {
+    let item = arrItems[0];
+    let compressFilePath = item.getAttribute("itempath");
+    let compressFileName = item.getAttribute("itemname");
+    if (compressFileName != "") {
+      // open compressing... popup
+      showLoadingPopup("File is being compressed");
+      ContextMenu.style.display = "none";
+      SelectedItemPaneSide = item.getAttribute("itempaneside");
+      await invoke("compress_item", { fromPath: compressFilePath, compressionLevel: parseInt(compressionLevel) }).then(async (items) => {
+        await showItems(items, SelectedItemPaneSide);
+      });
+      closeLoadingPopup();
+      showToast("Compression", "Compressing done", "success");
+    }
   }
 }
 
@@ -2442,6 +2478,43 @@ function connectToFtp() {
   let password = document.querySelector(".ftp-password-input").value;
   openFavFTP(hostname + ":21", username, password);
   closeFtpConfig();
+}
+
+function getPreviewIcon(path) {
+  // Abrufen des Dateisystems
+  const fs = require('fs');
+  const stats = fs.statSync(path);
+
+  // Prüfen, ob es sich um eine Datei handelt
+  if (!stats.isFile()) {
+    return null;
+  }
+
+  // Abrufen des MIME-Typs
+  const mimeType = require('mime').getType(path);
+
+  // Abrufen des Vorschau-Icons für den MIME-Typ
+  let icon = null;
+  switch (mimeType) {
+    // Abrufen von Standard-Icons für einige gängige MIME-Typen
+    case 'image/png':
+      icon = 'image-png';
+      break;
+    case 'image/jpeg':
+      icon = 'image-jpeg';
+      break;
+    case 'image/gif':
+      icon = 'image-gif';
+      break;
+    case 'text/plain':
+      icon = 'text-plain';
+      break;
+    case 'application/pdf':
+      icon = 'application-pdf';
+      break;
+  }
+
+  return icon;
 }
 
 function formatBytes(bytes, decimals = 2) {

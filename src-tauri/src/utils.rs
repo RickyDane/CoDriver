@@ -41,7 +41,14 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                         break;
                     }
                     fw.write_all(&buf[..ds]).unwrap();
-                    speed = (s as f64 / (sw.elapsed_ms() as f64 / 1000.0)) / 1024.0 / 1024.0 as f64;
+                    // Calculate transfer speed
+                    if s % 50_000_000 == 0 {
+                        speed = calc_transfer_speed(s as f64, sw.elapsed_ms() as f64 / 1000.0);
+                        if speed.is_infinite() { speed = 0.0 }
+                        unsafe {
+                            update_progressbar(app_window, (100.0/&file_size) * s as f32, format!("{}/{}", COPY_COUNTER, TO_COPY_COUNTER).as_str(), speed);
+                        };
+                    }
                     unsafe {
                         update_progressbar(app_window, (100.0/&file_size) * s as f32, format!("{}/{}", COPY_COUNTER, TO_COPY_COUNTER).as_str(), speed);
                     };
@@ -100,4 +107,8 @@ pub fn update_progressbar(app_window: &Window, progress: f32, items_count_text: 
 pub fn update_progressbar_2(app_window: &Window, progress: f32, file_name: &str) {
     let _ = app_window.eval(format!("document.querySelector('.progress-bar-2-fill').style.width = '{}%'", progress).as_str());
     let _ = app_window.eval(format!("document.querySelector('.progress-bar-item-text').innerText = '{}'", file_name).as_str());
+}
+
+pub fn calc_transfer_speed(file_size: f64, time: f64) -> f64 {
+    (file_size / time) / 1024.0 / 1024.0
 }
