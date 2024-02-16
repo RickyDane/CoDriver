@@ -28,6 +28,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Close popups with esc
 - Ctrl / Cmd + F for a quicksearch in the current directory
 - Jump to a directory with Ctrl / Cmd + G by inputting a path
+- Filter items in list mode by size, name and last modified
 
 ### Advanced features
 - Compress files and folders
@@ -59,7 +60,6 @@ rdpFX does not use path caching to access files and folders, so the performance 
 
 #### 📝 Todos:
 - Multiple languages
-- List filtering (filter by name, last modified, file size)
 - FTP-Integration
 - Favorites
 <br>
