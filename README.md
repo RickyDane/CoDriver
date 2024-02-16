@@ -21,6 +21,8 @@ The performance is provided by ["rust_search"](https://crates.io/crates/rust_sea
 <br><br>
 rdpFX does not use path caching to access files and folders, so the performance is achieved by Rust, the speed of the disk and the power of the cpu.
 
+⁉️ Keep in mind that this software is still work in progress and will contain bugs!
+
 ### Basic features
 - Navigate through directories as you know it
 - Copy & Paste, delete, create and rename files and folders
