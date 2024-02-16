@@ -2485,7 +2485,7 @@ function formatBytes(bytes, decimals = 2) {
 async function sortItems(sortMethod) {
   if (IsShowDisks == false) {
     let arr = [...DirectoryList.children];
-    arr = getObjectFromDirectoryList(arr);
+    arr = getFDirObjectListFromDirectoryList(arr);
     if (sortMethod == "size") {
       if (IsFilteredBySize == true) {
         arr.sort((a, b) => { return parseInt(b.size) - (parseInt(a.size)) });
