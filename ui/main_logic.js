@@ -218,25 +218,14 @@ document.addEventListener("contextmenu", (e) => {
     ContextMenu.style.left = e.clientX + "px";
   }
 
-  ContextMenu.children[7].addEventListener(
-    "click",
-    function () {
-      createFolderInputPrompt();
-    },
-    { once: true },
-  );
-  ContextMenu.children[6].addEventListener(
-    "click",
-    function () {
-      createFileInputPrompt(e);
-    },
-    { once: true },
-  );
+  ContextMenu.children[7].addEventListener("click", function () { createFolderInputPrompt(); }, { once: true }, );
+  ContextMenu.children[6].addEventListener("click", function () { createFileInputPrompt(e); }, { once: true }, );
 
   if (CopyFilePath == "") {
     ContextMenu.children[4].setAttribute("disabled", "true");
     ContextMenu.children[4].classList.add("c-item-disabled");
-  } else {
+  }
+  else {
     ContextMenu.children[4].removeAttribute("disabled");
     ContextMenu.children[4].classList.remove("c-item-disabled");
   }
@@ -246,7 +235,7 @@ document.addEventListener("contextmenu", (e) => {
 
 document.onkeydown = async (e) => {
   // Shortcut for jumping to configured directory
-  if (e.metaKey) {
+  if (e.metaKey && Platform == "darwin") {
     IsMetaDown = true;
   }
   if (e.ctrlKey && Platform != "darwin") {
@@ -315,21 +304,21 @@ document.onkeydown = async (e) => {
   if (IsDualPaneEnabled == true && IsDisableShortcuts == false && IsPopUpOpen == false) {
     // check if lshift + f5 is pressed
     if (e.shiftKey && e.key == "F5") {
+      e.preventDefault();
+      e.stopPropagation();
       let isToMove = await confirm("Current selection will be moved over");
       if (isToMove == true) {
         moveTo(true);
       }
-      e.preventDefault();
-      e.stopPropagation();
     }
     // check if f5 is pressed
     else if (e.key == "F5" && IsTabsEnabled == false) {
+      e.preventDefault();
+      e.stopPropagation();
       let isToCopy = await confirm("Current selection will be copied over");
       if (isToCopy == true) {
         pasteItem();
       }
-      e.preventDefault();
-      e.stopPropagation();
     }
     // check if backspace is pressed
     if (e.keyCode == 8 && IsPopUpOpen == false) {
@@ -419,9 +408,10 @@ document.onkeydown = async (e) => {
     e.stopPropagation();
   }
   // Check if cmd / ctrl + shift + c is pressed
-  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key == "c") {
+  if (IsCtrlDown && e.altKey && e.key == "c") {
     await writeText(CurrentDir);
     showToast("Info", "Current dir path copied", "success");
+    return;
     // alert("Current dir path copied!");
   }
   // Check if cmd / ctrl + k is pressed
@@ -532,13 +522,13 @@ document.onkeydown = async (e) => {
 
 // Reset key toggle
 document.onkeyup = (e) => {
-  if (e.keyCode == 71) {
+  if (e.key == "G" || e.key == "g") {
     IsGDown = false;
   }
-  if (e.keyCode === 91) {
+  if (e.metaKey && Platform == "darwin") {
     IsMetaDown = false;
   }
-  if (e.ctrlKey && Platform != "darwin") {
+  if (e.key == "Control" && Platform != "darwin") {
     IsCtrlDown = false;
   }
   if (e.shiftKey) {
@@ -571,8 +561,8 @@ document.querySelector(".dual-pane-right").addEventListener("contextmenu", () =>
 });
 
 // Main function to handle directory visualization
-async function showItems(items, dualPaneSide = "", fromDualPaneCopy = false) {
-  await getCurrentDir(dualPaneSide, fromDualPaneCopy);
+async function showItems(items, dualPaneSide = "") {
+  await getCurrentDir();
   IsShowDisks = false;
   // Check which tab is currently active and write CurrentDir to TabOnePath and so on
   // Todo: Make more "dynamic friendly"
@@ -913,18 +903,8 @@ async function showItems(items, dualPaneSide = "", fromDualPaneCopy = false) {
   }
 }
 
-async function getCurrentDir(dualPaneSide = "", fromDualPaneCopy = false) {
+async function getCurrentDir() {
   await invoke("get_current_dir").then((path) => {
-    if (fromDualPaneCopy == true) {
-      switch (dualPaneSide) {
-        case "left":
-          RightDualPanePath = path;
-          break;
-        case "right":
-          LeftDualPanePath = path;
-          break;
-      }
-    }
     CurrentDir = path;
     document.querySelector(".current-path").textContent = path;
   });
@@ -1192,6 +1172,9 @@ async function moveTo(isForDualPane = false) {
       await invoke("arr_delete_items", { arrItems: ArrSelectedItems.map(item => item.getAttribute("itempath")) });
       if (isForDualPane) {
         refreshBothViews();
+      }
+      else {
+        refreshView();
       }
       resetProgressBar();
     });
@@ -1541,14 +1524,14 @@ async function listDirectories(fromDualPaneCopy = false) {
     if (IsDualPaneEnabled == true) {
       if (fromDualPaneCopy == true) {
         if (SelectedItemPaneSide == "left") {
-          await showItems(items, "right", fromDualPaneCopy);
+          await showItems(items, "right");
         }
         else if (SelectedItemPaneSide == "right") {
-          await showItems(items, "left", fromDualPaneCopy);
+          await showItems(items, "left");
         }
       }
       else {
-        await showItems(items, SelectedItemPaneSide, fromDualPaneCopy);
+        await showItems(items, SelectedItemPaneSide);
       }
       goUp(false, true);
     }
@@ -1563,18 +1546,10 @@ async function refreshView() {
 }
 
 async function refreshBothViews() {
-  if (SelectedItemPaneSide == "left") {
-    await invoke("set_dir", { currentDir: LeftDualPanePath });
-    listDirectories();
-    await invoke("set_dir", { currentDir: RightDualPanePath });
-    listDirectories(true)
-  }
-  else if (SelectedItemPaneSide == "right") {
-    await invoke("set_dir", { currentDir: RightDualPanePath });
-    listDirectories();
-    await invoke("set_dir", { currentDir: LeftDualPanePath });
-    listDirectories(true)
-  }
+  setCurrentDir(LeftDualPanePath, "left");
+  listDirectories(true);
+  setCurrentDir(RightDualPanePath, "right");
+  listDirectories(true);
 }
 
 async function interactWithItem(element = null, dualPaneSide = "", shortcutPath = null) {
