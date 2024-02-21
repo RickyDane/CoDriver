@@ -638,13 +638,17 @@ async fn search_for(mut file_name: String, max_items: i32, search_depth: i32, fi
 }
 
 #[tauri::command]
-async fn copy_paste(app_window: Window, act_file_name: String, from_path: String, is_for_dual_pane: String) {
+async fn copy_paste(app_window: Window, act_file_name: String, from_path: String, is_for_dual_pane: String, mut copy_to_path: String) {
+    if &copy_to_path.len() == &0 {
+        wng_log("No destination path provided. Defaulting to current dir".into());
+        copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
+    }
     unsafe {
         COPY_COUNTER = 0.0;
     }
     let _ = &app_window.eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
     dbg_log(format!("Copying: {} ...", &act_file_name));
-    let final_filename = get_final_filename(act_file_name, from_path.clone(), is_for_dual_pane).await;
+    let final_filename = get_final_filename(act_file_name, from_path.clone(), is_for_dual_pane, copy_to_path).await;
 
     unsafe {
         TO_COPY_COUNTER = count_entries(&from_path);
@@ -662,7 +666,11 @@ async fn copy_paste(app_window: Window, act_file_name: String, from_path: String
 }
 
 #[tauri::command]
-async fn arr_copy_paste(app_window: Window, arr_items: Vec<String>, is_for_dual_pane: String) {
+async fn arr_copy_paste(app_window: Window, arr_items: Vec<String>, is_for_dual_pane: String, mut copy_to_path: String) {
+    if &copy_to_path.len() == &0 {
+        wng_log("No destination path provided. Defaulting to current dir".into());
+        copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
+    }
     unsafe {
         COPY_COUNTER = 0.0;
         TO_COPY_COUNTER = 0.0
@@ -678,7 +686,7 @@ async fn arr_copy_paste(app_window: Window, arr_items: Vec<String>, is_for_dual_
     let sw = Stopwatch::start_new();
     for item_path in arr_items {
         filename = item_path.replace("\\", "/").split("/").last().unwrap().to_string();
-        let final_filename = get_final_filename(filename, item_path.clone(), is_for_dual_pane.clone()).await;
+        let final_filename = get_final_filename(filename, item_path.clone(), is_for_dual_pane.clone(), copy_to_path.clone()).await;
         // Execute the copy process for either a dir or file
         copy_to(&app_window, final_filename, item_path);
     }
@@ -686,7 +694,7 @@ async fn arr_copy_paste(app_window: Window, arr_items: Vec<String>, is_for_dual_
 }
 
 #[tauri::command]
-async fn get_final_filename(act_file_name: String, from_path: String, is_for_dual_pane: String) -> String {
+async fn get_final_filename(act_file_name: String, from_path: String, is_for_dual_pane: String, copy_to_path: String) -> String {
     let file = fs::metadata(&from_path);
     if &file.is_ok() != &true {
         err_log("File could not be copied".into());
@@ -697,8 +705,7 @@ async fn get_final_filename(act_file_name: String, from_path: String, is_for_dua
         file_name = act_file_name;
     }
     else {
-        file_name = current_dir()
-            .unwrap()
+        file_name = PathBuf::from(copy_to_path)
             .join(&act_file_name)
             .to_str()
             .unwrap()
