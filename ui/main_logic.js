@@ -1,6 +1,7 @@
 const { invoke } = window.__TAURI__.tauri;
 const { confirm } = window.__TAURI__.dialog;
 const { message } = window.__TAURI__.dialog;
+const { open } = window.__TAURI__.dialog;
 const { appWindow } = window.__TAURI__.window;
 const { writeText } = window.__TAURI__.clipboard;
 const { writeFile } = window.__TAURI__.clipboard;
@@ -86,7 +87,6 @@ let TransparentColor = "rgba(0, 0, 0, 0.1)";
 
 /* endregion */
 
-
 /* Upper right search bar logic */
 
 document.querySelector(".search-bar-input").addEventListener("focusin", (e) => { IsInputFocused = true; });
@@ -124,7 +124,7 @@ function startFullSearch() {
 }
 
 document.addEventListener("keyup", (e) => {
-  if (e.keyCode === 27) {
+  if (e.key === "Escape") {
     $(".search-bar-input").blur();
     // Close all popups etc.
     ContextMenu.style.display = "none";
@@ -177,6 +177,8 @@ document.addEventListener("mousedown", (e) => {
     ContextMenu.children[3].classList.add("c-item-disabled");
     ContextMenu.children[4].setAttribute("disabled", "true");
     ContextMenu.children[4].classList.add("c-item-disabled");
+    ContextMenu.children[5].setAttribute("disabled", "true");
+    ContextMenu.children[5].classList.add("c-item-disabled");
 
     // New file and new folder
     // ContextMenu.children[5].setAttribute("disabled", "true");
@@ -184,10 +186,10 @@ document.addEventListener("mousedown", (e) => {
     // ContextMenu.children[6].setAttribute("disabled", "true");
     // ContextMenu.children[6].classList.add("c-item-disabled");
 
-    ContextMenu.children[7].setAttribute("disabled", "true");
-    ContextMenu.children[7].classList.add("c-item-disabled");
     ContextMenu.children[8].setAttribute("disabled", "true");
     ContextMenu.children[8].classList.add("c-item-disabled");
+    ContextMenu.children[9].setAttribute("disabled", "true");
+    ContextMenu.children[9].classList.add("c-item-disabled");
 
     unSelectAllItems();
   }
@@ -196,9 +198,8 @@ document.addEventListener("mousedown", (e) => {
 // Open context menu for pasting for example
 document.addEventListener("contextmenu", (e) => {
   e.preventDefault();
-  ContextMenu.children[5].replaceWith(ContextMenu.children[5].cloneNode(true));
   ContextMenu.children[6].replaceWith(ContextMenu.children[6].cloneNode(true));
-  // ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
+  ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
 
   ContextMenu.style.display = "flex";
   if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
@@ -217,14 +218,14 @@ document.addEventListener("contextmenu", (e) => {
     ContextMenu.style.left = e.clientX + "px";
   }
 
-  ContextMenu.children[6].addEventListener(
+  ContextMenu.children[7].addEventListener(
     "click",
     function () {
       createFolderInputPrompt();
     },
     { once: true },
   );
-  ContextMenu.children[5].addEventListener(
+  ContextMenu.children[6].addEventListener(
     "click",
     function () {
       createFileInputPrompt(e);
@@ -740,6 +741,8 @@ async function showItems(items, dualPaneSide = "") {
         case ".gif":
         case ".webp":
         case ".svg":
+        case "ico":
+        case ".icns":
           if (IsImagePreview) {
             fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);// Beispiel für die Verwendung der Funktion
           }
@@ -831,9 +834,11 @@ async function showItems(items, dualPaneSide = "") {
       ContextMenu.children[2].replaceWith(ContextMenu.children[2].cloneNode(true));
       ContextMenu.children[3].replaceWith(ContextMenu.children[3].cloneNode(true));
       ContextMenu.children[4].replaceWith(ContextMenu.children[4].cloneNode(true));
+      ContextMenu.children[5].replaceWith(ContextMenu.children[5].cloneNode(true));
       ContextMenu.children[6].replaceWith(ContextMenu.children[6].cloneNode(true));
       ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
       ContextMenu.children[8].replaceWith(ContextMenu.children[8].cloneNode(true));
+      ContextMenu.children[9].replaceWith(ContextMenu.children[9].cloneNode(true));
 
       ContextMenu.style.display = "flex";
       ContextMenu.style.left = e.clientX + "px";
@@ -849,10 +854,12 @@ async function showItems(items, dualPaneSide = "") {
       ContextMenu.children[3].classList.remove("c-item-disabled");
       ContextMenu.children[4].removeAttribute("disabled");
       ContextMenu.children[4].classList.remove("c-item-disabled");
-      ContextMenu.children[7].removeAttribute("disabled");
-      ContextMenu.children[7].classList.remove("c-item-disabled");
+      ContextMenu.children[5].removeAttribute("disabled");
+      ContextMenu.children[5].classList.remove("c-item-disabled");
       ContextMenu.children[8].removeAttribute("disabled");
       ContextMenu.children[8].classList.remove("c-item-disabled");
+      ContextMenu.children[9].removeAttribute("disabled");
+      ContextMenu.children[9].classList.remove("c-item-disabled");
 
       if (extension != ".zip" && extension != ".rar" && extension != ".7z") {
         ContextMenu.children[1].setAttribute("disabled", "true");
@@ -870,10 +877,10 @@ async function showItems(items, dualPaneSide = "") {
       ContextMenu.children[1].addEventListener("click", () => { extractItem(item); }, { once: true });
       ContextMenu.children[2].addEventListener("click", () => { showCompressPopup(item); }, { once: true });
       ContextMenu.children[3].addEventListener("click", () => { copyItem(item); }, { once: true });
-      ContextMenu.children[5].addEventListener("click", () => { createFileInputPrompt(e); }, { once: true });
-      ContextMenu.children[6].addEventListener("click", () => { createFolderInputPrompt(); }, { once: true });
-      ContextMenu.children[7].addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
-      ContextMenu.children[8].addEventListener("click", () => { showProperties(item); }, { once: true });
+      ContextMenu.children[5].addEventListener("click", () => { moveTo(item); }, { once: true });
+      ContextMenu.children[6].addEventListener("click", () => { createFileInputPrompt(e); }, { once: true });
+      ContextMenu.children[8].addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
+      ContextMenu.children[9].addEventListener("click", () => { showProperties(item); }, { once: true });
     });
   });
   if (IsTabsEnabled == true) {
@@ -927,7 +934,7 @@ async function setCurrentDir(currentDir, dualPaneSide) {
 async function deleteItems(arrItems) {
   let msg = "Do you really want to delete: ";
   for (let i = 0; i < ArrSelectedItems.length; i++) {
-    if (i == 0)  {
+    if (i == 0) {
       msg += ArrSelectedItems[i].getAttribute("itemname");
     }
     else {
@@ -1146,6 +1153,17 @@ function closeInputPopup() {
   IsPopUpOpen = false;
 }
 
+async function moveTo(item) {
+  const selected = await open({ multiple: false, directory: true });
+  ContextMenu.style.display = "none";
+  await invoke("arr_copy_paste", { appWindow, arrItems: [item.getAttribute("itempath")], isForDualPane: "0", copyToPath: selected })
+    .then(async () => {
+      await invoke("delete_item", { actFileName: item.getAttribute("itempath") });
+      await listDirectories(true);
+      resetProgressBar();
+    });
+}
+
 async function pasteItem() {
   let arr = [];
   if (IsDualPaneEnabled == true) {
@@ -1159,17 +1177,17 @@ async function pasteItem() {
     if (SelectedItemPaneSide == "left") {
       await invoke("set_dir", { currentDir: RightDualPanePath });
       let arrItems = arr.map((item) => item.getAttribute("itempath"));
-      await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "1" })
+      await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "1", copyToPath: "" })
     }
     else if (SelectedItemPaneSide == "right") {
       await invoke("set_dir", { currentDir: LeftDualPanePath });
       let arrItems = arr.map((item) => item.getAttribute("itempath"));
-        await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "1" })
+        await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "1", copyToPath: "" })
     }
   }
   else {
     let arrItems = arr.map((item) => item.getAttribute("itempath"));
-    await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "0" })
+    await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "0", copyToPath: "" })
     ContextMenu.style.display = "none";
   }
   if (IsCopyToCut == true) {
