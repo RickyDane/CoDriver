@@ -525,7 +525,7 @@ document.onkeyup = (e) => {
   if (e.key == "G" || e.key == "g") {
     IsGDown = false;
   }
-  if (e.metaKey && Platform == "darwin") {
+  if (e.keyCode === 91 && Platform == "darwin") {
     IsMetaDown = false;
   }
   if (e.key == "Control" && Platform != "darwin") {
@@ -748,9 +748,6 @@ async function showItems(items, dualPaneSide = "") {
             fileIcon = "resources/img-file.png";
           }
           break;
-        case ".svg":
-          fileIcon = "resources/img-file.png";
-          break;
         case ".txt":
           fileIcon = "resources/text-file.png";
           break;
@@ -922,8 +919,8 @@ async function setCurrentDir(currentDir, dualPaneSide) {
     document.querySelector(".dual-pane-right").style.boxShadow = "none";
   }
   else if (dualPaneSide == "right") {
-    document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
     document.querySelector(".dual-pane-left").style.boxShadow = "none";
+    document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
   }
 }
 
@@ -1158,12 +1155,12 @@ async function moveTo(isForDualPane = false) {
   else {
     switch (SelectedItemPaneSide) {
       case "left":
-        await invoke("set_dir", { currentDir: RightDualPanePath });
-        selectedPath = RightDualPanePath;
+        await setCurrentDir(RightDualPanePath, "right");
+        selectedPath = CurrentDir;
         break;
       case "right":
-      await invoke("set_dir", { currentDir: LeftDualPanePath });
-        selectedPath = LeftDualPanePath;
+        await setCurrentDir(LeftDualPanePath, "left");
+        selectedPath = CurrentDir;
         break;
     }
   }
@@ -1171,7 +1168,7 @@ async function moveTo(isForDualPane = false) {
     .then(async () => {
       await invoke("arr_delete_items", { arrItems: ArrSelectedItems.map(item => item.getAttribute("itempath")) });
       if (isForDualPane) {
-        refreshBothViews();
+        refreshBothViews(SelectedItemPaneSide);
       }
       else {
         refreshView();
@@ -1545,11 +1542,23 @@ async function refreshView() {
   await listDirectories();
 }
 
-async function refreshBothViews() {
-  setCurrentDir(LeftDualPanePath, "left");
-  listDirectories(true);
-  setCurrentDir(RightDualPanePath, "right");
-  listDirectories(true);
+async function refreshBothViews(dualPaneSide = "") {
+  switch (dualPaneSide) {
+    case "left":
+      await listDirectories();
+      await setCurrentDir(RightDualPanePath, "right");
+      await listDirectories();
+      await setCurrentDir(LeftDualPanePath, "left");
+      goUp(false, true);
+      break;
+    case "right":
+      await listDirectories();
+      await setCurrentDir(LeftDualPanePath, "left");
+      await listDirectories();
+      await setCurrentDir(RightDualPanePath, "right");
+      goUp(false, true);
+      break;
+  }
 }
 
 async function interactWithItem(element = null, dualPaneSide = "", shortcutPath = null) {
@@ -2344,6 +2353,8 @@ function showItemPreview(item, isOverride = false) {
     case ".gif":
     case ".svg":
     case ".webp":
+    case ".ico":
+    case ".icns":
       module = `<img decoding="async" src="${convertFileSrc(path)}" alt="${name}" />`;
       break;
     case ".pdf":
