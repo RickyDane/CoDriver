@@ -313,8 +313,17 @@ document.onkeydown = async (e) => {
   }
 
   if (IsDualPaneEnabled == true && IsDisableShortcuts == false && IsPopUpOpen == false) {
+    // check if lshift + f5 is pressed
+    if (e.shiftKey && e.key == "F5") {
+      let isToMove = await confirm("Current selection will be moved over");
+      if (isToMove == true) {
+        moveTo(true);
+      }
+      e.preventDefault();
+      e.stopPropagation();
+    }
     // check if f5 is pressed
-    if (e.key == "F5" && IsTabsEnabled == false) {
+    else if (e.key == "F5" && IsTabsEnabled == false) {
       let isToCopy = await confirm("Current selection will be copied over");
       if (isToCopy == true) {
         pasteItem();
@@ -440,15 +449,15 @@ document.onkeydown = async (e) => {
       if (IsDualPaneEnabled) {
         if (SelectedItemPaneSide == "left") {
           await unSelectAllItems();
-            for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
-              selectItem(LeftPaneItemCollection.children[i]);
-            }
+          for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
+            selectItem(LeftPaneItemCollection.children[i]);
+          }
         }
         else {
           await unSelectAllItems();
-            for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
-              selectItem(RightPaneItemCollection.children[i]);
-            }
+          for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
+            selectItem(RightPaneItemCollection.children[i]);
+          }
         }
       }
       else {
@@ -562,8 +571,8 @@ document.querySelector(".dual-pane-right").addEventListener("contextmenu", () =>
 });
 
 // Main function to handle directory visualization
-async function showItems(items, dualPaneSide = "") {
-  await getCurrentDir();
+async function showItems(items, dualPaneSide = "", fromDualPaneCopy = false) {
+  await getCurrentDir(dualPaneSide, fromDualPaneCopy);
   IsShowDisks = false;
   // Check which tab is currently active and write CurrentDir to TabOnePath and so on
   // Todo: Make more "dynamic friendly"
@@ -607,8 +616,7 @@ async function showItems(items, dualPaneSide = "") {
 
   let currentTab = document.querySelector(".fx-tab-" + CurrentActiveTab);
   if (currentTab != null) {
-    currentTab.children[0].innerHTML =
-      CurrentDir.split("/")[CurrentDir.split("/").length - 1];
+    currentTab.children[0].innerHTML = CurrentDir.split("/")[CurrentDir.split("/").length - 1];
   }
   delete currentTab;
   DirectoryList = document.createElement("div");
@@ -877,16 +885,14 @@ async function showItems(items, dualPaneSide = "") {
       ContextMenu.children[1].addEventListener("click", () => { extractItem(item); }, { once: true });
       ContextMenu.children[2].addEventListener("click", () => { showCompressPopup(item); }, { once: true });
       ContextMenu.children[3].addEventListener("click", () => { copyItem(item); }, { once: true });
-      ContextMenu.children[5].addEventListener("click", () => { moveTo(item); }, { once: true });
+      ContextMenu.children[5].addEventListener("click", () => { moveTo(false) }, { once: true });
       ContextMenu.children[6].addEventListener("click", () => { createFileInputPrompt(e); }, { once: true });
       ContextMenu.children[8].addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
       ContextMenu.children[9].addEventListener("click", () => { showProperties(item); }, { once: true });
     });
   });
   if (IsTabsEnabled == true) {
-    document
-      .querySelector(".tab-container-" + CurrentActiveTab)
-      .append(DirectoryList);
+    document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
   }
   if (IsDualPaneEnabled == true) {
     if (dualPaneSide == "left") {
@@ -907,8 +913,18 @@ async function showItems(items, dualPaneSide = "") {
   }
 }
 
-async function getCurrentDir() {
+async function getCurrentDir(dualPaneSide = "", fromDualPaneCopy = false) {
   await invoke("get_current_dir").then((path) => {
+    if (fromDualPaneCopy == true) {
+      switch (dualPaneSide) {
+        case "left":
+          RightDualPanePath = path;
+          break;
+        case "right":
+          LeftDualPanePath = path;
+          break;
+      }
+    }
     CurrentDir = path;
     document.querySelector(".current-path").textContent = path;
   });
@@ -1153,13 +1169,30 @@ function closeInputPopup() {
   IsPopUpOpen = false;
 }
 
-async function moveTo(item) {
-  const selected = await open({ multiple: false, directory: true });
+async function moveTo(isForDualPane = false) {
   ContextMenu.style.display = "none";
-  await invoke("arr_copy_paste", { appWindow, arrItems: [item.getAttribute("itempath")], isForDualPane: "0", copyToPath: selected })
+  let selectedPath = "";
+  if (isForDualPane == false) {
+    selectedPath = await open({ multiple: false, directory: true });
+  }
+  else {
+    switch (SelectedItemPaneSide) {
+      case "left":
+        await invoke("set_dir", { currentDir: RightDualPanePath });
+        selectedPath = RightDualPanePath;
+        break;
+      case "right":
+      await invoke("set_dir", { currentDir: LeftDualPanePath });
+        selectedPath = LeftDualPanePath;
+        break;
+    }
+  }
+  await invoke("arr_copy_paste", { appWindow, arrItems: ArrSelectedItems.map(item => item.getAttribute("itempath")), isForDualPane: isForDualPane ? "1" : "0", copyToPath: selectedPath })
     .then(async () => {
-      await invoke("delete_item", { actFileName: item.getAttribute("itempath") });
-      await listDirectories(true);
+      await invoke("arr_delete_items", { arrItems: ArrSelectedItems.map(item => item.getAttribute("itempath")) });
+      if (isForDualPane) {
+        refreshBothViews();
+      }
       resetProgressBar();
     });
 }
@@ -1191,7 +1224,7 @@ async function pasteItem() {
     ContextMenu.style.display = "none";
   }
   if (IsCopyToCut == true) {
-    await invoke("delete_item", { actFileName: arr[i].getAttribute("itempath") });
+    await invoke("arr_delete_items", { arrItems: arr.map(item => item.getAttribute("itempath")) });
     ArrCopyItems = [];
   }
   closeLoadingPopup();
@@ -1508,14 +1541,14 @@ async function listDirectories(fromDualPaneCopy = false) {
     if (IsDualPaneEnabled == true) {
       if (fromDualPaneCopy == true) {
         if (SelectedItemPaneSide == "left") {
-          await showItems(items, "right");
+          await showItems(items, "right", fromDualPaneCopy);
         }
         else if (SelectedItemPaneSide == "right") {
-          await showItems(items, "left");
+          await showItems(items, "left", fromDualPaneCopy);
         }
       }
       else {
-        await showItems(items, SelectedItemPaneSide);
+        await showItems(items, SelectedItemPaneSide, fromDualPaneCopy);
       }
       goUp(false, true);
     }
@@ -1527,6 +1560,21 @@ async function listDirectories(fromDualPaneCopy = false) {
 
 async function refreshView() {
   await listDirectories();
+}
+
+async function refreshBothViews() {
+  if (SelectedItemPaneSide == "left") {
+    await invoke("set_dir", { currentDir: LeftDualPanePath });
+    listDirectories();
+    await invoke("set_dir", { currentDir: RightDualPanePath });
+    listDirectories(true)
+  }
+  else if (SelectedItemPaneSide == "right") {
+    await invoke("set_dir", { currentDir: RightDualPanePath });
+    listDirectories();
+    await invoke("set_dir", { currentDir: LeftDualPanePath });
+    listDirectories(true)
+  }
 }
 
 async function interactWithItem(element = null, dualPaneSide = "", shortcutPath = null) {
