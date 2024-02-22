@@ -187,6 +187,7 @@ struct DisksInfo {
     path: String,
     avail: String,
     capacity: String,
+    is_removable: bool
 }
 
 #[tauri::command]
@@ -202,6 +203,7 @@ async fn list_disks() -> Vec<DisksInfo> {
             path: format!("{:?}", disk.mount_point()),
             avail: format!("{:?}", disk.available_space()),
             capacity: format!("{:?}", disk.total_space()),
+            is_removable: disk.is_removable()
         });
     }
     return ls_disks;
