@@ -109,6 +109,7 @@ dependencies = [
  "sysinfo",
  "tauri",
  "tauri-build",
+ "tauri-plugin-drag",
  "unrar",
  "zip",
  "zip-extensions",
@@ -693,6 +694,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "cocoa"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6140449f97a6e97f9511815c5632d84c8aacf8ac271ad77c559218161a1373c"
+dependencies = [
+ "bitflags 1.3.2",
+ "block",
+ "cocoa-foundation",
+ "core-foundation",
+ "core-graphics 0.23.1",
+ "foreign-types 0.5.0",
+ "libc",
+ "objc",
+]
+
+[[package]]
 name = "cocoa-foundation"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1113,6 +1130,25 @@ name = "downcast-rs"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
+
+[[package]]
+name = "drag"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54447bb65169d6ebac6cb94674a822821d8c3343c40124b5a587800bf81a8e45"
+dependencies = [
+ "cocoa 0.25.0",
+ "core-graphics 0.23.1",
+ "dunce",
+ "gdk",
+ "gdkx11",
+ "gtk",
+ "objc",
+ "raw-window-handle",
+ "serde",
+ "thiserror",
+ "windows 0.52.0",
+]
 
 [[package]]
 name = "dtoa"
@@ -1611,6 +1647,20 @@ dependencies = [
  "libc",
  "pkg-config",
  "system-deps 6.2.0",
+]
+
+[[package]]
+name = "gdkx11"
+version = "0.15.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e62de46d9503381e4ab0b7d7a99b1fda53bd312e19ddc4195ffbe1d76f336cf9"
+dependencies = [
+ "gdk",
+ "gdkx11-sys",
+ "gio",
+ "glib",
+ "libc",
+ "x11",
 ]
 
 [[package]]
@@ -4336,7 +4386,7 @@ dependencies = [
  "bitflags 1.3.2",
  "cairo-rs",
  "cc",
- "cocoa",
+ "cocoa 0.24.1",
  "core-foundation",
  "core-graphics 0.22.3",
  "crossbeam-channel",
@@ -4370,7 +4420,7 @@ dependencies = [
  "unicode-segmentation",
  "uuid",
  "windows 0.39.0",
- "windows-implement",
+ "windows-implement 0.39.0",
  "x11-dl",
 ]
 
@@ -4411,7 +4461,7 @@ dependencies = [
  "anyhow",
  "bytes",
  "clap",
- "cocoa",
+ "cocoa 0.24.1",
  "dirs-next",
  "dunce",
  "embed_plist",
@@ -4514,6 +4564,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-drag"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be169bc028a0f4d49ba4bbc126966c126dadd14d1a82fcc6fd6d3a7e3003cd26"
+dependencies = [
+ "base64 0.21.7",
+ "drag",
+ "serde",
+ "serde_json",
+ "tauri",
+ "thiserror",
+]
+
+[[package]]
 name = "tauri-runtime"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4541,7 +4605,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a561ae38c6b27510c77a3ab4cf65bebe18fba51ca4569e023fb9e194ff4995fb"
 dependencies = [
  "arboard",
- "cocoa",
+ "cocoa 0.24.1",
  "gtk",
  "percent-encoding",
  "rand 0.8.5",
@@ -5411,7 +5475,7 @@ dependencies = [
  "webview2-com-macros",
  "webview2-com-sys",
  "windows 0.39.0",
- "windows-implement",
+ "windows-implement 0.39.0",
 ]
 
 [[package]]
@@ -5514,7 +5578,7 @@ version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1c4bd0a50ac6020f65184721f758dba47bb9fbc2133df715ec74a237b26794a"
 dependencies = [
- "windows-implement",
+ "windows-implement 0.39.0",
  "windows_aarch64_msvc 0.39.0",
  "windows_i686_gnu 0.39.0",
  "windows_i686_msvc 0.39.0",
@@ -5538,6 +5602,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e48a53791691ab099e5e2ad123536d0fff50652600abaf43bbf952894110d0be"
 dependencies = [
  "windows-core",
+ "windows-implement 0.52.0",
+ "windows-interface",
  "windows-targets 0.52.0",
 ]
 
@@ -5568,6 +5634,28 @@ checksum = "ba01f98f509cb5dc05f4e5fc95e535f78260f15fea8fe1a8abdd08f774f1cee7"
 dependencies = [
  "syn 1.0.109",
  "windows-tokens",
+]
+
+[[package]]
+name = "windows-implement"
+version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12168c33176773b86799be25e2a2ba07c7aab9968b37541f1094dbd7a60c8946"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.50",
+]
+
+[[package]]
+name = "windows-interface"
+version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d8dc32e0095a7eeccebd0e3f09e9509365ecb3fc6ac4d6f5f14a3f6392942d1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.50",
 ]
 
 [[package]]
@@ -5915,7 +6003,7 @@ checksum = "6ad85d0e067359e409fcb88903c3eac817c392e5d638258abfb3da5ad8ba6fc4"
 dependencies = [
  "base64 0.13.1",
  "block",
- "cocoa",
+ "cocoa 0.24.1",
  "core-graphics 0.22.3",
  "crossbeam-channel",
  "dunce",
@@ -5942,7 +6030,7 @@ dependencies = [
  "webkit2gtk-sys",
  "webview2-com",
  "windows 0.39.0",
- "windows-implement",
+ "windows-implement 0.39.0",
 ]
 
 [[package]]

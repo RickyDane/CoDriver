@@ -472,6 +472,8 @@ label {
 .item-icon {
     filter: saturate(1.2);
     border-radius: 5px;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 .item-button {
     position: relative;
@@ -886,7 +888,7 @@ label {
     text-align: center;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 10px;
     font-size: var(--fontSize);
     font-family: var(--textColor2);
     max-width: 70%;
@@ -896,7 +898,7 @@ label {
     height: fit-content;
     margin: auto;
     padding: 5px;
-    box-shadow: inset 0px 0px 10px 1px var(--transparentColor);
+    /* box-shadow: inset 0px 0px 10px 1px var(--transparentColor); */
     border-radius: 5px;
 }
 .current-path::-webkit-scrollbar {

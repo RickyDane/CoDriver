@@ -66,18 +66,13 @@ fn main() {
             copy_from_ftp,
             rename_elements_with_format,
             add_favorite,
-            test_window,
             arr_copy_paste,
             arr_delete_items,
             arr_compress_items
         ])
+        .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-#[tauri::command]
-async fn test_window (app_window: Window) {
-    let _ = app_window.eval("alert('Hey whats up?')");
 }
 
 #[derive(serde::Serialize)]
@@ -120,6 +115,8 @@ async fn check_app_config() -> AppConfig {
             .unwrap()
             .to_string(),
     ).await;
+
+    let _ = File::create(config_dir().unwrap().join("rdpFX/folder-icon.png"));
 
     // If config doesn't exist, create it
     if fs::metadata(config_dir().unwrap().join("rdpFX/app_config.json")).is_err() {

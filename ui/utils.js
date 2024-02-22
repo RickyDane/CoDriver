@@ -1,19 +1,18 @@
 const { listen } = window.__TAURI__.event;
 
 /* Drag and drop files into file explorer */
-listen('tauri://file-drop', event => {
-    event.payload.forEach(item => {
-        console.log(item);
+listen('tauri://file-drop', async event => {
+    event.payload.forEach(async item => {
         CopyFilePath = item;
-        let tempCopyFilePath = CopyFilePath.split("/");
-        CopyFileName = tempCopyFilePath[tempCopyFilePath.length - 1].replace("'", "");
+        CopyFileName = CopyFilePath.split("/")[CopyFilePath.split("/").length - 1].replace("'", "");
         let element = document.createElement("button");
         element.setAttribute("itemname", CopyFileName);
         element.setAttribute("itempath", CopyFilePath);
-        ArrSelectedItems.push(element);
-        ArrCopyItems.push(element);
+        if (ArrSelectedItems.find(item => item.getAttribute("itempath") == CopyFilePath) == null && ArrCopyItems.find(item => item.getAttribute("itempath") == CopyFilePath) == null) {
+          await copyItem(element, false, true);
+        }
     });
-    pasteItem();
+    await pasteItem();
 })
 
 
