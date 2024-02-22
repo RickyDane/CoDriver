@@ -1,21 +1,19 @@
-# rdpFX
-[![publish](https://github.com/RickyDane/rdpFX/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/RickyDane/rdpFX/actions/workflows/main.yml) 
+<h1 align="center">rdpFX</h1>
+<p align="center"><img width="200x" height="auto" src="https://github.com/RickyDane/rdpFX/assets/82893522/880b33d3-d749-49e8-906f-fee2abc053d9" /></p>
+<a href='https://ko-fi.com/F1F8OL456' target='_blank'><p align="center"><img height='36px' style='border: 0px; height: 36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></p></a>
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-blue" />
+  <img src="https://img.shields.io/badge/macOS-white" />
+  <img src="https://img.shields.io/badge/Linux-red" />
+</p>
+<a href="https://github.com/RickyDane/rdpFX/actions/workflows/main.yml"><p align="center"><img src="https://github.com/RickyDane/rdpFX/actions/workflows/main.yml/badge.svg?branch=master"></p></a>
+<p align="center">
+  A simple file explorer that was born because I wanted to learn the Rust language.
+  <br>
+  It is operating system independent and trimmed for optimization.
+</p>
 
-<img width="64px" height="auto" src="https://github.com/RickyDane/rdpFX/assets/82893522/880b33d3-d749-49e8-906f-fee2abc053d9" />
 <br><br>
-<a href='https://ko-fi.com/F1F8OL456' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-<br><br>
-A simple file explorer that was born because I wanted to learn the Rust language.
-<br>
-It is operating system independent and trimmed for optimization.
-<br><br>
-
-| OS                              |  Support  |
-|:--------------------------------|:----------|
-| Linux                           | ✔️        |
-| macOS (Intel / Apple Silicon)   | ✔️        |
-| Windows                         | ✔️        |
-<br>
 
 The performance is provided by ["rust_search"](https://crates.io/crates/rust_search) and ["Tauri"](https://tauri.app/).
 <br><br>
