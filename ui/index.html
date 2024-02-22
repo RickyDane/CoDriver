@@ -23,7 +23,6 @@
             <div class="titlebar-button" id="titlebar-maximize"><i class="fa-regular fa-window-maximize"></i></div>
             <div class="titlebar-button" id="titlebar-close"><i class="fa-solid fa-xmark"></i></div>
         </div>
-        <div class="current-path" data-tauri-drag-region></div>
         <div class="titlebar-buttons-macos">
             <div class="titlebar-button-macos macos-red-button" id="titlebar-close" style="background-color: rgb(239, 68, 66);"></div>
             <div class="titlebar-button-macos macos-yellow-button" id="titlebar-minimize" style="background-color:  rgb(243, 174, 17);"></div>
@@ -81,6 +80,10 @@
     </div>
     <div class="context-menu" style="display: none;">
         <button class="context-item" style="color: red;">Delete<i class="fa-solid fa-trash"></i></button>
+        <div class="context-item context-open-item-with">
+            Open with<i class="fa-solid fa-up-right-from-square"></i>
+            <div class="context-open-with-dropdown"></div>
+        </div>
         <button class="context-item">Extract<i class="fa-solid fa-box-open"></i></button>
         <button class="context-item">Compress<i class="fa-solid fa-box"></i></button>
         <button class="context-item">Copy<i class="fa-solid fa-copy"></i></button>
@@ -213,6 +216,6 @@
         <div class="horizontal-seperator"></div>
         <p class="text-2 progress-bar-item-text"></p>
     </div>
+    <div class="current-path"></div>
 </body>
-
 </html>

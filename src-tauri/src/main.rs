@@ -30,6 +30,7 @@ use sysinfo::Disks;
 use utils::{copy_to, count_entries, dbg_log, err_log, wng_log, COPY_COUNTER, TO_COPY_COUNTER};
 #[allow(unused_imports)]
 use rayon::prelude::*;
+use applications::{get_apps, open_file_with};
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -68,7 +69,9 @@ fn main() {
             add_favorite,
             arr_copy_paste,
             arr_delete_items,
-            arr_compress_items
+            arr_compress_items,
+            get_installed_apps,
+            open_with
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -959,4 +962,19 @@ async fn add_favorite(arr_favorites: Vec<String>) {
         &app_config,
     );
     dbg_log(format!("Saved favorites: {:?}", arr_favorites));
+}
+
+#[tauri::command]
+async fn get_installed_apps() -> Vec<(String, String)>{
+    let list_apps = get_apps();
+    let mut arr_apps: Vec<(String, String)> = vec![];
+    for app in list_apps {
+        arr_apps.push((app.name.clone(), app.app_path_exe.to_str().unwrap().to_string()));
+    }
+    return arr_apps;
+}
+
+#[tauri::command]
+async fn open_with(file_path: String, app_path: String) {
+    open_file_with(PathBuf::from(file_path), PathBuf::from(app_path));
 }

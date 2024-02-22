@@ -86,6 +86,7 @@ checksum = "5ad32ce52e4161730f7098c077cd2ed6229b5804ccf99e5366be1ab72a98b4e1"
 name = "app"
 version = "0.3.6"
 dependencies = [
+ "applications",
  "async-std",
  "async_ftp",
  "base64 0.21.7",
@@ -113,6 +114,17 @@ dependencies = [
  "unrar",
  "zip",
  "zip-extensions",
+]
+
+[[package]]
+name = "applications"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffc90e73104a798ecc55bdb5bf27fb05a9ceba3bcc7a12e5b621ab57f6b1985a"
+dependencies = [
+ "ini",
+ "serde",
+ "walkdir",
 ]
 
 [[package]]
@@ -768,6 +780,12 @@ checksum = "d16048cd947b08fa32c24458a22f5dc5e835264f689f4f5653210c69fd107363"
 dependencies = [
  "crossbeam-utils",
 ]
+
+[[package]]
+name = "configparser"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe1d7dcda7d1da79e444bdfba1465f2f849a58b07774e1df473ee77030cb47a7"
 
 [[package]]
 name = "constant_time_eq"
@@ -2194,6 +2212,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f551f8c3a39f68f986517db0d1759de85881894fdc7db798bd2a9df9cb04b7fc"
 dependencies = [
  "cfb",
+]
+
+[[package]]
+name = "ini"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a9271a5dfd4228fa56a78d7508a35c321639cc71f783bb7a5723552add87bce"
+dependencies = [
+ "configparser",
 ]
 
 [[package]]

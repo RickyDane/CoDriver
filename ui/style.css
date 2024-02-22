@@ -60,7 +60,7 @@ body {
     margin: 0 0 0 calc(150px + 10px);
     padding: 10px 10px 10px 0px;
     width: 100%;
-    height: calc(100vh - 95px);
+    height: calc(100vh - 95px - 30px);
     max-width: 100%;
     overflow: auto;
     position: relative;
@@ -101,7 +101,7 @@ body {
     display: flex;
     flex-flow: row;
     overflow: hidden;
-    border-radius: 0px 0px 15px 15px;
+    border-radius: 0px 0px 10px 10px;
 }
 .header-nav {
     display: flex;
@@ -491,6 +491,7 @@ label {
     gap: 10px;
     transition: 0.1s ease;
     margin: 0 auto;
+    -webkit-user-drag: none;
 }
 .item-button:active {
     background-color: var(--secondaryColor);
@@ -552,6 +553,7 @@ label {
     border-radius: 5px;
     margin: 1px 0px;
     border: 1px solid transparent;
+    -webkit-user-drag: none;
 }
 .item-button-list > p {
     padding-right: 5px;
@@ -879,27 +881,25 @@ label {
 
 .current-path {
     position: absolute;
-    top: 0px;
-    left: 0px;
-    right: 0px;
+    left: 150px;
     bottom: 0px;
     display: flex;
     flex-flow: row;
     text-align: center;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
+    justify-content: flex-start;
+    gap: 5px;
     font-size: var(--fontSize);
     font-family: var(--textColor2);
-    max-width: 70%;
     overflow-x: auto;
     overflow-y: hidden;
-    width: fit-content;
-    height: fit-content;
+    width: calc(100% - 150px);
+    height: 30px;
     margin: auto;
     padding: 5px;
-    /* box-shadow: inset 0px 0px 10px 1px var(--transparentColor); */
-    border-radius: 5px;
+    background-color: var(--primaryColor);
+    border-radius: 0px 0px 10px 0px;
+    border-top: 1px solid var(--tertiaryColor);
 }
 .current-path::-webkit-scrollbar {
     display: none;
@@ -907,12 +907,12 @@ label {
 .path-item {
     padding: 5px;
     border-radius: 5px;
-    background-color: var(--tertiaryColor);
+    background-color: var(--transparentColor);
     cursor: pointer;
     border: none;
 }
 .path-item:hover {
-    background-color: var(--primaryColor);
+    background-color: var(--transparentColorActive);
 }
 
 .directory-list {
@@ -987,6 +987,7 @@ label {
     flex-flow: row;
     justify-content: space-between;
     transition: 0.1s ease;
+    font-size: var(--fontSize);
 }
 .context-item:hover {
     background-color: var(--transparentColorActive);
@@ -999,6 +1000,47 @@ label {
 .c-item-disabled:hover {
     color: grey !important;
     background-color: var(--primaryColor);
+}
+.context-open-item-with {
+    position: relative;
+}
+.context-open-item-with:hover .context-open-with-dropdown {
+    display: flex;
+}
+.context-open-with-dropdown {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    margin: auto;
+    list-style: none;
+    display: none;
+    flex-flow: column;
+    gap: 1px;
+    background-color: var(--primaryColor);
+    padding: 5px;
+    overflow-y: auto;
+    width: 150px;
+    max-height: 200px;
+    border-radius: 10px !important;
+    overflow-x: hidden;
+    box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
+    border: 1px solid var(--tertiaryColor);
+}
+.open-with-item {
+    color: var(--textColor);
+    font-size: var(--fontSize);
+    padding: 5px;
+    border: none;
+    background-color: var(--secondaryColor);
+    border-radius: 5px;
+    margin: 2px;
+    cursor: pointer;
+    text-align: left;
+    transition: 0.1s ease;
+}
+.open-with-item:hover {
+    background-color: var(--transparentColorActive);
+    color: var(--textColor);
 }
 
 .input-dialog {

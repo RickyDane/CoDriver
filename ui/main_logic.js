@@ -28,6 +28,7 @@ let ViewMode = "wrap";
 let OrgViewMode = "wrap";
 
 let DirectoryList;
+let Applications = [];
 let ArrDirectoryItems = [];
 let DirectoryCount = document.querySelector(".directory-entries-count");
 let ContextMenu = document.querySelector(".context-menu");
@@ -162,6 +163,7 @@ document.addEventListener("mousedown", (e) => {
   if (
     !e.target.classList.contains("context-item-icon") &&
     !e.target.classList.contains("context-item") &&
+    !e.target.classList.contains("open-with-item") &&
     !e.target.classList.contains("input-dialog") &&
     !e.target.classList.contains("directory-item-entry") &&
     !e.target.classList.contains("directory-entry") &&
@@ -190,6 +192,8 @@ document.addEventListener("mousedown", (e) => {
     ContextMenu.children[4].classList.add("c-item-disabled");
     ContextMenu.children[5].setAttribute("disabled", "true");
     ContextMenu.children[5].classList.add("c-item-disabled");
+    ContextMenu.children[6].setAttribute("disabled", "true");
+    ContextMenu.children[6].classList.add("c-item-disabled");
 
     // New file and new folder
     // ContextMenu.children[5].setAttribute("disabled", "true");
@@ -197,10 +201,10 @@ document.addEventListener("mousedown", (e) => {
     // ContextMenu.children[6].setAttribute("disabled", "true");
     // ContextMenu.children[6].classList.add("c-item-disabled");
 
-    ContextMenu.children[8].setAttribute("disabled", "true");
-    ContextMenu.children[8].classList.add("c-item-disabled");
     ContextMenu.children[9].setAttribute("disabled", "true");
     ContextMenu.children[9].classList.add("c-item-disabled");
+    ContextMenu.children[10].setAttribute("disabled", "true");
+    ContextMenu.children[10].classList.add("c-item-disabled");
 
     unSelectAllItems();
   }
@@ -407,17 +411,6 @@ document.onkeydown = async (e) => {
     }
   }
 
-  // check if del is pressed
-  if (e.keyCode == 46 || (e.metaKey && e.keyCode == 8)) {
-    {
-      await deleteItems(ArrSelectedItems);
-      closeLoadingPopup();
-    }
-    listDirectories();
-    goUp();
-    e.preventDefault();
-    e.stopPropagation();
-  }
   // Check if cmd / ctrl + shift + c is pressed
   if (IsCtrlDown && e.altKey && e.key == "c") {
     await writeText(CurrentDir);
@@ -445,6 +438,15 @@ document.onkeydown = async (e) => {
   }
 
   if (IsPopUpOpen == false) {
+    // check if del is pressed
+    if (e.keyCode == 46 || (e.metaKey && e.keyCode == 8)) {
+      await deleteItems(ArrSelectedItems);
+      closeLoadingPopup();
+      listDirectories();
+      goUp();
+      e.preventDefault();
+      e.stopPropagation();
+    }
     // Check if cmd / ctrl + a is pressed
     if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "a" && IsInputFocused == false) {
       if (IsDualPaneEnabled) {
@@ -497,7 +499,7 @@ document.onkeydown = async (e) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    // check if ctrl / cmd + g is pressed | Path input
+    // check if cmd / ctrl + g is pressed | Path input
     if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
       showInputPopup("Input path to jump to");
       e.preventDefault();
@@ -845,11 +847,22 @@ async function showItems(items, dualPaneSide = "") {
       startDrag({ item: ArrSelectedItems.map(item => item.getAttribute("itempath")), icon: icon });
       unSelectAllItems();
     });
-    item.addEventListener("contextmenu", (e) => {
+    item.addEventListener("contextmenu", async (e) => {
+      let appsCMenu = document.querySelector(".context-open-with-dropdown");
+      appsCMenu.innerHTML = "";
+      Applications.forEach(app => {
+        let newItem = document.createElement("button");
+        newItem.innerHTML = app[0].split(".")[0];
+        newItem.className = "open-with-item";
+        newItem.setAttribute("appname", app[0].split(".")[0]);
+        newItem.setAttribute("apppath", app[1]);
+        newItem.addEventListener("click", () => open_with(item.getAttribute("itempath"), app[1]));
+        appsCMenu.appendChild(newItem);
+      });
       e.preventDefault();
+
       // Reset so that the commands are not triggered multiple times
       ContextMenu.children[0].replaceWith(ContextMenu.children[0].cloneNode(true));
-      ContextMenu.children[1].replaceWith(ContextMenu.children[1].cloneNode(true));
       ContextMenu.children[2].replaceWith(ContextMenu.children[2].cloneNode(true));
       ContextMenu.children[3].replaceWith(ContextMenu.children[3].cloneNode(true));
       ContextMenu.children[4].replaceWith(ContextMenu.children[4].cloneNode(true));
@@ -858,6 +871,7 @@ async function showItems(items, dualPaneSide = "") {
       ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
       ContextMenu.children[8].replaceWith(ContextMenu.children[8].cloneNode(true));
       ContextMenu.children[9].replaceWith(ContextMenu.children[9].cloneNode(true));
+      ContextMenu.children[10].replaceWith(ContextMenu.children[10].cloneNode(true));
 
       ContextMenu.style.display = "flex";
       ContextMenu.style.left = e.clientX + "px";
@@ -867,25 +881,27 @@ async function showItems(items, dualPaneSide = "") {
 
       ContextMenu.children[0].removeAttribute("disabled");
       ContextMenu.children[0].classList.remove("c-item-disabled");
-      ContextMenu.children[2].removeAttribute("disabled");
-      ContextMenu.children[2].classList.remove("c-item-disabled");
+      ContextMenu.children[1].removeAttribute("disabled");
+      ContextMenu.children[1].classList.remove("c-item-disabled");
       ContextMenu.children[3].removeAttribute("disabled");
       ContextMenu.children[3].classList.remove("c-item-disabled");
       ContextMenu.children[4].removeAttribute("disabled");
       ContextMenu.children[4].classList.remove("c-item-disabled");
       ContextMenu.children[5].removeAttribute("disabled");
       ContextMenu.children[5].classList.remove("c-item-disabled");
-      ContextMenu.children[8].removeAttribute("disabled");
-      ContextMenu.children[8].classList.remove("c-item-disabled");
+      ContextMenu.children[6].removeAttribute("disabled");
+      ContextMenu.children[6].classList.remove("c-item-disabled");
       ContextMenu.children[9].removeAttribute("disabled");
       ContextMenu.children[9].classList.remove("c-item-disabled");
+      ContextMenu.children[10].removeAttribute("disabled");
+      ContextMenu.children[10].classList.remove("c-item-disabled");
 
       if (extension != ".zip" && extension != ".rar" && extension != ".7z") {
-        ContextMenu.children[1].setAttribute("disabled", "true");
-        ContextMenu.children[1].classList.add("c-item-disabled");
+        ContextMenu.children[2].setAttribute("disabled", "true");
+        ContextMenu.children[2].classList.add("c-item-disabled");
       } else {
-        ContextMenu.children[1].removeAttribute("disabled");
-        ContextMenu.children[1].classList.remove("c-item-disabled");
+        ContextMenu.children[2].removeAttribute("disabled");
+        ContextMenu.children[2].classList.remove("c-item-disabled");
       }
       ContextMenu.children[0].addEventListener("click", async () => {
         if (ArrSelectedItems.length == 0) {
@@ -893,13 +909,13 @@ async function showItems(items, dualPaneSide = "") {
         }
         await deleteItems(ArrSelectedItems);
       }, { once: true });
-      ContextMenu.children[1].addEventListener("click", () => { extractItem(item); }, { once: true });
-      ContextMenu.children[2].addEventListener("click", () => { showCompressPopup(item); }, { once: true });
-      ContextMenu.children[3].addEventListener("click", () => { copyItem(item); }, { once: true });
-      ContextMenu.children[5].addEventListener("click", () => { moveTo(false) }, { once: true });
-      ContextMenu.children[6].addEventListener("click", () => { createFileInputPrompt(e); }, { once: true });
-      ContextMenu.children[8].addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
-      ContextMenu.children[9].addEventListener("click", () => { showProperties(item); }, { once: true });
+      ContextMenu.children[2].addEventListener("click", () => { extractItem(item); }, { once: true });
+      ContextMenu.children[3].addEventListener("click", () => { showCompressPopup(item); }, { once: true });
+      ContextMenu.children[4].addEventListener("click", () => { copyItem(item); }, { once: true });
+      ContextMenu.children[6].addEventListener("click", () => { moveTo(false) }, { once: true });
+      ContextMenu.children[7].addEventListener("click", () => { createFileInputPrompt(e); }, { once: true });
+      ContextMenu.children[9].addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
+      ContextMenu.children[10].addEventListener("click", () => { showProperties(item); }, { once: true });
     });
   });
   if (IsTabsEnabled == true) {
@@ -951,18 +967,22 @@ async function setCurrentDir(currentDir, dualPaneSide = "") {
       pathItem.setAttribute("itemisdir", 1);
       pathItem.setAttribute("isftp", 0);
       pathItem.setAttribute("onClick", "openItem(this, '" + dualPaneSide + "', '')");
+      let divider = document.createElement("p");
+      divider.textContent = "/";
+      divider.style.color = "gray";
       currentDirContainer.appendChild(pathItem);
+      currentDirContainer.appendChild(divider);
     });
     // document.querySelector(".current-path").textContent = CurrentDir;
   });
 
   if (dualPaneSide == "left") {
-    document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+    document.querySelector(".dual-pane-left").style.boxShadow = "inset 0px 0px 30px 3px var(--transparentColorActive)";
     document.querySelector(".dual-pane-right").style.boxShadow = "none";
   }
   else if (dualPaneSide == "right") {
     document.querySelector(".dual-pane-left").style.boxShadow = "none";
-    document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
+    document.querySelector(".dual-pane-right").style.boxShadow = "inset 0px 0px 30px 3px var(--transparentColorActive)";
   }
 }
 
@@ -1176,9 +1196,9 @@ function showInputPopup(msg) {
     }
   });
   body.append(popup);
+  IsPopUpOpen = true;
   popup.children[1].focus();
   IsInputFocused = true;
-  IsPopUpOpen = true;
   popup.children[1].addEventListener("focusout", () => {
     closeAllPopups();
     IsInputFocused = false;
@@ -2099,7 +2119,7 @@ async function switchView() {
       ViewMode = "column";
       document.querySelectorAll(".explorer-container").forEach((item) => {
         item.style.marginTop = "30px";
-        item.style.height = "calc(100vh - 125px)";
+        item.style.height = "calc(100vh - 125px - 30px)";
       });
       document.querySelector(".list-column-header").style.display = "flex";
     }
@@ -2120,7 +2140,7 @@ async function switchView() {
       ViewMode = "wrap";
       document.querySelector(".list-column-header").style.display = "none";
       document.querySelectorAll(".explorer-container").forEach((item) => {
-        item.style.height = "calc(100vh - 95px)";
+        item.style.height = "calc(100vh - 95px - 30px)";
         item.style.marginTop = "0";
       });
     }
@@ -2668,4 +2688,14 @@ function checkColorMode() {
   }
 }
 
+async function open_with(filePath, appPath) {
+  console.log("Opening: " + filePath + " with: " + appPath);
+  await invoke("open_with", { filePath: filePath, appPath: appPath });
+}
+
+async function getSetInstalledApplications() {
+  await invoke("get_installed_apps").then(apps => Applications = apps);
+}
+
 checkAppConfig();
+getSetInstalledApplications();
