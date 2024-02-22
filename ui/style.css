@@ -16,6 +16,16 @@
     user-select: none;
 }
 
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+    background-color: var(--transparentColor);
+}
+::-webkit-scrollbar-thumb {
+    background-color: var(--tertiaryColor);
+    border-radius: 5px;
+}
+
 :root {
     --primaryColor: #3f4352;
     --secondaryColor: rgba(56, 59, 71, 1);
@@ -866,15 +876,41 @@ label {
 }
 
 .current-path {
-    background-color: var(--primaryColor);
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    font-size: small;
-    border-radius: 5px 0px 10px 0px;
-    text-align: right;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    display: flex;
+    flex-flow: row;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: var(--fontSize);
+    font-family: var(--textColor2);
+    max-width: 70%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: fit-content;
+    height: fit-content;
+    margin: auto;
     padding: 5px;
-    border: 1px solid var(--tertiaryColor);
+    box-shadow: inset 0px 0px 10px 1px var(--transparentColor);
+    border-radius: 5px;
+}
+.current-path::-webkit-scrollbar {
+    display: none;
+}
+.path-item {
+    padding: 5px;
+    border-radius: 5px;
+    background-color: var(--tertiaryColor);
+    cursor: pointer;
+    border: none;
+}
+.path-item:hover {
+    background-color: var(--primaryColor);
 }
 
 .directory-list {
@@ -899,6 +935,22 @@ label {
     justify-content: center;
     align-items: center;
     height: calc(100vh - 100px);
+}
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+.preloader {
+    width: 38px;
+    height: 38px;
+    border: 5px solid var(--transparentColor);
+    border-top: 5px solid var(--tertiaryColor);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
 .context-menu {

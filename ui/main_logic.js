@@ -79,6 +79,8 @@ let IsFilteredBySize = false;
 let IsFilteredByDate = false;
 let IsFilteredByName = false;
 
+let SelectedItemToOpen = null;
+
 /* Colors  */
 let PrimaryColor = "#3f4352";
 let SecondaryColor = "rgb(56, 59, 71)";
@@ -619,7 +621,7 @@ async function showItems(items, dualPaneSide = "") {
   if (!IsShowHiddenFiles) {
     items = items.filter((str) => !str.name.startsWith("."));
   }
-  DirectoryCount.innerHTML = "Objects: " + items.length + " / " + hiddenItemsLength;
+  // DirectoryCount.innerHTML = "Objects: " + items.length + " / " + hiddenItemsLength;
   delete hiddenItemsLength;
   let counter = 0;
   items.forEach((item) => {
@@ -902,16 +904,34 @@ async function showItems(items, dualPaneSide = "") {
 
 async function getCurrentDir() {
   await invoke("get_current_dir").then((path) => {
-    CurrentDir = path;
-    document.querySelector(".current-path").textContent = path;
+    setCurrentDir(path);
   });
 }
 
-async function setCurrentDir(currentDir, dualPaneSide) {
-  SelectedItemPaneSide = dualPaneSide;
+async function setCurrentDir(currentDir, dualPaneSide = "") {
+  CurrentDir = currentDir;
+  if (dualPaneSide != "") {
+    SelectedItemPaneSide = dualPaneSide;
+  }
+
   await invoke("set_dir", { currentDir }).then(() => {
-    CurrentDir = currentDir;
-    document.querySelector(".current-path").textContent = CurrentDir;
+    let currentDirContainer = document.querySelector(".current-path");
+    currentDirContainer.innerHTML = "";
+    let currentPathTracker = "/";
+    currentDir.split("/").forEach(path => {
+      if (path == "") return;
+      let pathItem = document.createElement("button");
+      pathItem.textContent = path;
+      pathItem.className = "path-item";
+      currentPathTracker += path + "/";
+      pathItem.setAttribute("itempath", currentPathTracker);
+      pathItem.setAttribute("itempaneside", dualPaneSide);
+      pathItem.setAttribute("itemisdir", 1);
+      pathItem.setAttribute("isftp", 0);
+      pathItem.setAttribute("onClick", "openItem(this, '" + dualPaneSide + "', '')");
+      currentDirContainer.appendChild(pathItem);
+    });
+    // document.querySelector(".current-path").textContent = CurrentDir;
   });
 
   if (dualPaneSide == "left") {
@@ -1102,7 +1122,7 @@ function showLoadingPopup(msg) {
   let popup = document.createElement("div");
   popup.innerHTML = `
 		<h4>${msg}</h4>
-		<img width="32px" height="auto" src="resources/preloader.gif" />
+		<div class="preloader"></div>
 	`;
   popup.className = "uni-popup loading-popup";
   body.append(popup);
@@ -1447,7 +1467,7 @@ async function listDisks() {
     document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = "";
     DirectoryList = document.createElement("div");
     DirectoryList.className = "directory-list";
-    DirectoryCount.innerHTML = "Objects: " + disks.length;
+    // DirectoryCount.innerHTML = "Objects: " + disks.length;
     disks.forEach((item) => {
       let itemLink = document.createElement("button");
       itemLink.setAttribute("itempath", item.path.replace('"', '').replace('"', ''));
@@ -1574,15 +1594,19 @@ async function interactWithItem(element = null, dualPaneSide = "", shortcutPath 
       document.querySelector(".dual-pane-left").style.boxShadow = "none";
     }
     // Interaction mode: Select
-    if (element != null && SelectedElement != element && IsSelectMode == true) {
+    if (element != null && element != SelectedItemToOpen && IsSelectMode == true) {
       selectItem(element, dualPaneSide);
     }
     // Interaction mode: Open item
-    else if (element != null) {
+    else if (element != null && (element == SelectedItemToOpen || IsSelectMode == false)) {
       openItem(element, dualPaneSide, shortcutPath);
     }
   }
-  // else { // Test for future ftp integration
+  // Double click logic / reset after 500 ms to force double click to open
+  setTimeout(() => {
+    SelectedItemToOpen = null;
+  }, 500);
+    // else { // Test for future ftp integration
   //   if (isDir == 1) {
   //     DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
   //     DirectoryList.classList.add("dir-preloader-container");
@@ -1639,6 +1663,7 @@ function selectItem(element, dualPaneSide = "") {
     ArrSelectedItems = [];
   }
   SelectedElement = element; // Switch to new element / selection
+  SelectedItemToOpen = element;
   if (IsDualPaneEnabled) {
     SelectedElement.children[0].classList.add("selected-item");
   }
@@ -1663,6 +1688,16 @@ function selectItem(element, dualPaneSide = "") {
     showItemPreview(SelectedElement, true);
   }
   ArrSelectedItems.push(SelectedElement);
+  if (IsDualPaneEnabled == true) {
+    switch (SelectedItemPaneSide) {
+      case "left":
+        setCurrentDir(LeftDualPanePath, "left");
+        break;
+      case "right":
+        setCurrentDir(RightDualPanePath, "right");
+        break;
+    }
+  }
 }
 
 function deSelectitem(item) {
@@ -1902,21 +1937,21 @@ function goDown() {
   }
 }
 
-function goToOtherPane() {
+async function goToOtherPane() {
   if (SelectedItemPaneSide == "right") {
     SelectedItemPaneSide = "left";
-    setCurrentDir(LeftDualPanePath, "left");
+    await setCurrentDir(LeftDualPanePath, "left");
   }
   else {
     SelectedItemPaneSide = "right";
-    setCurrentDir(RightDualPanePath, "right");
+    await setCurrentDir(RightDualPanePath, "right");
   }
   goUp(true);
 }
 
 function openSelectedItem() {
   if (SelectedElement != null) {
-    SelectedElement.onclick();
+    openItem(SelectedElement, SelectedItemPaneSide);
   }
 }
 
@@ -1953,7 +1988,7 @@ async function searchFor(fileName = "", maxItems = SettingsMaxItems, searchDepth
   if (fileName.length > 1 || isQuickSearch == true) {
     document.querySelector(".cancel-search-button").style.display = "block";
     if (IsDualPaneEnabled == false) {
-      DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+      DirectoryList.innerHTML = `<div class="preloader"></div><p>Loading ...</p>`;
       DirectoryList.classList.add("dir-preloader-container");
     }
     await invoke("search_for", { fileName, maxItems, searchDepth, fileContent }).then(async (items) => {
