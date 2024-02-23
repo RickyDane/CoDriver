@@ -750,8 +750,19 @@ async function showItems(items, dualPaneSide = "") {
         case ".gif":
         case ".webp":
         case ".svg":
-        case "ico":
+        case ".ico":
         case ".icns":
+        case ".bmp":
+        case ".tiff":
+        case ".tif":
+        case ".jfif":
+        case ".pjpeg":
+        case ".pjp":
+        case ".avif":
+        case ".apng":
+        case ".heif":
+        case ".heic":
+        case ".pdf":
           if (IsImagePreview) {
             fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);// Beispiel für die Verwendung der Funktion
           }
@@ -832,22 +843,25 @@ async function showItems(items, dualPaneSide = "") {
   });
   DirectoryList.querySelectorAll(".directory-entry").forEach((item) => {
     // Open context menu when right-clicking on file/folder
-    item.addEventListener("dragstart", async (e) => {
-      if (IsCtrlDown == false && IsMetaDown == false) {
-        IsFileOpIntern = true;
-        let icon = DefaultFileIcon;
-        if (item.getAttribute("itemisdir") == 1) {
-          icon = DefaultFolderIcon;
-        }
-        if (ArrSelectedItems?.find(itemOfArray => itemOfArray.getAttribute("itempath") == item.getAttribute("itempath")) == null) {
-          ArrSelectedItems.push(item);
-        }
-        console.log(icon);
-        let arr = ArrSelectedItems.map(item => item.getAttribute("itempath"));
+    item.ondragstart = async () => {
+      IsFileOpIntern = true;
+      let icon = DefaultFileIcon;
+      if (item.getAttribute("itemisdir") == 1) {
+        icon = DefaultFolderIcon;
+      }
+      if (ArrSelectedItems?.find(itemOfArray => itemOfArray.getAttribute("itempath") == item.getAttribute("itempath")) == null) {
+        ArrSelectedItems.push(item);
+      }
+      let arr = ArrSelectedItems.map(item => item.getAttribute("itempath"));
+      if (Platform != "darwin" && Platform.includes("win")) {
+        await startDrag({ item: arr, icon: "" });
+        unSelectAllItems();
+      }
+      else {
         await startDrag({ item: arr, icon: icon });
         unSelectAllItems();
       }
-    });
+    };
     item.addEventListener("contextmenu", async (e) => {
       let appsCMenu = document.querySelector(".context-open-with-dropdown");
       appsCMenu.innerHTML = "";
@@ -1493,8 +1507,12 @@ async function checkAppConfig() {
       });
     }
   });
+
   DefaultFileIcon = await resolveResource("resources/file-icon.png");
+  DefaultFileIcon = DefaultFileIcon.replace("\\\\?\\", "").replaceAll("\\", "/");
   DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
+  DefaultFolderIcon = DefaultFolderIcon.replace("\\\\?\\", "").replaceAll("\\", "/");
+  
   checkColorMode();
   applyPlatformFeatures();
 }
@@ -2448,6 +2466,8 @@ function showItemPreview(item, isOverride = false) {
     case ".webp":
     case ".ico":
     case ".icns":
+    case ".jfif":
+    case ".avif":
       module = `<img decoding="async" src="${convertFileSrc(path)}" alt="${name}" />`;
       break;
     case ".pdf":
