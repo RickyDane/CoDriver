@@ -28,7 +28,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Close popups with esc
 - Ctrl / Cmd + F for a quicksearch in the current directory
 - Jump to a directory with Ctrl / Cmd + G by inputting a path
-- Filter items in list mode by size, name and last modified
+- Sort items in list mode by size, name or last modified
 
 ### Advanced features
 - Compress files and folders
@@ -44,6 +44,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Dual-Pane view
   - Search for files with F8
   - Copy current selected element to other pane with F5
+  - Move current selected element to other pane with LShift + F5
 - Drag and drop files into the explorer to copy them into the current directory
 - Multi rename your selection with Ctrl / Cmd + LShift + M
   - Run multi rename with Ctrl / Cmd + Return
@@ -53,6 +54,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
   - Option to choose between languages coming soon ...
 
 #### ⚠️ Known issues:
+- Drag and drop out of the window is currently not working on linux
 - On windows you may have to install [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
 - Permissions on ms-windows are a little bit strange
   - You may have to run the program as administrator if you encounter problems to copy elements or something similar
@@ -62,11 +64,12 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Multiple languages
 - FTP-Integration
 - Favorites
+- Drag to select
 <br>
 
-<img width="700" alt="Bildschirmfoto 2024-02-01 um 23 11 50" src="https://github.com/RickyDane/rdpFX/assets/82893522/0f379d41-a6a7-4647-89df-a59c6ec102d5">
-<img width="700" alt="Bildschirmfoto 2024-02-01 um 23 12 25" src="https://github.com/RickyDane/rdpFX/assets/82893522/cbe99aba-5196-4677-a19e-7876fb281282">
-<img width="700" alt="Bildschirmfoto 2024-02-01 um 23 12 34" src="https://github.com/RickyDane/rdpFX/assets/82893522/c91f7a51-4896-406e-9779-59ed1629b706">
+<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/ecb0f7a0-07c4-48a0-a573-a045b51f3150" />
+<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/e61516a1-c3a0-48f7-a1e4-3fbd7bf3dbf1" />
+<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/45933861-78a3-4380-b40f-0465436e99c6" />
 
 ## Speed comparison
 ![2023-08-27-08-14-02](https://github.com/RickyDane/rdpFX/assets/82893522/237b28a0-d667-4bea-91a9-a43cb9277c49)
