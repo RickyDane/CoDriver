@@ -6,7 +6,8 @@ use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
-use tauri::Window;
+use tauri::{Manager, Window};
+use window_shadows::set_shadow;
 use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, Read};
@@ -40,6 +41,12 @@ static mut PASSWORD: String = String::new();
 
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            let main_window = app.get_window("main").unwrap();
+            #[cfg(any(windows, target_os = "macos"))]
+            set_shadow(&main_window, true).unwrap();
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             list_dirs,
             open_dir,
