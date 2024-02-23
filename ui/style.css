@@ -463,7 +463,6 @@ label {
 }
 .selected-item {
     background: var(--transparentColorActive) !important;
-    /* border: 1px solid var(--transparentColorActive) !important; */
 }
 .selected-item > p {
     background-color: var(--transparentColorActive) !important;
@@ -491,6 +490,8 @@ label {
     gap: 10px;
     transition: 0.1s ease;
     margin: 0 auto;
+    user-select: none;
+    -webkit-user-select: none;
     -webkit-user-drag: none;
 }
 .item-button:active {
@@ -536,7 +537,6 @@ label {
     display: flex;
     flex-flow: row;
     justify-content: space-between;
-    /* background-color: var(--transparentColor); */
     border: none;
     gap: 5px;
     align-items: center;
@@ -553,6 +553,8 @@ label {
     border-radius: 5px;
     margin: 1px 0px;
     border: 1px solid transparent;
+    user-select: none;
+    -webkit-user-select: none;
     -webkit-user-drag: none;
 }
 .item-button-list > p {
@@ -599,9 +601,6 @@ label {
     border-radius: 7.5px;
     transition: 0.1s ease;
     width: 100%;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-user-drag: none;
 }
 .disk-item-button-button {
     position: relative;

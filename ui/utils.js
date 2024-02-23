@@ -17,6 +17,8 @@ listen('tauri://file-drop', async event => {
   if (isExtern == true) {
     await pasteItem();
   }
+  CopyFileName = "";
+  CopyFilePath = "";
 })
 
 
