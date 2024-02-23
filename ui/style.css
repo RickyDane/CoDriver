@@ -492,7 +492,6 @@ label {
     gap: 10px;
     transition: 0.1s ease;
     margin: 0 auto;
-    -webkit-user-drag: none;
 }
 .item-button:active {
     background-color: var(--secondaryColor);
@@ -554,7 +553,6 @@ label {
     border-radius: 5px;
     margin: 1px 0px;
     border: 1px solid transparent;
-    -webkit-user-drag: none;
 }
 .item-button-list > p {
     padding-right: 5px;
@@ -600,7 +598,6 @@ label {
     border-radius: 7.5px;
     transition: 0.1s ease;
     width: 100%;
-    user-select: none;
 }
 .disk-item-button-button {
     position: relative;

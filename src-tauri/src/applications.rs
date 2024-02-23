@@ -11,9 +11,11 @@ use ini::ini;
 #[allow(unused)]
 use serde::Serialize;
 #[allow(unused)]
-use winreg::enums::*;
-#[allow(unused)]
+#[cfg(target_os = "windows")]
 use winreg::{RegKey, HKEY};
+#[allow(unused)]
+#[cfg(target_os = "windows")]
+use winreg::enums::*;
 
 #[derive(Debug, Default, Serialize)]
 pub struct App {
@@ -257,15 +259,18 @@ pub fn open_file_with(file_path: PathBuf, app_path: PathBuf) {
 
 // Windows
 
+#[cfg(target_os = "windows")]
 pub struct InstalledApp {
     reg: RegKey,
 }
 
+#[cfg(target_os = "windows")]
 struct AppList {
     uninstalls: RegKey,
     index: usize,
 }
 
+#[cfg(target_os = "windows")]
 impl Iterator for AppList {
     type Item = InstalledApp;
     fn next(&mut self) -> Option<Self::Item> {
@@ -275,6 +280,8 @@ impl Iterator for AppList {
         Some(InstalledApp { reg })
     }
 }
+
+#[cfg(target_os = "windows")]
 impl AppList {
     fn new(hive: HKEY, path: &str) -> Result<Self, Box<dyn Error>> {
         let hive = RegKey::predef(hive);
@@ -287,6 +294,7 @@ impl AppList {
     }
 }
 
+#[cfg(target_os = "windows")]
 impl InstalledApp {
     fn get_value(&self, name: &str) -> Cow<str> {
         self.reg

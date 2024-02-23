@@ -115,17 +115,16 @@ async fn check_app_config() -> AppConfig {
     create_folder(
         config_dir()
             .unwrap()
-            .join("rdpFX")
+            .join("com.rdpFX.dev")
             .to_str()
             .unwrap()
             .to_string(),
     ).await;
 
-    let _ = File::create(config_dir().unwrap().join("rdpFX/folder-icon.png"));
 
     // If config doesn't exist, create it
-    if fs::metadata(config_dir().unwrap().join("rdpFX/app_config.json")).is_err() {
-        let _ = File::create(config_dir().unwrap().join("rdpFX/app_config.json"));
+    if fs::metadata(config_dir().unwrap().join("com.rdpFX.dev/app_config.json")).is_err() {
+        let _ = File::create(config_dir().unwrap().join("com.rdpFX.dev/app_config.json"));
         let app_config_json = AppConfig {
             view_mode: "".to_string(),
             last_modified: chrono::offset::Local::now().to_string(),
@@ -147,7 +146,7 @@ async fn check_app_config() -> AppConfig {
             File::create(
                 config_dir()
                     .unwrap()
-                    .join("rdpFX/app_config.json")
+                    .join("com.rdpFX.dev/app_config.json")
                     .to_str()
                     .unwrap()
                     .to_string(),
@@ -157,7 +156,7 @@ async fn check_app_config() -> AppConfig {
         );
     }
 
-    let app_config_file = File::open(config_dir().unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_file = File::open(config_dir().unwrap().join("com.rdpFX.dev/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
 
@@ -218,7 +217,7 @@ async fn switch_to_directory(current_dir: String) {
 }
 #[tauri::command]
 async fn switch_view(view_mode: String) -> Vec<FDir> {
-    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("com.rdpFX.dev/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let mut app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     app_config["view_mode"] = Value::from(String::from(&view_mode));
@@ -226,7 +225,7 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         File::create(
             app_config_dir(&Config::default())
                 .unwrap()
-                .join("rdpFX/app_config.json")
+                .join("com.rdpFX.dev/app_config.json")
                 .to_str()
                 .unwrap()
                 .to_string(),
@@ -903,7 +902,7 @@ async fn save_config(
     is_select_mode: String,
     arr_favorites: Vec<String>
 ) {
-    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("com.rdpFX.dev/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     let app_config_json = AppConfig {
@@ -925,7 +924,7 @@ async fn save_config(
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
-        .join("rdpFX/app_config.json")
+        .join("com.rdpFX.dev/app_config.json")
         .to_str()
         .unwrap()
         .to_string();
@@ -949,14 +948,14 @@ async fn rename_elements_with_format(arr_elements: Vec<String>, new_name: String
 
 #[tauri::command]
 async fn add_favorite(arr_favorites: Vec<String>) {
-    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("com.rdpFX.dev/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let mut app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     app_config["arr_favorites"] = arr_favorites.clone().into_iter().map(|x| Value::String(x)).collect();
     let _ = serde_json::to_writer_pretty(
         File::create(app_config_dir(&Config::default())
             .unwrap()
-            .join("rdpFX/app_config.json")
+            .join("com.rdpFX.dev/app_config.json")
             .to_str()
             .unwrap()
             .to_string(),

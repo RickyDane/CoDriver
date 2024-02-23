@@ -11,8 +11,13 @@ const { getName } = window.__TAURI__.app;
 const { getMatches } = window.__TAURI__.cli;
 const { platform } = window.__TAURI__.os;
 const { fetch } = window.__TAURI__.http;
-const convertFileSrc  = window.__TAURI__.convertFileSrc;
+const convertFileSrc = window.__TAURI__.convertFileSrc;
+const { appDataDir } = window.__TAURI__.path;
+const { resolveResource } = window.__TAURI__.path;
 const { resourceDir } = window.__TAURI__.path;
+const { BaseDirectory } = window.__TAURI__.fs;
+const { readDir } = window.__TAURI__.fs;
+
 async function startDrag(options, onEvent) {
   await invoke("plugin:drag|start_drag", {
       item: options.item,
@@ -20,7 +25,6 @@ async function startDrag(options, onEvent) {
       onEventFn: onEvent ? transformCallback(onEvent) : null
   });
 }
-// startDrag({ item: ['/Users/rickyperlick/Pictures/_27244529-d119-4e19-8a19-3378738dff97.jpg'], icon: '/Users/rickyperlick/Pictures/_27244529-d119-4e19-8a19-3378738dff97.jpg' })
 
 /* region Global Variables */
 
@@ -88,8 +92,10 @@ let ArrFavorites = [];
 let IsFilteredBySize = false;
 let IsFilteredByDate = false;
 let IsFilteredByName = false;
-
 let SelectedItemToOpen = null;
+let DefaultFileIcon = "";
+let DefaultFolderIcon = "";
+let IsFileOpIntern = false;
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -403,7 +409,7 @@ document.onkeydown = async (e) => {
   }
 
   // Check if cmd / ctrl + shift + c is pressed
-  if (IsCtrlDown && e.altKey && e.key == "c") {
+  if (((Platform != "darwin" && IsCtrlDown && e.altKey) || (Platform == "darwin" && e.shiftKey)) && e.key == "c") {
     await writeText(CurrentDir);
     showToast("Info", "Current dir path copied", "success");
     return;
@@ -827,24 +833,25 @@ async function showItems(items, dualPaneSide = "") {
   DirectoryList.querySelectorAll(".directory-entry").forEach((item) => {
     // Open context menu when right-clicking on file/folder
     item.addEventListener("dragstart", async (e) => {
-      let icon = "data:image/png;base64iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4p";
-      if (item.getAttribute("itemisdir") == 1) {
-        icon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4p";
+      if (IsCtrlDown == false && IsMetaDown == false) {
+        IsFileOpIntern = true;
+        let icon = DefaultFileIcon;
+        if (item.getAttribute("itemisdir") == 1) {
+          icon = DefaultFolderIcon;
+        }
+        if (ArrSelectedItems?.find(itemOfArray => itemOfArray.getAttribute("itempath") == item.getAttribute("itempath")) == null) {
+          ArrSelectedItems.push(item);
+        }
+        console.log(icon);
+        let arr = ArrSelectedItems.map(item => item.getAttribute("itempath"));
+        await startDrag({ item: arr, icon: icon });
+        unSelectAllItems();
       }
-      if (ArrSelectedItems?.length <= 1) {
-        ArrSelectedItems = [];
-        ArrSelectedItems.push(item);
-      }
-      let arr = ArrSelectedItems.map(item => item.getAttribute("itempath"));
-      console.log(arr, icon);
-      startDrag({ item: arr, icon: "" });
-      delete icon;
-      unSelectAllItems();
     });
     item.addEventListener("contextmenu", async (e) => {
       let appsCMenu = document.querySelector(".context-open-with-dropdown");
       appsCMenu.innerHTML = "";
-      if (Platform.includes("win")) {
+      if (Platform != "darwin" && Platform.includes("win")) {
         appsCMenu.innerHTML = "<p>Not yet available on windows</p>";
       }
       else {
@@ -956,7 +963,7 @@ async function setCurrentDir(currentDir, dualPaneSide = "") {
     let currentDirContainer = document.querySelector(".current-path");
     currentDirContainer.innerHTML = "";
     let currentPathTracker = "/";
-    if (Platform.includes("win")) {
+    if (Platform != "darwin" && Platform.includes("win")) {
       currentPathTracker = "";
     }
     currentDir.split("/").forEach(path => {
@@ -1486,6 +1493,8 @@ async function checkAppConfig() {
       });
     }
   });
+  DefaultFileIcon = await resolveResource("resources/file-icon.png");
+  DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
   checkColorMode();
   applyPlatformFeatures();
 }
@@ -2694,6 +2703,7 @@ function checkColorMode() {
 }
 
 async function open_with(filePath, appPath) {
+  ContextMenu.style.display = "none";
   console.log("Opening: " + filePath + " with: " + appPath);
   await invoke("open_with", { filePath: filePath, appPath: appPath });
 }

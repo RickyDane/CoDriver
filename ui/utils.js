@@ -2,10 +2,9 @@ const { listen } = window.__TAURI__.event;
 
 /* Drag and drop files into file explorer */
 listen('tauri://file-drop', async event => {
-  let isExtern = true;
   event.payload.forEach(async item => {
-    if (ArrSelectedItems.find(itemOfArray => itemOfArray.getAttribute("itempath") == item) == null && ArrCopyItems.find(itemOfArray => itemOfArray.getAttribute("itempath") == item) == null) {
-      isExtern = false;
+    if (IsFileOpIntern == true) {
+      console.log("File operation in progress");
       return;
     }
     CopyFilePath = item;
@@ -13,12 +12,16 @@ listen('tauri://file-drop', async event => {
     let element = document.createElement("button");
     element.setAttribute("itemname", CopyFileName);
     element.setAttribute("itempath", CopyFilePath);
+    ArrCopyItems.push(element);
   });
-  if (isExtern == true) {
+  if (IsFileOpIntern == false) {
     await pasteItem();
   }
   CopyFileName = "";
   CopyFilePath = "";
+  ArrCopyItems = [];
+  ArrSelectedItems = [];
+  IsFileOpIntern = false;
 })
 
 
