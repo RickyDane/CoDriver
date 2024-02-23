@@ -463,6 +463,7 @@ label {
 }
 .selected-item {
     background: var(--transparentColorActive) !important;
+    /* border: 1px solid var(--transparentColorActive) !important; */
 }
 .selected-item > p {
     background-color: var(--transparentColorActive) !important;
@@ -472,6 +473,7 @@ label {
     filter: saturate(1.2);
     border-radius: 5px;
     user-select: none;
+    -webkit-user-select: none;
     -webkit-user-drag: none;
 }
 .item-button {
@@ -490,8 +492,6 @@ label {
     gap: 10px;
     transition: 0.1s ease;
     margin: 0 auto;
-    user-select: none;
-    -webkit-user-select: none;
     -webkit-user-drag: none;
 }
 .item-button:active {
@@ -537,6 +537,7 @@ label {
     display: flex;
     flex-flow: row;
     justify-content: space-between;
+    /* background-color: var(--transparentColor); */
     border: none;
     gap: 5px;
     align-items: center;
@@ -553,8 +554,6 @@ label {
     border-radius: 5px;
     margin: 1px 0px;
     border: 1px solid transparent;
-    user-select: none;
-    -webkit-user-select: none;
     -webkit-user-drag: none;
 }
 .item-button-list > p {
@@ -601,6 +600,7 @@ label {
     border-radius: 7.5px;
     transition: 0.1s ease;
     width: 100%;
+    user-select: none;
 }
 .disk-item-button-button {
     position: relative;
@@ -907,8 +907,12 @@ label {
     display: none;
 }
 .path-item {
-    padding: 5px;
+    padding: 0px 5px;
     border-radius: 5px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background-color: var(--transparentColor);
     cursor: pointer;
     border: none;
@@ -958,7 +962,7 @@ label {
 }
 
 .context-menu {
-    width: 175px;
+    width: 150px;
     height: fit-content;
     padding: 5px;
     display: flex;
@@ -978,16 +982,18 @@ label {
 .context-item {
     color: var(--textColor);
     width: 100%;
-    padding: 7.5px;
+    height: 25px;
     border: none;
     background-color: var(--secondaryColor);
     border-radius: 5px;
     margin: 2px;
+    padding: 10px;
     cursor: pointer;
     text-align: left;
     display: flex;
     flex-flow: row;
     justify-content: space-between;
+    align-items: center;
     transition: 0.1s ease;
     font-size: var(--fontSize);
 }
@@ -1043,6 +1049,12 @@ label {
 .open-with-item:hover {
     background-color: var(--transparentColorActive);
     color: var(--textColor);
+}
+.c-item-delete {
+    color: red !important;
+}
+.c-item-delete > svg > path {
+    color: gray;
 }
 
 .input-dialog {

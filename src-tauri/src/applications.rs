@@ -1,8 +1,19 @@
+#[allow(unused)]
 use std::collections::HashSet;
+#[allow(unused)]
+use std::{borrow::Cow, error::Error};
+#[allow(unused)]
 use std::path::PathBuf;
+#[allow(unused)]
 use walkdir::WalkDir;
+#[allow(unused)]
 use ini::ini;
+#[allow(unused)]
 use serde::Serialize;
+#[allow(unused)]
+use winreg::enums::*;
+#[allow(unused)]
+use winreg::{RegKey, HKEY};
 
 #[derive(Debug, Default, Serialize)]
 pub struct App {
@@ -246,9 +257,118 @@ pub fn open_file_with(file_path: PathBuf, app_path: PathBuf) {
 
 // Windows
 
+pub struct InstalledApp {
+    reg: RegKey,
+}
+
+struct AppList {
+    uninstalls: RegKey,
+    index: usize,
+}
+
+impl Iterator for AppList {
+    type Item = InstalledApp;
+    fn next(&mut self) -> Option<Self::Item> {
+        let key = self.uninstalls.enum_keys().nth(self.index)?.ok()?;
+        self.index += 1;
+        let reg = self.uninstalls.open_subkey(key).ok()?;
+        Some(InstalledApp { reg })
+    }
+}
+impl AppList {
+    fn new(hive: HKEY, path: &str) -> Result<Self, Box<dyn Error>> {
+        let hive = RegKey::predef(hive);
+        let uninstalls = hive.open_subkey(path)?;
+
+        Ok(AppList {
+            uninstalls,
+            index: 0,
+        })
+    }
+}
+
+impl InstalledApp {
+    fn get_value(&self, name: &str) -> Cow<str> {
+        self.reg
+            .get_value::<String, &str>(name)
+            .map(Cow::Owned)
+            .unwrap_or_else(|_| Cow::Borrowed(""))
+    }
+    pub fn name(&self) -> Cow<str> {
+        self.get_value("DisplayName")
+    }
+    pub fn path(&self) -> Cow<str> {
+        self.get_value("InstallLocation")
+    }
+    pub fn publisher(&self) -> Cow<str> {
+        self.get_value("Publisher")
+    }
+    pub fn version(&self) -> Cow<str> {
+        self.get_value("DisplayVersion")
+    }
+    pub fn dump(&self) -> String {
+        self.reg
+            .enum_values()
+            .map(|r| {
+                let (name, value) = r.unwrap();
+                format!("{}: {}\n", name, value)
+            })
+            .collect()
+    }
+    pub fn list() -> Result<impl Iterator<Item = InstalledApp>, Box<dyn Error>> {
+        let system_apps = AppList::new(
+            HKEY_LOCAL_MACHINE,
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+        )
+        .ok()
+        .into_iter()
+        .flatten();
+        let _system_apps_32 = AppList::new(
+            HKEY_LOCAL_MACHINE,
+            "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+        )
+        .ok()
+        .into_iter()
+        .flatten();
+        let user_apps = AppList::new(
+            HKEY_CURRENT_USER,
+            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+        )
+        .ok()
+        .into_iter()
+        .flatten();
+        // this one may not exist
+        let _user_apps_32 = AppList::new(
+            HKEY_CURRENT_USER,
+            "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+        )
+        .ok()
+        .into_iter()
+        .flatten();
+
+        let chain = system_apps.chain(user_apps);
+
+        Ok(chain)
+    }
+}
+
 #[cfg(target_os = "windows")]
 pub fn get_apps() -> Vec<App> {
-   vec![]
+
+    let mut ls_apps: Vec<App> = vec![];
+    let apps_list = InstalledApp::list();
+
+    for app in apps_list.unwrap() {
+        if &app.name() != &"" && !&app.name().contains("{}") {
+            ls_apps.push(App {
+                name: app.name().to_string(),
+                app_path_exe: PathBuf::from(app.path().to_string()),
+                app_desktop_path: "".into(),
+                icon_path: Option::from(PathBuf::from(""))
+            });
+        }
+    }
+    ls_apps
 }
 
 #[cfg(target_os = "windows")]

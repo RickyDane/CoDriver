@@ -14,11 +14,11 @@ const { fetch } = window.__TAURI__.http;
 const convertFileSrc  = window.__TAURI__.convertFileSrc;
 const { resourceDir } = window.__TAURI__.path;
 async function startDrag(options, onEvent) {
-    await invoke("plugin:drag|start_drag", {
-        item: options.item,
-        image: options.icon,
-        onEventFn: onEvent ? transformCallback(onEvent) : null
-    });
+  await invoke("plugin:drag|start_drag", {
+      item: options.item,
+      image: options.icon,
+      onEventFn: onEvent ? transformCallback(onEvent) : null
+  });
 }
 // startDrag({ item: ['/Users/rickyperlick/Pictures/_27244529-d119-4e19-8a19-3378738dff97.jpg'], icon: '/Users/rickyperlick/Pictures/_27244529-d119-4e19-8a19-3378738dff97.jpg' })
 
@@ -207,7 +207,6 @@ document.addEventListener("mousedown", (e) => {
 document.addEventListener("contextmenu", (e) => {
   e.preventDefault();
   ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
-  ContextMenu.children[8].replaceWith(ContextMenu.children[8].cloneNode(true));
 
   ContextMenu.style.display = "flex";
   if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
@@ -227,7 +226,6 @@ document.addEventListener("contextmenu", (e) => {
   }
 
   ContextMenu.children[7].addEventListener("click", function () { createFileInputPrompt(e); }, { once: true }, );
-  ContextMenu.children[8].addEventListener("click", function () { createFolderInputPrompt(); }, { once: true }, );
 
   if (CopyFilePath == "") {
     document.querySelector(".c-item-paste").setAttribute("disabled", "true");
@@ -783,7 +781,7 @@ async function showItems(items, dualPaneSide = "") {
           break;
       }
     }
-    itemLink.className = "item-link directory-entry dragout";
+    itemLink.className = "item-link directory-entry";
     let itemButton = document.createElement("div");
     itemButton.innerHTML = `
 			<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" style="object-fit: cover;" />
@@ -829,29 +827,37 @@ async function showItems(items, dualPaneSide = "") {
   DirectoryList.querySelectorAll(".directory-entry").forEach((item) => {
     // Open context menu when right-clicking on file/folder
     item.addEventListener("dragstart", async (e) => {
-      let icon = "data:image/png;base64,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";
+      let icon = "data:image/png;base64iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4p";
       if (item.getAttribute("itemisdir") == 1) {
-        icon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAABCGVYSWZJSSoACAAAAAoAAAEEAAEAAABkAAAAAQEEAAEAAABkAAAAAgEDAAMAAACGAAAAEgEDAAEAAAABAAAAGgEFAAEAAACMAAAAGwEFAAEAAACUAAAAKAEDAAEAAAADAAAAMQECAA0AAACcAAAAMgECABQAAACqAAAAaYcEAAEAAAC+AAAAAAAAAAgACAAIAPwpAABbAAAA/CkAAFsAAABHSU1QIDIuMTAuMzYAADIwMjQ6MDE6MzAgMjA6MjQ6NDYABAAEkAIAFAAAAPQAAAABoAMAAQAAAAEAAAACoAQAAQAAAGQAAAADoAQAAQAAAGQAAAAAAAAAMjAyMzowODoyNiAxMjozNzo1MAAC5XnOAAABhGlDQ1BJQ0MgcHJvZmlsZQAAeJx9kT1Iw1AUhU9TpVIqDu0gIpKhOlkEFXGsVShChVArtOpg8voLTRqSFBdHwbXg4M9i1cHFWVcHV0EQ/AFxdnBSdJES70sKLWK88Hgf591zeO8+QGhWmWr2xAFVs4x0MiFmc6ti4BU+jCCMICZkZupzkpSCZ33dUzfVXYxneff9Wf35gskAn0gcZ7phEW8Qz2xaOud94ggry3nic+Jxgy5I/Mh1xeU3ziWHBZ4ZMTLpeeIIsVjqYqWLWdlQiaeJo3lVo3wh63Ke8xZntVpn7XvyF4YK2soy12kNI4lFLEGCCAV1VFCFhRjtGikm0nSe8PAPOX6JXAq5KmDkWEANKmTHD/4Hv2drFqcm3aRQAuh9se2PUSCwC7Qatv19bNutE8D/DFxpHX+tCcx+kt7oaNEjYGAbuLjuaMoecLkDDD7psiE7kp+WUCwC72f0TTkgfAsE19y5tc9x+gBkaFapG+DgEBgrUfa6x7v7uuf2b097fj+pBnK85EKK2gAADnRpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+Cjx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IlhNUCBDb3JlIDQuNC4wLUV4aXYyIj4KIDxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+CiAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIKICAgIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIgogICAgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIKICAgIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIKICAgIHhtbG5zOmV4aWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vZXhpZi8xLjAvIgogICAgeG1sbnM6R0lNUD0iaHR0cDovL3d3dy5naW1wLm9yZy94bXAvIgogICAgeG1sbnM6dGlmZj0iaHR0cDovL25zLmFkb2JlLmNvbS90aWZmLzEuMC8iCiAgICB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iCiAgIHhtcE1NOkRvY3VtZW50SUQ9ImdpbXA6ZG9jaWQ6Z2ltcDo1ZGNhNDQzYy02NzY3LTQ1ZDktYjZhZS0yMzllYWQyMGY1NTgiCiAgIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6OWMyNzBkMzItNzc1My00ZDgxLTllMDktNmY3NjgzMWMxY2ZjIgogICB4bXBNTTpPcmlnaW5hbERvY3VtZW50SUQ9InhtcC5kaWQ6Nzk1Mjg5MjktMzNjOC00NWNlLTkyMjgtZGZjOTZjNjhiYzQ0IgogICBkYzpGb3JtYXQ9ImltYWdlL3BuZyIKICAgZXhpZjpQaXhlbFhEaW1lbnNpb249IjEwMCIKICAgZXhpZjpQaXhlbFlEaW1lbnNpb249IjEwMCIKICAgR0lNUDpBUEk9IjIuMCIKICAgR0lNUDpQbGF0Zm9ybT0iTGludXgiCiAgIEdJTVA6VGltZVN0YW1wPSIxNzA2NjQyNjg2MDc0MjI4IgogICBHSU1QOlZlcnNpb249IjIuMTAuMzYiCiAgIHRpZmY6T3JpZW50YXRpb249IjEiCiAgIHRpZmY6UmVzb2x1dGlvblVuaXQ9IjIiCiAgIHRpZmY6WFJlc29sdXRpb249IjMwMDAwMDAvMTAwMDAiCiAgIHRpZmY6WVJlc29sdXRpb249IjMwMDAwMDAvMTAwMDAiCiAgIHhtcDpDcmVhdGVEYXRlPSIyMDIzLTA4LTI2VDEyOjM3OjUwKzAyOjAwIgogICB4bXA6Q3JlYXRvclRvb2w9IkdJTVAgMi4xMCIKICAgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyNDowMTozMFQyMDoyNDo0NiswMTowMCIKICAgeG1wOk1vZGlmeURhdGU9IjIwMjQ6MDE6MzBUMjA6MjQ6NDYrMDE6MDAiPgogICA8eG1wTU06SGlzdG9yeT4KICAgIDxyZGY6U2VxPgogICAgIDxyZGY6bGkKICAgICAgc3RFdnQ6YWN0aW9uPSJzYXZlZCIKICAgICAgc3RFdnQ6Y2hhbmdlZD0iLyIKICAgICAgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDo1ZTRlNzdiMS0zMzhhLTQyODktOTRjZC02OTk1MzYzZDg4YjEiCiAgICAgIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkdpbXAgMi4xMCAoTGludXgpIgogICAgICBzdEV2dDp3aGVuPSIyMDI0LTAxLTMwVDIwOjI0OjQ2KzAxOjAwIi8+CiAgICA8L3JkZjpTZXE+CiAgIDwveG1wTU06SGlzdG9yeT4KICA8L3JkZjpEZXNjcmlwdGlvbj4KIDwvcmRmOlJERj4KPC94OnhtcG1ldGE+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAKPD94cGFja2V0IGVuZD0idyI/PpEn0e4AAAAGYktHRABHAEsAXA2CQNgAAAAJcEhZcwAALiMAAC4jAXilP3YAAAAHdElNRQfoAR4TGC77yLLsAAAIoElEQVR42u1dbWxbVxl+nnOu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";
+        icon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4p";
       }
-      if (ArrSelectedItems?.length >= 0 && ArrSelectedItems.length < 2) {
+      if (ArrSelectedItems?.length <= 1) {
         ArrSelectedItems = [];
         ArrSelectedItems.push(item);
       }
-      startDrag({ item: ArrSelectedItems.map(item => item.getAttribute("itempath")), icon: icon });
+      let arr = ArrSelectedItems.map(item => item.getAttribute("itempath"));
+      console.log(arr, icon);
+      startDrag({ item: arr, icon: "" });
+      delete icon;
       unSelectAllItems();
     });
     item.addEventListener("contextmenu", async (e) => {
       let appsCMenu = document.querySelector(".context-open-with-dropdown");
       appsCMenu.innerHTML = "";
-      Applications.forEach(app => {
-        let newItem = document.createElement("button");
-        newItem.innerHTML = app[0].split(".")[0];
-        newItem.className = "open-with-item";
-        newItem.setAttribute("appname", app[0].split(".")[0]);
-        newItem.setAttribute("apppath", app[1]);
-        newItem.addEventListener("click", () => open_with(item.getAttribute("itempath"), app[1]));
-        appsCMenu.appendChild(newItem);
-      });
+      if (Platform.includes("win")) {
+        appsCMenu.innerHTML = "<p>Not yet available on windows</p>";
+      }
+      else {
+        Applications.forEach(app => {
+          let newItem = document.createElement("button");
+          newItem.innerHTML = app[0].split(".")[0];
+          newItem.className = "open-with-item";
+          newItem.setAttribute("appname", app[0].split(".")[0]);
+          newItem.setAttribute("apppath", app[1]);
+          newItem.addEventListener("click", () => open_with(item.getAttribute("itempath"), app[1]));
+          appsCMenu.appendChild(newItem);
+        });
+      }
       e.preventDefault();
 
       // Reset so that the commands are not triggered multiple times
