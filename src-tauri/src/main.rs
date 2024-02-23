@@ -1,11 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use async_ftp::FtpStream;
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
-use tauri::Window;
+use tauri::{Manager, Window};
+use window_shadows::set_shadow;
 use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, Read};
@@ -30,6 +32,8 @@ use sysinfo::Disks;
 use utils::{copy_to, count_entries, dbg_log, err_log, wng_log, COPY_COUNTER, TO_COPY_COUNTER};
 #[allow(unused_imports)]
 use rayon::prelude::*;
+mod applications;
+use applications::{open_file_with, get_apps};
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -37,6 +41,12 @@ static mut PASSWORD: String = String::new();
 
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            let main_window = app.get_window("main").unwrap();
+            #[cfg(any(windows, target_os = "macos"))]
+            set_shadow(&main_window, true).unwrap();
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             list_dirs,
             open_dir,
@@ -66,18 +76,15 @@ fn main() {
             copy_from_ftp,
             rename_elements_with_format,
             add_favorite,
-            test_window,
             arr_copy_paste,
             arr_delete_items,
-            arr_compress_items
+            arr_compress_items,
+            get_installed_apps,
+            open_with
         ])
+        .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-#[tauri::command]
-async fn test_window (app_window: Window) {
-    let _ = app_window.eval("alert('Hey whats up?')");
 }
 
 #[derive(serde::Serialize)]
@@ -115,15 +122,16 @@ async fn check_app_config() -> AppConfig {
     create_folder(
         config_dir()
             .unwrap()
-            .join("rdpFX")
+            .join("com.rdpFX.dev")
             .to_str()
             .unwrap()
             .to_string(),
     ).await;
 
+
     // If config doesn't exist, create it
-    if fs::metadata(config_dir().unwrap().join("rdpFX/app_config.json")).is_err() {
-        let _ = File::create(config_dir().unwrap().join("rdpFX/app_config.json"));
+    if fs::metadata(config_dir().unwrap().join("com.rdpFX.dev/app_config.json")).is_err() {
+        let _ = File::create(config_dir().unwrap().join("com.rdpFX.dev/app_config.json"));
         let app_config_json = AppConfig {
             view_mode: "".to_string(),
             last_modified: chrono::offset::Local::now().to_string(),
@@ -145,7 +153,7 @@ async fn check_app_config() -> AppConfig {
             File::create(
                 config_dir()
                     .unwrap()
-                    .join("rdpFX/app_config.json")
+                    .join("com.rdpFX.dev/app_config.json")
                     .to_str()
                     .unwrap()
                     .to_string(),
@@ -155,7 +163,7 @@ async fn check_app_config() -> AppConfig {
         );
     }
 
-    let app_config_file = File::open(config_dir().unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_file = File::open(config_dir().unwrap().join("com.rdpFX.dev/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
 
@@ -187,6 +195,7 @@ struct DisksInfo {
     path: String,
     avail: String,
     capacity: String,
+    is_removable: bool
 }
 
 #[tauri::command]
@@ -202,6 +211,7 @@ async fn list_disks() -> Vec<DisksInfo> {
             path: format!("{:?}", disk.mount_point()),
             avail: format!("{:?}", disk.available_space()),
             capacity: format!("{:?}", disk.total_space()),
+            is_removable: disk.is_removable()
         });
     }
     return ls_disks;
@@ -214,7 +224,7 @@ async fn switch_to_directory(current_dir: String) {
 }
 #[tauri::command]
 async fn switch_view(view_mode: String) -> Vec<FDir> {
-    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("com.rdpFX.dev/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let mut app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     app_config["view_mode"] = Value::from(String::from(&view_mode));
@@ -222,7 +232,7 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         File::create(
             app_config_dir(&Config::default())
                 .unwrap()
-                .join("rdpFX/app_config.json")
+                .join("com.rdpFX.dev/app_config.json")
                 .to_str()
                 .unwrap()
                 .to_string(),
@@ -899,7 +909,7 @@ async fn save_config(
     is_select_mode: String,
     arr_favorites: Vec<String>
 ) {
-    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("com.rdpFX.dev/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     let app_config_json = AppConfig {
@@ -921,7 +931,7 @@ async fn save_config(
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
-        .join("rdpFX/app_config.json")
+        .join("com.rdpFX.dev/app_config.json")
         .to_str()
         .unwrap()
         .to_string();
@@ -945,14 +955,14 @@ async fn rename_elements_with_format(arr_elements: Vec<String>, new_name: String
 
 #[tauri::command]
 async fn add_favorite(arr_favorites: Vec<String>) {
-    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("rdpFX/app_config.json")).unwrap();
+    let app_config_file = File::open(app_config_dir(&Config::default()).unwrap().join("com.rdpFX.dev/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let mut app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
     app_config["arr_favorites"] = arr_favorites.clone().into_iter().map(|x| Value::String(x)).collect();
     let _ = serde_json::to_writer_pretty(
         File::create(app_config_dir(&Config::default())
             .unwrap()
-            .join("rdpFX/app_config.json")
+            .join("com.rdpFX.dev/app_config.json")
             .to_str()
             .unwrap()
             .to_string(),
@@ -960,4 +970,19 @@ async fn add_favorite(arr_favorites: Vec<String>) {
         &app_config,
     );
     dbg_log(format!("Saved favorites: {:?}", arr_favorites));
+}
+
+#[tauri::command]
+async fn get_installed_apps() -> Vec<(String, String)>{
+    let list_apps = get_apps();
+    let mut arr_apps: Vec<(String, String)> = vec![];
+    for app in list_apps {
+        arr_apps.push((app.name.clone(), app.app_path_exe.to_str().unwrap().to_string()));
+    }
+    return arr_apps;
+}
+
+#[tauri::command]
+async fn open_with(file_path: String, app_path: String) {
+    open_file_with(PathBuf::from(file_path), PathBuf::from(app_path));
 }

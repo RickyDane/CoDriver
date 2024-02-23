@@ -16,6 +16,16 @@
     user-select: none;
 }
 
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+    background-color: var(--transparentColor);
+}
+::-webkit-scrollbar-thumb {
+    background-color: var(--tertiaryColor);
+    border-radius: 5px;
+}
+
 :root {
     --primaryColor: #3f4352;
     --secondaryColor: rgba(56, 59, 71, 1);
@@ -50,7 +60,7 @@ body {
     margin: 0 0 0 calc(150px + 10px);
     padding: 10px 10px 10px 0px;
     width: 100%;
-    height: calc(100vh - 95px);
+    height: calc(100vh - 95px - 30px);
     max-width: 100%;
     overflow: auto;
     position: relative;
@@ -91,7 +101,7 @@ body {
     display: flex;
     flex-flow: row;
     overflow: hidden;
-    border-radius: 0px 0px 15px 15px;
+    border-radius: 0px 0px 10px 10px;
 }
 .header-nav {
     display: flex;
@@ -462,6 +472,9 @@ label {
 .item-icon {
     filter: saturate(1.2);
     border-radius: 5px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
 }
 .item-button {
     position: relative;
@@ -866,15 +879,44 @@ label {
 }
 
 .current-path {
-    background-color: var(--primaryColor);
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    font-size: small;
-    border-radius: 5px 0px 10px 0px;
-    text-align: right;
+    position: absolute;
+    left: 150px;
+    bottom: 0px;
+    display: flex;
+    flex-flow: row;
+    text-align: center;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
+    font-size: var(--fontSize);
+    font-family: var(--textColor2);
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: calc(100% - 150px);
+    height: 30px;
+    margin: auto;
     padding: 5px;
-    border: 1px solid var(--tertiaryColor);
+    background-color: var(--primaryColor);
+    border-radius: 0px 0px 10px 0px;
+    border-top: 1px solid var(--tertiaryColor);
+    z-index: 2;
+}
+.current-path::-webkit-scrollbar {
+    display: none;
+}
+.path-item {
+    padding: 0px 5px;
+    border-radius: 5px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--transparentColor);
+    cursor: pointer;
+    border: none;
+}
+.path-item:hover {
+    background-color: var(--transparentColorActive);
 }
 
 .directory-list {
@@ -900,9 +942,25 @@ label {
     align-items: center;
     height: calc(100vh - 100px);
 }
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+.preloader {
+    width: 38px;
+    height: 38px;
+    border: 5px solid var(--transparentColor);
+    border-top: 5px solid var(--tertiaryColor);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
 
 .context-menu {
-    width: 175px;
+    width: 150px;
     height: fit-content;
     padding: 5px;
     display: flex;
@@ -922,17 +980,20 @@ label {
 .context-item {
     color: var(--textColor);
     width: 100%;
-    padding: 7.5px;
+    height: 25px;
     border: none;
     background-color: var(--secondaryColor);
     border-radius: 5px;
     margin: 2px;
+    padding: 10px;
     cursor: pointer;
     text-align: left;
     display: flex;
     flex-flow: row;
     justify-content: space-between;
+    align-items: center;
     transition: 0.1s ease;
+    font-size: var(--fontSize);
 }
 .context-item:hover {
     background-color: var(--transparentColorActive);
@@ -945,6 +1006,53 @@ label {
 .c-item-disabled:hover {
     color: grey !important;
     background-color: var(--primaryColor);
+}
+.context-open-item-with {
+    position: relative;
+}
+.context-open-item-with:hover .context-open-with-dropdown {
+    display: flex;
+}
+.context-open-with-dropdown {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    margin: auto;
+    list-style: none;
+    display: none;
+    flex-flow: column;
+    gap: 1px;
+    background-color: var(--primaryColor);
+    padding: 5px;
+    overflow-y: auto;
+    width: 150px;
+    max-height: 200px;
+    border-radius: 10px !important;
+    overflow-x: hidden;
+    box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
+    border: 1px solid var(--tertiaryColor);
+}
+.open-with-item {
+    color: var(--textColor);
+    font-size: var(--fontSize);
+    padding: 5px;
+    border: none;
+    background-color: var(--secondaryColor);
+    border-radius: 5px;
+    margin: 2px;
+    cursor: pointer;
+    text-align: left;
+    transition: 0.1s ease;
+}
+.open-with-item:hover {
+    background-color: var(--transparentColorActive);
+    color: var(--textColor);
+}
+.c-item-delete {
+    color: red !important;
+}
+.c-item-delete > svg > path {
+    color: gray;
 }
 
 .input-dialog {
@@ -1248,6 +1356,7 @@ label {
     justify-content: center;
     align-items: center;
     gap: 4px;
+    z-index: 3;
 }
 .progress-bar {
     width: 100%;
