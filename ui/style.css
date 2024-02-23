@@ -934,6 +934,7 @@ label {
     display: flex;
     flex-flow: column;
     align-items: center;
+    margin-bottom: 30px;
 }
 .dir-preloader-container {
     display: flex;

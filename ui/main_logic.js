@@ -2192,6 +2192,8 @@ async function switchToDualPane() {
     document.querySelector(".dual-pane-container").style.display = "flex";
     document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
     document.querySelector(".switch-view-button").style.display = "none";
+    document.querySelector(".current-path").style.left = "0";
+    document.querySelector(".current-path").style.width = "100%";
     await invoke("list_dirs").then(async (items) => {
       await showItems(items, "left");
       await showItems(items, "right");
@@ -2215,6 +2217,8 @@ async function switchToDualPane() {
     // document.querySelector(".go-back-button").style.display = "block";
     // document.querySelector(".nav-seperator-1").style.display = "block";
     document.querySelector(".switch-view-button").style.display = "block";
+    document.querySelector(".current-path").style.left = "150px";
+    document.querySelector(".current-path").style.width = "calc(100% - 150px)";
     if (ViewMode == "column") {
       document.querySelector(".list-column-header").style.display = "flex";
       document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
