@@ -956,6 +956,9 @@ async function setCurrentDir(currentDir, dualPaneSide = "") {
     let currentDirContainer = document.querySelector(".current-path");
     currentDirContainer.innerHTML = "";
     let currentPathTracker = "/";
+    if (Platform.includes("win")) {
+      currentPathTracker = "";
+    }
     currentDir.split("/").forEach(path => {
       if (path == "") return;
       let pathItem = document.createElement("button");
