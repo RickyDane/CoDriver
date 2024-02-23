@@ -802,11 +802,11 @@ async function showItems(items, dualPaneSide = "") {
     itemButton.className = "item-button directory-entry";
     let itemButtonList = document.createElement("div");
     itemButtonList.innerHTML = `
-			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%;">
+			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px;">
 				<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
 				<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 			</span>
-			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
+			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
 				<p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
 				<p class="item-button-list-text" style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
 			</span>
@@ -1438,7 +1438,7 @@ async function checkAppConfig() {
       let firstContainer = document.querySelector(".explorer-container");
       document.querySelector(".list-column-header").style.display = "flex";
       firstContainer.style.marginTop = "30px";
-      firstContainer.style.height = "calc(100vh - 125px)";
+      firstContainer.style.height = "calc(100vh - 125px - 30px)";
     }
 
     // if (appConfig.is_open_in_terminal.includes("1")) {
