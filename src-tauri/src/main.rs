@@ -1,5 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use async_ftp::FtpStream;
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
@@ -30,7 +31,8 @@ use sysinfo::Disks;
 use utils::{copy_to, count_entries, dbg_log, err_log, wng_log, COPY_COUNTER, TO_COPY_COUNTER};
 #[allow(unused_imports)]
 use rayon::prelude::*;
-use applications::{get_apps, open_file_with};
+mod applications;
+use applications::{open_file_with, get_apps};
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();

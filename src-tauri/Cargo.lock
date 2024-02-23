@@ -86,7 +86,6 @@ checksum = "5ad32ce52e4161730f7098c077cd2ed6229b5804ccf99e5366be1ab72a98b4e1"
 name = "app"
 version = "0.3.6"
 dependencies = [
- "applications",
  "async-std",
  "async_ftp",
  "base64 0.21.7",
@@ -99,6 +98,7 @@ dependencies = [
  "fs_extra",
  "ftp",
  "gif",
+ "ini",
  "open",
  "rar",
  "rayon",
@@ -112,19 +112,9 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-drag",
  "unrar",
+ "walkdir",
  "zip",
  "zip-extensions",
-]
-
-[[package]]
-name = "applications"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffc90e73104a798ecc55bdb5bf27fb05a9ceba3bcc7a12e5b621ab57f6b1985a"
-dependencies = [
- "ini",
- "serde",
- "walkdir",
 ]
 
 [[package]]
