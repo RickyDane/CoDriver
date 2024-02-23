@@ -2,11 +2,15 @@ const { listen } = window.__TAURI__.event;
 
 /* Drag and drop files into file explorer */
 listen('tauri://file-drop', async event => {
-  event.payload.forEach(async item => {
-    if (IsFileOpIntern == true) {
+  if (IsFileOpIntern == true) {
       console.log("File operation in progress");
       return;
-    }
+  }
+  else {
+    ArrSelectedItems = [];
+    ArrCopyItems = [];
+  }
+  event.payload.forEach(async item => {
     CopyFilePath = item;
     CopyFileName = CopyFilePath.split("/")[CopyFilePath.split("/").length - 1].replace("'", "");
     let element = document.createElement("button");

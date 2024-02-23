@@ -751,17 +751,11 @@ async function showItems(items, dualPaneSide = "") {
         case ".webp":
         case ".svg":
         case ".ico":
-        case ".icns":
         case ".bmp":
         case ".tiff":
         case ".tif":
         case ".jfif":
-        case ".pjpeg":
-        case ".pjp":
         case ".avif":
-        case ".apng":
-        case ".heif":
-        case ".heic":
         case ".pdf":
           if (IsImagePreview) {
             fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);// Beispiel für die Verwendung der Funktion
@@ -1275,6 +1269,7 @@ async function pasteItem() {
   else {
     arr = ArrCopyItems;
   }
+  console.log(arr);
   ContextMenu.style.display = "none";
   if (IsDualPaneEnabled == true) {
     if (SelectedItemPaneSide == "left") {
@@ -2465,7 +2460,6 @@ function showItemPreview(item, isOverride = false) {
     case ".svg":
     case ".webp":
     case ".ico":
-    case ".icns":
     case ".jfif":
     case ".avif":
       module = `<img decoding="async" src="${convertFileSrc(path)}" alt="${name}" />`;

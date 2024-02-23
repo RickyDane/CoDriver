@@ -899,6 +899,7 @@ label {
     background-color: var(--primaryColor);
     border-radius: 0px 0px 10px 0px;
     border-top: 1px solid var(--tertiaryColor);
+    z-index: 2;
 }
 .current-path::-webkit-scrollbar {
     display: none;
@@ -1355,6 +1356,7 @@ label {
     justify-content: center;
     align-items: center;
     gap: 4px;
+    z-index: 3;
 }
 .progress-bar {
     width: 100%;
