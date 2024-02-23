@@ -865,8 +865,8 @@ async function showItems(items, dualPaneSide = "") {
     item.addEventListener("contextmenu", async (e) => {
       let appsCMenu = document.querySelector(".context-open-with-dropdown");
       appsCMenu.innerHTML = "";
-      if (Platform != "darwin" && Platform.includes("win")) {
-        appsCMenu.innerHTML = "<p>Not yet available on windows</p>";
+      if (Platform != "darwin" && (Platform.includes("win") || Platform.includes("linux"))) {
+        appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
       }
       else {
         Applications.forEach(app => {
@@ -1512,7 +1512,7 @@ async function checkAppConfig() {
   DefaultFileIcon = DefaultFileIcon.replace("\\\\?\\", "").replaceAll("\\", "/");
   DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
   DefaultFolderIcon = DefaultFolderIcon.replace("\\\\?\\", "").replaceAll("\\", "/");
-  
+
   checkColorMode();
   applyPlatformFeatures();
 }
