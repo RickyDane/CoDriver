@@ -802,11 +802,11 @@ async function showItems(items, dualPaneSide = "") {
     itemButton.className = "item-button directory-entry";
     let itemButtonList = document.createElement("div");
     itemButtonList.innerHTML = `
-			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%;">
+			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px;">
 				<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
 				<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 			</span>
-			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
+			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
 				<p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
 				<p class="item-button-list-text" style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
 			</span>
@@ -1438,7 +1438,7 @@ async function checkAppConfig() {
       let firstContainer = document.querySelector(".explorer-container");
       document.querySelector(".list-column-header").style.display = "flex";
       firstContainer.style.marginTop = "30px";
-      firstContainer.style.height = "calc(100vh - 125px)";
+      firstContainer.style.height = "calc(100vh - 125px - 30px)";
     }
 
     // if (appConfig.is_open_in_terminal.includes("1")) {
@@ -2192,6 +2192,9 @@ async function switchToDualPane() {
     document.querySelector(".dual-pane-container").style.display = "flex";
     document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
     document.querySelector(".switch-view-button").style.display = "none";
+    document.querySelector(".current-path").style.left = "0";
+    document.querySelector(".current-path").style.width = "100%";
+    document.querySelector(".current-path").style.borderRadius = "0px 0px 10px 10px";
     await invoke("list_dirs").then(async (items) => {
       await showItems(items, "left");
       await showItems(items, "right");
@@ -2215,6 +2218,9 @@ async function switchToDualPane() {
     // document.querySelector(".go-back-button").style.display = "block";
     // document.querySelector(".nav-seperator-1").style.display = "block";
     document.querySelector(".switch-view-button").style.display = "block";
+    document.querySelector(".current-path").style.left = "150px";
+    document.querySelector(".current-path").style.width = "calc(100% - 150px)";
+    document.querySelector(".current-path").style.borderRadius = "0px 0px 10px 0px";
     if (ViewMode == "column") {
       document.querySelector(".list-column-header").style.display = "flex";
       document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
