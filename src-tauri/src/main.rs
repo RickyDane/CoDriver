@@ -29,7 +29,7 @@ use unrar::Archive;
 use zip_extensions::*;
 mod utils;
 use sysinfo::Disks;
-use utils::{copy_to, count_entries, dbg_log, err_log, wng_log, COPY_COUNTER, TO_COPY_COUNTER};
+use utils::{copy_to, count_entries, dbg_log, err_log, format_bytes, wng_log, DirWalker, DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER};
 #[allow(unused_imports)]
 use rayon::prelude::*;
 mod applications;
@@ -38,6 +38,8 @@ use applications::{open_file_with, get_apps};
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
 static mut PASSWORD: String = String::new();
+
+static mut ISCANCELED: bool = false;
 
 fn main() {
     tauri::Builder::default()
@@ -80,7 +82,9 @@ fn main() {
             arr_delete_items,
             arr_compress_items,
             get_installed_apps,
-            open_with
+            open_with,
+            find_duplicates,
+            cancel_operation
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -306,8 +310,8 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 }
 
 #[tauri::command]
-async fn open_dir(_path: String) -> Vec<FDir> {
-    let _ = set_current_dir(_path);
+async fn open_dir(path: String) -> Vec<FDir> {
+    let _ = set_current_dir(&path);
     return list_dirs().await;
 }
 
@@ -988,4 +992,83 @@ async fn get_installed_apps() -> Vec<(String, String)>{
 #[tauri::command]
 async fn open_with(file_path: String, app_path: String) {
     open_file_with(PathBuf::from(file_path), PathBuf::from(app_path));
+}
+
+#[tauri::command]
+async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Vec<DirWalkerEntry>> {
+    let files = DirWalker::new()
+        .depth(depth)
+        .run(&path)
+        .get_items();
+    let mut seen_items: Vec<DirWalkerEntry> = Vec::new();
+    let mut duplicates: Vec<Vec<DirWalkerEntry>> = Vec::new();
+    for item in files.into_par_iter().collect::<Vec<DirWalkerEntry>>() {
+        unsafe {
+            if ISCANCELED {
+                break;
+            }
+        }
+        let seen_item = seen_items.iter().find(|x| x.is_file == true && x.file_name == item.file_name && x.size == item.size);
+        if *&seen_item.is_some() {
+            for mut arr_duplicate in duplicates.clone() {
+                for item in arr_duplicate.clone() {
+                    if item.file_name == seen_item.unwrap().file_name && item.size == seen_item.unwrap().size {
+                       arr_duplicate.push(item.clone());
+                    }
+                    else {
+                        duplicates.push(vec![seen_item.unwrap().clone(), item.clone()]);
+                    }
+                }
+            }
+            if duplicates.len() == 0 {
+                duplicates.push(vec![seen_item.unwrap().clone(), item]);
+            }
+        }
+        else {
+            seen_items.push(item);
+        }
+    }
+    unsafe {
+        ISCANCELED = false;
+    }
+    for arr_items in duplicates.clone() {
+        let mut inner_html = String::new();
+        let mut js_query = String::new()+"
+               var duplicate = document.createElement('div');
+               duplicate.setAttribute('itempaneside', '');
+               duplicate.setAttribute('itemisdir', '0');
+               duplicate.setAttribute('itemext', '');
+               duplicate.setAttribute('isftp', '0');
+               duplicate.className = 'list-item';
+        ";
+        for (idx, item) in arr_items.clone().iter().enumerate() {
+           inner_html.push_str(&(String::new()+"
+                <div style='display: flex; align-items: center; justify-content: space-between;'>
+                    <div>
+                        <h3>Name: "+&item.file_name+"</h3>
+                        <h4 class='text-2'>Path: "+&item.path+"</h4>
+                        <h4>"+&format_bytes(item.size)+"</h4>
+                    </div>
+                    <img width='64px' height='auto' src='asset://localhost/"+&item.path+"'>
+                </div>
+            "));
+           js_query.push_str(&(String::new()+"
+                duplicate.setAttribute('"+&format!("itempath-{}", idx)+"', '"+&item.path+"');
+            "));
+        }
+        js_query.push_str(&(String::new()+"
+            duplicate.innerHTML = `"+&inner_html+"`;
+            duplicate.oncontextmenu = (e) => showExtraContextMenu(e, duplicate);
+            document.querySelector('.duplicates-list').append(duplicate);
+        "));
+        let _ = app_window.eval(&js_query);
+    }
+    duplicates
+}
+
+#[tauri::command]
+async fn cancel_operation() {
+    unsafe {
+        ISCANCELED = true;
+    }
 }

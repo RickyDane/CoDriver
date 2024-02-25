@@ -184,6 +184,7 @@ document.addEventListener("mousedown", (e) => {
     !e.target.classList.contains("item-button-text")
   ) {
     ContextMenu.style.display = "none";
+    $(".extra-c-menu")?.remove();
 
     // Reset context menu
     ContextMenu.children[0].setAttribute("disabled", "true");
@@ -212,34 +213,36 @@ document.addEventListener("mousedown", (e) => {
 // Open context menu for pasting for example
 document.addEventListener("contextmenu", (e) => {
   e.preventDefault();
-  ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
+  if (IsPopUpOpen == false) {
+    ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
 
-  ContextMenu.style.display = "flex";
-  if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
-    ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
-    ContextMenu.style.bottom = null;
-  }
-  else {
-    ContextMenu.style.bottom = null;
-    ContextMenu.style.top = e.clientY + "px";
-  }
-  if (ContextMenu.clientWidth + e.clientX >= window.innerWidth) {
-    ContextMenu.style.left = e.clientX - ContextMenu.clientWidth + "px";
-    console.log("ContextMenu.style.left");
-  }
-  else {
-    ContextMenu.style.left = e.clientX + "px";
-  }
+    ContextMenu.style.display = "flex";
+    if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
+      ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
+      ContextMenu.style.bottom = null;
+    }
+    else {
+      ContextMenu.style.bottom = null;
+      ContextMenu.style.top = e.clientY + "px";
+    }
+    if (ContextMenu.clientWidth + e.clientX >= window.innerWidth) {
+      ContextMenu.style.left = e.clientX - ContextMenu.clientWidth + "px";
+      console.log("ContextMenu.style.left");
+    }
+    else {
+      ContextMenu.style.left = e.clientX + "px";
+    }
 
-  ContextMenu.children[7].addEventListener("click", function () { createFileInputPrompt(e); }, { once: true }, );
+    ContextMenu.children[7].addEventListener("click", function () { createFileInputPrompt(e); }, { once: true }, );
 
-  if (CopyFilePath == "") {
-    document.querySelector(".c-item-paste").setAttribute("disabled", "true");
-    document.querySelector(".c-item-paste").classList.add("c-item-disabled");
-  }
-  else {
-    document.querySelector(".c-item-paste").removeAttribute("disabled");
-    document.querySelector(".c-item-paste").classList.remove("c-item-disabled");
+    if (CopyFilePath == "") {
+      document.querySelector(".c-item-paste").setAttribute("disabled", "true");
+      document.querySelector(".c-item-paste").classList.add("c-item-disabled");
+    }
+    else {
+      document.querySelector(".c-item-paste").removeAttribute("disabled");
+      document.querySelector(".c-item-paste").classList.remove("c-item-disabled");
+    }
   }
 });
 
@@ -857,80 +860,86 @@ async function showItems(items, dualPaneSide = "") {
       }
     };
     item.addEventListener("contextmenu", async (e) => {
-      let appsCMenu = document.querySelector(".context-open-with-dropdown");
-      appsCMenu.innerHTML = "";
-      if (Platform != "darwin" && (Platform.includes("win") || Platform.includes("linux"))) {
-        appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
-      }
-      else {
-        Applications.forEach(app => {
-          let newItem = document.createElement("button");
-          newItem.innerHTML = app[0].split(".")[0];
-          newItem.className = "open-with-item";
-          newItem.setAttribute("appname", app[0].split(".")[0]);
-          newItem.setAttribute("apppath", app[1]);
-          newItem.addEventListener("click", () => open_with(item.getAttribute("itempath"), app[1]));
-          appsCMenu.appendChild(newItem);
-        });
-      }
-      e.preventDefault();
-
-      // Reset so that the commands are not triggered multiple times
-      ContextMenu.children[0].replaceWith(ContextMenu.children[0].cloneNode(true));
-      ContextMenu.children[2].replaceWith(ContextMenu.children[2].cloneNode(true));
-      ContextMenu.children[3].replaceWith(ContextMenu.children[3].cloneNode(true));
-      ContextMenu.children[4].replaceWith(ContextMenu.children[4].cloneNode(true));
-      ContextMenu.children[5].replaceWith(ContextMenu.children[5].cloneNode(true));
-      ContextMenu.children[6].replaceWith(ContextMenu.children[6].cloneNode(true));
-      ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
-      ContextMenu.children[8].replaceWith(ContextMenu.children[8].cloneNode(true));
-      ContextMenu.children[9].replaceWith(ContextMenu.children[9].cloneNode(true));
-      ContextMenu.children[10].replaceWith(ContextMenu.children[10].cloneNode(true));
-
-      let extension = item.getAttribute("itemext");
-
-      ContextMenu.children[0].removeAttribute("disabled");
-      ContextMenu.children[0].classList.remove("c-item-disabled");
-      ContextMenu.children[1].removeAttribute("disabled");
-      ContextMenu.children[1].classList.remove("c-item-disabled");
-      ContextMenu.children[3].removeAttribute("disabled");
-      ContextMenu.children[3].classList.remove("c-item-disabled");
-      ContextMenu.children[4].removeAttribute("disabled");
-      ContextMenu.children[4].classList.remove("c-item-disabled");
-      ContextMenu.children[5].removeAttribute("disabled");
-      ContextMenu.children[5].classList.remove("c-item-disabled");
-      ContextMenu.children[6].removeAttribute("disabled");
-      ContextMenu.children[6].classList.remove("c-item-disabled");
-      ContextMenu.children[9].removeAttribute("disabled");
-      ContextMenu.children[9].classList.remove("c-item-disabled");
-      ContextMenu.children[10].removeAttribute("disabled");
-      ContextMenu.children[10].classList.remove("c-item-disabled");
-
-      if (extension != ".zip" && extension != ".rar" && extension != ".7z") {
-        document.querySelector(".c-item-extract").setAttribute("disabled", "true");
-        document.querySelector(".c-item-extract").classList.add("c-item-disabled");
-      }
-      else {
-        document.querySelector(".c-item-extract").removeAttribute("disabled");
-        document.querySelector(".c-item-extract").classList.remove("c-item-disabled");
-      }
-      document.querySelector(".c-item-delete").addEventListener("click", async () => {
-        if (ArrSelectedItems.length == 0) {
-          selectItem(item);
+      e.preventDefault()
+      if (IsPopUpOpen == false) {
+        let appsCMenu = document.querySelector(".context-open-item-with");
+        appsCMenu.innerHTML = "";
+        if (Platform != "darwin" && (Platform.includes("win") || Platform.includes("linux"))) {
+          appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
         }
-        await deleteItems(ArrSelectedItems);
-      }, { once: true });
-      document.querySelector(".c-item-extract").addEventListener("click", () => { extractItem(item); }, { once: true });
-      document.querySelector(".c-item-compress").addEventListener("click", () => { showCompressPopup(item); }, { once: true });
-      document.querySelector(".c-item-copy").addEventListener("click", () => { copyItem(item); }, { once: true });
-      document.querySelector(".c-item-moveto").addEventListener("click", () => { itemMoveTo(false) }, { once: true });
-      document.querySelector(".c-item-newfile").addEventListener("click", () => { createFileInputPrompt(e); }, { once: true });
-      document.querySelector(".c-item-rename").addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
-      document.querySelector(".c-item-properties").addEventListener("click", () => { showProperties(item); }, { once: true });
+        else {
+          Applications.forEach(app => {
+            let newItem = document.createElement("button");
+            newItem.innerHTML = app[0].split(".")[0];
+            newItem.className = "context-item";
+            newItem.setAttribute("appname", app[0].split(".")[0]);
+            newItem.setAttribute("apppath", app[1]);
+            newItem.addEventListener("click", () => open_with(item.getAttribute("itempath"), app[1]));
+            appsCMenu.appendChild(newItem);
+          });
+        };
 
-      ContextMenu.style.display = "flex";
-      ContextMenu.style.left = e.clientX + "px";
-      ContextMenu.style.top = e.clientY + "px";
+        // Reset so that the commands are not triggered multiple times
+        ContextMenu.children[0].replaceWith(ContextMenu.children[0].cloneNode(true));
+        ContextMenu.children[2].replaceWith(ContextMenu.children[2].cloneNode(true));
+        ContextMenu.children[3].replaceWith(ContextMenu.children[3].cloneNode(true));
+        ContextMenu.children[4].replaceWith(ContextMenu.children[4].cloneNode(true));
+        ContextMenu.children[5].replaceWith(ContextMenu.children[5].cloneNode(true));
+        ContextMenu.children[6].replaceWith(ContextMenu.children[6].cloneNode(true));
+        ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
+        ContextMenu.children[8].replaceWith(ContextMenu.children[8].cloneNode(true));
+        ContextMenu.children[9].replaceWith(ContextMenu.children[9].cloneNode(true));
+        ContextMenu.children[10].replaceWith(ContextMenu.children[10].cloneNode(true));
+        ContextMenu.children[11].replaceWith(ContextMenu.children[11].cloneNode(true));
+
+        let extension = item.getAttribute("itemext");
+
+        ContextMenu.children[0].removeAttribute("disabled");
+        ContextMenu.children[0].classList.remove("c-item-disabled");
+        ContextMenu.children[1].removeAttribute("disabled");
+        ContextMenu.children[1].classList.remove("c-item-disabled");
+        ContextMenu.children[3].removeAttribute("disabled");
+        ContextMenu.children[3].classList.remove("c-item-disabled");
+        ContextMenu.children[4].removeAttribute("disabled");
+        ContextMenu.children[4].classList.remove("c-item-disabled");
+        ContextMenu.children[5].removeAttribute("disabled");
+        ContextMenu.children[5].classList.remove("c-item-disabled");
+        ContextMenu.children[6].removeAttribute("disabled");
+        ContextMenu.children[6].classList.remove("c-item-disabled");
+        ContextMenu.children[9].removeAttribute("disabled");
+        ContextMenu.children[9].classList.remove("c-item-disabled");
+        ContextMenu.children[10].removeAttribute("disabled");
+        ContextMenu.children[10].classList.remove("c-item-disabled");
+        ContextMenu.children[11].removeAttribute("disabled");
+        ContextMenu.children[11].classList.remove("c-item-disabled")
+
+        if (extension != ".zip" && extension != ".rar" && extension != ".7z") {
+          document.querySelector(".c-item-extract").setAttribute("disabled", "true");
+          document.querySelector(".c-item-extract").classList.add("c-item-disabled");
+        }
+        else {
+          document.querySelector(".c-item-extract").removeAttribute("disabled");
+          document.querySelector(".c-item-extract").classList.remove("c-item-disabled");
+        }
+        document.querySelector(".c-item-delete").addEventListener("click", async () => {
+          if (ArrSelectedItems.length == 0) {
+            selectItem(item);
+          }
+          await deleteItems(ArrSelectedItems);
+        }, { once: true });
+        document.querySelector(".c-item-extract").addEventListener("click", () => { extractItem(item); }, { once: true });
+        document.querySelector(".c-item-compress").addEventListener("click", () => { showCompressPopup(item); }, { once: true });
+        document.querySelector(".c-item-copy").addEventListener("click", () => { copyItem(item); }, { once: true });
+        document.querySelector(".c-item-moveto").addEventListener("click", () => { itemMoveTo(false) }, { once: true });
+        document.querySelector(".c-item-newfile").addEventListener("click", () => { createFileInputPrompt(e); }, { once: true });
+        document.querySelector(".c-item-rename").addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
+        document.querySelector(".c-item-properties").addEventListener("click", () => { showProperties(item); }, { once: true });
+        document.querySelector(".c-item-duplicates").addEventListener("click", () => { showFindDuplicates(item); }, { once: true })
+
+        ContextMenu.style.display = "flex";
+        ContextMenu.style.left = e.clientX + "px";
+        ContextMenu.style.top = e.clientY + "px";
+      }
     });
   });
   if (IsTabsEnabled == true) {
@@ -1702,7 +1711,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
       // Open directory
       await invoke("open_dir", { path }).then(async (items) => {
         await showItems(items, dualPaneSide);
-        if (IsDualPaneEnabled == true && dualPaneSide != "") {
+        if (IsDualPaneEnabled == true && dualPaneSide != "" && dualPaneSide != null) {
           // document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = ""; // Disabled tab functionality
           goUp(false, true);
         }
@@ -2730,6 +2739,101 @@ async function open_with(filePath, appPath) {
 
 async function getSetInstalledApplications() {
   await invoke("get_installed_apps").then(apps => Applications = apps);
+}
+
+function showFindDuplicates(item) {
+  ContextMenu.style.display = "none";
+  IsPopUpOpen = true;
+  let popup = document.createElement("div");
+  popup.className = "uni-popup find-duplicates-popup";
+  popup.innerHTML = `
+    <div class="popup-header">
+      <h3>Duplicates</h3>
+    </div>
+    <div class="popup-body" style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <p>Selected folder:</p>
+        <p class="text-2">${item.getAttribute("itempath")}</p>
+      </div>
+      <div>
+        <p style="margin-bottom: 5px;">Search depth</p>
+        <input style="width: 100px;" type="number" class="text-input duplicates-search-depth-input" value="1">
+      </div>
+    </div>
+    <div class="popup-header">
+      <h4>Found duplicates</h4>
+    </div>
+  `;
+  let list = document.createElement("div");
+  list.className = "list duplicates-list";
+  popup.append(list);
+  let popupControls = document.createElement("div");
+  popupControls.className = "popup-controls";
+  popupControls.innerHTML = `
+    <button class="icon-button" onclick="closeFindDuplicatesPopup()">
+      <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+      Cancel
+    </button>
+    <button class="icon-button duplicate-button-run">
+      <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+      Search
+    </button>
+  `;
+  popup.append(popupControls);
+  document.querySelector("body").append(popup);
+  document.querySelector(".duplicates-search-depth-input").addEventListener("focus", () => IsInputFocused = true);
+  document.querySelector(".duplicates-search-depth-input").addEventListener("blur", () => IsInputFocused = false);
+  document.querySelector(".duplicate-button-run").addEventListener("click", () => {
+    findDuplicates(item, document.querySelector(".duplicates-search-depth-input").value);
+  });
+}
+
+function closeFindDuplicatesPopup() {
+  IsPopUpOpen = false;
+  cancelOperation();
+  document.querySelector(".find-duplicates-popup").remove();
+}
+
+async function findDuplicates(item, depth) {
+  showLoadingPopup("Duplicates are being searched for");
+  document.querySelector(".list").innerHTML = "";
+  ContextMenu.style.display = "none";
+  await invoke("find_duplicates", { appWindow: appWindow, path: item.getAttribute("itempath"), depth: parseInt(depth) }).then((arrDuplicates) => {
+    arrDuplicates.forEach(item => console.log(item));
+  })
+  closeLoadingPopup();
+  IsPopUpOpen = true;
+}
+
+async function cancelOperation() {
+  await invoke("cancel_operation");
+}
+
+async function showExtraContextMenu(e, item) {
+  $(".extra-c-menu")?.remove();
+  let contextMenu = document.createElement("div");
+  contextMenu.className = "extra-c-menu context-menu";
+  contextMenu.innerHTML = `
+    <button class="context-item">Keep first</button>
+    <button class="context-item">Keep second</button>
+  `;
+  contextMenu.style.left = e.clientX + "px";
+  contextMenu.style.top = e.clientY + "px";
+  contextMenu.children[0].onclick = () => duplicateMergeIntoFirst(item);
+  contextMenu.children[1].onclick = () => duplicateMergeIntoSecond(item);
+  document.querySelector("body").append(contextMenu);
+}
+
+async function duplicateMergeIntoFirst(item) {
+  console.log("Delete: ", item.getAttribute("itempath2"));
+  await invoke("arr_delete_items", { arrItems: [item.getAttribute("itempath2")] });
+  $(item)?.remove();
+}
+
+async function duplicateMergeIntoSecond(item) {
+  console.log("Delete: ", item.getAttribute("itempath"));
+  await invoke("arr_delete_items", { arrItems: [item.getAttribute("itempath2")] });
+  $(item)?.remove();
 }
 
 checkAppConfig();

@@ -80,9 +80,10 @@
     </div>
     <div class="context-menu" style="display: none;">
         <button class="context-item c-item-delete">Delete<i class="fa-solid fa-trash"></i></button>
-        <div class="context-item c-item-openwith context-open-item-with">
-            Open with<i class="fa-solid fa-up-right-from-square"></i>
-            <div class="context-open-with-dropdown"></div>
+        <div class="context-item context-with-dropdown">
+            Open with
+            <i class="fa-solid fa-up-right-from-square"></i>
+            <div class="context-dropdown context-open-item-with"></div>
         </div>
         <button class="context-item c-item-extract">Extract<i class="fa-solid fa-box-open"></i></button>
         <button class="context-item c-item-compress">Compress<i class="fa-solid fa-box"></i></button>
@@ -92,6 +93,13 @@
         <button class="context-item c-item-newfile">New file<i class="fa-solid fa-file"></i></button>
         <button class="context-item c-item-newfolder" onclick="createFolderInputPrompt()">New folder<i class="fa-solid fa-folder-plus"></i></button>
         <button class="context-item c-item-rename">Rename<i class="fa-solid fa-file-signature"></i></button>
+        <div class="context-item context-with-dropdown">
+            Extras
+            <i class="fa-solid fa-chevron-right"></i>
+            <div class="context-dropdown">
+                 <button class="context-item c-item-duplicates">Duplicates<i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+        </div>
         <button class="context-item c-item-properties">Properties<i class="fa-solid fa-info-circle"></i></button>
         <button class="context-item c-item-openinterminal context-open-in-terminal" onclick="openInTerminal()">Open in Terminal<i class="fa-solid fa-terminal"></i></button>
     </div>
