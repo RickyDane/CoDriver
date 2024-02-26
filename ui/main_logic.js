@@ -10,6 +10,7 @@ const { getVersion } = window.__TAURI__.app;
 const { getName } = window.__TAURI__.app;
 const { getMatches } = window.__TAURI__.cli;
 const { platform } = window.__TAURI__.os;
+const { arch } = window.__TAURI__.os;
 const { fetch } = window.__TAURI__.http;
 const convertFileSrc = window.__TAURI__.convertFileSrc;
 const { appDataDir } = window.__TAURI__.path;
@@ -1436,7 +1437,12 @@ async function renameElement(path, newName) {
 }
 
 async function showAppInfo() {
-  alert(`Application: ${await getName()}\nTauri version: ${await getTauriVersion()}\nApp version: ${await getVersion()}\nDeveloper: Ricky Dane`);
+  alert(`
+    App version: ${await getVersion()}
+    Tauri version: ${await getTauriVersion()}
+    Architecture: ${await arch()}
+    Developer: Ricky Dane
+  `);
 }
 
 async function checkAppConfig() {
