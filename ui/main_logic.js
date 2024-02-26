@@ -122,15 +122,19 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 });
 
 /* Quicksearch for dual pane view */
-
-document.querySelectorAll(".trigger-for-full-search").forEach(item => item.addEventListener("keyup", (e) => {
+document.querySelector(".fullsearch-search-button").onclick = async () => {
+  if (IsFullSearching == false) {
+    await startFullSearch();
+  }
+};
+document.querySelectorAll(".trigger-for-full-search").forEach(item => item.addEventListener("keyup", async (e) => {
     if (e.keyCode === 13 && IsFullSearching == false) {
-      startFullSearch();
+      await startFullSearch();
     }
   })
 );
 
-function startFullSearch() {
+async function startFullSearch() {
   IsFullSearching = true;
   let fileName = document.querySelector(".full-dualpane-search-input").value;
   let maxItems = parseInt(document.querySelector(".full-search-max-items-input").value);
@@ -139,7 +143,7 @@ function startFullSearch() {
   searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
   let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
   console.log(fileName, maxItems, searchDepth, false, fileContent);
-  searchFor(fileName, maxItems, searchDepth, false, fileContent);
+  await searchFor(fileName, maxItems, searchDepth, false, fileContent);
 }
 
 document.addEventListener("keyup", (e) => {
@@ -806,7 +810,7 @@ async function showItems(items, dualPaneSide = "") {
     itemButton.className = "item-button directory-entry";
     let itemButtonList = document.createElement("div");
     itemButtonList.innerHTML = `
-			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px;">
+			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
 				<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
 				<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 			</span>
@@ -1904,7 +1908,8 @@ function goUp(isSwitched = false, toFirst = false) {
         selectedItemIndex = 0;
         element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
         LeftPaneItemIndex = selectedItemIndex;
-      } else if (SelectedItemPaneSide == "right") {
+      }
+      else if (SelectedItemPaneSide == "right") {
         selectedItemIndex = 0;
         element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
         RightPaneItemIndex = selectedItemIndex;
@@ -1934,7 +1939,8 @@ function goUp(isSwitched = false, toFirst = false) {
         document.querySelector(".dual-pane-right").scrollTop -= 36;
       }
     }
-  } else {
+  }
+  else {
     if (SelectedItemPaneSide == "right") {
       RightPaneItemIndex = 0;
       element = RightPaneItemCollection.querySelectorAll(".item-link")[0];

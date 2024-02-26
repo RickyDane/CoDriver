@@ -139,7 +139,7 @@
             <span style="display: flex; gap: 10px; margin-top: 5px;">
                 <input id="choose-interaction-mode" type="checkbox"
                     class="settings-ui-checkbox choose-interaction-mode-checkbox" />
-                <label for="choose-interaction-mode">Interaction mode (On = Select item first and then open it | Off = Open immediately on click)</p>
+                <label for="choose-interaction-mode">Double click to open item</p>
             </span>
             <span style="display: flex; gap: 10px; margin-top: 5px;">
                 <input id="show-dual-pane" type="checkbox" class="settings-ui-checkbox show-dual-pane-checkbox" />
@@ -152,7 +152,7 @@
             </span>
             <span style="display: flex; gap: 10px; margin-top: 5px;">
                 <input id="switch-image-preview" type="checkbox" class="settings-ui-checkbox image-preview-checkbox" />
-                <label for="switch-image-preview">Image preview (.gif, .jpeg, .jpg, .png, .svg)</p>
+                <label for="switch-image-preview">Image preview</p>
             </span>
         </div>
         <div class="popup-controls">
@@ -165,30 +165,42 @@
             <input class="dualpane-search-input text-input" type="text" placeholder="Start typing ..." />
         </div>
     </div>
-    <div class="search-full-container">
-        <div class="search-full-container-header"><i class="fa-solid fa-magnifying-glass"></i>
-            <p>Full - Search</p>
+    <div class="search-full-container uni-popup">
+        <div class="popup-header">
+            <span style="display: flex; gap: 20px; align-items: center;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <p>Search</p>
+            </span>
+            <button class="popup-close-button" onclick="closeFullSearch()"><i class="fa-solid fa-times"></i></button>
         </div>
-        <div class="search-full-container-body">
-            <p>Search input</p>
-            <input class="full-dualpane-search-input trigger-for-full-search text-input" type="text" placeholder="example.txt" />
-            <p>File content</p>
-            <input class="full-dualpane-search-file-content-input trigger-for-full-search text-input" type="text" placeholder="example.txt" />
-            <p>Max count of search results (0 = off)</p>
-            <input style="width: 100px;" type="number" class="number-input trigger-for-full-search full-search-max-items-input" placeholder="1000" value="1000" />
-            <p>Search depth (0 = off)</p>
-            <input style="width: 100px;" type="number" class="number-input trigger-for-full-search full-search-search-depth-input" placeholder="10" value="10" />
-            <div class="search-full-container-body-buttons">
-                <button class="icon-button" onclick="closeFullSearchContainer()">
-                    <div class="button-icon"><i class="fa-solid fa-ban"></i></div>
-                    Cancel
-                </button>
-                <button class="icon-button" onclick="startFullSearch()">
-                    <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-                    Start
-                    <div class="fullsearch-loader preloader" style="display: none; border: 2px solid var(--transparentColorActive); border-top: 2px solid var(--transparentColor); height: 16px !important; width: 16px !important;"></div>
-                </button>
+        <div class="popup-body">
+            <div class="popup-body-col-section">
+                <p class="text-2">Search input</p>
+                <input class="full-dualpane-search-input trigger-for-full-search text-input" type="text" placeholder="example.txt" />
             </div>
+            <div class="popup-body-col-section">
+                <p class="text-2">File content</p>
+                <input class="full-dualpane-search-file-content-input trigger-for-full-search text-input" type="text" placeholder="example.txt" />
+            </div>
+            <div class="popup-body-col-section">
+                <p class="text-2">Max count of search results (0 = off)</p>
+                <input style="width: 100px;" type="number" class="number-input trigger-for-full-search full-search-max-items-input" placeholder="1000" value="1000" />
+            </div>
+            <div class="popup-body-col-section">
+                <p class="text-2">Search depth (0 = off)</p>
+                <input style="width: 100px;" type="number" class="number-input trigger-for-full-search full-search-search-depth-input" placeholder="10" value="10" />
+            </div>
+        </div>
+        <div class="popup-controls">
+            <button class="icon-button" onclick="closeFullSearchContainer()">
+                <div class="button-icon"><i class="fa-solid fa-ban"></i></div>
+                Cancel
+            </button>
+            <button class="fullsearch-search-button icon-button">
+                <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                Start
+                <div class="fullsearch-loader preloader-small-invert" style="display: none;"></div>
+            </button>
         </div>
     </div>
     <div class="ftp-connect-container">

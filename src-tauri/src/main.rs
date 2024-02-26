@@ -334,7 +334,8 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
     };
     if wanted_directory.is_err() {
         err_log("Not a valid directory".into());
-    } else {
+    }
+    else {
         dbg_log(format!("Current dir: {:?}", current_dir().unwrap()));
     }
     return list_dirs().await;
@@ -498,21 +499,9 @@ async fn get_current_connection() -> FtpStream {
 
 #[tauri::command]
 async fn open_in_terminal() {
-    #[cfg(target_os = "linux")]
-    // Open the terminal on linux
-    let _ = Command::new("gnome-terminal")
-        .arg(current_dir().unwrap())
-        .spawn();
-    #[cfg(target_os = "windows")]
-    // Open the terminal on windows
-    let _ = Command::new("cmd")
-        .arg("/c")
-        .arg("start")
-        .arg(current_dir().unwrap())
-        .spawn();
-    #[cfg(target_os = "macos")]
-    // Open the terminal on mac
-    let _ = Command::new("terminal").arg(current_dir().unwrap()).spawn();
+    // open terminal on macOS
+    // open terminal on linux
+    // open terminal on windows
 }
 
 #[tauri::command]
@@ -1003,35 +992,26 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
     let mut seen_items: Vec<DirWalkerEntry> = Vec::new();
     let mut duplicates: Vec<Vec<DirWalkerEntry>> = Vec::new();
     for item in files.into_par_iter().collect::<Vec<DirWalkerEntry>>() {
-        unsafe {
-            if ISCANCELED {
-                break;
-            }
-        }
-        let seen_item = seen_items.iter().find(|x| x.is_file == true && x.file_name == item.file_name && x.size == item.size);
+        let seen_item = seen_items.par_iter().find_any(|x| x.is_file == true && x.file_name == item.file_name && x.size == item.size);
         if *&seen_item.is_some() {
-            for mut arr_duplicate in duplicates.clone() {
-                for item in arr_duplicate.clone() {
-                    if item.file_name == seen_item.unwrap().file_name && item.size == seen_item.unwrap().size {
-                       arr_duplicate.push(item.clone());
-                    }
-                    else {
-                        duplicates.push(vec![seen_item.unwrap().clone(), item.clone()]);
-                    }
-                }
-            }
             if duplicates.len() == 0 {
-                duplicates.push(vec![seen_item.unwrap().clone(), item]);
+                duplicates.push(vec![seen_item.unwrap().clone(), item.clone()]);
+            }
+            else {
+                let collection = duplicates.par_iter_mut().find_any(|x| x[0].file_name == seen_item.unwrap().file_name);
+                if *&collection.is_some() {
+                    collection.unwrap().push(item.clone());
+                }
+                else {
+                    duplicates.push(vec![item.clone(), seen_item.unwrap().clone()]);
+                }
             }
         }
         else {
             seen_items.push(item);
         }
     }
-    unsafe {
-        ISCANCELED = false;
-    }
-    for arr_items in duplicates.clone() {
+    for arr_duplicate in duplicates.clone() {
         let mut inner_html = String::new();
         let mut js_query = String::new()+"
                var duplicate = document.createElement('div');
@@ -1041,7 +1021,7 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                duplicate.setAttribute('isftp', '0');
                duplicate.className = 'list-item';
         ";
-        for (idx, item) in arr_items.clone().iter().enumerate() {
+        for (idx, item) in arr_duplicate.clone().iter().enumerate() {
            inner_html.push_str(&(String::new()+"
                 <div style='display: flex; align-items: center; justify-content: space-between;'>
                     <div>

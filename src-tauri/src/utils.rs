@@ -152,11 +152,6 @@ impl DirWalker {
             return;
         }
         for entry in fs::read_dir(path).unwrap() {
-            unsafe {
-                if ISCANCELED {
-                    return;
-                }
-            }
             let item = entry.unwrap();
             if item.file_name().to_str().unwrap().starts_with(".") {
                 continue;

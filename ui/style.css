@@ -960,6 +960,15 @@ label {
     animation: spin 1s linear infinite;
 }
 
+.preloader-small-invert {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--transparentColorActive);
+    border-top: 2px solid white !important;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
 .context-menu {
     width: 150px;
     height: fit-content;
@@ -1237,6 +1246,12 @@ label {
     padding: 5px;
     border-top: 1px solid var(--tertiaryColor);
     background-color: var(--secondaryColor);
+}
+.popup-body-col-section {
+    display: flex;
+    flex-flow: column;
+    gap: 5px;
+    padding: 5px;
 }
 .find-duplicates-popup {
     width: 50%;
