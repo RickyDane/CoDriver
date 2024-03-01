@@ -53,12 +53,13 @@ let ConfiguredPathThree = "";
 let IsTabs = false;
 let TabCount = 0;
 let CurrentActiveTab = 1;
+let CurrentMillerCol = 0;
 let TabOnePath;
 let TabTwoPath;
 let TabThreePath;
 let TabFourPath;
 let TabFivePath;
-let IsTabsEnabled = true;
+let IsTabsEnabled = false;
 let IsDualPaneEnabled = false;
 let LeftDualPanePath = "";
 let RightDualPanePath = "";
@@ -571,7 +572,7 @@ document.querySelector(".dual-pane-right").addEventListener("contextmenu", () =>
 });
 
 // Main function to handle directory visualization
-async function showItems(items, dualPaneSide = "") {
+async function showItems(items, dualPaneSide = "", millerCol = 1) {
   await getCurrentDir();
   IsShowDisks = false;
   // Check which tab is currently active and write CurrentDir to TabOnePath and so on
@@ -622,7 +623,8 @@ async function showItems(items, dualPaneSide = "") {
   DirectoryList = document.createElement("div");
   if (IsDualPaneEnabled == true) {
     DirectoryList.className = "directory-list-dual-pane";
-  } else {
+  }
+  else {
     DirectoryList.className = "directory-list";
   }
   let hiddenItemsLength = items.filter((str) => str.name.startsWith(".")).length;
@@ -647,6 +649,7 @@ async function showItems(items, dualPaneSide = "") {
     itemLink.setAttribute("itemmodified", item.last_modified);
     itemLink.setAttribute("draggable", true);
     itemLink.setAttribute("id", "item-link");
+    itemLink.setAttribute("itemformillercol", parseInt(millerCol)+1);
 
     let newRow = document.createElement("div");
     newRow.className = "directory-item-entry";
@@ -822,6 +825,12 @@ async function showItems(items, dualPaneSide = "") {
       DirectoryList.style.gridTemplateColumns = "unset";
       DirectoryList.style.rowGap = "2px";
     }
+    else if (ViewMode == "miller") {
+      itemButton.style.display = "none";
+      DirectoryList.style.gridTemplateColumns = "unset";
+      DirectoryList.style.rowGap = "1px";
+      itemButtonList.children[1].style.display = "none";
+    }
     else {
       itemButtonList.style.display = "none";
       DirectoryList.style.gridTemplateColumns = "repeat(auto-fill, minmax(110px, 1fr))";
@@ -933,9 +942,9 @@ async function showItems(items, dualPaneSide = "") {
       ContextMenu.style.top = e.clientY + "px";
     });
   });
-  if (IsTabsEnabled == true) {
-    document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
-  }
+  // if (IsTabsEnabled == true) {
+  //   document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
+  // }
   if (IsDualPaneEnabled == true) {
     if (dualPaneSide == "left") {
       document.querySelector(".dual-pane-left").append(DirectoryList);
@@ -952,6 +961,16 @@ async function showItems(items, dualPaneSide = "") {
       document.querySelector(".dual-pane-right").append(DirectoryList.cloneNode(true));
       LeftDualPanePath = RightDualPanePath = CurrentDir;
     }
+  }
+  else if (ViewMode == "miller") {
+    document.querySelector(".miller-col-"+millerCol).innerHTML = "";
+    document.querySelector(".miller-col-"+millerCol).append(DirectoryList);
+    document.querySelector(".miller-col-"+millerCol).setAttribute("miller-col-path", CurrentDir);
+    CurrentMillerCol = millerCol;
+  }
+  else {
+    document.querySelector(".explorer-container").innerHTML = "";
+    document.querySelector(".explorer-container").append(DirectoryList);
   }
 }
 
@@ -1433,12 +1452,23 @@ async function showAppInfo() {
 async function checkAppConfig() {
   await invoke("check_app_config").then(async (appConfig) => {
     if (appConfig.view_mode.includes("column")) {
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-indent"></i>`;
       ViewMode = "column";
       let firstContainer = document.querySelector(".explorer-container");
       document.querySelector(".list-column-header").style.display = "flex";
       firstContainer.style.marginTop = "30px";
       firstContainer.style.height = "calc(100vh - 125px - 30px)";
+    }
+    else if (appConfig.view_mode.includes("miller")) {
+      document.querySelector(".list-column-header").style.display = "none";
+      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+      document.querySelector(".miller-container").style.display = "flex";
+      document.querySelector(".explorer-container").style.display = "none";
+      document.querySelectorAll(".item-button-list").forEach(item => item.children[1].style.display = "none");
+      let firstContainer = document.querySelector(".explorer-container");
+      firstContainer.style.marginTop = "30px";
+      firstContainer.style.height = "calc(100vh - 125px - 30px)";
+      ViewMode = "miller";
     }
 
     // if (appConfig.is_open_in_terminal.includes("1")) {
@@ -1624,7 +1654,7 @@ async function listDirectories(fromDualPaneCopy = false) {
       goUp(false, true);
     }
     else {
-      await showItems(items);
+      await showItems(items, "", CurrentMillerCol);
     }
   });
 }
@@ -1654,6 +1684,7 @@ async function refreshBothViews(dualPaneSide = "") {
 
 async function interactWithItem(element = null, dualPaneSide = "", shortcutPath = null) {
   let isFtp = element?.getAttribute("isftp");
+  let isDir = element?.getAttribute("itemisdir");
 
   if (isFtp == false) {
     if (dualPaneSide == "left") {
@@ -1665,12 +1696,12 @@ async function interactWithItem(element = null, dualPaneSide = "", shortcutPath 
       document.querySelector(".dual-pane-left").style.boxShadow = "none";
     }
     // Interaction mode: Select
-    if (element != null && element != SelectedItemToOpen && IsSelectMode == true) {
+    if (element != null && element != SelectedItemToOpen && IsSelectMode == true && (isDir == 0 || ViewMode != "miller" || IsMetaDown == true)) {
       selectItem(element, dualPaneSide);
     }
     // Interaction mode: Open item
-    else if (element != null && (element == SelectedItemToOpen || IsSelectMode == false)) {
-      openItem(element, dualPaneSide, shortcutPath);
+    else if (element != null && (element == SelectedItemToOpen || IsSelectMode == false) || (isDir == 1 && ViewMode == "miller" && IsMetaDown == false)) {
+      await openItem(element, dualPaneSide, shortcutPath);
     }
   }
   // Double click logic / reset after 500 ms to force double click to open
@@ -1697,11 +1728,19 @@ async function interactWithItem(element = null, dualPaneSide = "", shortcutPath 
 async function openItem(element, dualPaneSide, shortcutDirPath = null) {
   let isDir = element != null ? parseInt(element.getAttribute("itemisdir")) : (shortcutDirPath != null ? 1 : 0);
   let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
+  let millerCol = element != null ? element.getAttribute("itemformillercol") : null;
   if (IsPopUpOpen == false) {
     if (IsItemPreviewOpen == false && isDir == 1) {
       // Open directory
       await invoke("open_dir", { path }).then(async (items) => {
-        await showItems(items, dualPaneSide);
+        if (ViewMode == "miller") {
+          await removeExcessMillerCols(parseInt(millerCol));
+          selectItem(element);
+          await addMillerCol(millerCol);
+          await setMillerColActive(null, millerCol);
+          await setCurrentDir(element.getAttribute("itempath"));
+        }
+        await showItems(items, dualPaneSide, millerCol);
         if (IsDualPaneEnabled == true && dualPaneSide != "") {
           // document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = ""; // Disabled tab functionality
           goUp(false, true);
@@ -1718,13 +1757,16 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 function selectItem(element, dualPaneSide = "") {
   let path = element?.getAttribute("itempath");
   let index = element?.getAttribute("itemindex");
+  if (ViewMode == "miller") {
+    unSelectAllItems();
+  }
   // Reset colored selection
   if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false) {
     ArrSelectedItems.forEach(item => {
       if (IsDualPaneEnabled) {
         item.children[0].classList.remove("selected-item");
       }
-      else if (ViewMode == "column") {
+      else if (ViewMode == "column" || ViewMode == "miller") {
         item.children[0].children[1].classList.remove("selected-item");
       }
       else {
@@ -1738,7 +1780,7 @@ function selectItem(element, dualPaneSide = "") {
   if (IsDualPaneEnabled) {
     SelectedElement.children[0].classList.add("selected-item");
   }
-  else if (ViewMode == "column") {
+  else if (ViewMode == "column" || ViewMode == "miller") {
     SelectedElement.children[0].children[1].classList.add("selected-item");
   }
   else {
@@ -1801,6 +1843,7 @@ async function unSelectAllItems() {
     SelectedElement = null;
     ArrSelectedItems = [];
   }
+  $(".selected-item").removeClass("selected-item");
 }
 
 async function goHome() {
@@ -2134,42 +2177,59 @@ async function cancelSearch() {
 async function switchView() {
   if (IsDualPaneEnabled == false) {
     if (ViewMode == "wrap") {
+      document.querySelector(".explorer-container").style.width = "100%";
       document.querySelectorAll(".directory-list").forEach((list) => {
         // list.style.flexFlow = "column";
         list.style.gridTemplateColumns = "unset";
         list.style.rowGap = "2px";
       });
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-indent"></i>`;
       document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
       document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "flex"));
       document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "none"));
-      ViewMode = "column";
+      document.querySelectorAll(".item-button-list").forEach(item => item.children[1].style.display = "flex");
       document.querySelectorAll(".explorer-container").forEach((item) => {
         item.style.marginTop = "30px";
         item.style.height = "calc(100vh - 125px - 30px)";
       });
       document.querySelector(".list-column-header").style.display = "flex";
+      ViewMode = "column";
     }
-    else {
-      document.querySelectorAll(".directory-list").forEach((list) => {
-        if (IsShowDisks == false) {
-          list.style.gridTemplateColumns = "repeat(auto-fill, minmax(110px, 1fr))";
-          list.style.rowGap = "15px";
-        }
-        else {
-          list.style.rowGap = "10px";
-        }
-      });
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
-      document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "flex"));
-      document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "none"));
-      document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
-      ViewMode = "wrap";
+    else if (ViewMode == "column") {
       document.querySelector(".list-column-header").style.display = "none";
+      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+      document.querySelector(".miller-container").style.display = "flex";
+      document.querySelector(".explorer-container").style.display = "none";
+      document.querySelectorAll(".item-button-list").forEach(item => item.children[1].style.display = "none");
       document.querySelectorAll(".explorer-container").forEach((item) => {
         item.style.height = "calc(100vh - 95px - 30px)";
         item.style.marginTop = "0";
-      });
+      })
+      ViewMode = "miller";
+    }
+    else if (ViewMode == "miller") {
+      document.querySelector(".explorer-container").style.width = "100%";
+      document.querySelectorAll(".directory-list").forEach((list) => {
+          if (IsShowDisks == false) {
+            list.style.gridTemplateColumns = "repeat(auto-fill, minmax(110px, 1fr))";
+            list.style.rowGap = "15px";
+          }
+          else {
+            list.style.rowGap = "10px";
+          }
+        });
+        document.querySelector(".miller-container").style.display = "none";
+        document.querySelector(".explorer-container").style.display = "block";
+        document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
+        document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "flex"));
+        document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "none"));
+        document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
+        document.querySelector(".list-column-header").style.display = "none";
+        document.querySelectorAll(".explorer-container").forEach((item) => {
+          item.style.height = "calc(100vh - 95px - 30px)";
+          item.style.marginTop = "0";
+        });
+        ViewMode = "wrap";
     }
     await invoke("switch_view", { viewMode: ViewMode });
   }
@@ -2730,6 +2790,41 @@ async function open_with(filePath, appPath) {
 
 async function getSetInstalledApplications() {
   await invoke("get_installed_apps").then(apps => Applications = apps);
+}
+
+async function addMillerCol(millerCol) {
+  if (document.querySelector(".miller-col-"+millerCol) != null) return;
+  let prevMillerCol = document.querySelector(".miller-col-"+(parseInt(millerCol)-1));
+  let newMillerCol = prevMillerCol.cloneNode(true);
+  newMillerCol.className = "explorer-container miller-column miller-col-"+millerCol;
+  newMillerCol.innerHTML = "";
+  newMillerCol.style.boxShadow = "none";
+  newMillerCol.onclick = () => setMillerColActive(newMillerCol);
+  document.querySelector(".miller-container").appendChild(newMillerCol);
+  document.querySelector(".miller-container").scrollTo(document.querySelector(".miller-container").scrollWidth, 0);
+}
+
+async function removeExcessMillerCols(millerCol) {
+  console.log(document.querySelector(".miller-container").children.length, millerCol);
+  let millerColCount = document.querySelector(".miller-container").children.length;
+  for (let i = millerCol+1; i <= millerColCount; i++) {
+    if (i > millerCol) {
+      console.log(i);
+      $(".miller-col-"+i).remove();
+    }
+  }
+}
+
+async function setMillerColActive(millerColElement, millerCol = 1) {
+  document.querySelectorAll(".miller-column").forEach(item => item.style.boxShadow = "none");
+  if (millerColElement == null) {
+    setCurrentDir(document.querySelector(".miller-col-"+millerCol).getAttribute("miller-col-path"));
+    document.querySelector(".miller-col-"+millerCol).style.boxShadow = "inset 0px 0px 30px 1px var(--transparentColor)";
+  }
+  else {
+    setCurrentDir(millerColElement.getAttribute("miller-col-path"));
+    millerColElement.style.boxShadow = "inset 0px 0px 30px 1px var(--transparentColor)";
+  }
 }
 
 checkAppConfig();
