@@ -1,8 +1,13 @@
-use std::{fs::{self, File}, io::{BufReader, BufWriter, Read, Write}};
+use std::{fmt::Debug, fs::{self, File, Metadata}, io::{BufReader, BufWriter, Read, Write}};
 use chrono::prelude::*;
 use color_print::cprintln;
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
+use serde::Serialize;
 use stopwatch::Stopwatch;
 use tauri::Window;
+
+#[allow(unused_imports)]
+use crate::ISCANCELED;
 
 pub static mut COPY_COUNTER: f32 = 0.0;
 pub static mut TO_COPY_COUNTER: f32 = 0.0;
@@ -112,4 +117,116 @@ pub fn update_progressbar_2(app_window: &Window, progress: f32, file_name: &str)
 
 pub fn calc_transfer_speed(file_size: f64, time: f64) -> f64 {
     (file_size / time) / 1024.0 / 1024.0
+}
+
+#[derive(Clone)]
+#[derive(Debug)]
+#[derive(Serialize)]
+pub struct DirWalkerEntry {
+    pub file_name: String,
+    pub path: String,
+    pub depth: u32,
+    pub is_dir: bool,
+    pub is_file: bool,
+    pub size: u64
+}
+
+pub struct DirWalker {
+    pub items: Vec<DirWalkerEntry>,
+    pub depth: u32
+}
+
+impl DirWalker {
+    pub fn new() -> DirWalker {
+        DirWalker {
+            items: Vec::new(),
+            depth: 0
+        }
+    }
+
+    pub fn run(&mut self, path: &str) -> &mut Self {
+        self.walk(path, 0);
+        self
+    }
+
+    pub fn walk(&mut self, path: &str, depth: u32) {
+        if self.depth > 0 && depth > self.depth {
+            return;
+        }
+        for entry in fs::read_dir(path).unwrap() {
+            let item = entry.unwrap();
+            if item.file_name().to_str().unwrap().starts_with(".") {
+                continue;
+            }
+            let path = item.path();
+            if !fs::metadata(&path).is_ok() {
+                continue;
+            }
+            if path.is_dir() {
+                self.items.push(DirWalkerEntry {
+                    file_name: item.file_name().to_str().unwrap().to_string(),
+                    path: path.to_str().unwrap().to_string(),
+                    depth: depth,
+                    is_dir: true,
+                    is_file: false,
+                    size: 0
+                });
+                self.walk(path.to_str().unwrap(), depth + 1);
+            }
+            else {
+                self.items.push(DirWalkerEntry {
+                    file_name: item.file_name().to_str().unwrap().to_string(),
+                    path: path.to_str().unwrap().to_string(),
+                    depth: depth,
+                    is_dir: false,
+                    is_file: true,
+                    size: fs::metadata(&path).unwrap().len()
+                });
+            }
+        }
+    }
+
+    pub fn depth(&mut self, depth: u32) -> &mut Self {
+        self.depth = depth;
+        self
+    }
+
+    pub fn ext(&mut self, extensions: Vec<&str>) -> &mut Self {
+        self.items = self.items.clone().into_iter().filter(|item| {
+            for ext in &extensions {
+                if item.file_name.ends_with(ext) {
+                    return true;
+                }
+            }
+            false
+        }).collect();
+        self
+    }
+
+    pub fn get_items(&self) -> Vec<DirWalkerEntry> {
+        (*self.items).to_vec()
+    }
+}
+
+pub fn format_bytes(bytes: u64) -> String {
+    let kb = bytes / 1024;
+    let mb = kb / 1024;
+    let gb = mb / 1024;
+    let tb = gb / 1024;
+
+    if tb > 0 {
+        format!("{:.2} TB", tb as f32)
+    }
+    else if gb > 0 {
+        format!("{:.2} GB", gb as f32)
+    }
+    else if mb > 0 {
+        format!("{:.2} MB", mb as f32)
+    }
+    else if kb > 0 {
+        format!("{:.2} KB", kb as f32)
+    }
+    else {
+        format!("{:.2} B", bytes as f32)
+    }
 }

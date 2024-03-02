@@ -25,6 +25,9 @@
     background-color: var(--tertiaryColor);
     border-radius: 5px;
 }
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--transparentColorActive);
+}
 
 :root {
     --primaryColor: #3f4352;
@@ -975,6 +978,15 @@ label {
     animation: spin 1s linear infinite;
 }
 
+.preloader-small-invert {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--transparentColorActive);
+    border-top: 2px solid white !important;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
 .context-menu {
     width: 150px;
     height: fit-content;
@@ -990,18 +1002,18 @@ label {
     background-color: var(--primaryColor);
     border-radius: 10px;
     box-shadow: 0px 0px 10px 0px var(--transparentColorActive);
-    z-index: 99;
+    z-index: 999;
     border: 1px solid var(--tertiaryColor);
 }
 .context-item {
     color: var(--textColor);
     width: 100%;
-    height: 25px;
+    height: fit-content;
     border: none;
     background-color: var(--secondaryColor);
     border-radius: 5px;
-    margin: 2px;
-    padding: 10px;
+    margin: 2px 0;
+    padding: 5px 10px;
     cursor: pointer;
     text-align: left;
     display: flex;
@@ -1010,6 +1022,7 @@ label {
     align-items: center;
     transition: 0.1s ease;
     font-size: var(--fontSize);
+    display: ;
 }
 .context-item:hover {
     background-color: var(--transparentColorActive);
@@ -1023,13 +1036,13 @@ label {
     color: grey !important;
     background-color: var(--primaryColor);
 }
-.context-open-item-with {
+.context-with-dropdown {
     position: relative;
 }
-.context-open-item-with:hover .context-open-with-dropdown {
+.context-with-dropdown:hover .context-dropdown {
     display: flex;
 }
-.context-open-with-dropdown {
+.context-dropdown {
     position: absolute;
     top: 0;
     left: 100%;
@@ -1047,18 +1060,6 @@ label {
     overflow-x: hidden;
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     border: 1px solid var(--tertiaryColor);
-}
-.open-with-item {
-    color: var(--textColor);
-    font-size: var(--fontSize);
-    padding: 5px;
-    border: none;
-    background-color: var(--secondaryColor);
-    border-radius: 5px;
-    margin: 2px;
-    cursor: pointer;
-    text-align: left;
-    transition: 0.1s ease;
 }
 .open-with-item:hover {
     background-color: var(--transparentColorActive);
@@ -1126,7 +1127,7 @@ label {
     height: fit-content;
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     padding-bottom: 10px;
-    z-index: 99;
+    z-index: 999 !important;
 }
 .loading-popup > h4 {
     padding: 10px;
@@ -1164,7 +1165,9 @@ label {
     background-color: var(--primaryColor);
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     border: 1px solid var(--tertiaryColor);
+    border-top: none;
     border-radius: 10px;
+    overflow: hidden;
     z-index: 98;
 }
 .multi-rename-popup {
@@ -1242,15 +1245,16 @@ label {
 }
 .popup-header {
     background-color: var(--secondaryColor);
-    border-bottom: 1px solid var(--tertiaryColor);
     display: flex;
     flex-flow: row;
     justify-content: space-between;
     align-items: center;
     padding: 10px 10px 10px 15px;
+    border-top: 1px solid var(--tertiaryColor);
 }
 .popup-body {
     padding: 10px;
+    border-top: 1px solid var(--tertiaryColor);
 }
 .popup-controls {
     display: flex;
@@ -1260,6 +1264,33 @@ label {
     padding: 5px;
     border-top: 1px solid var(--tertiaryColor);
     background-color: var(--secondaryColor);
+}
+.popup-body-col-section {
+    display: flex;
+    flex-flow: column;
+    gap: 5px;
+    padding: 5px;
+}
+.find-duplicates-popup {
+    width: 50%;
+    height: fit-content;
+    z-index: 100;
+}
+
+
+.duplicates-list {
+    height: 50vh !important;
+}
+.duplicate-item {
+    display: flex;
+    flex-flow: column;
+    gap: 5px;
+}
+.duplicate-item > div > div > h4 {
+    width: calc(100% - 20px);
+    text-overflow: ellipsis;
+    word-break: break-all;
+    overflow: hidden;
 }
 
 
@@ -1272,6 +1303,15 @@ label {
     gap: 1px;
     height: 200px;
     overflow-y: auto;
+    overflow-x: hidden;
+}
+.list > div {
+    width: 100%;
+    padding: 7.5px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    color: var(--textColor2);
+    font-weight: 300;
 }
 .list-item {
     width: 100%;
@@ -1279,11 +1319,16 @@ label {
     cursor: pointer;
     border-radius: 5px;
     color: var(--textColor2);
+    font-size: var(--fontSize);
     font-weight: 300;
-    /* border-top: 1px solid var(--tertiaryColor); */
+    border-bottom: 1px solid var(--tertiaryColor);
+    transition: 0.2s ease;
+}
+.list-item:nth-last-of-type() {
+    border-bottom: none;
 }
 .list-item:hover {
-    background-color: var(--transparentColor);
+    background-color: var(--tertiaryColor);
 }
 
 
