@@ -989,20 +989,21 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
         .depth(depth)
         .run(&path)
         .ext(vec![
-            "png", "jpg", "jpeg", "txt", "svg", "gif", "mp4", "mp3", "wav", "pdf", "docx", "xlsx",
-            "doc", "zip", "rar", "7z", "dmg", "iso", "exe", "msi", "jar", "deb", "sh", "py", "htm", "html"
+            "png", "jpg", "jpeg", "txt", "svg", "gif", "mp4", "mp3", "wav",
+            "pdf", "docx", "xlsx", "doc", "zip", "rar", "7z", "dmg", "iso",
+            "exe", "msi", "jar", "deb", "sh", "py", "htm", "html"
         ])
         .get_items();
     let mut seen_items: Vec<DirWalkerEntry> = Vec::new();
     let mut duplicates: Vec<Vec<DirWalkerEntry>> = Vec::new();
     for item in files.into_par_iter().collect::<Vec<DirWalkerEntry>>() {
-        let seen_item = seen_items.par_iter().find_any(|x| x.is_file == true && x.size == item.size && x.size > 0 && x.file_name.contains(&item.file_name.substring(0, item.file_name.len()-4)));
+        let seen_item = seen_items.par_iter().find_any(|x| x.is_file == true && x.size == item.size && x.size > 0 && x.file_name.contains(&item.file_name.substring(0, item.file_name.len()-3)));
         if *&seen_item.is_some() {
             if duplicates.len() == 0 {
                 duplicates.push(vec![seen_item.unwrap().clone(), item.clone()]);
             }
             else {
-                let collection = duplicates.par_iter_mut().find_any(|x| x[0].size == seen_item.unwrap().size);
+                let collection = duplicates.par_iter_mut().find_any(|x| x[0].size == seen_item.unwrap().size && x[0].size > 0 && x[0].file_name.contains(&item.file_name.substring(0, item.file_name.len()-3)));
                 if *&collection.is_some() {
                     collection.unwrap().push(item.clone());
                 }
@@ -1040,6 +1041,9 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
            || item.file_name.ends_with("png")
            || item.file_name.ends_with("gif")
            || item.file_name.ends_with("svg")
+           || item.file_name.ends_with("webp")
+           || item.file_name.ends_with("jfif")
+           || item.file_name.ends_with("tiff")
            {
                inner_html.push_str(&(String::new()+"
                     <img style='box-shadow: 0px 0px 10px 1px var(--transparentColorActive); border-radius: 5px;' width='64px' height='auto' src='asset://localhost/"+&item.path+"'>

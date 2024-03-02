@@ -2226,7 +2226,8 @@ async function switchView() {
         document.querySelector(".list-column-header").style.display = "none";
         document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
         document.querySelector(".miller-container").style.display = "flex";
-        document.querySelector(".explorer-container").style.display = "none";
+        document.querySelector(".miller-column").style.display = "block";
+        document.querySelector(".non-dual-pane-container").style.display = "none";
         document.querySelectorAll(".item-button-list").forEach(item => {
           item.children[0].style.textOverflow = "ellipsis";
           item.children[1].style.display = "none"
@@ -2234,6 +2235,11 @@ async function switchView() {
         document.querySelectorAll(".explorer-container").forEach((item) => {
           item.style.height = "calc(100vh - 95px - 30px)";
           item.style.marginTop = "0";
+        });
+        document.querySelectorAll(".directory-list").forEach((list) => {
+          // list.style.flexFlow = "column";
+          list.style.gridTemplateColumns = "unset";
+          list.style.rowGap = "2px";
         });
         ViewMode = "miller";
       }
@@ -2271,10 +2277,11 @@ async function switchToDualPane() {
     OrgViewMode = ViewMode;
     // disable tab functionality and show two panels side by side
     IsTabsEnabled = false;
-    ViewMode = "column";
-    await switchView();
-    ViewMode = "column";
     IsDualPaneEnabled = true;
+    ViewMode = "column";
+    document.querySelector(".list-column-header").style.display = "none";
+    document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+    document.querySelector(".miller-container").style.display = "none";
     document.querySelector(".site-nav-bar").style.display = "none";
     document.querySelector(".file-searchbar").style.display = "none";
     document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
@@ -2294,13 +2301,15 @@ async function switchToDualPane() {
     document.querySelectorAll(".explorer-container").forEach((item) => {
       item.style.display = "none";
     });
-    ViewMode = "column";
+    document.querySelectorAll(".item-button-list").forEach(item => {
+      item.children[0].style.textOverflow = "none";
+      item.children[1].style.display = "block";
+    });
   }
   else {
     // re - enables tab functionality and show shows just one directory container
     IsTabsEnabled = true;
     IsDualPaneEnabled = false;
-    ViewMode = OrgViewMode;
     document.querySelector(".site-nav-bar").style.display = "flex";
     document.querySelector(".file-searchbar").style.display = "flex";
     document.querySelector(".non-dual-pane-container").style.display = "block";
@@ -2312,17 +2321,19 @@ async function switchToDualPane() {
     document.querySelector(".current-path").style.left = "150px";
     document.querySelector(".current-path").style.width = "calc(100% - 150px)";
     document.querySelector(".current-path").style.borderRadius = "0px 0px 10px 0px";
-    if (ViewMode == "column") {
-      document.querySelector(".list-column-header").style.display = "flex";
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
-      document.querySelectorAll(".explorer-container").forEach((item) => {
-        item.style.marginTop = "35px";
-        item.style.height = "calc(100vh - 135px)";
-      })
+
+    switch (OrgViewMode) {
+      case "wrap":
+        ViewMode = "miller";
+        break;
+      case "column":
+        ViewMode = "wrap";
+        break;
+      case "miller":
+        ViewMode = "column";
+        break;
     }
-    else {
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
-    }
+    await switchView();
     await listDirectories();
   }
   await saveConfig(false);
