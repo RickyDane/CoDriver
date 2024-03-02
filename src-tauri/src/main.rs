@@ -14,8 +14,7 @@ use std::io::{BufRead, BufReader, Read};
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_dir_all, remove_file, File},
-    path::PathBuf,
-    process::Command,
+    path::PathBuf
 };
 use stopwatch::Stopwatch;
 use tauri::{
@@ -1019,17 +1018,17 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                duplicate.setAttribute('itemisdir', '0');
                duplicate.setAttribute('itemext', '');
                duplicate.setAttribute('isftp', '0');
-               duplicate.className = 'list-item';
+               duplicate.className = 'list-item duplicate-item';
         ";
         for (idx, item) in arr_duplicate.clone().iter().enumerate() {
            inner_html.push_str(&(String::new()+"
                 <div style='display: flex; align-items: center; justify-content: space-between;'>
                     <div>
-                        <h3>Name: "+&item.file_name+"</h3>
-                        <h4 class='text-2'>Path: "+&item.path+"</h4>
-                        <h4>"+&format_bytes(item.size)+"</h4>
+                        <h4>"+&item.file_name+"</h3>
+                        <h4 class='text-2'>"+&item.path+"</h4>
+                        <h4 class='text-2'>"+&format_bytes(item.size)+"</h4>
                     </div>
-                    <img width='64px' height='auto' src='asset://localhost/"+&item.path+"'>
+                    <img style='box-shadow: 0px 0px 10px 1px var(--transparentColorActive); border-radius: 5px;' width='52px' height='auto' src='asset://localhost/"+&item.path+"'>
                 </div>
             "));
            js_query.push_str(&(String::new()+"

@@ -25,6 +25,9 @@
     background-color: var(--tertiaryColor);
     border-radius: 5px;
 }
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--transparentColorActive);
+}
 
 :root {
     --primaryColor: #3f4352;
@@ -57,14 +60,28 @@ body {
     -webkit-backdrop-filter: blur(10px);
 }
 .explorer-container {
-    margin: 0 0 0 calc(150px + 10px);
-    padding: 10px 10px 10px 0px;
+    margin: 0 0 0 calc(150px);
+    padding: 10px;
     width: 100%;
     height: calc(100vh - 95px - 30px);
     max-width: 100%;
     overflow: auto;
     position: relative;
     user-select: none;
+}
+.miller-container {
+    display: none;
+    width: 100%;
+    flex-flow: row;
+    gap: 1px;
+    justify-content: flex-start;
+    overflow-x: auto;
+}
+.miller-column {
+    width: 250px;
+    min-width: 250px;
+    margin-right: -150px;
+    border-right: 2px solid var(--primaryColor);
 }
 .dual-pane-container {
     width: 100%;
@@ -598,6 +615,7 @@ label {
     border-radius: 7.5px;
     transition: 0.1s ease;
     width: 100%;
+    -webkit-user-drag: element;
 }
 .disk-item-button-button {
     position: relative;
@@ -984,7 +1002,7 @@ label {
     background-color: var(--primaryColor);
     border-radius: 10px;
     box-shadow: 0px 0px 10px 0px var(--transparentColorActive);
-    z-index: 99;
+    z-index: 999;
     border: 1px solid var(--tertiaryColor);
 }
 .context-item {
@@ -1256,6 +1274,17 @@ label {
 .find-duplicates-popup {
     width: 50%;
     height: fit-content;
+    z-index: 100;
+}
+
+
+.duplicates-list {
+    height: 50vh !important;
+}
+.duplicate-item {
+    display: flex;
+    flex-flow: column;
+    gap: 5px;
 }
 
 

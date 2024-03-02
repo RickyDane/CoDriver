@@ -5,6 +5,7 @@ use serde::Serialize;
 use stopwatch::Stopwatch;
 use tauri::Window;
 
+#[allow(unused_imports)]
 use crate::ISCANCELED;
 
 pub static mut COPY_COUNTER: f32 = 0.0;
