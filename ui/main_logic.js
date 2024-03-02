@@ -2183,7 +2183,12 @@ async function switchView() {
         list.style.gridTemplateColumns = "unset";
         list.style.rowGap = "2px";
       });
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-indent"></i>`;
+      if (IsShowDisks == false) {
+        document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-indent"></i>`;
+      }
+      else {
+        document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+      }
       document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
       document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "flex"));
       document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "none"));
@@ -2195,19 +2200,24 @@ async function switchView() {
       document.querySelector(".list-column-header").style.display = "flex";
       ViewMode = "column";
     }
-    else if (ViewMode == "column") {
-      document.querySelector(".list-column-header").style.display = "none";
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
-      document.querySelector(".miller-container").style.display = "flex";
-      document.querySelector(".explorer-container").style.display = "none";
-      document.querySelectorAll(".item-button-list").forEach(item => item.children[1].style.display = "none");
-      document.querySelectorAll(".explorer-container").forEach((item) => {
-        item.style.height = "calc(100vh - 95px - 30px)";
-        item.style.marginTop = "0";
-      })
-      ViewMode = "miller";
+    else if (ViewMode == "column" && IsShowDisks == false) {
+      if (IsShowDisks == false) {
+        document.querySelector(".list-column-header").style.display = "none";
+        document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+        document.querySelector(".miller-container").style.display = "flex";
+        document.querySelector(".explorer-container").style.display = "none";
+        document.querySelectorAll(".item-button-list").forEach(item => {
+          item.children[0].style.textOverflow = "ellipsis";
+          item.children[1].style.display = "none"
+        });
+        document.querySelectorAll(".explorer-container").forEach((item) => {
+          item.style.height = "calc(100vh - 95px - 30px)";
+          item.style.marginTop = "0";
+        });
+        ViewMode = "miller";
+      }
     }
-    else if (ViewMode == "miller") {
+    else if (ViewMode == "miller" || IsShowDisks == true) {
       document.querySelector(".explorer-container").style.width = "100%";
       document.querySelectorAll(".directory-list").forEach((list) => {
           if (IsShowDisks == false) {
