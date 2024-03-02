@@ -991,13 +991,13 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
     let mut seen_items: Vec<DirWalkerEntry> = Vec::new();
     let mut duplicates: Vec<Vec<DirWalkerEntry>> = Vec::new();
     for item in files.into_par_iter().collect::<Vec<DirWalkerEntry>>() {
-        let seen_item = seen_items.par_iter().find_any(|x| x.is_file == true && x.file_name == item.file_name && x.size == item.size);
+        let seen_item = seen_items.par_iter().find_any(|x| x.is_file == true && x.size == item.size);
         if *&seen_item.is_some() {
             if duplicates.len() == 0 {
                 duplicates.push(vec![seen_item.unwrap().clone(), item.clone()]);
             }
             else {
-                let collection = duplicates.par_iter_mut().find_any(|x| x[0].file_name == seen_item.unwrap().file_name);
+                let collection = duplicates.par_iter_mut().find_any(|x| x[0].size == seen_item.unwrap().size);
                 if *&collection.is_some() {
                     collection.unwrap().push(item.clone());
                 }
@@ -1010,15 +1010,16 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
             seen_items.push(item);
         }
     }
-    for arr_duplicate in duplicates.clone() {
+    for (idx, arr_duplicate) in duplicates.clone().iter().enumerate() {
+        let var_idx = &idx.clone().to_string();
         let mut inner_html = String::new();
         let mut js_query = String::new()+"
-               var duplicate = document.createElement('div');
-               duplicate.setAttribute('itempaneside', '');
-               duplicate.setAttribute('itemisdir', '0');
-               duplicate.setAttribute('itemext', '');
-               duplicate.setAttribute('isftp', '0');
-               duplicate.className = 'list-item duplicate-item';
+            var duplicate"+var_idx+" = document.createElement('div');
+            duplicate"+var_idx+".setAttribute('itempaneside', '');
+            duplicate"+var_idx+".setAttribute('itemisdir', '0');
+            duplicate"+var_idx+".setAttribute('itemext', '');
+            duplicate"+var_idx+".setAttribute('isftp', '0');
+            duplicate"+var_idx+".className = 'list-item duplicate-item';
         ";
         for (idx, item) in arr_duplicate.clone().iter().enumerate() {
            inner_html.push_str(&(String::new()+"
@@ -1032,13 +1033,13 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                 </div>
             "));
            js_query.push_str(&(String::new()+"
-                duplicate.setAttribute('"+&format!("itempath-{}", idx)+"', '"+&item.path+"');
+                duplicate"+var_idx+".setAttribute('"+&format!("itempath-{}", idx)+"', '"+&item.path+"');
             "));
         }
         js_query.push_str(&(String::new()+"
-            duplicate.innerHTML = `"+&inner_html+"`;
-            duplicate.oncontextmenu = (e) => showExtraContextMenu(e, duplicate);
-            document.querySelector('.duplicates-list').append(duplicate);
+            duplicate"+var_idx+".innerHTML = `"+&inner_html+"`;
+            duplicate"+var_idx+".oncontextmenu = (e) => showExtraContextMenu(e, duplicate"+var_idx+");
+            document.querySelector('.duplicates-list').append(duplicate"+var_idx+");
         "));
         let _ = app_window.eval(&js_query);
     }

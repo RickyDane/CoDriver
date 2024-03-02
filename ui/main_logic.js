@@ -2900,6 +2900,17 @@ async function showExtraContextMenu(e, item) {
     let cButton = document.createElement("button");
     cButton.className = "context-item";
     cButton.innerHTML = `Keep ${i}.`;
+    cButton.onclick = async () => {
+      let excessItems = [];
+      for (let j = 0; j < item.children.length; j++) {
+        if (j != i-1) {
+          excessItems.push(item.getAttribute("itempath-"+j));
+        }
+      }
+      item.remove();
+      contextMenu.remove();
+      await invoke("arr_delete_items", { arrItems: excessItems });
+    }
     contextMenu.append(cButton);
   }
 
