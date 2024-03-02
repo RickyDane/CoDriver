@@ -1752,20 +1752,17 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
     if (IsItemPreviewOpen == false && isDir == 1) {
       // Open directory
       await invoke("open_dir", { path }).then(async (items) => {
-        await showItems(items, dualPaneSide);
-        if (IsDualPaneEnabled == true && dualPaneSide != "" && dualPaneSide != null) {
-          if (ViewMode == "miller") {
-            await removeExcessMillerCols(parseInt(millerCol));
-            selectItem(element);
-            await addMillerCol(millerCol);
-            await setMillerColActive(null, millerCol);
-            await setCurrentDir(element.getAttribute("itempath"));
-          }
-          await showItems(items, dualPaneSide, millerCol);
-          if (IsDualPaneEnabled == true && dualPaneSide != "") {
-            // document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = ""; // Disabled tab functionality
-            goUp(false, true);
-          }
+        if (ViewMode == "miller") {
+          console.log(millerCol);
+          await removeExcessMillerCols(parseInt(millerCol));
+          await addMillerCol(millerCol);
+          await setMillerColActive(null, millerCol);
+          await setCurrentDir(element.getAttribute("itempath"));
+        }
+        await showItems(items, dualPaneSide, millerCol);
+        if (IsDualPaneEnabled == true && dualPaneSide != "") {
+          // document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = ""; // Disabled tab functionality
+          goUp(false, true);
         }
       });
     }
@@ -2867,8 +2864,8 @@ function showFindDuplicates(item) {
   document.querySelector("body").append(popup);
   document.querySelector(".duplicates-search-depth-input").addEventListener("focus", () => IsInputFocused = true);
   document.querySelector(".duplicates-search-depth-input").addEventListener("blur", () => IsInputFocused = false);
-  document.querySelector(".duplicate-button-run").addEventListener("click", () => {
-    findDuplicates(item, document.querySelector(".duplicates-search-depth-input").value);
+  document.querySelector(".duplicate-button-run").addEventListener("click", async () => {
+    await findDuplicates(item, document.querySelector(".duplicates-search-depth-input").value);
   });
 }
 
@@ -2879,7 +2876,7 @@ function closeFindDuplicatesPopup() {
 }
 
 async function findDuplicates(item, depth) {
-  showLoadingPopup("Duplicates are being searched for");
+  showLoadingPopup("Searching for duplicates ...");
   document.querySelector(".list").innerHTML = "";
   ContextMenu.style.display = "none";
   await invoke("find_duplicates", { appWindow: appWindow, path: item.getAttribute("itempath"), depth: parseInt(depth) });

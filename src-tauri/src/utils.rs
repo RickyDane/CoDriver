@@ -1,6 +1,7 @@
-use std::{fmt::Debug, fs::{self, File}, io::{BufReader, BufWriter, Read, Write}};
+use std::{fmt::Debug, fs::{self, File, Metadata}, io::{BufReader, BufWriter, Read, Write}};
 use chrono::prelude::*;
 use color_print::cprintln;
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use serde::Serialize;
 use stopwatch::Stopwatch;
 use tauri::Window;
@@ -168,7 +169,7 @@ impl DirWalker {
                     depth: depth,
                     is_dir: true,
                     is_file: false,
-                    size: 0,
+                    size: 0
                 });
                 self.walk(path.to_str().unwrap(), depth + 1);
             }
@@ -187,6 +188,18 @@ impl DirWalker {
 
     pub fn depth(&mut self, depth: u32) -> &mut Self {
         self.depth = depth;
+        self
+    }
+
+    pub fn ext(&mut self, extensions: Vec<&str>) -> &mut Self {
+        self.items = self.items.clone().into_iter().filter(|item| {
+            for ext in &extensions {
+                if item.file_name.ends_with(ext) {
+                    return true;
+                }
+            }
+            false
+        }).collect();
         self
     }
 

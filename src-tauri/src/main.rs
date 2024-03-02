@@ -33,6 +33,7 @@ use utils::{copy_to, count_entries, dbg_log, err_log, format_bytes, wng_log, Dir
 use rayon::prelude::*;
 mod applications;
 use applications::{open_file_with, get_apps};
+use substring::Substring;
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -987,11 +988,15 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
     let files = DirWalker::new()
         .depth(depth)
         .run(&path)
+        .ext(vec![
+            "png", "jpg", "jpeg", "txt", "svg", "gif", "mp4", "mp3", "wav", "pdf", "docx", "xlsx",
+            "doc", "zip", "rar", "7z", "dmg", "iso", "exe", "msi", "jar", "deb", "sh", "py", "htm", "html"
+        ])
         .get_items();
     let mut seen_items: Vec<DirWalkerEntry> = Vec::new();
     let mut duplicates: Vec<Vec<DirWalkerEntry>> = Vec::new();
     for item in files.into_par_iter().collect::<Vec<DirWalkerEntry>>() {
-        let seen_item = seen_items.par_iter().find_any(|x| x.is_file == true && x.size == item.size);
+        let seen_item = seen_items.par_iter().find_any(|x| x.is_file == true && x.size == item.size && x.size > 0 && x.file_name.contains(&item.file_name.substring(0, item.file_name.len()-4)));
         if *&seen_item.is_some() {
             if duplicates.len() == 0 {
                 duplicates.push(vec![seen_item.unwrap().clone(), item.clone()]);
@@ -1029,9 +1034,23 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                         <h4 class='text-2'>"+&item.path+"</h4>
                         <h4 class='text-2'>"+&format_bytes(item.size)+"</h4>
                     </div>
-                    <img style='box-shadow: 0px 0px 10px 1px var(--transparentColorActive); border-radius: 5px;' width='52px' height='auto' src='asset://localhost/"+&item.path+"'>
-                </div>
             "));
+           if item.file_name.ends_with("jpg")
+           || item.file_name.ends_with("jpeg")
+           || item.file_name.ends_with("png")
+           || item.file_name.ends_with("gif")
+           || item.file_name.ends_with("svg")
+           {
+               inner_html.push_str(&(String::new()+"
+                    <img style='box-shadow: 0px 0px 10px 1px var(--transparentColorActive); border-radius: 5px;' width='64px' height='auto' src='asset://localhost/"+&item.path+"'>
+                    </div>
+                "));
+           }
+           else {
+               inner_html.push_str(&(String::new()+"
+                    </div>
+                "));
+           }
            js_query.push_str(&(String::new()+"
                 duplicate"+var_idx+".setAttribute('"+&format!("itempath-{}", idx)+"', '"+&item.path+"');
             "));
