@@ -146,7 +146,6 @@ async function startFullSearch() {
   let searchDepth = parseInt(document.querySelector(".full-search-search-depth-input").value);
   searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
   let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
-  console.log(fileName, maxItems, searchDepth, false, fileContent);
   await searchFor(fileName, maxItems, searchDepth, false, fileContent);
 }
 
@@ -891,7 +890,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     // Accept file drop into folders
     item.addEventListener("dragover", (e) => {
       MousePos = [e.clientX, e.clientY];
-      console.log(MousePos);
       if (item.getAttribute("itemisdir") == "1") {
         item.style.opacity = "0.5";
         if (!ArrSelectedItems.includes(item)) {
@@ -905,7 +903,8 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     // Open context menu when right-clicking on file/folder
     item.addEventListener("contextmenu", async (e) => {
       e.preventDefault();
-      if (ArrSelectedItems.length == 0) {
+      if (ArrSelectedItems.length <= 1) {
+        ArrSelectedItems = [];
         ArrSelectedItems.push(item);
       }
       if (IsPopUpOpen == false) {
@@ -1138,7 +1137,6 @@ async function extractItem(item) {
         showToast("Extraction", "Extraction done", "success")
       }).catch((err) => {
         showToast("Extraction", "Extraction failed", "error");
-        console.log(err);
       });
     }
   }
@@ -1778,7 +1776,6 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
       // Open directory
       await invoke("open_dir", { path }).then(async (items) => {
         if (ViewMode == "miller") {
-          console.log(millerCol);
           await removeExcessMillerCols(parseInt(millerCol));
           await addMillerCol(millerCol);
           await setMillerColActive(null, millerCol);
@@ -2967,11 +2964,9 @@ async function addMillerCol(millerCol) {
 }
 
 async function removeExcessMillerCols(millerCol) {
-  console.log(document.querySelector(".miller-container").children.length, millerCol);
   let millerColCount = document.querySelector(".miller-container").children.length;
   for (let i = millerCol+1; i <= millerColCount; i++) {
     if (i > millerCol) {
-      console.log(i);
       $(".miller-col-"+i).remove();
     }
   }
@@ -3015,7 +3010,6 @@ async function insertSiteNavButtons() {
       button.style.opacity = "0.5";
       DraggedOverElement = button;
       MousePos = [e.clientX, e.clientY];
-      console.log(MousePos);
     };
     button.ondragleave = () => {
       button.style.opacity = "1";
