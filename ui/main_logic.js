@@ -157,8 +157,7 @@ document.addEventListener("keyup", (e) => {
     ContextMenu.style.display = "none";
     closeAllPopups();
     if (DraggedOverElement != null) {
-      DraggedOverElement.style.backgroundColor = "transparent";
-      DraggedOverElement.style.filter = "none";
+      DraggedOverElement.style.opacity = "1";
     }
     document.querySelectorAll(".site-nav-bar-button").forEach(item => { item.style.opacity = "1"; });
   }
@@ -222,7 +221,6 @@ document.addEventListener("mousedown", (e) => {
 
     unSelectAllItems();
     if (DraggedOverElement != null) {
-      DraggedOverElement.style.backgroundColor = "transparent";
       DraggedOverElement.style.filter = "none";
     }
   }
@@ -264,7 +262,6 @@ document.addEventListener("contextmenu", (e) => {
 });
 
 window.addEventListener("mousemove", (e) => {
-  MousePos = [e.clientX, e.clientY];
 });
 
 /* Shortcuts configuration */
@@ -869,7 +866,8 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
   });
   DirectoryList.querySelectorAll("#item-link").forEach((item) => {
     // Start dragging item
-    item.ondragstart = async () => {
+    item.ondragstart = async (e) => {
+      e.preventDefault();
       IsFileOpIntern = true;
       let icon = DefaultFileIcon;
       if (item.getAttribute("itemisdir") == 1) {
@@ -879,7 +877,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         ArrSelectedItems.push(item);
       }
       let arr = ArrSelectedItems.map(item => item.getAttribute("itempath"));
-      if (Platform != "darwin" && Platform.includes("win")) {
+      if (Platform != "darwin" && (Platform.includes("win") || Platform.includes("linux"))) {
         await startDrag({ item: arr, icon: "" });
         unSelectAllItems();
         IsFileOpIntern = true;
@@ -891,9 +889,10 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       }
     };
     // Accept file drop into folders
-    item.addEventListener("dragover", () => {
+    item.addEventListener("dragover", (e) => {
+      MousePos = [e.clientX, e.clientY];
+      console.log(MousePos);
       if (item.getAttribute("itemisdir") == "1") {
-        item.style.backgroundColor = "var(--transparentColorActive)";
         item.style.opacity = "0.5";
         if (!ArrSelectedItems.includes(item)) {
           DraggedOverElement = item;
@@ -902,8 +901,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     });
     item.addEventListener("dragleave", () => {
       item.style.opacity = "1";
-      item.style.backgroundColor = "transparent";
-      DraggedOverElement = null;
     });
     // Open context menu when right-clicking on file/folder
     item.addEventListener("contextmenu", async (e) => {
@@ -911,7 +908,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       if (ArrSelectedItems.length == 0) {
         ArrSelectedItems.push(item);
       }
-      console.log(item);
       if (IsPopUpOpen == false) {
         let appsCMenu = document.querySelector(".context-open-item-with");
         appsCMenu.innerHTML = "";
@@ -3015,9 +3011,11 @@ async function insertSiteNavButtons() {
     button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
     button.setAttribute("itempath", siteNavButtons[i][1]);
     button.setAttribute("onclick", "goToDir("+i+")");
-    button.ondragover = () => {
+    button.ondragover = (e) => {
       button.style.opacity = "0.5";
       DraggedOverElement = button;
+      MousePos = [e.clientX, e.clientY];
+      console.log(MousePos);
     };
     button.ondragleave = () => {
       button.style.opacity = "1";
@@ -3045,14 +3043,21 @@ async function fileOperationContextMenu() {
   `;
   contextMenu.children[0].onclick = () => FileOperation = "copy";
   contextMenu.children[1].onclick = () => FileOperation = "move";
+  contextMenu.style.left = MousePos[0]+"px";
+  contextMenu.style.top = MousePos[1]+"px";
+  contextMenu.style.right = "unset";
+  contextMenu.style.bottom = "unset";
   document.body.appendChild(contextMenu);
   await new Promise(resolve => {
       document.body.addEventListener("click", e => {
           resolve(e);
       }, { once: true });
+      document.body.addEventListener("keyup", e => {
+        if (e.key === "Escape") {
+          resolve(e);
+        }
+      }, { once: true });
   });
-  contextMenu.style.left = `${MousePos[0]}px`;
-  contextMenu.style.top = `${MousePos[1]}px`;
   contextMenu.remove();
   return FileOperation;
 }

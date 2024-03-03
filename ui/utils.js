@@ -41,12 +41,11 @@ listen('tauri://file-drop', async event => {
     CopyFilePath = "";
     ArrCopyItems = [];
     ArrSelectedItems = [];
-    DraggedOverElement = null;
   }
   resetProgressBar();
   document.querySelectorAll(".site-nav-bar-button").forEach(item => { item.style.opacity = "1"; });
-  DraggedOverElement.style.backgroundColor = "transparent";
   DraggedOverElement.style.opacity = "1";
+  DraggedOverElement = null;
 });
 
 /* Toasts */
