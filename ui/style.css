@@ -615,7 +615,6 @@ label {
     border-radius: 7.5px;
     transition: 0.1s ease;
     width: 100%;
-    -webkit-user-drag: element;
 }
 .disk-item-button-button {
     position: relative;

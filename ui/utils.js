@@ -2,30 +2,38 @@ const { listen } = window.__TAURI__.event;
 
 /* Drag and drop files into file explorer */
 listen('tauri://file-drop', async event => {
-  if (IsFileOpIntern == true) {
-      console.log("File operation in progress");
-      return;
+  if (IsFileOpIntern == false) {
+      ArrSelectedItems = [];
+      ArrCopyItems = [];
+      event.payload.forEach(async item => {
+      CopyFilePath = item;
+      CopyFileName = CopyFilePath.split("/")[CopyFilePath.split("/").length - 1].replace("'", "");
+      let element = document.createElement("button");
+      element.setAttribute("itemname", CopyFileName);
+      element.setAttribute("itempath", CopyFilePath);
+      ArrCopyItems.push(element);
+    });
+    await pasteItem();
+    CopyFileName = "";
+    CopyFilePath = "";
+    ArrCopyItems = [];
+    ArrSelectedItems = [];
   }
   else {
     ArrSelectedItems = [];
     ArrCopyItems = [];
+    DraggedOverElement.style.backgroundColor = "transparent";
+    event.payload.forEach(async item => {
+      ArrCopyItems.push(item);
+    });
+    await invoke("arr_copy_paste", { appWindow, arrItems: ArrCopyItems, isForDualPane: "0", copyToPath: DraggedOverElement.getAttribute("itempath") });
+    showToast("File Operation", "Files copied successfully", "success");
+    resetProgressBar();
+    CopyFileName = "";
+    CopyFilePath = "";
+    ArrCopyItems = [];
+    ArrSelectedItems = [];
   }
-  event.payload.forEach(async item => {
-    CopyFilePath = item;
-    CopyFileName = CopyFilePath.split("/")[CopyFilePath.split("/").length - 1].replace("'", "");
-    let element = document.createElement("button");
-    element.setAttribute("itemname", CopyFileName);
-    element.setAttribute("itempath", CopyFilePath);
-    ArrCopyItems.push(element);
-  });
-  if (IsFileOpIntern == false) {
-    await pasteItem();
-  }
-  CopyFileName = "";
-  CopyFilePath = "";
-  ArrCopyItems = [];
-  ArrSelectedItems = [];
-  IsFileOpIntern = false;
 })
 
 
