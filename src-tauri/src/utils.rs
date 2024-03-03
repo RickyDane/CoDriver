@@ -1,7 +1,6 @@
-use std::{fmt::Debug, fs::{self, File, Metadata}, io::{BufReader, BufWriter, Read, Write}};
+use std::{fmt::Debug, fs::{self, File}, io::{BufReader, BufWriter, Read, Write}};
 use chrono::prelude::*;
 use color_print::cprintln;
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use serde::Serialize;
 use stopwatch::Stopwatch;
 use tauri::Window;
@@ -80,6 +79,7 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
     else {
         wng_log(format!("Unsupported file type: {}", from_path));
     }
+    app_window.eval("resetProgressBar()").unwrap();
 }
 
 pub fn count_entries(path: &str) -> f32 {

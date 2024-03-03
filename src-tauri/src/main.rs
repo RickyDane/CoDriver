@@ -84,7 +84,8 @@ fn main() {
             get_installed_apps,
             open_with,
             find_duplicates,
-            cancel_operation
+            cancel_operation,
+            get_df_dir
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -1073,5 +1074,18 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
 async fn cancel_operation() {
     unsafe {
         ISCANCELED = true;
+    }
+}
+
+#[tauri::command]
+async fn get_df_dir(number: u8) -> String {
+    return match number {
+        0 => desktop_dir().unwrap_or_default().to_string_lossy().to_string(),
+        1 => download_dir().unwrap_or_default().to_string_lossy().to_string(),
+        2 => document_dir().unwrap_or_default().to_string_lossy().to_string(),
+        3 => picture_dir().unwrap_or_default().to_string_lossy().to_string(),
+        4 => video_dir().unwrap_or_default().to_string_lossy().to_string(),
+        5 => audio_dir().unwrap_or_default().to_string_lossy().to_string(),
+        _ => current_dir().unwrap().to_string_lossy().to_string(),
     }
 }

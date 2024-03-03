@@ -61,7 +61,7 @@ body {
 }
 .explorer-container {
     margin: 0 0 0 calc(150px);
-    padding: 10px;
+    padding: 10px 20px;
     width: 100%;
     height: calc(100vh - 95px - 30px);
     max-width: 100%;
@@ -500,7 +500,7 @@ label {
     text-align: left;
     font-size: small;
     height: 75px;
-    width: 100px;
+    width: 100%;
     overflow: hidden;
     display: flex;
     flex-flow: column;
@@ -615,7 +615,6 @@ label {
     border-radius: 7.5px;
     transition: 0.1s ease;
     width: 100%;
-    -webkit-user-drag: element;
 }
 .disk-item-button-button {
     position: relative;
@@ -942,11 +941,12 @@ label {
     max-width: 100%;
     overflow: hidden;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     margin: 0 auto;
     will-change: transform;
     padding-top: 2.5px;
     row-gap: 15px;
+    column-gap: 15px;
 }
 .directory-list-dual-pane {
     display: flex;
@@ -1431,13 +1431,14 @@ label {
     width: 0%;
     height: 100%;
     background-color: var(--successColor);
-    border-right: 2px solid var(--transparentColorActive);
+    border-right: 1px solid var(--secondaryColorActive);
     transition: width 0.05s ease;
 }
 .progress-bar-text {
     position: absolute;
     padding: 5px;
     margin: auto;
+    color: var(--textColor2);
 }
 .progress-bar-text-2 {
     position: absolute;
