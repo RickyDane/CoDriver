@@ -45,31 +45,9 @@ listen('tauri://file-drop', async event => {
   }
   resetProgressBar();
   document.querySelectorAll(".site-nav-bar-button").forEach(item => { item.style.opacity = "1"; });
-  item.style.backgroundColor = "transparent";
-  item.style.filter = "none";
-})
-
-/* File operation context menu */
-async function fileOperationContextMenu() {
-  let contextMenu = document.createElement("div");
-  contextMenu.className = "uni-popup context-menu";
-  contextMenu.innerHTML = `
-    <button class="context-item">Copy</button>
-    <button class="context-item">Move</button>
-  `;
-  contextMenu.children[0].onclick = () => FileOperation = "copy";
-  contextMenu.children[1].onclick = () => FileOperation = "move";
-  document.body.appendChild(contextMenu);
-  await new Promise(resolve => {
-      document.body.addEventListener("click", e => {
-          resolve(e);
-      }, { once: true });
-  });
-  contextMenu.style.left = `${MousePos[0]}px`;
-  contextMenu.style.top = `${MousePos[1]}px`;
-  contextMenu.remove();
-  return FileOperation;
-}
+  DraggedOverElement.style.backgroundColor = "transparent";
+  DraggedOverElement.style.opacity = "1";
+});
 
 /* Toasts */
 function showToast(title, message, type = "info") {

@@ -100,7 +100,7 @@ let DefaultFolderIcon = "";
 let IsFileOpIntern = false;
 let DraggedOverElement = null;
 let MousePos = [];
-let FileOperation = "copy";
+let FileOperation = "";
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -221,8 +221,10 @@ document.addEventListener("mousedown", (e) => {
     ContextMenu.children[10].classList.add("c-item-disabled");
 
     unSelectAllItems();
-    DraggedOverElement.style.backgroundColor = "transparent";
-    DraggedOverElement.style.filter = "none";
+    if (DraggedOverElement != null) {
+      DraggedOverElement.style.backgroundColor = "transparent";
+      DraggedOverElement.style.filter = "none";
+    }
   }
 });
 
@@ -854,7 +856,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     }
     else {
       itemButtonList.style.display = "none";
-      DirectoryList.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
+      DirectoryList.style.gridTemplateColumns = "repeat(auto-fill, minmax(90px, 1fr))";
       DirectoryList.style.rowGap = "15px";
     }
     newRow.append(itemButton);
@@ -891,18 +893,16 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     // Accept file drop into folders
     item.addEventListener("dragover", () => {
       if (item.getAttribute("itemisdir") == "1") {
-        // item.style.opacity = "0.5";
         item.style.backgroundColor = "var(--transparentColorActive)";
-        item.style.filter = "saturate(1.5)";
+        item.style.opacity = "0.5";
         if (!ArrSelectedItems.includes(item)) {
           DraggedOverElement = item;
         }
       }
     });
     item.addEventListener("dragleave", () => {
-      // item.style.opacity = "1";
+      item.style.opacity = "1";
       item.style.backgroundColor = "transparent";
-      item.style.filter = "none";
       DraggedOverElement = null;
     });
     // Open context menu when right-clicking on file/folder
@@ -2246,6 +2246,7 @@ async function switchView() {
       document.querySelectorAll(".explorer-container").forEach((item) => {
         item.style.marginTop = "30px";
         item.style.height = "calc(100vh - 125px - 30px)";
+        item.style.padding = "10px";
       });
       document.querySelector(".list-column-header").style.display = "flex";
       ViewMode = "column";
@@ -2264,6 +2265,7 @@ async function switchView() {
         document.querySelectorAll(".explorer-container").forEach((item) => {
           item.style.height = "calc(100vh - 95px - 30px)";
           item.style.marginTop = "0";
+          item.style.padding = "10px 20px";
         });
         document.querySelectorAll(".directory-list").forEach((list) => {
           // list.style.flexFlow = "column";
@@ -2277,7 +2279,7 @@ async function switchView() {
       document.querySelector(".explorer-container").style.width = "100%";
       document.querySelectorAll(".directory-list").forEach((list) => {
           if (IsShowDisks == false) {
-            list.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
+            list.style.gridTemplateColumns = "repeat(auto-fill, minmax(90px, 1fr))";
             list.style.rowGap = "15px";
           }
           else {
@@ -3031,6 +3033,28 @@ async function insertSiteNavButtons() {
   diskButton.onclick = () => listDisks();
   diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Disks`;
   document.querySelector(".site-nav-bar").append(diskButton);
+}
+
+/* File operation context menu */
+async function fileOperationContextMenu() {
+  let contextMenu = document.createElement("div");
+  contextMenu.className = "uni-popup context-menu";
+  contextMenu.innerHTML = `
+    <button class="context-item">Copy</button>
+    <button class="context-item">Move</button>
+  `;
+  contextMenu.children[0].onclick = () => FileOperation = "copy";
+  contextMenu.children[1].onclick = () => FileOperation = "move";
+  document.body.appendChild(contextMenu);
+  await new Promise(resolve => {
+      document.body.addEventListener("click", e => {
+          resolve(e);
+      }, { once: true });
+  });
+  contextMenu.style.left = `${MousePos[0]}px`;
+  contextMenu.style.top = `${MousePos[1]}px`;
+  contextMenu.remove();
+  return FileOperation;
 }
 
 insertSiteNavButtons();

@@ -61,7 +61,7 @@ body {
 }
 .explorer-container {
     margin: 0 0 0 calc(150px);
-    padding: 10px;
+    padding: 10px 20px;
     width: 100%;
     height: calc(100vh - 95px - 30px);
     max-width: 100%;
@@ -615,7 +615,6 @@ label {
     border-radius: 7.5px;
     transition: 0.1s ease;
     width: 100%;
-    -webkit-user-drag: element;
 }
 .disk-item-button-button {
     position: relative;
@@ -942,7 +941,7 @@ label {
     max-width: 100%;
     overflow: hidden;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     margin: 0 auto;
     will-change: transform;
     padding-top: 2.5px;
