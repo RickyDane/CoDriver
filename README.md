@@ -24,7 +24,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
 ### Basic features
 - Navigate through directories as you know it
 - Copy & Paste, delete, create and rename files and folders
-- Switch between "big buttons"- and list mode
+- Switch between "big buttons"-, list and miller columns mode
 - Close popups with esc
 - Ctrl / Cmd + F for a quicksearch in the current directory
 - Jump to a directory with Ctrl / Cmd + G by inputting a path
@@ -65,6 +65,8 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - FTP-Integration
 - Favorites
 - Drag to select
+- Access network storage
+- Access online storage
 <br>
 
 <img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/ecb0f7a0-07c4-48a0-a573-a045b51f3150" />
