@@ -500,7 +500,7 @@ label {
     text-align: left;
     font-size: small;
     height: 75px;
-    width: 100px;
+    width: 100%;
     overflow: hidden;
     display: flex;
     flex-flow: column;
@@ -615,6 +615,7 @@ label {
     border-radius: 7.5px;
     transition: 0.1s ease;
     width: 100%;
+    -webkit-user-drag: element;
 }
 .disk-item-button-button {
     position: relative;
@@ -941,11 +942,12 @@ label {
     max-width: 100%;
     overflow: hidden;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     margin: 0 auto;
     will-change: transform;
     padding-top: 2.5px;
     row-gap: 15px;
+    column-gap: 15px;
 }
 .directory-list-dual-pane {
     display: flex;

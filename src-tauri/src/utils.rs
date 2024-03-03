@@ -1,7 +1,6 @@
-use std::{fmt::Debug, fs::{self, File, Metadata}, io::{BufReader, BufWriter, Read, Write}};
+use std::{fmt::Debug, fs::{self, File}, io::{BufReader, BufWriter, Read, Write}};
 use chrono::prelude::*;
 use color_print::cprintln;
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator};
 use serde::Serialize;
 use stopwatch::Stopwatch;
 use tauri::Window;
