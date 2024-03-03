@@ -99,6 +99,8 @@ let DefaultFileIcon = "";
 let DefaultFolderIcon = "";
 let IsFileOpIntern = false;
 let DraggedOverElement = null;
+let MousePos = [];
+let FileOperation = "copy";
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -154,6 +156,10 @@ document.addEventListener("keyup", (e) => {
     // Close all popups etc.
     ContextMenu.style.display = "none";
     closeAllPopups();
+    if (DraggedOverElement != null) {
+      DraggedOverElement.style.opacity = "1";
+    }
+    document.querySelectorAll(".site-nav-bar-button").forEach(item => { item.style.opacity = "1"; });
   }
 });
 
@@ -251,6 +257,10 @@ document.addEventListener("contextmenu", (e) => {
       document.querySelector(".c-item-paste").classList.remove("c-item-disabled");
     }
   }
+});
+
+document.body.addEventListener("mousemove", (e) => {
+  MousePos = [e.clientX, e.clientY];
 });
 
 /* Shortcuts configuration */
@@ -878,11 +888,16 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     };
     // Accept file drop into folders
     item.addEventListener("dragover", () => {
-      item.style.backgroundColor = "var(--transparentColor)";
-      DraggedOverElement = item;
+      if (item.getAttribute("itemisdir") == "1") {
+        item.style.opacity = "0.5";
+        if (!ArrSelectedItems.includes(item)) {
+          DraggedOverElement = item;
+        }
+      }
     });
     item.addEventListener("dragleave", () => {
-      item.style.backgroundColor = "transparent";
+      item.style.opacity = "1";
+      DraggedOverElement = null;
     });
     // Open context menu when right-clicking on file/folder
     item.addEventListener("contextmenu", async (e) => {
@@ -1302,7 +1317,6 @@ async function itemMoveTo(isForDualPane = false) {
         else {
           refreshView();
         }
-        resetProgressBar();
       });
   }
 }
@@ -1315,7 +1329,6 @@ async function pasteItem() {
   else {
     arr = ArrCopyItems;
   }
-  console.log(arr);
   ContextMenu.style.display = "none";
   if (IsDualPaneEnabled == true) {
     if (SelectedItemPaneSide == "left") {
@@ -1343,7 +1356,6 @@ async function pasteItem() {
     showToast("Copy", "Done copying some files", "success");
   }
   await listDirectories(true);
-  resetProgressBar();
 }
 
 function resetProgressBar() {
@@ -2975,5 +2987,39 @@ async function setMillerColActive(millerColElement, millerCol = 1) {
   }
 }
 
+async function getDir(number) {
+  let dirPath = "";
+  await invoke("get_df_dir", { number: number }).then(path => dirPath = path);
+  return dirPath;
+}
+
+async function insertSiteNavButtons() {
+  let siteNavButtons = [
+    ["Desktop", await getDir(0), "fa-solid fa-desktop"],
+    ["Downloads", await getDir(1), "fa-solid fa-download"],
+    ["Documents", await getDir(2), "fa-solid fa-file"],
+    ["Pictures", await getDir(3), "fa-solid fa-image"],
+    ["Videos", await getDir(4), "fa-solid fa-video"],
+    ["Music", await getDir(5), "fa-solid fa-music"],
+  ]
+
+  for (let i = 0; i < siteNavButtons.length; i++) {
+    let button = document.createElement("button");
+    button.className = "site-nav-bar-button";
+    button.onclick = () => goToDir(i);
+    button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
+    button.setAttribute("itempath", siteNavButtons[i][1]);
+    button.ondragover = () => {
+      button.style.opacity = "0.5";
+      DraggedOverElement = button;
+    };
+    button.ondragleave = () => {
+      button.style.opacity = "1";
+    }
+    document.querySelector(".site-nav-bar").append(button);
+  }
+}
+
+insertSiteNavButtons();
 checkAppConfig();
 getSetInstalledApplications();

@@ -1430,13 +1430,14 @@ label {
     width: 0%;
     height: 100%;
     background-color: var(--successColor);
-    border-right: 2px solid var(--transparentColorActive);
+    border-right: 1px solid var(--secondaryColorActive);
     transition: width 0.05s ease;
 }
 .progress-bar-text {
     position: absolute;
     padding: 5px;
     margin: auto;
+    color: var(--textColor2);
 }
 .progress-bar-text-2 {
     position: absolute;

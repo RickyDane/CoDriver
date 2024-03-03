@@ -19,23 +19,55 @@ listen('tauri://file-drop', async event => {
     ArrCopyItems = [];
     ArrSelectedItems = [];
   }
-  else {
+  else if (DraggedOverElement != null) {
     ArrSelectedItems = [];
     ArrCopyItems = [];
-    DraggedOverElement.style.backgroundColor = "transparent";
     event.payload.forEach(async item => {
       ArrCopyItems.push(item);
     });
-    await invoke("arr_copy_paste", { appWindow, arrItems: ArrCopyItems, isForDualPane: "0", copyToPath: DraggedOverElement.getAttribute("itempath") });
-    showToast("File Operation", "Files copied successfully", "success");
-    resetProgressBar();
+    let operation = await fileOperationContextMenu();
+    if (operation == "copy") {
+      await invoke("arr_copy_paste", { appWindow, arrItems: ArrCopyItems, isForDualPane: "0", copyToPath: DraggedOverElement.getAttribute("itempath") });
+      showToast("File Operation", "Files copied successfully", "success");
+      await listDirectories();
+    }
+    else if (operation == "move") {
+      await invoke("arr_copy_paste", { appWindow, arrItems: ArrCopyItems, isForDualPane: "0", copyToPath: DraggedOverElement.getAttribute("itempath") });
+      await invoke("arr_delete_items", { appWindow, arrItems: ArrCopyItems });
+      await listDirectories();
+      showToast("File Operation", "Files moved successfully", "success");
+    }
     CopyFileName = "";
     CopyFilePath = "";
     ArrCopyItems = [];
     ArrSelectedItems = [];
+    DraggedOverElement.style.opacity = "1";
+    DraggedOverElement = null;
   }
+  document.querySelectorAll(".site-nav-bar-button").forEach(item => { item.style.opacity = "1"; });
 })
 
+/* File operation context menu */
+async function fileOperationContextMenu() {
+  let contextMenu = document.createElement("div");
+  contextMenu.className = "uni-popup context-menu";
+  contextMenu.style.left = `${MousePos[0]}px`;
+  contextMenu.style.top = `${MousePos[1]}px`;
+  contextMenu.innerHTML = `
+      <button class="context-item">Copy</button>
+      <button class="context-item">Move</button>
+  `;
+  contextMenu.children[0].onclick = () => FileOperation = "copy";
+  contextMenu.children[1].onclick = () => FileOperation = "move";
+  document.body.appendChild(contextMenu);
+  await new Promise(resolve => {
+      document.body.addEventListener("click", e => {
+          resolve(e);
+      }, { once: true });
+  });
+  contextMenu.remove();
+  return FileOperation;
+}
 
 /* Toasts */
 function showToast(title, message, type = "info") {
