@@ -1,8 +1,0 @@
-INFO [process_setup] [2024-03-03:18:27:58 WD-TabNine INFO] 
-============ Tabnine process /home/dane/.local/share/nvim/plugged/tabnine-nvim/binaries/4.113.0/x86_64-unknown-linux-musl/WD-TabNine (19488) started ============
-INFO [process_setup] [2024-03-03:18:27:58 WD-TabNine INFO] 
-============ Tabnine process /home/dane/.local/share/nvim/plugged/tabnine-nvim/binaries/4.113.0/x86_64-unknown-linux-musl/WD-TabNine (19484) started ============
-INFO [WD_TabNine] [2024-03-03:18:27:58 WD-TabNine INFO] terminating because another watchdog is already running.
-INFO [watchdog_server::monitor_loop] [2024-03-03:18:27:58 WD-TabNine INFO] watching new process 19417-TabNine
-INFO [watchdog_server::monitor_loop] [2024-03-03:18:27:58 WD-TabNine INFO] watching new process 19490-TabNine
-INFO [watchdog_server::monitor_loop] [2024-03-03:18:28:06 WD-TabNine INFO] watching new process 19678-TabNine-deep-local

@@ -43,6 +43,8 @@ walkdir = "2.4.0"
 ini = "1.3.0"
 window-shadows = "0.2.2"
 substring = "1.4.5"
+tar = "0.4.40"
+archiver-rs = "0.5.1"
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
 

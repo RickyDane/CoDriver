@@ -438,6 +438,16 @@ label {
 }
 
 /* Custom controls*/
+.select {
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    padding: 10px 15px;
+    background-color: var(--secondaryColor);
+    border: 1px solid var(--transparentColor);
+    border-radius: 5px;
+    cursor: pointer;
+}
 .button {
     padding: 10px 15px;
     color: var(--textColor);
@@ -1269,6 +1279,11 @@ label {
     display: flex;
     flex-flow: column;
     gap: 5px;
+}
+.popup-body-row-section {
+    display: flex;
+    flex-flow: row;
+    gap: 10px;
     padding: 5px;
 }
 .find-duplicates-popup {
