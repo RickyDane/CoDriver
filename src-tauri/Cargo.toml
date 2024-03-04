@@ -45,6 +45,9 @@ window-shadows = "0.2.2"
 substring = "1.4.5"
 tar = "0.4.40"
 archiver-rs = "0.5.1"
+regex = "1.10.3"
+thread_local = "1.1.8"
+mio = "0.8.11"
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
 
