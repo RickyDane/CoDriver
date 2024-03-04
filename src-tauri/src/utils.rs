@@ -1,8 +1,10 @@
-use std::{fmt::Debug, fs::{self, File}, io::{BufReader, BufWriter, Read, Write}};
+use std::{env::current_dir, fmt::Debug, fs::{self, File}, io::{BufReader, BufWriter, Read, Write}};
 use chrono::prelude::*;
 use color_print::cprintln;
 use serde::Serialize;
 use stopwatch::Stopwatch;
+use tar::Entry;
+use tar::Archive as TarArchive;
 use tauri::Window;
 
 #[allow(unused_imports)]
@@ -228,5 +230,18 @@ pub fn format_bytes(bytes: u64) -> String {
     }
     else {
         format!("{:.2} B", bytes as f32)
+    }
+}
+
+pub fn unpack_tar(file: File) {
+    let mut archive = TarArchive::new(file);
+    let _ = fs::create_dir("Unpacked_Archive");
+
+    for file in archive.entries().unwrap() {
+        // Make sure there wasn't an I/O error
+        if file.is_err() { continue; }
+        // Unwrap the file
+        let mut file = file.unwrap();
+        let _ = file.unpack_in("Unpacked_Archive").unwrap_or_default();
     }
 }

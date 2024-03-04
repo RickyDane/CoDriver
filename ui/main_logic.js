@@ -177,7 +177,7 @@ function closeAllPopups() {
 }
 
 // Close context menu or new folder input dialog when click elsewhere
-document.addEventListener("mousedown", (e) => {
+document.addEventListener("click", (e) => {
   if (
     !e.target.classList.contains("context-item-icon") &&
     !e.target.classList.contains("context-item") &&
@@ -218,6 +218,9 @@ document.addEventListener("mousedown", (e) => {
     ContextMenu.children[10].setAttribute("disabled", "true");
     ContextMenu.children[10].classList.add("c-item-disabled");
 
+    document.querySelector(".c-item-duplicates").setAttribute("disabled", "true");
+    document.querySelector(".c-item-duplicates").classList.add("c-item-disabled");
+
     unSelectAllItems();
     if (DraggedOverElement != null) {
       DraggedOverElement.style.filter = "none";
@@ -233,12 +236,18 @@ document.addEventListener("contextmenu", (e) => {
 
     ContextMenu.style.display = "flex";
     if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
+      console.log("test1");
       ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
       ContextMenu.style.bottom = null;
     }
-    else {
+    else if (ContextMenu.offsetHeight - e.clientY <= window.innerHeight) {
+      console.log("test2");
       ContextMenu.style.bottom = null;
       ContextMenu.style.top = e.clientY + "px";
+    }
+    else {
+      ContextMenu.style.bottom = null;
+      ContextMenu.style.top = e.clientY / 2 + "px";
     }
     if (ContextMenu.clientWidth + e.clientX >= window.innerWidth) {
       ContextMenu.style.left = e.clientX - ContextMenu.clientWidth + "px";
@@ -801,6 +810,16 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         case ".tar":
         case ".zst":
         case ".7z":
+        case ".gz":
+        case ".xz":
+        case ".bz2":
+        case ".lz":
+        case ".lz4":
+        case ".lzma":
+        case ".lzo":
+        case ".z":
+        case ".zstd":
+        case ".br":
           fileIcon = "resources/zip-file.png";
           break;
         case ".xlsx":
@@ -959,7 +978,8 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         ContextMenu.children[11].removeAttribute("disabled");
         ContextMenu.children[11].classList.remove("c-item-disabled")
 
-        if (extension != ".zip" && extension != ".rar" && extension != ".7z") {
+        // Check if item is an supported archive
+        if (extension != ".zip" && extension != ".rar" && extension != ".7z" && extension != ".tar" && extension != ".gz" && extension != ".br" && extension != ".bz2") {
           document.querySelector(".c-item-extract").setAttribute("disabled", "true");
           document.querySelector(".c-item-extract").classList.add("c-item-disabled");
         }
@@ -967,6 +987,17 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
           document.querySelector(".c-item-extract").removeAttribute("disabled");
           document.querySelector(".c-item-extract").classList.remove("c-item-disabled");
         }
+
+        // Check if item can be searched through for duplicates
+        if (item.getAttribute("itemisdir") == "1") {
+          document.querySelector(".c-item-duplicates").removeAttribute("disabled");
+          document.querySelector(".c-item-duplicates").classList.remove("c-item-disabled");
+        }
+        else {
+          document.querySelector(".c-item-duplicates").setAttribute("disabled", "true");
+          document.querySelector(".c-item-duplicates").classList.add("c-item-disabled");
+        }
+
         document.querySelector(".c-item-delete").addEventListener("click", async () => { await deleteItems(); }, { once: true });
         document.querySelector(".c-item-extract").addEventListener("click", async () => { await extractItem(item); }, { once: true });
         document.querySelector(".c-item-compress").addEventListener("click", async () => { await showCompressPopup(item); }, { once: true });
@@ -1135,8 +1166,6 @@ async function extractItem(item) {
           await showItems(items.filter((str) => !str.name.startsWith(".")));
         }
         showToast("Extraction", "Extraction done", "success")
-      }).catch((err) => {
-        showToast("Extraction", "Extraction failed", "error");
       });
     }
   }
@@ -1176,12 +1205,14 @@ async function showCompressPopup(item) {
         <h5>${compressFileName}</h5>
       </div>
       <div class="popup-body">
-        <div style="display: flex; flex-flow: column; gap: 5px; width: 100%;">
-          <p class="text-2">Compression level (-7 - 22)</p>
-          <input class="text-input compression-popup-level-input" type="number" value="3" placeholder="-7-22" />
+        <div class="popup-body-row-section">
+          <div class="popup-body-col-section" style="width: 100%;">
+            <p class="text-2">Level (-7 - 22)</p>
+            <input class="text-input compression-popup-level-input" type="number" value="3" placeholder="-7-22" />
+          </div>
         </div>
       </div>
-      <div class="popup-controls" style="justify-content: space-evenly;">
+      <div class="popup-controls">
         <button class="icon-button" onclick="closeCompressPopup()">
           <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
           Cancel
@@ -1207,7 +1238,7 @@ async function showCompressPopup(item) {
   }
 }
 
-async function compressItem(arrItems, compressionLevel = 6) {
+async function compressItem(arrItems, compressionLevel = 3) {
   if (arrItems.length > 1) {
     showLoadingPopup("File is being compressed");
     ContextMenu.style.display = "none";
@@ -1479,7 +1510,8 @@ async function createFile(fileName) {
 
 async function renameElement(path, newName) {
   await invoke("rename_element", { path, newName });
-  listDirectories();
+  IsInputFocused = false;
+  await listDirectories();
 }
 
 async function showAppInfo() {
@@ -2645,19 +2677,19 @@ function showMultiRenamePopup() {
         </div>
         <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
           <p class="text-2">Start at</p>
-            <input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
+          <input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
         </div>
         <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
           <p class="text-2">Step by</p>
-            <input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
+          <input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
         </div>
         <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
           <p class="text-2">Digits</p>
-            <input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
+          <input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
         </div>
         <div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
           <p class="text-2">Extension</p>
-            <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
+          <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
         </div>
       </div>
     </div>

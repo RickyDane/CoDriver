@@ -4,13 +4,14 @@
 use async_ftp::FtpStream;
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
+use flate2::read::GzDecoder;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
 use tauri::{Manager, Window};
 use window_shadows::set_shadow;
 use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_dir_all, remove_file, File},
@@ -28,12 +29,13 @@ use unrar::Archive;
 use zip_extensions::*;
 mod utils;
 use sysinfo::Disks;
-use utils::{copy_to, count_entries, dbg_log, err_log, format_bytes, wng_log, DirWalker, DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER};
+use utils::{copy_to, count_entries, dbg_log, err_log, format_bytes, unpack_tar, wng_log, DirWalker, DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER};
 #[allow(unused_imports)]
 use rayon::prelude::*;
 mod applications;
 use applications::{open_file_with, get_apps};
 use substring::Substring;
+use archiver_rs::{Compressed, Archive as ArchiverArchive};
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
@@ -795,7 +797,8 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
         let _ = create_dir(&from_path.strip_suffix(&file_ext).unwrap());
         let new_dir = PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap());
         zip_extract(&file, &new_dir).unwrap();
-    } else if file_ext == ".rar" {
+    }
+    else if file_ext == ".rar" {
         let mut archive = Archive::new(&from_path).open_for_processing().unwrap();
         while let Some(header) = archive.read_header().unwrap() {
             dbg_log(format!(
@@ -809,9 +812,31 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
                 header.skip().unwrap()
             }
         }
-    } else if file_ext == ".7z" {
-        let _ =
-            sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
+    }
+    else if file_ext == ".7z" {
+        let _ = sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
+    }
+    else if file_ext == ".tar" {
+        unpack_tar(File::open(&from_path).unwrap());
+    }
+    else if file_ext == ".gz" {
+        let file = File::open(&from_path).unwrap();
+        let mut archive = GzDecoder::new(file);
+        let mut buffer = Vec::new();
+        let _ = archive.read_to_end(&mut buffer).unwrap();
+        let _ = File::create(&from_path.strip_suffix(&file_ext).unwrap()).unwrap().write_all(&buffer);
+        unpack_tar(File::open(&from_path.strip_suffix(&file_ext).unwrap()).unwrap());
+        let _ = remove_file(&from_path.strip_suffix(&file_ext).unwrap());
+    }
+    else if file_ext == ".bz2" {
+        let mut file = archiver_rs::Bzip2::open(&PathBuf::from(&from_path)).unwrap();
+        file.decompress(&PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap())).unwrap();
+        unpack_tar(File::open(&from_path.strip_suffix(&file_ext).unwrap()).unwrap());
+        let _ = remove_file(&from_path.strip_suffix(&file_ext).unwrap());
+    }
+    else {
+        err_log("Unsupported file type".into());
+        return vec![];
     }
 
     dbg_log(format!("Unpack time: {:?}", sw.elapsed()));
@@ -827,6 +852,7 @@ async fn open_item(path: String) {
 #[tauri::command]
 async fn compress_item(from_path: String, compression_level: i32) {
     let sw = Stopwatch::start_new();
+
     dbg_log(format!("Compression of '{}' started with compression level: {}", &from_path.split("/").last().unwrap(), &compression_level));
     let file_ext = ".".to_string().to_owned() + from_path.split(".").last().unwrap_or("");
     let _ = File::create(from_path.strip_suffix(&file_ext).unwrap_or(&from_path).to_owned() + ".zip").unwrap();
