@@ -35,7 +35,7 @@ use rayon::prelude::*;
 mod applications;
 use applications::{open_file_with, get_apps};
 use substring::Substring;
-use archiver_rs::{Compressed, Archive as ArchiverArchive};
+use archiver_rs::Compressed;
 
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();

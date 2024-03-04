@@ -1,9 +1,8 @@
-use std::{env::current_dir, fmt::Debug, fs::{self, File}, io::{BufReader, BufWriter, Read, Write}};
+use std::{fmt::Debug, fs::{self, File}, io::{BufReader, BufWriter, Read, Write}};
 use chrono::prelude::*;
 use color_print::cprintln;
 use serde::Serialize;
 use stopwatch::Stopwatch;
-use tar::Entry;
 use tar::Archive as TarArchive;
 use tauri::Window;
 
