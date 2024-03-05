@@ -18,6 +18,7 @@ const { resolveResource } = window.__TAURI__.path;
 const { resourceDir } = window.__TAURI__.path;
 const { BaseDirectory } = window.__TAURI__.fs;
 const { readDir } = window.__TAURI__.fs;
+const { WebviewWindow } = window.__TAURI__.window;
 
 async function startDrag(options, onEvent) {
   await invoke("plugin:drag|start_drag", {
@@ -877,10 +878,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     newRow.append(itemButton);
     newRow.append(itemButtonList);
     itemLink.append(newRow);
-    delete newRow;
     DirectoryList.append(itemLink);
-    delete itemLink;
-    delete items;
   });
   DirectoryList.querySelectorAll("#item-link").forEach((item) => {
     // Start dragging item
@@ -1525,26 +1523,19 @@ async function showAppInfo() {
 
 async function checkAppConfig() {
   await invoke("check_app_config").then(async (appConfig) => {
-    if (appConfig.view_mode.includes("column")) {
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-indent"></i>`;
-      ViewMode = "column";
-      let firstContainer = document.querySelector(".explorer-container");
-      document.querySelector(".list-column-header").style.display = "flex";
-      firstContainer.style.marginTop = "30px";
-      firstContainer.style.height = "calc(100vh - 125px - 30px)";
+    let viewMode = appConfig.view_mode.replaceAll('"', "");
+    switch (viewMode) {
+      case "wrap":
+        ViewMode = "miller";
+        break;
+      case "column":
+        ViewMode = "wrap";
+        break;
+      case "miller":
+        ViewMode = "column";
+        break;
     }
-    else if (appConfig.view_mode.includes("miller")) {
-      document.querySelector(".list-column-header").style.display = "none";
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
-      document.querySelector(".miller-container").style.display = "flex";
-      document.querySelector(".explorer-container").style.display = "none";
-      document.querySelectorAll(".item-button-list").forEach(item => item.children[1].style.display = "none");
-      let firstContainer = document.querySelector(".explorer-container");
-      firstContainer.style.marginTop = "30px";
-      firstContainer.style.height = "calc(100vh - 125px - 30px)";
-      ViewMode = "miller";
-    }
-
+    await switchView();
     // if (appConfig.is_open_in_terminal.includes("1")) {
     // 	document.querySelector(".openin-terminal-checkbox").checked = true;
     // 	document.querySelector(".context-open-in-terminal").style.display = "flex";
@@ -1608,9 +1599,7 @@ async function checkAppConfig() {
   });
 
   DefaultFileIcon = await resolveResource("resources/file-icon.png");
-  DefaultFileIcon = DefaultFileIcon.replace("\\\\?\\", "").replaceAll("\\", "/");
   DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
-  DefaultFolderIcon = DefaultFolderIcon.replace("\\\\?\\", "").replaceAll("\\", "/");
 
   checkColorMode();
   applyPlatformFeatures();
@@ -1620,18 +1609,18 @@ async function applyPlatformFeatures() {
   Platform = await platform();
   // Check for macOS and position titlebar buttons on the left
   if (Platform == "darwin") {
-    $(".titlebar").css("flex-flow", "row-reverse");
-    $(".titlebar-buttons").remove();
-    $(".titlebar-buttons-macos").css("display", "flex");
-    document.querySelectorAll(".titlebar-button").forEach(item => item.style.display = "none");
+    // $(".titlebar").css("flex-flow", "row-reverse");
+    // $(".titlebar-buttons").remove();
+    // $(".titlebar-buttons-macos").css("display", "flex");
+    // document.querySelectorAll(".titlebar-button").forEach(item => item.style.display = "none");
   }
   else {
-    $(".titlebar-buttons").css("display", "flex");
-    $(".titlebar-buttons-macos").remove();
+    // $(".titlebar-buttons").css("display", "flex");
+    // $(".titlebar-buttons-macos").remove();
   }
-  document.getElementById("titlebar-minimize").addEventListener("click", () => appWindow.minimize());
-  document.getElementById("titlebar-maximize").addEventListener("click", () => appWindow.toggleMaximize());
-  document.getElementById("titlebar-close").addEventListener("click", () => appWindow.close());
+  // document.getElementById("titlebar-minimize").addEventListener("click", () => appWindow.minimize());
+  // document.getElementById("titlebar-maximize").addEventListener("click", () => appWindow.toggleMaximize());
+  // document.getElementById("titlebar-close").addEventListener("click", () => appWindow.close());
 }
 
 async function listDisks() {
@@ -2246,7 +2235,7 @@ function closeSearchBar() {
 async function cancelSearch() {
   document.querySelector(".cancel-search-button").style.display = "none";
   document.querySelector(".search-bar-input").value = "";
-  listDirectories();
+  await listDirectories();
 }
 
 async function switchView() {
@@ -2269,9 +2258,9 @@ async function switchView() {
       document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "none"));
       document.querySelectorAll(".item-button-list").forEach(item => item.children[1].style.display = "flex");
       document.querySelectorAll(".explorer-container").forEach((item) => {
+        item.style.height = "calc(100vh - 115px)";
         item.style.marginTop = "30px";
-        item.style.height = "calc(100vh - 125px - 30px)";
-        item.style.padding = "10px";
+        item.style.padding = "10px 20px";
       });
       document.querySelector(".list-column-header").style.display = "flex";
       ViewMode = "column";
@@ -2288,7 +2277,7 @@ async function switchView() {
           item.children[1].style.display = "none"
         });
         document.querySelectorAll(".explorer-container").forEach((item) => {
-          item.style.height = "calc(100vh - 95px - 30px)";
+          item.style.height = "calc(100vh - 85px)";
           item.style.marginTop = "0";
           item.style.padding = "10px 20px";
         });
@@ -2308,7 +2297,7 @@ async function switchView() {
             list.style.rowGap = "15px";
           }
           else {
-            list.style.rowGap = "10px";
+            list.style.rowGap = "15px";
           }
         });
         document.querySelector(".miller-container").style.display = "none";
@@ -2319,8 +2308,11 @@ async function switchView() {
         document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
         document.querySelector(".list-column-header").style.display = "none";
         document.querySelectorAll(".explorer-container").forEach((item) => {
-          item.style.height = "calc(100vh - 95px - 30px)";
+          item.style.height = "calc(100vh - 85px)";
           item.style.marginTop = "0";
+          if (IsShowDisks == true) {
+            item.style.padding = "10px";
+          }
         });
         ViewMode = "wrap";
     }

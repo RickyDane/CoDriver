@@ -30,7 +30,7 @@
 }
 
 :root {
-    --primaryColor: #3f4352;
+    --primaryColor: #343637;
     --secondaryColor: rgba(56, 59, 71, 1);
     --tertiaryColor: #515567;
     --transparentColor: rgba(0, 0, 0, 0.1);
@@ -47,7 +47,7 @@ html {
     background-color: transparent;
     border: none;
     overflow: hidden;
-    border-radius: 10px 10px 15px 15px;
+    border-radius: 0px 0px 15px 15px;
 }
 body {
     height: 100vh;
@@ -55,7 +55,7 @@ body {
     overflow: hidden;
     outline: none;
     border: none;
-    border-radius: 10px 10px 15px 15px;
+    border-radius: 0px 0px 15px 15px;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
@@ -63,7 +63,7 @@ body {
     margin: 0 0 0 calc(150px);
     padding: 10px 20px;
     width: 100%;
-    height: calc(100vh - 95px - 30px);
+    height: calc(100vh - 95px);
     max-width: 100%;
     overflow: auto;
     position: relative;
@@ -86,7 +86,7 @@ body {
 .dual-pane-container {
     width: 100%;
     max-width: 100%;
-    height: calc(100vh - 95px);
+    height: calc(100vh - 85px);
     display: none;
     flex-flow: row;
     justify-content: center;
@@ -114,7 +114,7 @@ body {
     gap: 2px;
 }
 .main-container {
-    margin-top: 95px;
+    margin-top: 55px;
     display: flex;
     flex-flow: row;
     overflow: hidden;
@@ -127,7 +127,7 @@ body {
     align-items: center;
     gap: 5px;
     position: fixed;
-    top: 40px;
+    top: 0px;
     background-color: var(--primaryColor);
     width: 100%;
     height: 55px;
@@ -140,7 +140,7 @@ body {
 .site-nav-bar {
     background-color: var(--primaryColor);
     position: fixed;
-    top: 95px;
+    top: 55px;
     left: 0;
     bottom: 0;
     width: 150px;
@@ -188,6 +188,7 @@ body {
     z-index: 99;
     border-bottom: 1px solid var(--transparentColor);
     border-radius: 10px 10px 0px 0px;
+    display: none;
 }
 .titlebar-button-macos {
     width: 12px;
