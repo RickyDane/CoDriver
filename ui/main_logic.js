@@ -18,7 +18,6 @@ const { resolveResource } = window.__TAURI__.path;
 const { resourceDir } = window.__TAURI__.path;
 const { BaseDirectory } = window.__TAURI__.fs;
 const { readDir } = window.__TAURI__.fs;
-const { WebviewWindow } = window.__TAURI__.window;
 
 async function startDrag(options, onEvent) {
   await invoke("plugin:drag|start_drag", {
