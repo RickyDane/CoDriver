@@ -338,9 +338,6 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
     if wanted_directory.is_err() {
         err_log("Not a valid directory".into());
     }
-    else {
-        dbg_log(format!("Current dir: {:?}", current_dir().unwrap()));
-    }
     return list_dirs().await;
 }
 
