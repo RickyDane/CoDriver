@@ -2259,7 +2259,7 @@ async function switchView() {
       document.querySelectorAll(".explorer-container").forEach((item) => {
         item.style.height = "calc(100vh - 115px)";
         item.style.marginTop = "30px";
-        item.style.padding = "10px 20px";
+        item.style.padding = "10px";
       });
       document.querySelector(".list-column-header").style.display = "flex";
       ViewMode = "column";
