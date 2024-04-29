@@ -80,7 +80,6 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
     else {
         wng_log(format!("Unsupported file type: {}", from_path));
     }
-    app_window.eval("resetProgressBar()").unwrap();
 }
 
 pub fn count_entries(path: &str) -> f32 {

@@ -7,8 +7,7 @@ use dialog::DialogBox;
 use flate2::read::GzDecoder;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
-use tauri::{Manager, Window};
-use window_shadows::set_shadow;
+use tauri::Window;
 use zip::write::FileOptions;
 use std::fs::{self, ReadDir};
 use std::io::{BufRead, BufReader, Read, Write};
@@ -45,12 +44,6 @@ static mut ISCANCELED: bool = false;
 
 fn main() {
     tauri::Builder::default()
-        .setup(|app| {
-            let main_window = app.get_window("main").unwrap();
-            #[cfg(any(windows, target_os = "macos"))]
-            set_shadow(&main_window, true).unwrap();
-            Ok(())
-        })
         .invoke_handler(tauri::generate_handler![
             list_dirs,
             open_dir,
@@ -666,6 +659,7 @@ async fn copy_paste(app_window: Window, act_file_name: String, from_path: String
     // Execute the copy process for either a dir or file
     copy_to(&app_window, final_filename, from_path);
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
+    app_window.eval("resetProgressBar()").unwrap();
 }
 
 #[tauri::command]
@@ -694,6 +688,7 @@ async fn arr_copy_paste(app_window: Window, arr_items: Vec<String>, is_for_dual_
         copy_to(&app_window, final_filename, item_path);
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
+    app_window.eval("resetProgressBar()").unwrap();
 }
 
 #[tauri::command]
