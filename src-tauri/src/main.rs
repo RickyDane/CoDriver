@@ -1020,7 +1020,7 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
         .ext(vec![
             "png", "jpg", "jpeg", "txt", "svg", "gif", "mp4", "mp3", "wav",
             "pdf", "docx", "xlsx", "doc", "zip", "rar", "7z", "dmg", "iso",
-            "exe", "msi", "jar", "deb", "sh", "py", "htm", "html", "txt"
+            "exe", "msi", "jar", "deb", "sh", "py", "htm", "html"
         ])
         .get_items();
     let mut seen_items: Vec<DirWalkerEntry> = Vec::new();
