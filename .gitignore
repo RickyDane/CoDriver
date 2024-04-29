@@ -9,3 +9,4 @@ worker.js
 .localized
 .DS_Store
 .vscode
+target/
