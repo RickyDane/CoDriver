@@ -8,3 +8,5 @@ worker.js
 .local
 .localized
 .DS_Store
+.vscode
+target/

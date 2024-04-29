@@ -42,6 +42,16 @@ static mut PASSWORD: String = String::new();
 
 static mut ISCANCELED: bool = false;
 
+#[cfg(target_os = "windows")]
+const SLASH: &str = "\\";
+#[cfg(target_os = "windows")]
+const ASSET_LOCATION: &str = "https://asset.localhost/";
+
+#[cfg(not(target_os = "windows"))]
+const SLASH: &str = "/";
+#[cfg(not(target_os = "windows"))]
+const ASSET_LOCATION: &str = "asset://localhost/";
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -1065,8 +1075,8 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
            || item.file_name.ends_with("tiff")
            {
                inner_html.push_str(&(String::new()+"
-                    <img style='box-shadow: 0px 0px 10px 1px var(--transparentColorActive); border-radius: 5px;' width='64px' height='auto' src='asset://localhost/"+&item.path+"'>
-                    </div>
+                    <img style='box-shadow: 0px 0px 10px 1px var(--transparentColorActive); border-radius: 5px;' width='64px' height='auto' src='"+ASSET_LOCATION+""+&item.path+"'>
+                </div>
                 "));
            }
            else {

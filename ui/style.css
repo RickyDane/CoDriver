@@ -1033,7 +1033,7 @@ label {
     align-items: center;
     transition: 0.1s ease;
     font-size: var(--fontSize);
-    display: ;
+    /* display: ; */
 }
 .context-item:hover {
     background-color: var(--transparentColorActive);
@@ -1296,6 +1296,7 @@ label {
 
 .duplicates-list {
     height: 50vh !important;
+    will-change: transform;
 }
 .duplicate-item {
     display: flex;

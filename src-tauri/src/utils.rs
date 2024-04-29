@@ -165,7 +165,7 @@ impl DirWalker {
             if path.is_dir() {
                 self.items.push(DirWalkerEntry {
                     file_name: item.file_name().to_str().unwrap().to_string(),
-                    path: path.to_str().unwrap().to_string(),
+                    path: path.to_str().unwrap().to_string().replace("\\", "/"),
                     depth: depth,
                     is_dir: true,
                     is_file: false,
@@ -176,7 +176,7 @@ impl DirWalker {
             else {
                 self.items.push(DirWalkerEntry {
                     file_name: item.file_name().to_str().unwrap().to_string(),
-                    path: path.to_str().unwrap().to_string(),
+                    path: path.to_str().unwrap().to_string().replace("\\", "/"),
                     depth: depth,
                     is_dir: false,
                     is_file: true,
