@@ -69,6 +69,18 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Access online storage
 <br>
 
+## Star History
+
+<a href="https://star-history.com/#rickydane/rdpfx&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=rickydane/rdpfx&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=rickydane/rdpfx&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=rickydane/rdpfx&type=Date" />
+ </picture>
+</a>
+
+<br/><br/>
+
 <img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/ecb0f7a0-07c4-48a0-a573-a045b51f3150" />
 <img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/e61516a1-c3a0-48f7-a1e4-3fbd7bf3dbf1" />
 <img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/45933861-78a3-4380-b40f-0465436e99c6" />
