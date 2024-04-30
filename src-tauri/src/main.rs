@@ -42,13 +42,15 @@ static mut PASSWORD: String = String::new();
 
 static mut ISCANCELED: bool = false;
 
-#[cfg(target_os = "windows")]
-const SLASH: &str = "\\";
+static mut PATH_HISTORY: Vec<String> = vec![];
+
+// #[cfg(target_os = "windows")]
+// const SLASH: &str = "\\";
 #[cfg(target_os = "windows")]
 const ASSET_LOCATION: &str = "https://asset.localhost/";
 
-#[cfg(not(target_os = "windows"))]
-const SLASH: &str = "/";
+// #[cfg(not(target_os = "windows"))]
+// const SLASH: &str = "/";
 #[cfg(not(target_os = "windows"))]
 const ASSET_LOCATION: &str = "asset://localhost/";
 
@@ -318,12 +320,26 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 #[tauri::command]
 async fn open_dir(path: String) -> Vec<FDir> {
     let _ = set_current_dir(&path);
+    unsafe {
+        PATH_HISTORY.push(path);
+        println!("Path history: {:?}", PATH_HISTORY);
+    }
     return list_dirs().await;
 }
 
 #[tauri::command]
 async fn go_back() -> Vec<FDir> {
-    let _ = set_current_dir("./../");
+    unsafe {
+        if PATH_HISTORY.len() > 1 {
+            let last_path = &PATH_HISTORY[PATH_HISTORY.len()-2];
+            println!("Went back to: {}", last_path);
+            let _ = set_current_dir(last_path);
+            PATH_HISTORY.pop();
+        }
+        else {
+            let _ = set_current_dir("./../");
+        }
+    }
     return list_dirs().await;
 }
 
@@ -340,6 +356,11 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
     };
     if wanted_directory.is_err() {
         err_log("Not a valid directory".into());
+    }
+    else {
+        unsafe {
+            PATH_HISTORY.push(current_dir().unwrap().to_string_lossy().to_string());
+        }
     }
     return list_dirs().await;
 }
@@ -510,6 +531,9 @@ async fn open_in_terminal() {
 #[tauri::command]
 async fn go_home() -> Vec<FDir> {
     let _ = set_current_dir(home_dir().unwrap());
+    unsafe {
+        PATH_HISTORY.push(home_dir().unwrap().to_string_lossy().to_string());
+    }
     return list_dirs().await;
 }
 
