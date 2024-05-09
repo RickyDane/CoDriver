@@ -50,9 +50,7 @@
     </div>
     <div class="main-container">
         <div class="site-nav-bar">
-            <!-- <div class="horizontal-seperator"></div> -->
-            <!-- Future ftp - integration -->
-            <!-- <button class="site-nav-bar-button" onclick="showFtpConfig()"><i class="fa-solid fa-network-wired"></i> FTP</button> -->
+            <div class="horizontal-seperator"></div>
         </div>
         <div class="list-column-header">
             <button class="list-column-header-button" style="margin-left: 20px;" onclick="sortItems('name')">Name</button>
@@ -213,9 +211,9 @@
             <p>Password</p>
             <input type="password" class="text-input ftp-password-input" placeholder="*********" required />
             <br><br>
-            <span class="settings-ui-body-buttons">
-                <button class="button" onclick="closeFtpConfig()"><i class="fa-solid fa-ban"></i>Cancel</button>
+            <span class="settings-ui-body-buttons" style="display: flex; gap: 10px; flex-flow: row-reverse">
                 <button class="button" onclick="connectToFtp()"><i class="fa-solid fa-forward"></i>Connect</button>
+                <button class="button" onclick="closeFtpConfig()"><i class="fa-solid fa-ban"></i>Cancel</button>
             </span>
         </div>
     </div>

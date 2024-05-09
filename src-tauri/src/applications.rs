@@ -1,21 +1,21 @@
 #[allow(unused)]
-use std::collections::HashSet;
-#[allow(unused)]
-use std::{borrow::Cow, error::Error};
-#[allow(unused)]
-use std::path::PathBuf;
-#[allow(unused)]
-use walkdir::WalkDir;
-#[allow(unused)]
 use ini::ini;
 #[allow(unused)]
 use serde::Serialize;
 #[allow(unused)]
-#[cfg(target_os = "windows")]
-use winreg::{RegKey, HKEY};
+use std::collections::HashSet;
+#[allow(unused)]
+use std::path::PathBuf;
+#[allow(unused)]
+use std::{borrow::Cow, error::Error};
+#[allow(unused)]
+use walkdir::WalkDir;
 #[allow(unused)]
 #[cfg(target_os = "windows")]
 use winreg::enums::*;
+#[allow(unused)]
+#[cfg(target_os = "windows")]
+use winreg::{RegKey, HKEY};
 
 #[derive(Debug, Default, Serialize)]
 pub struct App {
@@ -62,7 +62,7 @@ pub fn get_apps() -> Vec<App> {
     search_dirs.insert("/usr/share/applications");
     // get home dir of current user
     let home_dir = std::env::var("HOME").unwrap();
-    let mut home_path = PathBuf::from(home_dir);
+    let home_path = PathBuf::from(home_dir);
     let local_share_apps = home_path.join(".local/share/applications");
     search_dirs.insert(local_share_apps.to_str().unwrap());
     search_dirs.insert("/usr/share/xsessions");
@@ -181,11 +181,9 @@ pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
     }
     if all_icons.len() == 1 {
         Some(all_icons[0].clone())
-    }
-    else if all_icons.len() == 0 {
+    } else if all_icons.len() == 0 {
         None
-    }
-    else {
+    } else {
         // more than one icon found
         // search for appicon in name, ignore case
         // sort all_icons by path length, shortest first
@@ -362,7 +360,6 @@ impl InstalledApp {
 
 #[cfg(target_os = "windows")]
 pub fn get_apps() -> Vec<App> {
-
     let mut ls_apps: Vec<App> = vec![];
     let apps_list = InstalledApp::list();
 
@@ -372,7 +369,7 @@ pub fn get_apps() -> Vec<App> {
                 name: app.name().to_string(),
                 app_path_exe: PathBuf::from(app.path().to_string()),
                 app_desktop_path: "".into(),
-                icon_path: Option::from(PathBuf::from(""))
+                icon_path: Option::from(PathBuf::from("")),
             });
         }
     }

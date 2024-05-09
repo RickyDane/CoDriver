@@ -1,11 +1,17 @@
-use std::{fmt::Debug, fs::{self, File}, io::{BufReader, BufWriter, Read, Write}};
+use async_ftp::FtpStream;
 use chrono::prelude::*;
 use color_print::cprintln;
 use serde::Serialize;
+use std::{
+    fmt::{Debug, Error},
+    fs::{self, File},
+    io::{BufReader, BufWriter, Read, Write},
+};
 use stopwatch::Stopwatch;
 use tar::Archive as TarArchive;
 use tauri::Window;
 
+use crate::get_current_connection;
 #[allow(unused_imports)]
 use crate::ISCANCELED;
 
@@ -13,18 +19,30 @@ pub static mut COPY_COUNTER: f32 = 0.0;
 pub static mut TO_COPY_COUNTER: f32 = 0.0;
 
 pub fn dbg_log(msg: String) {
-    cprintln!("[<white>{:?}</white> DBG] {}", Local::now().format("%H:%M:%S").to_string(), msg);
+    cprintln!(
+        "[<white>{:?}</white> DBG] {}",
+        Local::now().format("%H:%M:%S").to_string(),
+        msg
+    );
 }
 pub fn wng_log(msg: String) {
-    cprintln!("[<white>{:?}</white> <yellow>WNG</yellow>] {}", Local::now().format("%H:%M:%S").to_string(), msg);
+    cprintln!(
+        "[<white>{:?}</white> <yellow>WNG</yellow>] {}",
+        Local::now().format("%H:%M:%S").to_string(),
+        msg
+    );
 }
 pub fn err_log(msg: String) {
-    cprintln!("[<white>{:?}</white> <red>ERR</red>] {}", Local::now().format("%H:%M:%S").to_string(), msg);
+    cprintln!(
+        "[<white>{:?}</white> <red>ERR</red>] {}",
+        Local::now().format("%H:%M:%S").to_string(),
+        msg
+    );
 }
 
 pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
-    let metadata = fs::metadata(&from_path).unwrap();
-    if metadata.is_file() {
+    let file = fs::metadata(&from_path).unwrap();
+    if file.is_file() {
         // Kopieren der Datei
         let mut fr = BufReader::new(File::open(&from_path).unwrap());
         let mut buf = vec![0; 10_000_000];
@@ -37,7 +55,11 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
         let mut byte_counter = 0;
         let mut progress = 0.0;
         unsafe {
-            update_progressbar_2(app_window, (100.0/TO_COPY_COUNTER) * COPY_COUNTER, final_filename.split("/").last().unwrap());
+            update_progressbar_2(
+                app_window,
+                (100.0 / TO_COPY_COUNTER) * COPY_COUNTER,
+                final_filename.split("/").last().unwrap(),
+            );
             COPY_COUNTER += 1.0;
         }
         loop {
@@ -51,11 +73,18 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                     // Calculate transfer speed and progres
                     if byte_counter % 5 == 0 {
                         speed = calc_transfer_speed(s as f64, sw.elapsed_ms() as f64 / 1000.0);
-                        if speed.is_infinite() { speed = 0.0 }
-                        progress = (100.0/file_size) * s as f32;
+                        if speed.is_infinite() {
+                            speed = 0.0
+                        }
+                        progress = (100.0 / file_size) * s as f32;
                     };
                     unsafe {
-                        update_progressbar(app_window, progress, format!("{}/{}", COPY_COUNTER, TO_COPY_COUNTER).as_str(), speed);
+                        update_progressbar(
+                            app_window,
+                            progress,
+                            format!("{}/{}", COPY_COUNTER, TO_COPY_COUNTER).as_str(),
+                            speed,
+                        );
                     };
                 }
                 Err(e) => {
@@ -65,8 +94,7 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
             }
             byte_counter += 32;
         }
-    }
-    else if metadata.is_dir() {
+    } else if file.is_dir() {
         // Recursive copying of the directory
         fs::create_dir_all(&final_filename).unwrap();
         for entry in fs::read_dir(&from_path).unwrap() {
@@ -76,17 +104,19 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
             let dest_file = final_filename.clone() + "/" + relative_path.to_str().unwrap();
             copy_to(app_window, dest_file, path.to_str().unwrap().to_string());
         }
-    }
-    else {
+    } else {
         wng_log(format!("Unsupported file type: {}", from_path));
     }
 }
 
-pub fn count_entries(path: &str) -> f32 {
+pub fn count_entries(path: &str) -> Result<f32, std::io::Error> {
     let mut count: f32 = 0.0;
 
+    if fs::metadata(path).is_err() {
+        return Ok(0.0);
+    }
     if !fs::metadata(path).unwrap().is_dir() {
-        return 1.0;
+        return Ok(1.0);
     }
 
     for entry in fs::read_dir(path).unwrap() {
@@ -94,53 +124,84 @@ pub fn count_entries(path: &str) -> f32 {
         let path = entry.path();
 
         if path.is_dir() {
-            count += count_entries(&path.to_str().unwrap());
-        }
-        else {
+            count += count_entries(&path.to_str().unwrap()).unwrap();
+        } else {
             count += 1.0;
         }
     }
-
-    count
+    Ok(count)
 }
 
-pub fn update_progressbar(app_window: &Window, progress: f32, items_count_text: &str, mb_per_sec: f64) {
-    let _ = app_window.eval(format!("document.querySelector('.progress-bar-fill').style.width = '{}%'", &progress).as_str());
-    let _ = app_window.eval(format!("document.querySelector('.progress-bar-text').innerText = '{:.1} %'", progress).as_str());
-    let _ = app_window.eval(format!("document.querySelector('.progress-bar-text-2').innerText = '{:.0} MB/s | {}'", mb_per_sec, items_count_text).as_str());
+pub fn update_progressbar(
+    app_window: &Window,
+    progress: f32,
+    items_count_text: &str,
+    mb_per_sec: f64,
+) {
+    let _ = app_window.eval(
+        format!(
+            "document.querySelector('.progress-bar-fill').style.width = '{}%'",
+            &progress
+        )
+        .as_str(),
+    );
+    let _ = app_window.eval(
+        format!(
+            "document.querySelector('.progress-bar-text').innerText = '{:.1} %'",
+            progress
+        )
+        .as_str(),
+    );
+    let _ = app_window.eval(
+        format!(
+            "document.querySelector('.progress-bar-text-2').innerText = '{:.0} MB/s | {}'",
+            mb_per_sec, items_count_text
+        )
+        .as_str(),
+    );
 }
 
 pub fn update_progressbar_2(app_window: &Window, progress: f32, file_name: &str) {
-    let _ = app_window.eval(format!("document.querySelector('.progress-bar-2-fill').style.width = '{}%'", progress).as_str());
-    let _ = app_window.eval(format!("document.querySelector('.progress-bar-item-text').innerText = '{}'", file_name).as_str());
+    let _ = app_window.eval(
+        format!(
+            "document.querySelector('.progress-bar-2-fill').style.width = '{}%'",
+            progress
+        )
+        .as_str(),
+    );
+    let _ = app_window.eval(
+        format!(
+            "document.querySelector('.progress-bar-item-text').innerText = '{}'",
+            file_name
+        )
+        .as_str(),
+    );
 }
 
 pub fn calc_transfer_speed(file_size: f64, time: f64) -> f64 {
     (file_size / time) / 1024.0 / 1024.0
 }
 
-#[derive(Clone)]
-#[derive(Debug)]
-#[derive(Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct DirWalkerEntry {
     pub file_name: String,
     pub path: String,
     pub depth: u32,
     pub is_dir: bool,
     pub is_file: bool,
-    pub size: u64
+    pub size: u64,
 }
 
 pub struct DirWalker {
     pub items: Vec<DirWalkerEntry>,
-    pub depth: u32
+    pub depth: u32,
 }
 
 impl DirWalker {
     pub fn new() -> DirWalker {
         DirWalker {
             items: Vec::new(),
-            depth: 0
+            depth: 0,
         }
     }
 
@@ -169,18 +230,17 @@ impl DirWalker {
                     depth: depth,
                     is_dir: true,
                     is_file: false,
-                    size: 0
+                    size: 0,
                 });
                 self.walk(path.to_str().unwrap(), depth + 1);
-            }
-            else {
+            } else {
                 self.items.push(DirWalkerEntry {
                     file_name: item.file_name().to_str().unwrap().to_string(),
                     path: path.to_str().unwrap().to_string().replace("\\", "/"),
                     depth: depth,
                     is_dir: false,
                     is_file: true,
-                    size: fs::metadata(&path).unwrap().len()
+                    size: fs::metadata(&path).unwrap().len(),
                 });
             }
         }
@@ -192,14 +252,19 @@ impl DirWalker {
     }
 
     pub fn ext(&mut self, extensions: Vec<&str>) -> &mut Self {
-        self.items = self.items.clone().into_iter().filter(|item| {
-            for ext in &extensions {
-                if item.file_name.ends_with(ext) {
-                    return true;
+        self.items = self
+            .items
+            .clone()
+            .into_iter()
+            .filter(|item| {
+                for ext in &extensions {
+                    if item.file_name.ends_with(ext) {
+                        return true;
+                    }
                 }
-            }
-            false
-        }).collect();
+                false
+            })
+            .collect();
         self
     }
 
@@ -216,17 +281,13 @@ pub fn format_bytes(bytes: u64) -> String {
 
     if tb > 0 {
         format!("{:.2} TB", tb as f32)
-    }
-    else if gb > 0 {
+    } else if gb > 0 {
         format!("{:.2} GB", gb as f32)
-    }
-    else if mb > 0 {
+    } else if mb > 0 {
         format!("{:.2} MB", mb as f32)
-    }
-    else if kb > 0 {
+    } else if kb > 0 {
         format!("{:.2} KB", kb as f32)
-    }
-    else {
+    } else {
         format!("{:.2} B", bytes as f32)
     }
 }
@@ -237,7 +298,9 @@ pub fn unpack_tar(file: File) {
 
     for file in archive.entries().unwrap() {
         // Make sure there wasn't an I/O error
-        if file.is_err() { continue; }
+        if file.is_err() {
+            continue;
+        }
         // Unwrap the file
         let mut file = file.unwrap();
         let _ = file.unpack_in("Unpacked_Archive").unwrap_or_default();

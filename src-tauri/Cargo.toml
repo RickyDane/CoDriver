@@ -49,6 +49,7 @@ archiver-rs = "0.5.1"
 regex = "1.10.3"
 thread_local = "1.1.8"
 mio = "0.8.11"
+lazy_static = "1.4.0"
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
 
