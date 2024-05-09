@@ -2494,6 +2494,8 @@ function createTab(tabCount, isInitial) {
   listDirectories();
 }
 
+// Currently not used 
+/*
 function closeTab() {
   if (IsTabs == true) {
     if (TabCount == 2) {
@@ -2578,6 +2580,7 @@ async function switchToTab(tabNo) {
     }
   }
 }
+*/
 
 function showProperties(item) {
   let name = item.getAttribute("itemname");

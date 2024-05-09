@@ -47,7 +47,7 @@ html {
     background-color: transparent;
     border: none;
     overflow: hidden;
-    border-radius: 0px 0px 15px 15px;
+    border-radius: 0px; 
 }
 body {
     height: 100vh;
@@ -55,7 +55,7 @@ body {
     overflow: hidden;
     outline: none;
     border: none;
-    border-radius: 0px 0px 15px 15px;
+	border-radius: 0px;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
@@ -118,7 +118,7 @@ body {
     display: flex;
     flex-flow: row;
     overflow: hidden;
-    border-radius: 0px 0px 10px 10px;
+    border-radius: 0px;
 }
 .header-nav {
     display: flex;
@@ -151,7 +151,7 @@ body {
     z-index: 2;
     gap: 5px;
     border-right: 1px solid var(--tertiaryColor);
-    border-radius: 0px 0px 0px 10px;
+    border-radius: 0px;
 }
 
 .site-nav-bar-button {
@@ -413,6 +413,12 @@ body {
     cursor: pointer;
     transition: 0.1s ease;
 }
+.settings-ui-button {
+	background-color: var(--transparentColor) !important;
+}
+.settings-ui-button:hover {
+	background-color: var(--transparentColorActive) !important;
+}
 input[type="checkbox"] {
     cursor: pointer;
 }
@@ -453,7 +459,7 @@ label {
     padding: 10px 15px;
     color: var(--textColor);
     background-color: var(--tertiaryColor);
-    border: none;
+    border: 1px solid var(--primaryColor);
     border-radius: 5px;
     cursor: pointer;
     display: flex;
@@ -925,7 +931,6 @@ label {
     margin: auto;
     padding: 5px;
     background-color: var(--primaryColor);
-    border-radius: 0px 0px 10px 0px;
     border-top: 1px solid var(--tertiaryColor);
     z-index: 2;
 }
