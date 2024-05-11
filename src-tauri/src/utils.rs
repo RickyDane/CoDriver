@@ -1,9 +1,8 @@
-use async_ftp::FtpStream;
 use chrono::prelude::*;
 use color_print::cprintln;
 use serde::Serialize;
 use std::{
-    fmt::{Debug, Error},
+    fmt::Debug,
     fs::{self, File},
     io::{BufReader, BufWriter, Read, Write},
 };

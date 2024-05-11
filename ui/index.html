@@ -50,7 +50,6 @@
     </div>
     <div class="main-container">
         <div class="site-nav-bar">
-            <div class="horizontal-seperator"></div>
         </div>
         <div class="list-column-header">
             <button class="list-column-header-button" style="margin-left: 20px;" onclick="sortItems('name')">Name</button>
@@ -196,26 +195,37 @@
             </button>
         </div>
     </div>
-    <div class="ftp-connect-container">
-        <div class="settings-ui-header">
+    <div class="ftp-connect-container uni-popup">
+        <div class="popup-header">
             <span style="display: flex; gap: 20px; align-items: center;">
                 <i class="fa-solid fa-gears"></i>
                 <p>FTP - Connection</p>
             </span>
         </div>
-        <div class="settings-ui-body">
-            <p>Hostname</p>
-            <input type="text" class="text-input ftp-hostname-input" placeholder="127.0.0.1" required />
-            <p>Username</p>
-            <input type="text" class="text-input ftp-username-input" placeholder="user" required />
-            <p>Password</p>
-            <input type="password" class="text-input ftp-password-input" placeholder="*********" required />
-            <br><br>
-            <span class="settings-ui-body-buttons" style="display: flex; gap: 10px; flex-flow: row-reverse">
-                <button class="button" onclick="connectToFtp()"><i class="fa-solid fa-forward"></i>Connect</button>
-                <button class="button" onclick="closeFtpConfig()"><i class="fa-solid fa-ban"></i>Cancel</button>
-            </span>
+        <div class="popup-body">
+			<div class="popup-body-row-section">
+				<div class="popup-body-col-section">
+					<p>Hostname</p>
+					<input type="text" class="text-input ftp-hostname-input" placeholder="127.0.0.1" required />
+				</div>
+			</div>
+			<div class="popup-body-row-section">
+				<div class="popup-body-col-section">
+					<p>Username</p>
+					<input type="text" class="text-input ftp-username-input" placeholder="user" required />
+				</div>
+			</div>
+			<div class="popup-body-row-section">
+				<div class="popup-body-col-section">
+					<p>Password</p>
+					<input type="password" class="text-input ftp-password-input" placeholder="*********" required />
+				</div>
+			</div>
         </div>
+		<span class="popup-controls">
+			<button class="icon-button" onclick="closeFtpConfig()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
+			<button class="icon-button" onclick="connectToFtp()"><span class="button-icon"><i class="fa-solid fa-forward"></i></span>Connect</button>
+		</span>
     </div>
     <div class="progress-bar-container-popup">
         <div class="progress-bar">

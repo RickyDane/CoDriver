@@ -1,7 +1,7 @@
-@font-face {
+/*@font-face {
     font-family: "Inter";
     src: url("resources/inter/Inter-VariableFont_slnt\,wght.ttf");
-}
+}*/
 
 * {
     margin: 0;
@@ -1292,13 +1292,14 @@ label {
     gap: 10px;
     padding: 5px;
 }
+
+/* Duplicates */
+
 .find-duplicates-popup {
     width: 50%;
     height: fit-content;
     z-index: 100;
 }
-
-
 .duplicates-list {
     height: 50vh !important;
     will-change: transform;

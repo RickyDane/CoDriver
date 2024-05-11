@@ -100,6 +100,7 @@ let IsFileOpIntern = false;
 let DraggedOverElement = null;
 let MousePos = [];
 let FileOperation = "";
+let IsFTPConnected = false;
 
 /* Colors  */
 	let PrimaryColor = "#3f4352";
@@ -109,9 +110,9 @@ let TransparentColor = "rgba(0, 0, 0, 0.1)";
 
 /* endregion */
 
-	/* Upper right search bar logic */
+/* Upper right search bar logic */
 
-	document.querySelector(".search-bar-input").addEventListener("focusin", (e) => { IsInputFocused = true; });
+document.querySelector(".search-bar-input").addEventListener("focusin", (e) => { IsInputFocused = true; });
 document.querySelector(".search-bar-input").addEventListener("focusout", (e) => { IsInputFocused = false; });
 
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
@@ -125,17 +126,16 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 });
 
 /* Quicksearch for dual pane view */
-	document.querySelector(".fullsearch-search-button").onclick = async () => {
-		if (IsFullSearching == false) {
-			await startFullSearch();
-		}
-	};
+document.querySelector(".fullsearch-search-button").onclick = async () => {
+	if (IsFullSearching == false) {
+		await startFullSearch();
+	}
+};
 document.querySelectorAll(".trigger-for-full-search").forEach(item => item.addEventListener("keyup", async (e) => {
 	if (e.keyCode === 13 && IsFullSearching == false) {
 		await startFullSearch();
 	}
-})
-);
+}));
 
 async function startFullSearch() {
 	IsFullSearching = true;
@@ -1107,7 +1107,11 @@ async function deleteItems() {
 		showLoadingPopup("Items are being deleted");
 		for (let i = 0; i < ArrSelectedItems.length; i++) {
 			let actFileName = ArrSelectedItems[i].getAttribute("itempath");
-			await invoke("delete_item", { actFileName });
+			if (IsFTPConnected == true) {
+				await invoke("ftp_remove", { path: actFileName });
+			} else {
+				await invoke("delete_item", { actFileName });
+			}
 		}
 		IsCopyToCut = false;
 		await listDirectories();
@@ -1358,29 +1362,39 @@ async function pasteItem() {
 	if (IsDualPaneEnabled == true) {
 		if (SelectedItemPaneSide == "left") {
 			await invoke("set_dir", { currentDir: RightDualPanePath });
-			let arrItems = arr.map((item) => item.getAttribute("itempath"));
-			await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "1", copyToPath: "" })
+			await invoke("arr_copy_paste", { appWindow, arr, isForDualPane: "1", copyToPath: "" })
 		}
 		else if (SelectedItemPaneSide == "right") {
 			await invoke("set_dir", { currentDir: LeftDualPanePath });
-			let arrItems = arr.map((item) => item.getAttribute("itempath"));
-			await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "1", copyToPath: "" })
+			await invoke("arr_copy_paste", { appWindow, arr, isForDualPane: "1", copyToPath: "" })
 		}
 	}
 	else {
-		let arrItems = arr.map((item) => item.getAttribute("itempath"));
-		await invoke("arr_copy_paste", { appWindow, arrItems, isForDualPane: "0", copyToPath: "" })
+		await invoke("arr_copy_paste", {
+			appWindow,
+			arrItems: arr.map(item => ({
+				name: item.getAttribute("itemname"),
+				path: item.getAttribute("itempath"),
+				is_dir: parseInt(item.getAttribute("itemisdir")),
+				is_ftp: parseInt(item.getAttribute("isftp")),
+				size: item.getAttribute("itemrawsize"),
+				last_modified: item.getAttribute("itemmodified"),
+				extension: item.getAttribute("itemext"),
+			})),
+			isForDualPane: "0",
+			copyToPath: ""
+		});
 		ContextMenu.style.display = "none";
 	}
 	if (IsCopyToCut == true) {
-		await invoke("arr_delete_items", { arrItems: arr.map(item => item.getAttribute("itempath")) });
+		await invoke("arr_delete_items", { arrItems: arr });
 		ArrCopyItems = [];
 	}
 	closeLoadingPopup();
 	if (arr.length >= 1) {
 		showToast("Copy", "Done copying some files", "success");
 	}
-	// await listDirectories(true);
+	await listDirectories(true);
 }
 
 function resetProgressBar() {
@@ -1500,6 +1514,7 @@ async function createFolder(folderName) {
 }
 
 async function createFile(fileName) {
+
 	await invoke("create_file", { fileName });
 	listDirectories();
 }
@@ -1699,25 +1714,33 @@ async function listDisks() {
 }
 
 async function listDirectories(fromDualPaneCopy = false) {
-	await invoke("list_dirs").then(async (items) => {
-		if (IsDualPaneEnabled == true) {
-			if (fromDualPaneCopy == true) {
-				if (SelectedItemPaneSide == "left") {
-					await showItems(items, "right");
-				}
-				else if (SelectedItemPaneSide == "right") {
-					await showItems(items, "left");
-				}
+	let lsItems = [];
+	if (IsFTPConnected == true) {
+		await invoke("open_ftp_dir", {path: CurrentFtpPath}).then(async (items) => {
+			lsItems = items;
+		});
+	} else {
+		await invoke("list_dirs").then(async (items) => {
+			lsItems = items;
+		});
+	}
+	if (IsDualPaneEnabled == true) {
+		if (fromDualPaneCopy == true) {
+			if (SelectedItemPaneSide == "left") {
+				await showItems(lsItems, "right");
 			}
-			else {
-				await showItems(items, SelectedItemPaneSide);
+			else if (SelectedItemPaneSide == "right") {
+				await showItems(lsItems, "left");
 			}
-			goUp(false, true);
 		}
 		else {
-			await showItems(items, "", CurrentMillerCol);
+			await showItems(lsItems, SelectedItemPaneSide);
 		}
-	});
+		goUp(false, true);
+	}
+	else {
+		await showItems(lsItems, "", CurrentMillerCol);
+	}
 }
 
 async function refreshView() {
@@ -1906,17 +1929,19 @@ async function unSelectAllItems() {
 }
 
 async function goHome() {
-	await invoke("go_home").then(async (items) => {
-		if (IsDualPaneEnabled == true) {
-			await showItems(items, SelectedItemPaneSide);
-		}
-		else {
-			await showItems(items);
-		}
-		if (IsDualPaneEnabled == true) {
-			goUp(false, true);
-		}
-	});
+	if (IsFtpActive == false) {
+		await invoke("go_home", {isFtp: IsFTPConnected}).then(async (items) => {
+			if (IsDualPaneEnabled == true) {
+				await showItems(items, SelectedItemPaneSide);
+			}
+			else {
+				await showItems(items);
+			}
+			if (IsDualPaneEnabled == true) {
+				goUp(false, true);
+			}
+		});
+	}
 }
 
 async function goBack() {
@@ -2149,6 +2174,7 @@ async function openFavFTP(hostname, username, password) {
 			CurrentFtpPath =
 				items[0].path.split("/")[items[0].path.split("/").length - 1];
 			await showItems(items);
+			IsFTPConnected = true;
 		},
 	);
 }
