@@ -1,4 +1,4 @@
-cargo-features = ["profile-rustflags"]
+# cargo-features = ["profile-rustflags"]
 [package]
 name = "app"
 version = "0.4.3"
@@ -50,6 +50,8 @@ mio = "0.8.11"
 lazy_static = "1.4.0"
 suppaftp = { version = "=5.3.1", features = ["async"] }
 tokio = "1.37.0"
+widestring = "1.1.0"
+windows = { version = "0.56.0", features = ["Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
 
@@ -61,7 +63,7 @@ opt-level = "s" # Optimize for binary size
 strip = true # Remove debug symbols
 
 [profile.dev]
-rustflags = ["-Z", "threads=3"]
+# rustflags = ["-Z", "threads=3"]
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

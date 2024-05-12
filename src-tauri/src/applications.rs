@@ -2,10 +2,17 @@
 use ini::ini;
 #[allow(unused)]
 use serde::Serialize;
+use widestring::{u16cstr, U16CStr};
+use windows::Win32::Foundation::HWND;
+use windows::Win32::UI::Shell::{IAssocHandler, SHAssocEnumHandlers, ShellExecuteW, ASSOC_FILTER_RECOMMENDED};
+use windows::Win32::UI::WindowsAndMessaging::{SHOW_WINDOW_CMD, SW_HIDE, SW_NORMAL};
 #[allow(unused)]
 use std::collections::HashSet;
 #[allow(unused)]
 use std::path::PathBuf;
+use std::process::Command;
+use std::thread::sleep;
+use std::time::Duration;
 #[allow(unused)]
 use std::{borrow::Cow, error::Error};
 #[allow(unused)]
@@ -96,8 +103,7 @@ pub fn get_apps() -> Vec<App> {
 #[cfg(target_os = "linux")]
 pub fn open_file_with(file_path: PathBuf, exec_path: PathBuf) {
     let exec_path_str = exec_path.to_str().unwrap();
-    let file_path_str = file_path.to_str().unwrap();
-    let output = std::process::Command::new(exec_path_str)
+    let file_path_str = file_path.to_str().unwrap();    let output = std::process::Command::new(exec_path_str)
         .arg(file_path_str)
         .output()
         .expect("failed to execute process");
@@ -359,22 +365,66 @@ impl InstalledApp {
 }
 
 #[cfg(target_os = "windows")]
-pub fn get_apps() -> Vec<App> {
+use widestring::{U16CString, U16Str};
+#[cfg(target_os = "windows")]
+use windows::{core::{PCWSTR, PWSTR}, Win32::UI::Shell::{AssocQueryStringW, ASSOCF_NONE, ASSOCSTR_EXECUTABLE}};
+const BATCH_SIZE: usize = 4;
+pub fn get_apps(ext: String) -> Vec<App> {
     let mut ls_apps: Vec<App> = vec![];
     let apps_list = InstalledApp::list();
 
-    for app in apps_list.unwrap() {
-        if &app.name() != &"" && !&app.name().contains("{}") {
-            ls_apps.push(App {
-                name: app.name().to_string(),
-                app_path_exe: PathBuf::from(app.path().to_string()),
-                app_desktop_path: "".into(),
-                icon_path: Option::from(PathBuf::from("")),
-            });
+    // SHT WINDOWS STUFF IS STARTING
+    let in_str =
+        U16CString::from_vec(ext.encode_utf16().collect::<Vec<_>>());
+
+    // either ASSOC_FILTER_RECOMMENDED or ASSOC_FILTER_NONE, depending on if you only wish to show
+    // the recommended ones
+    let enum_handler =
+        unsafe { SHAssocEnumHandlers(PCWSTR(in_str.unwrap().as_ptr()), ASSOC_FILTER_RECOMMENDED) }.unwrap();
+
+    let mut found_associations = Vec::new();
+
+    let mut out_buf: [Option<IAssocHandler>; BATCH_SIZE] = [None, None, None, None];
+    let mut size_retrieved: u32 = BATCH_SIZE as u32;
+
+    dbg!();
+
+    while let Ok(()) = unsafe { enum_handler.Next(out_buf.as_mut(), Some(&mut size_retrieved)) } {
+        if size_retrieved == 0 {
+            break;
         }
+        for i in 0..size_retrieved {
+            let assoc = unsafe { std::mem::take(&mut out_buf[i as usize]).unwrap_unchecked() };
+
+            // hier kannste z.b. auch .invoke() ausführen
+            let ui_name = unsafe { assoc.GetUIName() }.unwrap();
+            let name = unsafe { assoc.GetName() }.unwrap();
+
+            ls_apps.push(App {
+                app_desktop_path: U16Str::from_slice(unsafe { name.as_wide() }).to_string().unwrap().into(),
+                app_path_exe: U16Str::from_slice(unsafe { name.as_wide() }).to_string().unwrap().into(),
+                name: U16Str::from_slice(unsafe { ui_name.as_wide() }).to_string().unwrap(),
+                icon_path: Some(PathBuf::from(""))
+            });
+
+            found_associations.push(U16Str::from_slice(unsafe { ui_name.as_wide() }).to_string().unwrap());
+        }
+        size_retrieved = BATCH_SIZE as u32;
     }
+
+    dbg!(found_associations);
+    // SHT WINDOWS STUFF ENDED
+
     ls_apps
 }
 
-#[cfg(target_os = "windows")]
-pub fn open_file_with(file_path: PathBuf, app_path: PathBuf) {}
+//#[cfg(target_os = "windows")]
+pub fn open_file_with(file_path: PathBuf, app_path: PathBuf) {
+    let file_path = U16CString::from_vec(file_path.to_string_lossy().encode_utf16().collect::<Vec<_>>());
+    let app_path = U16CString::from_vec(app_path.to_string_lossy().encode_utf16().collect::<Vec<_>>());
+    println!("{:?}", app_path);
+    unsafe {
+        let output = ShellExecuteW(None, PCWSTR(app_path.unwrap().as_ptr()), PCWSTR(file_path.unwrap().as_ptr()), None, None, SW_NORMAL);
+        println!("{:?}", output);
+    }
+}

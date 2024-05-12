@@ -1227,11 +1227,11 @@ async fn add_favorite(arr_favorites: Vec<String>) {
 }
 
 #[tauri::command]
-async fn get_installed_apps() -> Vec<(String, String)> {
-    #[cfg(not(target_os = "macos"))]
-    return vec![];
+async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
+    // #[cfg(not(target_os = "macos"))]
+    // return vec![];
 
-    let list_apps = get_apps();
+    let list_apps = get_apps(extension);
     let mut arr_apps: Vec<(String, String)> = vec![];
     for app in list_apps {
         arr_apps.push((
