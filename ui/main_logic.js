@@ -925,10 +925,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			if (IsPopUpOpen == false) {
 				let appsCMenu = document.querySelector(".context-open-item-with");
 				appsCMenu.innerHTML = "";
-				if (Platform != "darwin" && (Platform.includes("win") || Platform.includes("linux"))) {
+				await getSetInstalledApplications(item.getAttribute("itemext"));
+				if (Platform.includes("linux")) {
 					appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
 				}
-				else {
+				else if (Applications.length > 0) {
 					Applications.forEach(app => {
 						let newItem = document.createElement("button");
 						newItem.innerHTML = app[0].split(".")[0];
@@ -938,7 +939,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 						newItem.addEventListener("click", () => open_with(item.getAttribute("itempath"), app[1]));
 						appsCMenu.appendChild(newItem);
 					});
-				};
+				} else {
+					appsCMenu.innerHTML = "<p>No applications found</p>";
+				}
 
 				// Reset so that the commands are not triggered multiple times
 				ContextMenu.children[0].replaceWith(ContextMenu.children[0].cloneNode(true));
@@ -2901,8 +2904,8 @@ async function open_with(filePath, appPath) {
 	await invoke("open_with", { filePath: filePath, appPath: appPath });
 }
 
-async function getSetInstalledApplications() {
-	await invoke("get_installed_apps").then(apps => Applications = apps);
+async function getSetInstalledApplications(ext) {
+	await invoke("get_installed_apps", {extension: ext}).then(apps => Applications = apps);
 }
 
 function showFindDuplicates(item) {

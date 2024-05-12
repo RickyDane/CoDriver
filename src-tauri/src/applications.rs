@@ -27,9 +27,10 @@ use winreg::{RegKey, HKEY};
 #[derive(Debug, Default, Serialize)]
 pub struct App {
     pub name: String,
-    pub icon_path: Option<PathBuf>,
-    pub app_path_exe: PathBuf, // Path to the .app file for mac, or Exec for Linux, or .exe for Windows
-    pub app_desktop_path: PathBuf, // Path to the .desktop file for Linux, .app for Mac
+    pub icon_path: String,
+    pub operation: String,
+    pub app_path_exe: String, 
+    pub app_desktop_path: String,
 }
 
 // Linux
@@ -60,7 +61,7 @@ pub fn parse_desktop_file(desktop_file_path: PathBuf) -> App {
 }
 
 #[cfg(target_os = "linux")]
-pub fn get_apps() -> Vec<App> {
+pub fn get_apps(extention: String) -> Vec<App> {
     // read XDG_DATA_DIRS env var
     let xdg_data_dirs = std::env::var("XDG_DATA_DIRS").unwrap_or("/usr/share".to_string());
     let xdg_data_dirs: Vec<&str> = xdg_data_dirs.split(':').collect();
@@ -217,7 +218,7 @@ pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-pub fn get_apps() -> Vec<App> {
+pub fn get_apps(extension: String) -> Vec<App> {
     let applications_folder = PathBuf::from("/Applications");
     // iterate this folder
     // for each .app file, create an App struct
@@ -262,132 +263,25 @@ pub fn open_file_with(file_path: PathBuf, app_path: PathBuf) {
 }
 
 // Windows
-
-#[cfg(target_os = "windows")]
-pub struct InstalledApp {
-    reg: RegKey,
-}
-
-#[cfg(target_os = "windows")]
-struct AppList {
-    uninstalls: RegKey,
-    index: usize,
-}
-
-#[cfg(target_os = "windows")]
-impl Iterator for AppList {
-    type Item = InstalledApp;
-    fn next(&mut self) -> Option<Self::Item> {
-        let key = self.uninstalls.enum_keys().nth(self.index)?.ok()?;
-        self.index += 1;
-        let reg = self.uninstalls.open_subkey(key).ok()?;
-        Some(InstalledApp { reg })
-    }
-}
-
-#[cfg(target_os = "windows")]
-impl AppList {
-    fn new(hive: HKEY, path: &str) -> Result<Self, Box<dyn Error>> {
-        let hive = RegKey::predef(hive);
-        let uninstalls = hive.open_subkey(path)?;
-
-        Ok(AppList {
-            uninstalls,
-            index: 0,
-        })
-    }
-}
-
-#[cfg(target_os = "windows")]
-impl InstalledApp {
-    fn get_value(&self, name: &str) -> Cow<str> {
-        self.reg
-            .get_value::<String, &str>(name)
-            .map(Cow::Owned)
-            .unwrap_or_else(|_| Cow::Borrowed(""))
-    }
-    pub fn name(&self) -> Cow<str> {
-        self.get_value("DisplayName")
-    }
-    pub fn path(&self) -> Cow<str> {
-        self.get_value("InstallLocation")
-    }
-    pub fn publisher(&self) -> Cow<str> {
-        self.get_value("Publisher")
-    }
-    pub fn version(&self) -> Cow<str> {
-        self.get_value("DisplayVersion")
-    }
-    pub fn dump(&self) -> String {
-        self.reg
-            .enum_values()
-            .map(|r| {
-                let (name, value) = r.unwrap();
-                format!("{}: {}\n", name, value)
-            })
-            .collect()
-    }
-    pub fn list() -> Result<impl Iterator<Item = InstalledApp>, Box<dyn Error>> {
-        let system_apps = AppList::new(
-            HKEY_LOCAL_MACHINE,
-            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
-        )
-        .ok()
-        .into_iter()
-        .flatten();
-        let _system_apps_32 = AppList::new(
-            HKEY_LOCAL_MACHINE,
-            "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
-        )
-        .ok()
-        .into_iter()
-        .flatten();
-        let user_apps = AppList::new(
-            HKEY_CURRENT_USER,
-            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
-        )
-        .ok()
-        .into_iter()
-        .flatten();
-        // this one may not exist
-        let _user_apps_32 = AppList::new(
-            HKEY_CURRENT_USER,
-            "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
-        )
-        .ok()
-        .into_iter()
-        .flatten();
-
-        let chain = system_apps.chain(user_apps);
-
-        Ok(chain)
-    }
-}
-
 #[cfg(target_os = "windows")]
 use widestring::{U16CString, U16Str};
-#[cfg(target_os = "windows")]
+// #[cfg(target_os = "windows")]
 use windows::{core::{PCWSTR, PWSTR}, Win32::UI::Shell::{AssocQueryStringW, ASSOCF_NONE, ASSOCSTR_EXECUTABLE}};
 const BATCH_SIZE: usize = 4;
 pub fn get_apps(ext: String) -> Vec<App> {
     let mut ls_apps: Vec<App> = vec![];
-    let apps_list = InstalledApp::list();
 
     // SHT WINDOWS STUFF IS STARTING
-    let in_str =
-        U16CString::from_vec(ext.encode_utf16().collect::<Vec<_>>());
+    let in_str = U16CString::from_vec(ext.encode_utf16().collect::<Vec<_>>());
 
     // either ASSOC_FILTER_RECOMMENDED or ASSOC_FILTER_NONE, depending on if you only wish to show
     // the recommended ones
-    let enum_handler =
-        unsafe { SHAssocEnumHandlers(PCWSTR(in_str.unwrap().as_ptr()), ASSOC_FILTER_RECOMMENDED) }.unwrap();
+    let enum_handler = unsafe { SHAssocEnumHandlers(PCWSTR(in_str.unwrap().as_ptr()), ASSOC_FILTER_RECOMMENDED) }.unwrap();
 
     let mut found_associations = Vec::new();
 
     let mut out_buf: [Option<IAssocHandler>; BATCH_SIZE] = [None, None, None, None];
     let mut size_retrieved: u32 = BATCH_SIZE as u32;
-
-    dbg!();
 
     while let Ok(()) = unsafe { enum_handler.Next(out_buf.as_mut(), Some(&mut size_retrieved)) } {
         if size_retrieved == 0 {
@@ -396,35 +290,48 @@ pub fn get_apps(ext: String) -> Vec<App> {
         for i in 0..size_retrieved {
             let assoc = unsafe { std::mem::take(&mut out_buf[i as usize]).unwrap_unchecked() };
 
-            // hier kannste z.b. auch .invoke() ausführen
             let ui_name = unsafe { assoc.GetUIName() }.unwrap();
             let name = unsafe { assoc.GetName() }.unwrap();
 
             ls_apps.push(App {
+                operation: "open".into(),
                 app_desktop_path: U16Str::from_slice(unsafe { name.as_wide() }).to_string().unwrap().into(),
                 app_path_exe: U16Str::from_slice(unsafe { name.as_wide() }).to_string().unwrap().into(),
                 name: U16Str::from_slice(unsafe { ui_name.as_wide() }).to_string().unwrap(),
-                icon_path: Some(PathBuf::from(""))
+                icon_path: "".into()
             });
 
             found_associations.push(U16Str::from_slice(unsafe { ui_name.as_wide() }).to_string().unwrap());
         }
         size_retrieved = BATCH_SIZE as u32;
     }
-
-    dbg!(found_associations);
+    ls_apps.push(App {
+        operation: "open".into(),
+        app_desktop_path: "Rundll32 Shell32.dll,OpenAs_RunDLL".into(),
+        app_path_exe: "Rundll32 Shell32.dll,OpenAs_RunDLL".into(),
+        name: "Open with other".into(),
+        icon_path: "".into()
+    });
     // SHT WINDOWS STUFF ENDED
 
     ls_apps
 }
 
 //#[cfg(target_os = "windows")]
-pub fn open_file_with(file_path: PathBuf, app_path: PathBuf) {
-    let file_path = U16CString::from_vec(file_path.to_string_lossy().encode_utf16().collect::<Vec<_>>());
-    let app_path = U16CString::from_vec(app_path.to_string_lossy().encode_utf16().collect::<Vec<_>>());
-    println!("{:?}", app_path);
+pub fn open_file_with(file_path: String, app_path: String) {
+    let file = U16CString::from_vec(file_path.encode_utf16().collect::<Vec<_>>()).unwrap();
+    let app = U16CString::from_vec(app_path.encode_utf16().collect::<Vec<_>>()).unwrap();
+    println!("file: {} , app: {}", file_path, app_path);
+    if app_path.contains("RunDLL") {
+        Command::new("powershell").args(["-Command", &app_path, &file_path.replace("/", "\\")]).output().expect("");
+        return;
+    } else if (app_path.contains("Fotoanzeige")) {
+
+        Command::new("powershell").args(["-Command", &format!("{}{}", "start ms-photos:viewer?filePath=", &file_path.replace("/", "\\"))]).output().expect("");
+        return;
+    }
     unsafe {
-        let output = ShellExecuteW(None, PCWSTR(app_path.unwrap().as_ptr()), PCWSTR(file_path.unwrap().as_ptr()), None, None, SW_NORMAL);
+        let output = ShellExecuteW(None, PCWSTR(u16cstr!("open").as_ptr()), PCWSTR(app.as_ptr()), PCWSTR(file.as_ptr()), None, SW_NORMAL);
         println!("{:?}", output);
     }
 }

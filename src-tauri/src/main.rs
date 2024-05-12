@@ -1236,7 +1236,7 @@ async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
     for app in list_apps {
         arr_apps.push((
             app.name.clone(),
-            app.app_path_exe.to_str().unwrap().to_string(),
+            app.app_path_exe,
         ));
     }
     return arr_apps;
@@ -1244,7 +1244,7 @@ async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
 
 #[tauri::command]
 async fn open_with(file_path: String, app_path: String) {
-    open_file_with(PathBuf::from(file_path), PathBuf::from(app_path));
+    open_file_with(file_path, app_path);
 }
 
 #[tauri::command]
