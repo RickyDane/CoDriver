@@ -147,8 +147,9 @@
         "transparent": false,
         "height": 650,
         "resizable": true,
-        "title": "",
+        "title": "rdpFX",
         "width": 1050,
+        "hiddenTitle": true,
         "titleBarStyle": "Overlay"
       }
     ],
