@@ -70,7 +70,9 @@ fn main() {
         .setup(|app| {
             #[cfg(target_os = "macos")]
             let win = app.get_window("main").unwrap();
+            #[cfg(target_os = "macos")]
             win.set_transparent_titlebar(true);
+            #[cfg(target_os = "macos")]
             win.position_traffic_lights(20.0, 25.0);
             Ok(())
         })
