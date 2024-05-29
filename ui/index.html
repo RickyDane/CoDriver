@@ -16,21 +16,8 @@
 
 <body>
 	<div class="toast-container"></div>
-    <div data-tauri-drag-region class="titlebar">
-        <div class="titlebar-title"><div class="tab-header"></div></div>
-        <div class="titlebar-buttons">
-            <div class="titlebar-button" id="titlebar-minimize"><i class="fa-solid fa-window-minimize"></i></div>
-            <div class="titlebar-button" id="titlebar-maximize"><i class="fa-regular fa-window-maximize"></i></div>
-            <div class="titlebar-button" id="titlebar-close"><i class="fa-solid fa-xmark"></i></div>
-        </div>
-        <div class="titlebar-buttons-macos">
-            <div class="titlebar-button-macos macos-red-button" id="titlebar-close" style="background-color: rgb(239, 68, 66);"></div>
-            <div class="titlebar-button-macos macos-yellow-button" id="titlebar-minimize" style="background-color:  rgb(243, 174, 17);"></div>
-            <div class="titlebar-button-macos macos-green-button" id="titlebar-maximize" style="background-color: rgb(62, 193, 41);"></div>
-        </div>
-    </div>
-    <div class="header-nav">
-        <div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 65%;">
+    <div data-tauri-drag-region class="header-nav">
+        <div data-tauri-drag-region style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 65%;">
             <button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i></button>
             <p class="nav-seperator-1">|</p>
             <button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
