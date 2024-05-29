@@ -1,7 +1,7 @@
 # cargo-features = ["profile-rustflags"]
 [package]
 name = "app"
-version = "0.4.3"
+version = "0.4.4"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "none"
@@ -17,7 +17,18 @@ tauri-build = { version = "1.5.1", features = [] }
 chrono = "0.4.26"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.6", features = [ "http-all", "os-all", "macos-private-api", "cli", "clipboard-all", "protocol-all", "path-all", "window-all", "dialog-all", "fs-all"] }
+tauri = { version = "1.6", features = [
+    "http-all",
+    "os-all",
+    "macos-private-api",
+    "cli",
+    "clipboard-all",
+    "protocol-all",
+    "path-all",
+    "window-all",
+    "dialog-all",
+    "fs-all",
+] }
 open = "5.0.0"
 rust_search = "2.1.0"
 stopwatch = "0.0.7"
@@ -51,16 +62,22 @@ lazy_static = "1.4.0"
 suppaftp = { version = "=5.3.1", features = ["async"] }
 tokio = "1.37.0"
 widestring = "1.1.0"
-windows = { version = "0.56.0", features = ["Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+windows = { version = "0.56.0", features = [
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+cocoa = "0.25.0"
+objc = "0.2.7"
+sel = "0.1.1"
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
 
 [profile.release]
-panic = "abort" # Strip expensive panic clean-up logic
+panic = "abort"   # Strip expensive panic clean-up logic
 codegen-units = 1 # Compile crates one after another so the compiler can optimize better
-lto = true # Enables link to optimizations
-opt-level = "s" # Optimize for binary size
-strip = true # Remove debug symbols
+lto = true        # Enables link to optimizations
+opt-level = "s"   # Optimize for binary size
+strip = true      # Remove debug symbols
 
 [profile.dev]
 # rustflags = ["-Z", "threads=3"]
@@ -69,4 +86,4 @@ strip = true # Remove debug symbols
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
 # DO NOT REMOVE!!
-custom-protocol = [ "tauri/custom-protocol" ]
+custom-protocol = ["tauri/custom-protocol"]

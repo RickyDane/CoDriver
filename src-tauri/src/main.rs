@@ -15,7 +15,6 @@ use std::{
 };
 use stopwatch::Stopwatch;
 use suppaftp::{AsyncFtpStream, FtpError, FtpStream};
-use tauri::Window;
 use tauri::{
     api::path::{
         app_config_dir, audio_dir, config_dir, desktop_dir, document_dir, download_dir, home_dir,
@@ -23,6 +22,7 @@ use tauri::{
     },
     Config,
 };
+use tauri::{Manager, Window};
 use unrar::Archive;
 use zip::write::FileOptions;
 use zip_extensions::*;
@@ -34,6 +34,8 @@ use utils::{
     copy_to, count_entries, dbg_log, err_log, format_bytes, unpack_tar, wng_log, DirWalker,
     DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER,
 };
+mod window_tauri_ext;
+use window_tauri_ext::WindowExt;
 mod applications;
 use applications::{get_apps, open_file_with};
 use archiver_rs::Compressed;
@@ -63,6 +65,12 @@ const ASSET_LOCATION: &str = "asset://localhost/";
 
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            let win = app.get_window("main").unwrap();
+            win.set_transparent_titlebar(true);
+            win.position_traffic_lights(20.0, 25.0);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             list_dirs,
             open_dir,
@@ -1234,10 +1242,7 @@ async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
     let list_apps = get_apps(extension);
     let mut arr_apps: Vec<(String, String)> = vec![];
     for app in list_apps {
-        arr_apps.push((
-            app.name.clone(),
-            app.app_path_exe,
-        ));
+        arr_apps.push((app.name.clone(), app.app_path_exe));
     }
     return arr_apps;
 }
