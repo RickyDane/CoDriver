@@ -3054,8 +3054,8 @@ async function insertSiteNavButtons() {
 		["Documents", await getDir(2), "fa-solid fa-file", () => goToDir(2)],
 		["Pictures", await getDir(3), "fa-solid fa-image", () => goToDir(3)],
 		["Videos", await getDir(4), "fa-solid fa-video", () => goToDir(4)],
-		["Music", await getDir(5), "fa-solid fa-music", () => goToDir(5)],
-		["FTP", "", "fa-solid fa-network-wired", showFtpConfig]
+		["Music", await getDir(5), "fa-solid fa-music", () => goToDir(5)]
+		// ["FTP", "", "fa-solid fa-network-wired", showFtpConfig]
 	];
 
 	for (let i = 0; i < siteNavButtons.length; i++) {
