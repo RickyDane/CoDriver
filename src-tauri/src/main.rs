@@ -34,7 +34,9 @@ use utils::{
     copy_to, count_entries, dbg_log, err_log, format_bytes, unpack_tar, wng_log, DirWalker,
     DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER,
 };
+#[cfg(target_os = "macos")]
 mod window_tauri_ext;
+#[cfg(target_os = "macos")]
 use window_tauri_ext::WindowExt;
 mod applications;
 use applications::{get_apps, open_file_with};
@@ -66,6 +68,7 @@ const ASSET_LOCATION: &str = "asset://localhost/";
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
+            #[cfg(target_os = "macos")]
             let win = app.get_window("main").unwrap();
             win.set_transparent_titlebar(true);
             win.position_traffic_lights(20.0, 25.0);
