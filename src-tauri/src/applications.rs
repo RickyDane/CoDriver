@@ -41,27 +41,27 @@ pub struct App {
 // Linux
 
 #[cfg(target_os = "linux")]
-pub fn parse_desktop_file(desktop_file_path: PathBuf) -> App {
+pub fn parse_desktop_file(desktop_file_path: String) -> App {
     let mut app = App::default();
-    app.app_desktop_path = desktop_file_path.clone();
-    let desktop_file_path_str = desktop_file_path.to_str().unwrap();
-    let map = ini!(desktop_file_path_str);
-    let desktop_entry_exists = map.contains_key("desktop entry");
-    if desktop_entry_exists {
-        let desktop_entry = map["desktop entry"].clone();
-        if desktop_entry.contains_key("exec") {
-            let exec = desktop_entry["exec"].clone();
-            app.app_path_exe = PathBuf::from(exec.unwrap());
-        }
-        if desktop_entry.contains_key("icon") {
-            let icon = desktop_entry["icon"].clone();
-            app.icon_path = Some(PathBuf::from(icon.unwrap()));
-        }
-        if desktop_entry.contains_key("name") {
-            let name = desktop_entry["name"].clone();
-            app.name = name.unwrap();
-        }
-    }
+    // app.app_desktop_path = desktop_file_path.clone();
+    // let desktop_file_path_str = desktop_file_path.to_str().unwrap();
+    // let map = ini!(desktop_file_path_str);
+    // let desktop_entry_exists = map.contains_key("desktop entry");
+    // if desktop_entry_exists {
+    //     let desktop_entry = map["desktop entry"].clone();
+    //     if desktop_entry.contains_key("exec") {
+    //         let exec = desktop_entry["exec"].clone();
+    //         app.app_path_exe = PathBuf::from(exec.unwrap());
+    //     }
+    //     if desktop_entry.contains_key("icon") {
+    //         let icon = desktop_entry["icon"].clone();
+    //         app.icon_path = Some(PathBuf::from(icon.unwrap()));
+    //     }
+    //     if desktop_entry.contains_key("name") {
+    //         let name = desktop_entry["name"].clone();
+    //         app.name = name.unwrap();
+    //     }
+    // }
     return app;
 }
 
