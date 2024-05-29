@@ -1631,7 +1631,7 @@ async function applyPlatformFeatures() {
 		// $(".titlebar-buttons-macos").css("display", "flex");
 		// document.querySelectorAll(".titlebar-button").forEach(item => item.style.display = "none");
 		let headerNav = document.querySelector(".header-nav");
-		headerNav.style.paddingLeft = "75px";
+		headerNav.style.paddingLeft = "85px";
 		headerNav.style.backgroundColor = SecondaryColor;
 		// headerNav.style.borderBottom = "none";
 		headerNav.style.boxShadow = "none";
