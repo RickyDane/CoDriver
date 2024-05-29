@@ -77,6 +77,7 @@ fn main() {
             Ok(())
         })
         .on_window_event(|e| {
+            #[cfg(target_os = "macos")]
             if let WindowEvent::Resized(..) = e.event() {
                 let win = e.window();
                 win.position_traffic_lights(20.0, 25.0);
