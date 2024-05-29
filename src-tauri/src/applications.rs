@@ -244,10 +244,7 @@ pub fn get_apps(extension: String) -> Vec<App> {
                 // search for .icns in Contents/Resources
                 let app = App {
                     name: path.file_name().unwrap().to_string_lossy().into_owned(),
-                    icon_path: find_app_icns(path.clone())
-                        .unwrap()
-                        .to_string_lossy()
-                        .into(),
+                    icon_path: "".into(),
                     app_path_exe: path.to_string_lossy().clone().into(),
                     app_desktop_path: path.to_string_lossy().clone().into(),
                     operation: "open".into(),
