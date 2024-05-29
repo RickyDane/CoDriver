@@ -10,7 +10,6 @@ use stopwatch::Stopwatch;
 use tar::Archive as TarArchive;
 use tauri::Window;
 
-use crate::get_current_connection;
 #[allow(unused_imports)]
 use crate::ISCANCELED;
 

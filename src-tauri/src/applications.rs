@@ -120,6 +120,7 @@ pub fn open_file_with(file_path: String, exec_path: String) {
 // macOS
 
 #[cfg(target_os = "macos")]
+#[allow(unused)]
 fn find_ios_app_icon(app_path: PathBuf) -> Option<PathBuf> {
     // find all png files in the app_path, search for AppIcon ignore case in the pngs
     let mut all_icons: Vec<PathBuf> = vec![];
@@ -167,6 +168,7 @@ fn find_ios_app_icon(app_path: PathBuf) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
+#[allow(unused)]
 pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
     // default location: Contents/Resources/AppIcon.icns
     let contents_path = app_path.join("Contents");
@@ -224,7 +226,7 @@ pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-pub fn get_apps(extension: String) -> Vec<App> {
+pub fn get_apps(_extension: String) -> Vec<App> {
     let applications_folder = PathBuf::from("/Applications");
     // iterate this folder
     // for each .app file, create an App struct

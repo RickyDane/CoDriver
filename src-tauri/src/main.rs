@@ -7,14 +7,14 @@ use flate2::read::GzDecoder;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
 use std::fs::{self, ReadDir};
-use std::io::{BufRead, BufReader, Cursor, Read, Write};
+use std::io::{BufReader, Read, Write};
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_dir_all, remove_file, File},
     path::PathBuf,
 };
 use stopwatch::Stopwatch;
-use suppaftp::{AsyncFtpStream, FtpError, FtpStream};
+use suppaftp::{FtpError, FtpStream};
 use tauri::{
     api::path::{
         app_config_dir, audio_dir, config_dir, desktop_dir, document_dir, download_dir, home_dir,
@@ -22,7 +22,7 @@ use tauri::{
     },
     Config,
 };
-use tauri::{Manager, Window};
+use tauri::{Manager, Window, WindowEvent};
 use unrar::Archive;
 use zip::write::FileOptions;
 use zip_extensions::*;
@@ -75,6 +75,12 @@ fn main() {
             #[cfg(target_os = "macos")]
             win.position_traffic_lights(20.0, 25.0);
             Ok(())
+        })
+        .on_window_event(|e| {
+            if let WindowEvent::Resized(..) = e.event() {
+                let win = e.window();
+                win.position_traffic_lights(20.0, 25.0);
+            }
         })
         .invoke_handler(tauri::generate_handler![
             list_dirs,
@@ -602,7 +608,7 @@ async fn arr_copy_ftp(arr_items: Vec<FDir>) -> Result<(), FtpError> {
     for item in arr_items {
         let item_path = item.path;
         dbg_log(format!("Path: {:?}", item_path));
-        let filename = item_path
+        let _filename = item_path
             .replace("\\", "/")
             .split("/")
             .last()
