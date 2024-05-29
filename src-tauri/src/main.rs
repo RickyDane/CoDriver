@@ -1252,6 +1252,7 @@ async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
 
 #[tauri::command]
 async fn open_with(file_path: String, app_path: String) {
+    #[cfg(not(target_os = "linux"))]
     open_file_with(file_path, app_path);
 }
 
