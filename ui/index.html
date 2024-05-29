@@ -16,21 +16,8 @@
 
 <body>
 	<div class="toast-container"></div>
-    <div data-tauri-drag-region class="titlebar">
-        <div class="titlebar-title"><div class="tab-header"></div></div>
-        <div class="titlebar-buttons">
-            <div class="titlebar-button" id="titlebar-minimize"><i class="fa-solid fa-window-minimize"></i></div>
-            <div class="titlebar-button" id="titlebar-maximize"><i class="fa-regular fa-window-maximize"></i></div>
-            <div class="titlebar-button" id="titlebar-close"><i class="fa-solid fa-xmark"></i></div>
-        </div>
-        <div class="titlebar-buttons-macos">
-            <div class="titlebar-button-macos macos-red-button" id="titlebar-close" style="background-color: rgb(239, 68, 66);"></div>
-            <div class="titlebar-button-macos macos-yellow-button" id="titlebar-minimize" style="background-color:  rgb(243, 174, 17);"></div>
-            <div class="titlebar-button-macos macos-green-button" id="titlebar-maximize" style="background-color: rgb(62, 193, 41);"></div>
-        </div>
-    </div>
-    <div class="header-nav">
-        <div style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 65%;">
+    <div data-tauri-drag-region class="header-nav">
+        <div data-tauri-drag-region style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 65%;">
             <button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i></button>
             <p class="nav-seperator-1">|</p>
             <button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
@@ -50,9 +37,6 @@
     </div>
     <div class="main-container">
         <div class="site-nav-bar">
-            <!-- <div class="horizontal-seperator"></div> -->
-            <!-- Future ftp - integration -->
-            <!-- <button class="site-nav-bar-button" onclick="showFtpConfig()"><i class="fa-solid fa-network-wired"></i> FTP</button> -->
         </div>
         <div class="list-column-header">
             <button class="list-column-header-button" style="margin-left: 20px;" onclick="sortItems('name')">Name</button>
@@ -104,7 +88,7 @@
                 <i class="fa-solid fa-gears"></i>
                 <p>Settings</p>
             </span>
-            <button class="button" onclick="showAppInfo()"><i class="fa-solid fa-info"></i></button>
+            <button class="button settings-ui-button" onclick="showAppInfo()"><i class="fa-solid fa-info"></i></button>
         </div>
         <div class="settings-ui-body">
             <h3>Shortcuts</h3>
@@ -198,26 +182,37 @@
             </button>
         </div>
     </div>
-    <div class="ftp-connect-container">
-        <div class="settings-ui-header">
+    <div class="ftp-connect-container uni-popup">
+        <div class="popup-header">
             <span style="display: flex; gap: 20px; align-items: center;">
                 <i class="fa-solid fa-gears"></i>
                 <p>FTP - Connection</p>
             </span>
         </div>
-        <div class="settings-ui-body">
-            <p>Hostname</p>
-            <input type="text" class="text-input ftp-hostname-input" placeholder="127.0.0.1" required />
-            <p>Username</p>
-            <input type="text" class="text-input ftp-username-input" placeholder="user" required />
-            <p>Password</p>
-            <input type="password" class="text-input ftp-password-input" placeholder="*********" required />
-            <br><br>
-            <span class="settings-ui-body-buttons">
-                <button class="button" onclick="closeFtpConfig()"><i class="fa-solid fa-ban"></i>Cancel</button>
-                <button class="button" onclick="connectToFtp()"><i class="fa-solid fa-forward"></i>Connect</button>
-            </span>
+        <div class="popup-body">
+			<div class="popup-body-row-section">
+				<div class="popup-body-col-section">
+					<p>Hostname</p>
+					<input type="text" class="text-input ftp-hostname-input" placeholder="127.0.0.1" required />
+				</div>
+			</div>
+			<div class="popup-body-row-section">
+				<div class="popup-body-col-section">
+					<p>Username</p>
+					<input type="text" class="text-input ftp-username-input" placeholder="user" required />
+				</div>
+			</div>
+			<div class="popup-body-row-section">
+				<div class="popup-body-col-section">
+					<p>Password</p>
+					<input type="password" class="text-input ftp-password-input" placeholder="*********" required />
+				</div>
+			</div>
         </div>
+		<span class="popup-controls">
+			<button class="icon-button" onclick="closeFtpConfig()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
+			<button class="icon-button" onclick="connectToFtp()"><span class="button-icon"><i class="fa-solid fa-forward"></i></span>Connect</button>
+		</span>
     </div>
     <div class="progress-bar-container-popup">
         <div class="progress-bar">

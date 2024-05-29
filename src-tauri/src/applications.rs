@@ -1,28 +1,41 @@
 #[allow(unused)]
-use std::collections::HashSet;
-#[allow(unused)]
-use std::{borrow::Cow, error::Error};
-#[allow(unused)]
-use std::path::PathBuf;
-#[allow(unused)]
-use walkdir::WalkDir;
-#[allow(unused)]
 use ini::ini;
 #[allow(unused)]
 use serde::Serialize;
 #[allow(unused)]
+use std::collections::HashSet;
+#[allow(unused)]
+use std::path::PathBuf;
 #[cfg(target_os = "windows")]
-use winreg::{RegKey, HKEY};
+use std::process::Command;
+#[cfg(target_os = "windows")]
+use std::thread::sleep;
+#[allow(unused)]
+use std::{borrow::Cow, error::Error};
+#[allow(unused)]
+use walkdir::WalkDir;
+#[cfg(target_os = "windows")]
+use widestring::u16cstr;
+#[cfg(target_os = "windows")]
+use windows::Win32::UI::Shell::{
+    IAssocHandler, SHAssocEnumHandlers, ShellExecuteW, ASSOC_FILTER_RECOMMENDED,
+};
+#[cfg(target_os = "windows")]
+use windows::Win32::UI::WindowsAndMessaging::SW_NORMAL;
 #[allow(unused)]
 #[cfg(target_os = "windows")]
 use winreg::enums::*;
+#[allow(unused)]
+#[cfg(target_os = "windows")]
+use winreg::{RegKey, HKEY};
 
 #[derive(Debug, Default, Serialize)]
 pub struct App {
     pub name: String,
-    pub icon_path: Option<PathBuf>,
-    pub app_path_exe: PathBuf, // Path to the .app file for mac, or Exec for Linux, or .exe for Windows
-    pub app_desktop_path: PathBuf, // Path to the .desktop file for Linux, .app for Mac
+    pub icon_path: String,
+    pub operation: String,
+    pub app_path_exe: String,
+    pub app_desktop_path: String,
 }
 
 // Linux
@@ -53,7 +66,7 @@ pub fn parse_desktop_file(desktop_file_path: PathBuf) -> App {
 }
 
 #[cfg(target_os = "linux")]
-pub fn get_apps() -> Vec<App> {
+pub fn get_apps(extention: String) -> Vec<App> {
     // read XDG_DATA_DIRS env var
     let xdg_data_dirs = std::env::var("XDG_DATA_DIRS").unwrap_or("/usr/share".to_string());
     let xdg_data_dirs: Vec<&str> = xdg_data_dirs.split(':').collect();
@@ -62,7 +75,7 @@ pub fn get_apps() -> Vec<App> {
     search_dirs.insert("/usr/share/applications");
     // get home dir of current user
     let home_dir = std::env::var("HOME").unwrap();
-    let mut home_path = PathBuf::from(home_dir);
+    let home_path = PathBuf::from(home_dir);
     let local_share_apps = home_path.join(".local/share/applications");
     search_dirs.insert(local_share_apps.to_str().unwrap());
     search_dirs.insert("/usr/share/xsessions");
@@ -181,11 +194,9 @@ pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
     }
     if all_icons.len() == 1 {
         Some(all_icons[0].clone())
-    }
-    else if all_icons.len() == 0 {
+    } else if all_icons.len() == 0 {
         None
-    }
-    else {
+    } else {
         // more than one icon found
         // search for appicon in name, ignore case
         // sort all_icons by path length, shortest first
@@ -213,7 +224,7 @@ pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-pub fn get_apps() -> Vec<App> {
+pub fn get_apps(extension: String) -> Vec<App> {
     let applications_folder = PathBuf::from("/Applications");
     // iterate this folder
     // for each .app file, create an App struct
@@ -233,9 +244,10 @@ pub fn get_apps() -> Vec<App> {
                 // search for .icns in Contents/Resources
                 let app = App {
                     name: path.file_name().unwrap().to_string_lossy().into_owned(),
-                    icon_path: find_app_icns(path.clone()),
-                    app_path_exe: path.clone(),
-                    app_desktop_path: path.clone(),
+                    icon_path: "".into(),
+                    app_path_exe: path.to_string_lossy().clone().into(),
+                    app_desktop_path: path.to_string_lossy().clone().into(),
+                    operation: "open".into(),
                 };
                 apps.push(app);
             }
@@ -248,7 +260,7 @@ pub fn get_apps() -> Vec<App> {
 /// For example, opening `main.rs` with VSCode: `open -a "Visual Studio Code" main.rs`, where "Visual Studio Code.app" is the app folder name.
 /// The `.app` can be included or discarded in the `open` command.
 #[cfg(target_os = "macos")]
-pub fn open_file_with(file_path: PathBuf, app_path: PathBuf) {
+pub fn open_file_with(file_path: String, app_path: String) {
     let mut command = std::process::Command::new("open");
     command.arg("-a");
     command.arg(app_path);
@@ -258,126 +270,113 @@ pub fn open_file_with(file_path: PathBuf, app_path: PathBuf) {
 }
 
 // Windows
-
 #[cfg(target_os = "windows")]
-pub struct InstalledApp {
-    reg: RegKey,
-}
-
+use widestring::{U16CString, U16Str};
 #[cfg(target_os = "windows")]
-struct AppList {
-    uninstalls: RegKey,
-    index: usize,
-}
-
+use windows::{
+    core::{PCWSTR, PWSTR},
+    Win32::UI::Shell::{AssocQueryStringW, ASSOCF_NONE, ASSOCSTR_EXECUTABLE},
+};
 #[cfg(target_os = "windows")]
-impl Iterator for AppList {
-    type Item = InstalledApp;
-    fn next(&mut self) -> Option<Self::Item> {
-        let key = self.uninstalls.enum_keys().nth(self.index)?.ok()?;
-        self.index += 1;
-        let reg = self.uninstalls.open_subkey(key).ok()?;
-        Some(InstalledApp { reg })
-    }
-}
-
+const BATCH_SIZE: usize = 4;
 #[cfg(target_os = "windows")]
-impl AppList {
-    fn new(hive: HKEY, path: &str) -> Result<Self, Box<dyn Error>> {
-        let hive = RegKey::predef(hive);
-        let uninstalls = hive.open_subkey(path)?;
-
-        Ok(AppList {
-            uninstalls,
-            index: 0,
-        })
-    }
-}
-
-#[cfg(target_os = "windows")]
-impl InstalledApp {
-    fn get_value(&self, name: &str) -> Cow<str> {
-        self.reg
-            .get_value::<String, &str>(name)
-            .map(Cow::Owned)
-            .unwrap_or_else(|_| Cow::Borrowed(""))
-    }
-    pub fn name(&self) -> Cow<str> {
-        self.get_value("DisplayName")
-    }
-    pub fn path(&self) -> Cow<str> {
-        self.get_value("InstallLocation")
-    }
-    pub fn publisher(&self) -> Cow<str> {
-        self.get_value("Publisher")
-    }
-    pub fn version(&self) -> Cow<str> {
-        self.get_value("DisplayVersion")
-    }
-    pub fn dump(&self) -> String {
-        self.reg
-            .enum_values()
-            .map(|r| {
-                let (name, value) = r.unwrap();
-                format!("{}: {}\n", name, value)
-            })
-            .collect()
-    }
-    pub fn list() -> Result<impl Iterator<Item = InstalledApp>, Box<dyn Error>> {
-        let system_apps = AppList::new(
-            HKEY_LOCAL_MACHINE,
-            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
-        )
-        .ok()
-        .into_iter()
-        .flatten();
-        let _system_apps_32 = AppList::new(
-            HKEY_LOCAL_MACHINE,
-            "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
-        )
-        .ok()
-        .into_iter()
-        .flatten();
-        let user_apps = AppList::new(
-            HKEY_CURRENT_USER,
-            "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
-        )
-        .ok()
-        .into_iter()
-        .flatten();
-        // this one may not exist
-        let _user_apps_32 = AppList::new(
-            HKEY_CURRENT_USER,
-            "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
-        )
-        .ok()
-        .into_iter()
-        .flatten();
-
-        let chain = system_apps.chain(user_apps);
-
-        Ok(chain)
-    }
-}
-
-#[cfg(target_os = "windows")]
-pub fn get_apps() -> Vec<App> {
-
+pub fn get_apps(ext: String) -> Vec<App> {
     let mut ls_apps: Vec<App> = vec![];
-    let apps_list = InstalledApp::list();
 
-    for app in apps_list.unwrap() {
-        if &app.name() != &"" && !&app.name().contains("{}") {
-            ls_apps.push(App {
-                name: app.name().to_string(),
-                app_path_exe: PathBuf::from(app.path().to_string()),
-                app_desktop_path: "".into(),
-                icon_path: Option::from(PathBuf::from(""))
-            });
+    // SHT WINDOWS STUFF IS STARTING
+    let in_str = U16CString::from_vec(ext.encode_utf16().collect::<Vec<_>>());
+
+    // either ASSOC_FILTER_RECOMMENDED or ASSOC_FILTER_NONE, depending on if you only wish to show
+    // the recommended ones
+    let enum_handler =
+        unsafe { SHAssocEnumHandlers(PCWSTR(in_str.unwrap().as_ptr()), ASSOC_FILTER_RECOMMENDED) }
+            .unwrap();
+
+    let mut found_associations = Vec::new();
+
+    let mut out_buf: [Option<IAssocHandler>; BATCH_SIZE] = [None, None, None, None];
+    let mut size_retrieved: u32 = BATCH_SIZE as u32;
+
+    while let Ok(()) = unsafe { enum_handler.Next(out_buf.as_mut(), Some(&mut size_retrieved)) } {
+        if size_retrieved == 0 {
+            break;
         }
+        for i in 0..size_retrieved {
+            let assoc = unsafe { std::mem::take(&mut out_buf[i as usize]).unwrap_unchecked() };
+
+            let ui_name = unsafe { assoc.GetUIName() }.unwrap();
+            let name = unsafe { assoc.GetName() }.unwrap();
+
+            ls_apps.push(App {
+                operation: "open".into(),
+                app_desktop_path: U16Str::from_slice(unsafe { name.as_wide() })
+                    .to_string()
+                    .unwrap()
+                    .into(),
+                app_path_exe: U16Str::from_slice(unsafe { name.as_wide() })
+                    .to_string()
+                    .unwrap()
+                    .into(),
+                name: U16Str::from_slice(unsafe { ui_name.as_wide() })
+                    .to_string()
+                    .unwrap(),
+                icon_path: "".into(),
+            });
+
+            found_associations.push(
+                U16Str::from_slice(unsafe { ui_name.as_wide() })
+                    .to_string()
+                    .unwrap(),
+            );
+        }
+        size_retrieved = BATCH_SIZE as u32;
     }
+    ls_apps.push(App {
+        operation: "open".into(),
+        app_desktop_path: "Rundll32 Shell32.dll,OpenAs_RunDLL".into(),
+        app_path_exe: "Rundll32 Shell32.dll,OpenAs_RunDLL".into(),
+        name: "Open with other".into(),
+        icon_path: "".into(),
+    });
+    // SHT WINDOWS STUFF ENDED
+
     ls_apps
 }
 
 #[cfg(target_os = "windows")]
-pub fn open_file_with(file_path: PathBuf, app_path: PathBuf) {}
+pub fn open_file_with(file_path: String, app_path: String) {
+    let file = U16CString::from_vec(file_path.encode_utf16().collect::<Vec<_>>()).unwrap();
+    let app = U16CString::from_vec(app_path.encode_utf16().collect::<Vec<_>>()).unwrap();
+    println!("file: {} , app: {}", file_path, app_path);
+    if app_path.contains("RunDLL") {
+        Command::new("powershell")
+            .args(["-Command", &app_path, &file_path.replace("/", "\\")])
+            .output()
+            .expect("");
+        return;
+    } else if (app_path.contains("Fotoanzeige")) {
+        Command::new("powershell")
+            .args([
+                "-Command",
+                &format!(
+                    "{}{}",
+                    "start ms-photos:viewer?filePath=",
+                    &file_path.replace("/", "\\")
+                ),
+            ])
+            .output()
+            .expect("");
+        return;
+    }
+    unsafe {
+        let output = ShellExecuteW(
+            None,
+            PCWSTR(u16cstr!("open").as_ptr()),
+            PCWSTR(app.as_ptr()),
+            PCWSTR(file.as_ptr()),
+            None,
+            SW_NORMAL,
+        );
+        println!("{:?}", output);
+    }
+}

@@ -8,11 +8,13 @@
   },
   "package": {
     "productName": "rdpFX",
-    "version": "0.4.3"
+    "version": "0.4.4"
   },
   "tauri": {
     "bundle": {
-      "resources": ["resources/*"],
+      "resources": [
+        "resources/*"
+      ],
       "active": true,
       "category": "DeveloperTool",
       "copyright": "",
@@ -56,7 +58,10 @@
         "removeFile": true,
         "renameFile": true,
         "exists": true,
-        "scope": ["**", "$RESOURCE/*"]
+        "scope": [
+          "**",
+          "$RESOURCE/*"
+        ]
       },
       "http": {
         "all": true,
@@ -118,7 +123,9 @@
       "protocol": {
         "asset": true,
         "assetScope": {
-          "allow": ["**"],
+          "allow": [
+            "**"
+          ],
           "requireLiteralLeadingDot": false
         },
         "all": true
@@ -141,7 +148,9 @@
         "height": 650,
         "resizable": true,
         "title": "rdpFX",
-        "width": 1050
+        "width": 1050,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay"
       }
     ],
     "cli": {
