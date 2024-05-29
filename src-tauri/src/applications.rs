@@ -107,14 +107,14 @@ pub fn get_apps(extention: String) -> Vec<App> {
 }
 
 #[cfg(target_os = "linux")]
-pub fn open_file_with(file_path: PathBuf, exec_path: PathBuf) {
-    let exec_path_str = exec_path.to_str().unwrap();
-    let file_path_str = file_path.to_str().unwrap();
-    let output = std::process::Command::new(exec_path_str)
-        .arg(file_path_str)
-        .output()
-        .expect("failed to execute process");
-    println!("Output: {:?}", output);
+pub fn open_file_with(file_path: String, exec_path: String) {
+    // let exec_path_str = exec_path.to_str().unwrap();
+    // let file_path_str = file_path.to_str().unwrap();
+    // let output = std::process::Command::new(exec_path_str)
+    //     .arg(file_path_str)
+    //     .output()
+    //     .expect("failed to execute process");
+    // println!("Output: {:?}", output);
 }
 
 // macOS
