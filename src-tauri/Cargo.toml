@@ -66,9 +66,10 @@ windows = { version = "0.56.0", features = [
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
 ] }
+#[cfg(target_os = "macos")]
 cocoa = "0.25.0"
+#[cfg(target_os = "macos")]
 objc = "0.2.7"
-sel = "0.1.1"
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
 
