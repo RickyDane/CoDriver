@@ -14,8 +14,8 @@ jobs:
         settings:
           #- platform: 'macos-latest'
            # args: '--target aarch64-apple-darwin' # for Arm based macs (M1 and above)
-          - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin' # for Intel based macs
+          - platform: 'macos-13'
+            # args: '--target x86_64-apple-darwin' # for Intel based macs
           - platform: 'ubuntu-20.04'
           - platform: 'windows-latest'
 
