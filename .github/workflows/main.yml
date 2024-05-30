@@ -12,10 +12,10 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          #- platform: 'macos-latest' # for Arm based macs (M1 and above).
-           # args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest' # for Intel based macs.
-            args: '--target x86_64-apple-darwin'
+          #- platform: 'macos-latest'
+           # args: '--target aarch64-apple-darwin' # for Arm based macs (M1 and above)
+          - platform: 'macos-latest'
+            # args: '--target x86_64-apple-darwin' # for Intel based macs
           - platform: 'ubuntu-20.04'
           - platform: 'windows-latest'
 
