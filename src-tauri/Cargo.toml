@@ -61,17 +61,17 @@ mio = "0.8.11"
 lazy_static = "1.4.0"
 suppaftp = { version = "=5.3.1", features = ["async"] }
 tokio = "1.37.0"
-widestring = "1.1.0"
-windows = { version = "0.56.0", features = [
-    "Win32_UI_Shell",
-    "Win32_UI_WindowsAndMessaging",
-] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"
 objc = "0.2.7"
 
 [target.'cfg(windows)'.dependencies]
+widestring = "1.1.0"
+windows = { version = "0.56.0", features = [
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
 winreg = "0.52"
 
 [profile.dev]
