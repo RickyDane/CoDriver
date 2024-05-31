@@ -13,11 +13,13 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
-            args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest' # for Intel based macs.
-            args: '--target x86_64-apple-darwin'
-          - platform: 'ubuntu-20.04' # for Tauri v1 you could replace this with ubuntu-20.04.
+          # - platform: 'macos-latest' # for Arm based macs (M1 and above).
+            # args: '--target aarch64-apple-darwin'
+          # - platform: 'macos-latest' # for Intel based macs.
+            # args: '--target x86_64-apple-darwin'
+          - platform: 'macos-latest'
+            args: '--target universal-apple-darwin'
+          - platform: 'ubuntu-20.04' # for Tauri v2: ubuntu-22.04.
             args: ''
           - platform: 'windows-latest'
             args: ''
@@ -31,13 +33,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
-        # webkitgtk 4.0 is for Tauri v1 - webkitgtk 4.1 is for Tauri v2.
-        # You can remove the one that doesn't apply to your app to speed up the workflow a bit.
+        # webkitgtk 4.0 for Tauri v1 - webkitgtk 4.1 for Tauri v2.
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
           targets: ${{ matrix.settings.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
