@@ -8,6 +8,7 @@ use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::Value;
 use std::fs::{self, ReadDir};
 use std::io::{BufReader, Read, Write};
+use std::process::{Command, Stdio};
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_dir_all, remove_file, File},
@@ -15,6 +16,7 @@ use std::{
 };
 use stopwatch::Stopwatch;
 use suppaftp::{FtpError, FtpStream};
+use tauri::Window;
 use tauri::{
     api::path::{
         app_config_dir, audio_dir, config_dir, desktop_dir, document_dir, download_dir, home_dir,
@@ -22,7 +24,6 @@ use tauri::{
     },
     Config,
 };
-use tauri::{Manager, Window, WindowEvent};
 use unrar::Archive;
 use zip::write::FileOptions;
 use zip_extensions::*;
@@ -41,6 +42,7 @@ use window_tauri_ext::WindowExt;
 mod applications;
 use applications::{get_apps, open_file_with};
 use archiver_rs::Compressed;
+mod rdpfs;
 use substring::Substring;
 
 // Global ftp variables
@@ -67,7 +69,7 @@ const ASSET_LOCATION: &str = "asset://localhost/";
 
 fn main() {
     tauri::Builder::default()
-        .setup(|app| {
+        .setup(|_| {
             #[cfg(target_os = "macos")]
             let win = app.get_window("main").unwrap();
             #[cfg(target_os = "macos")]
@@ -76,7 +78,7 @@ fn main() {
             win.position_traffic_lights(20.0, 25.0);
             Ok(())
         })
-        .on_window_event(|e| {
+        .on_window_event(|_| {
             #[cfg(target_os = "macos")]
             if let WindowEvent::Resized(..) = e.event() {
                 let win = e.window();
@@ -430,45 +432,47 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
 
 // :ftp
 #[tauri::command]
-async fn open_ftp(hostname: String, username: String, password: String) -> Vec<FDir> {
-    // Initialize ftp arguments
-    unsafe {
-        USERNAME = username.clone();
-        PASSWORD = password.clone();
-        HOSTNAME = hostname.clone();
-    }
-    let mut ftp_stream = FtpStream::connect(hostname).unwrap();
-    let _ = &ftp_stream
-        .login(username.as_str(), password.as_str())
-        .unwrap();
-    let ftp_dir = ftp_stream.pwd().unwrap();
-    let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).unwrap();
+async fn open_ftp(
+    hostname: String,
+    username: String,
+    password: String,
+    remote_path: String,
+    mount_point: String,
+) -> Vec<FDir> {
+    let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
-    // Get the current directory that the client will be reading from and writing to.
-    dbg_log(format!("Current dir: {:?}", &ftp_dir));
+    // Ensure the local mount point exists
+    std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
 
-    let mut dir_list: Vec<FDir> = Vec::new();
+    // Start sshfs process
+    let mut child = Command::new("sshfs")
+        .arg(&remote_address)
+        .arg(&mount_point)
+        .arg("-o")
+        .arg("password_stdin")
+        .stdin(Stdio::piped())
+        .spawn()
+        .expect("Failed to start sshfs process");
 
-    for item in ftp_dir_list {
-        let name = &item.split("/").last().unwrap().to_string();
-        let mod_date = &ftp_stream.mdtm(&item).unwrap_or_default();
-        let size = &ftp_stream.size(&item).unwrap_or_default();
-        let is_dir = is_directory(&mut ftp_stream, item).await;
-        dir_list.push(FDir {
-            name: name.to_string(),
-            is_dir: is_dir,
-            path: item.to_string(),
-            extension: "".to_string(),
-            size: size.to_string(),
-            last_modified: mod_date.to_string(),
-            is_ftp: 1,
-        });
+    // Write the password to stdin of the sshfs process
+    let stdin = child.stdin.as_mut().expect("Failed to open stdin");
+    stdin
+        .write_all(password.as_bytes())
+        .expect("Failed to write to stdin");
+
+    let output = child
+        .wait_with_output()
+        .expect("Failed to read sshfs output");
+
+    if output.status.success() {
+        println!("Mounted {} to {}", remote_address, mount_point);
+    } else {
+        eprintln!(
+            "Failed to mount: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
-    unsafe {
-        IS_FTP_CONNECTED = true;
-    }
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    dir_list
+    return open_dir(mount_point).await;
 }
 
 #[tauri::command]

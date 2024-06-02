@@ -59,8 +59,11 @@ regex = "1.10.3"
 thread_local = "1.1.8"
 mio = "0.8.11"
 lazy_static = "1.4.0"
-suppaftp = { version = "=5.3.1", features = ["async"] }
 tokio = "1.37.0"
+ssh2 = "0.9.4"
+libc = "0.2.155"
+fuser = "0.14.0"
+suppaftp = "6.0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"
@@ -73,8 +76,6 @@ windows = { version = "0.56.0", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 winreg = "0.52"
-
-[profile.dev]
 # rustflags = ["-Z", "threads=3"]
 
 [features]

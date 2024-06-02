@@ -1362,29 +1362,32 @@ async function pasteItem() {
 	else {
 		arr = ArrCopyItems;
 	}
+
+	arr = arr.map(item => ({
+		name: item.getAttribute("itemname"),
+		path: item.getAttribute("itempath"),
+		is_dir: parseInt(item.getAttribute("itemisdir")),
+		is_ftp: parseInt(item.getAttribute("isftp")),
+		size: item.getAttribute("itemrawsize"),
+		last_modified: item.getAttribute("itemmodified"),
+		extension: item.getAttribute("itemext"),
+	})),
+
 	ContextMenu.style.display = "none";
 	if (IsDualPaneEnabled == true) {
 		if (SelectedItemPaneSide == "left") {
 			await invoke("set_dir", { currentDir: RightDualPanePath });
-			await invoke("arr_copy_paste", { appWindow, arr, isForDualPane: "1", copyToPath: "" })
+			await invoke("arr_copy_paste", { appWindow, arrItems: arr, isForDualPane: "1", copyToPath: "" })
 		}
 		else if (SelectedItemPaneSide == "right") {
 			await invoke("set_dir", { currentDir: LeftDualPanePath });
-			await invoke("arr_copy_paste", { appWindow, arr, isForDualPane: "1", copyToPath: "" })
+			await invoke("arr_copy_paste", { appWindow, arrItems: arr, isForDualPane: "1", copyToPath: "" })
 		}
 	}
 	else {
 		await invoke("arr_copy_paste", {
 			appWindow,
-			arrItems: arr.map(item => ({
-				name: item.getAttribute("itemname"),
-				path: item.getAttribute("itempath"),
-				is_dir: parseInt(item.getAttribute("itemisdir")),
-				is_ftp: parseInt(item.getAttribute("isftp")),
-				size: item.getAttribute("itemrawsize"),
-				last_modified: item.getAttribute("itemmodified"),
-				extension: item.getAttribute("itemext"),
-			})),
+			arrItems: arr,
 			isForDualPane: "0",
 			copyToPath: ""
 		});
@@ -1724,15 +1727,9 @@ async function listDisks() {
 
 async function listDirectories(fromDualPaneCopy = false) {
 	let lsItems = [];
-	if (IsFTPConnected == true) {
-		await invoke("open_ftp_dir", { path: CurrentFtpPath }).then(async (items) => {
-			lsItems = items;
-		});
-	} else {
-		await invoke("list_dirs").then(async (items) => {
-			lsItems = items;
-		});
-	}
+	await invoke("list_dirs").then(async (items) => {
+		lsItems = items;
+	});
 	if (IsDualPaneEnabled == true) {
 		if (fromDualPaneCopy == true) {
 			if (SelectedItemPaneSide == "left") {
@@ -1807,6 +1804,8 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 	if (isFtp == false) {
 		if (IsPopUpOpen == false) {
 			if (IsItemPreviewOpen == false && isDir == 1) {
+				DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+				DirectoryList.classList.add("dir-preloader-container");
 				// Open directory
 				await invoke("open_dir", { path }).then(async (items) => {
 					if (ViewMode == "miller") {
@@ -1821,9 +1820,10 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 						goUp(false, true);
 					}
 				});
+				document.querySelector(".fullsearch-loader").style.display = "none";
+				DirectoryList.classList.remove("dir-preloader-container");
 			}
 			else if (IsItemPreviewOpen == false) {
-				// Open element with default application / Todo: "open with / as"
 				await invoke("open_item", { path });
 			}
 		}
@@ -2176,14 +2176,10 @@ async function goToDir(directory) {
 	});
 }
 
-async function openFavFTP(hostname, username, password) {
-	IsFtpActive = true;
-	await invoke("open_ftp", { hostname, username, password }).then(
+async function openFTP(hostname, username, password, remotePath = "/home", mountPoint = "/tmp/rdpFX") {
+	await invoke("open_ftp", { hostname, username, password, remotePath, mountPoint}).then(
 		async (items) => {
-			CurrentFtpPath =
-				items[0].path.split("/")[items[0].path.split("/").length - 1];
 			await showItems(items);
-			IsFTPConnected = true;
 		},
 	);
 }
@@ -2817,7 +2813,9 @@ function connectToFtp() {
 	let hostname = document.querySelector(".ftp-hostname-input").value;
 	let username = document.querySelector(".ftp-username-input").value;
 	let password = document.querySelector(".ftp-password-input").value;
-	openFavFTP(hostname + ":21", username, password);
+	let remotePath = document.querySelector(".ftp-path-input").value;
+	let mountPoint = document.querySelector(".ftp-mountpoint-input").value;
+	openFTP(hostname, username, password, remotePath, mountPoint);
 	closeFtpConfig();
 }
 
@@ -3054,8 +3052,8 @@ async function insertSiteNavButtons() {
 		["Documents", await getDir(2), "fa-solid fa-file", () => goToDir(2)],
 		["Pictures", await getDir(3), "fa-solid fa-image", () => goToDir(3)],
 		["Videos", await getDir(4), "fa-solid fa-video", () => goToDir(4)],
-		["Music", await getDir(5), "fa-solid fa-music", () => goToDir(5)]
-		// ["FTP", "", "fa-solid fa-network-wired", showFtpConfig]
+		["Music", await getDir(5), "fa-solid fa-music", () => goToDir(5)],
+		["FTP", "", "fa-solid fa-network-wired", showFtpConfig]
 	];
 
 	for (let i = 0; i < siteNavButtons.length; i++) {

@@ -48,10 +48,9 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
         let file_size = fs::metadata(&from_path).unwrap().len() as f32;
         let mut fw = BufWriter::new(new_file);
         let mut s = 0;
-        let mut speed = 0.0;
+        let mut speed: f64;
         let sw = Stopwatch::start_new();
-        let mut byte_counter = 0;
-        let mut progress = 0.0;
+        let mut progress: f32;
         unsafe {
             update_progressbar_2(
                 app_window,
@@ -69,13 +68,11 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                     }
                     fw.write_all(&buf[..ds]).unwrap();
                     // Calculate transfer speed and progres
-                    if byte_counter % 5 == 0 {
-                        speed = calc_transfer_speed(s as f64, sw.elapsed_ms() as f64 / 1000.0);
-                        if speed.is_infinite() {
-                            speed = 0.0
-                        }
-                        progress = (100.0 / file_size) * s as f32;
-                    };
+                    speed = calc_transfer_speed(s as f64, sw.elapsed_ms() as f64 / 1000.0);
+                    if speed.is_infinite() {
+                        speed = 0.0
+                    }
+                    progress = (100.0 / file_size) * s as f32;
                     unsafe {
                         update_progressbar(
                             app_window,
@@ -90,7 +87,6 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                     break;
                 }
             }
-            byte_counter += 32;
         }
     } else if file.is_dir() {
         // Recursive copying of the directory
@@ -145,14 +141,14 @@ pub fn update_progressbar(
     );
     let _ = app_window.eval(
         format!(
-            "document.querySelector('.progress-bar-text').innerText = '{:.1} %'",
+            "document.querySelector('.progress-bar-text').innerText = '{:.2} %'",
             progress
         )
         .as_str(),
     );
     let _ = app_window.eval(
         format!(
-            "document.querySelector('.progress-bar-text-2').innerText = '{:.0} MB/s | {}'",
+            "document.querySelector('.progress-bar-text-2').innerText = '{:.2} MB/s | {}'",
             mb_per_sec, items_count_text
         )
         .as_str(),
