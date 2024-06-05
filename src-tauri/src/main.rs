@@ -16,7 +16,6 @@ use std::{
 };
 use stopwatch::Stopwatch;
 use suppaftp::{FtpError, FtpStream};
-use tauri::Window;
 use tauri::{
     api::path::{
         app_config_dir, audio_dir, config_dir, desktop_dir, document_dir, download_dir, home_dir,
@@ -24,6 +23,7 @@ use tauri::{
     },
     Config,
 };
+use tauri::{Manager, Window, WindowEvent};
 use unrar::Archive;
 use zip::write::FileOptions;
 use zip_extensions::*;
@@ -69,7 +69,7 @@ const ASSET_LOCATION: &str = "asset://localhost/";
 
 fn main() {
     tauri::Builder::default()
-        .setup(|_| {
+        .setup(|app| {
             #[cfg(target_os = "macos")]
             let win = app.get_window("main").unwrap();
             #[cfg(target_os = "macos")]
@@ -78,7 +78,7 @@ fn main() {
             win.position_traffic_lights(20.0, 25.0);
             Ok(())
         })
-        .on_window_event(|_| {
+        .on_window_event(|e| {
             #[cfg(target_os = "macos")]
             if let WindowEvent::Resized(..) = e.event() {
                 let win = e.window();
@@ -444,34 +444,51 @@ async fn open_ftp(
     // Ensure the local mount point exists
     std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
 
-    // Start sshfs process
-    let mut child = Command::new("sshfs")
-        .arg(&remote_address)
-        .arg(&mount_point)
-        .arg("-o")
-        .arg("password_stdin")
-        .stdin(Stdio::piped())
-        .spawn()
-        .expect("Failed to start sshfs process");
+    // #[cfg(target_os = "macos")]
+    {
+        // Start sshfs process
+        let mut child = Command::new("sshfs")
+            .arg(&remote_address)
+            .arg(&mount_point)
+            .arg("-o")
+            .arg("password_stdin")
+            .stdin(Stdio::piped())
+            .spawn()
+            .expect("Failed to start sshfs process");
 
-    // Write the password to stdin of the sshfs process
-    let stdin = child.stdin.as_mut().expect("Failed to open stdin");
-    stdin
-        .write_all(password.as_bytes())
-        .expect("Failed to write to stdin");
+        // Write the password to stdin of the sshfs process
+        println!("Connecting to {}", remote_address);
+        let stdin = child.stdin.as_mut().expect("Failed to open stdin");
+        stdin
+            .write_all(password.as_bytes())
+            .expect("Failed to write to stdin");
 
-    let output = child
-        .wait_with_output()
-        .expect("Failed to read sshfs output");
+        let output = child
+            .wait_with_output()
+            .expect("Failed to read sshfs output");
 
-    if output.status.success() {
-        println!("Mounted {} to {}", remote_address, mount_point);
-    } else {
-        eprintln!(
-            "Failed to mount: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
+        if output.status.success() {
+            println!("Mounted {} to {}", remote_address, mount_point);
+        } else {
+            wng_log(format!(
+                "Failed to mount: {}",
+                String::from_utf8_lossy(&output.stderr),
+            ));
+        }
     }
+    // #[cfg(target_os = "linux")]
+    // {
+    //     // Mount with mount_ftp
+    //     let mut child = Command::new("mount_ftp")
+    //         .arg(format!(
+    //             "ftp://{}:{}@{}{}",
+    //             username, password, hostname, remote_path
+    //         ))
+    //         .arg(&mount_point)
+    //         .spawn()
+    //         .expect("Failed to start mount_ftp process");
+    // }
+
     return open_dir(mount_point).await;
 }
 

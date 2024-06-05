@@ -232,27 +232,7 @@ document.addEventListener("contextmenu", (e) => {
 	if (IsPopUpOpen == false) {
 		ContextMenu.children[7].replaceWith(ContextMenu.children[7].cloneNode(true));
 
-		ContextMenu.style.display = "flex";
-		if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
-			console.log("test1");
-			ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
-			ContextMenu.style.bottom = null;
-		}
-		else if (ContextMenu.offsetHeight - e.clientY <= window.innerHeight) {
-			console.log("test2");
-			ContextMenu.style.bottom = null;
-			ContextMenu.style.top = e.clientY + "px";
-		}
-		else {
-			ContextMenu.style.bottom = null;
-			ContextMenu.style.top = e.clientY / 2 + "px";
-		}
-		if (ContextMenu.clientWidth + e.clientX >= window.innerWidth) {
-			ContextMenu.style.left = e.clientX - ContextMenu.clientWidth + "px";
-		}
-		else {
-			ContextMenu.style.left = e.clientX + "px";
-		}
+		positionContextMenu(e);
 
 		ContextMenu.children[7].addEventListener("click", function () { createFileInputPrompt(e); }, { once: true },);
 
@@ -267,8 +247,28 @@ document.addEventListener("contextmenu", (e) => {
 	}
 });
 
-window.addEventListener("mousemove", (e) => {
-});
+// Position contextmenu
+function positionContextMenu(e) {
+	ContextMenu.style.display = "flex";
+	if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
+		ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
+		ContextMenu.style.bottom = null;
+	}
+	else if (ContextMenu.offsetHeight - e.clientY <= window.innerHeight) {
+		ContextMenu.style.bottom = null;
+		ContextMenu.style.top = e.clientY + "px";
+	}
+	else {
+		ContextMenu.style.bottom = null;
+		ContextMenu.style.top = e.clientY / 2 + "px";
+	}
+	if (ContextMenu.clientWidth + e.clientX >= window.innerWidth) {
+		ContextMenu.style.left = e.clientX - ContextMenu.clientWidth + "px";
+	}
+	else {
+		ContextMenu.style.left = e.clientX + "px";
+	}
+}
 
 /* Shortcuts configuration */
 
@@ -755,6 +755,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			) {
 				fileIcon = "resources/folder-development.png";
 			}
+			// else if (item.name.toLowerCase().includes(".app") && Platform == "darwin") {
+			// 	let path = item.path + "/Contents/Resources/AppIcon.icns";
+			// 	fileIcon = window.__TAURI__.tauri.convertFileSrc("/Applications/Arc.app/Contents/Resources/AppIcon.icns");
+			// 	// alert(fileIcon);
+			// }
 		}
 		else {
 			switch (item.extension.toLowerCase()) {
@@ -914,7 +919,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		item.addEventListener("dragleave", () => {
 			item.style.opacity = "1";
 		});
-		// :item_right_click
+		// :item_right_click :context_menu
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", async (e) => {
 			e.preventDefault();
@@ -1008,9 +1013,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				document.querySelector(".c-item-properties").addEventListener("click", () => { showProperties(item); }, { once: true });
 				document.querySelector(".c-item-duplicates").addEventListener("click", () => { showFindDuplicates(item); }, { once: true })
 
-				ContextMenu.style.display = "flex";
-				ContextMenu.style.left = e.clientX + "px";
-				ContextMenu.style.top = e.clientY + "px";
+				positionContextMenu(e);
 			}
 		});
 	});
@@ -1373,7 +1376,7 @@ async function pasteItem() {
 		extension: item.getAttribute("itemext"),
 	})),
 
-	ContextMenu.style.display = "none";
+		ContextMenu.style.display = "none";
 	if (IsDualPaneEnabled == true) {
 		if (SelectedItemPaneSide == "left") {
 			await invoke("set_dir", { currentDir: RightDualPanePath });
@@ -1635,7 +1638,6 @@ async function applyPlatformFeatures() {
 		// document.querySelectorAll(".titlebar-button").forEach(item => item.style.display = "none");
 		let headerNav = document.querySelector(".header-nav");
 		headerNav.style.paddingLeft = "85px";
-		headerNav.style.backgroundColor = SecondaryColor;
 		// headerNav.style.borderBottom = "none";
 		headerNav.style.boxShadow = "none";
 	}
@@ -1643,9 +1645,8 @@ async function applyPlatformFeatures() {
 		// $(".titlebar-buttons").css("display", "flex");
 		// $(".titlebar-buttons-macos").remove();
 	}
-	// document.getElementById("titlebar-minimize").addEventListener("click", () => appWindow.minimize());
-	// document.getElementById("titlebar-maximize").addEventListener("click", () => appWindow.toggleMaximize());
-	// document.getElementById("titlebar-close").addEventListener("click", () => appWindow.close());
+	DefaultFileIcon = await resolveResource("resources/file-icon.png");
+	DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
 }
 
 async function listDisks() {
@@ -2177,7 +2178,7 @@ async function goToDir(directory) {
 }
 
 async function openFTP(hostname, username, password, remotePath = "/home", mountPoint = "/tmp/rdpFX") {
-	await invoke("open_ftp", { hostname, username, password, remotePath, mountPoint}).then(
+	await invoke("open_ftp", { hostname, username, password, remotePath, mountPoint }).then(
 		async (items) => {
 			await showItems(items);
 		},
@@ -2883,20 +2884,26 @@ function getFDirObjectListFromDirectoryList(arrElements) {
 function checkColorMode() {
 	var r = document.querySelector(":root");
 	if (IsLightMode) {
-		r.style.setProperty("--primaryColor", "white");
-		r.style.setProperty("--secondaryColor", "whitesmoke");
-		r.style.setProperty("--tertiaryColor", "rgba(220, 220, 220, 1)");
+		r.style.setProperty("--primaryColor", "whitesmoke");
+		r.style.setProperty("--secondaryColor", "white");
+		r.style.setProperty("--tertiaryColor", "lightgray");
+		r.style.setProperty("--transparentColor", "rgba(225, 225, 225, 0.75)");
+		r.style.setProperty("--transparentColorActive", "rgba(200, 200, 200, 0.75)");
 		r.style.setProperty("--textColor", "rgb(75, 75, 75)");
 		r.style.setProperty("--textColor2", "rgba(0, 0, 0, 0.6)");
-		SecondaryColor = "whitesmoke";
-		PrimaryColor = "white";
+		r.style.setProperty("--textColor3", "rgb(35, 35, 35)");
+		SecondaryColor = "white";
+		PrimaryColor = "whitesmoke";
 	}
 	else {
 		r.style.setProperty("--primaryColor", "#3f4352");
 		r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
-		r.style.setProperty("--tertiaryColor", "#474b5c");
+		r.style.setProperty("--tertiaryColor", "rgba(225, 225, 225, 0.1)");
+		r.style.setProperty("--transparentColor", "rgba(0, 0, 0, 0.1)");
+		r.style.setProperty("--transparentColorActive", "rgba(0, 0, 0, 0.25)");
 		r.style.setProperty("--textColor", "rgba(255, 255, 255, 0.8)");
 		r.style.setProperty("--textColor2", "rgba(255, 255, 255, 0.6)");
+		r.style.setProperty("--textColor3", "rgb(200, 200, 200)");
 		SecondaryColor = "rgba(56, 59, 71, 1)";
 		PrimaryColor = "#3f4352";
 	}

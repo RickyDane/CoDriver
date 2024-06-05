@@ -62,7 +62,6 @@ lazy_static = "1.4.0"
 tokio = "1.37.0"
 ssh2 = "0.9.4"
 libc = "0.2.155"
-fuser = "0.14.0"
 suppaftp = "6.0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]

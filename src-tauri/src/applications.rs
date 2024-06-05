@@ -168,7 +168,6 @@ fn find_ios_app_icon(app_path: PathBuf) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-#[allow(unused)]
 pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
     // default location: Contents/Resources/AppIcon.icns
     let contents_path = app_path.join("Contents");
