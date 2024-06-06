@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use async_std::stream::FromIter;
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use flate2::read::GzDecoder;
@@ -15,7 +16,6 @@ use std::{
     path::PathBuf,
 };
 use stopwatch::Stopwatch;
-use suppaftp::{FtpError, FtpStream};
 use tauri::{
     api::path::{
         app_config_dir, audio_dir, config_dir, desktop_dir, document_dir, download_dir, home_dir,
@@ -49,9 +49,6 @@ use substring::Substring;
 static mut HOSTNAME: String = String::new();
 static mut USERNAME: String = String::new();
 static mut PASSWORD: String = String::new();
-
-static mut CURRENT_FTP_DIR: String = String::new();
-static mut IS_FTP_CONNECTED: bool = false;
 
 static mut ISCANCELED: bool = false;
 
@@ -108,10 +105,7 @@ fn main() {
             rename_element,
             save_config,
             switch_to_directory,
-            open_ftp,
-            open_ftp_dir,
-            ftp_go_back,
-            ftp_copy_paste,
+            mount_sshfs,
             rename_elements_with_format,
             add_favorite,
             arr_copy_paste,
@@ -122,10 +116,6 @@ fn main() {
             find_duplicates,
             cancel_operation,
             get_df_dir,
-            is_ftp_connected,
-            get_current_ftp_dir,
-            create_ftp_file,
-            ftp_remove
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -140,7 +130,19 @@ struct FDir {
     extension: String,
     size: String,
     last_modified: String,
-    is_ftp: i8,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+struct Theme {
+    name: String,
+    primary_color: String,
+    secondary_color: String,
+    tertiary_color: String,
+    text_color: String,
+    text_color2: String,
+    text_color3: String,
+    transparent_color: String,
+    transparent_color_active: String,
 }
 
 #[derive(serde::Serialize)]
@@ -160,6 +162,7 @@ struct AppConfig {
     is_image_preview: String,
     is_select_mode: String,
     arr_favorites: Vec<String>,
+    themes: Vec<Theme>,
 }
 
 #[tauri::command]
@@ -193,6 +196,7 @@ async fn check_app_config() -> AppConfig {
             is_image_preview: "0".to_string(),
             is_select_mode: "1".to_string(),
             arr_favorites: vec![],
+            themes: vec![],
         };
         let _ = serde_json::to_writer_pretty(
             File::create(
@@ -214,6 +218,23 @@ async fn check_app_config() -> AppConfig {
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
 
     let default_vec: Vec<Value> = vec![];
+    let theme_vec: Vec<Theme> = app_config["themes"]
+        .as_array()
+        .unwrap_or(&default_vec)
+        .iter()
+        .map(|x| Theme {
+            name: x["name"].to_string(),
+            primary_color: x["primary_color"].to_string(),
+            secondary_color: x["secondary_color"].to_string(),
+            tertiary_color: x["tertiary_color"].to_string(),
+            text_color: x["text_color"].to_string(),
+            text_color2: x["text_color2"].to_string(),
+            text_color3: x["text_color3"].to_string(),
+            transparent_color: x["transparent_color"].to_string(),
+            transparent_color_active: x["transparent_color_active"].to_string(),
+        })
+        .collect::<Vec<Theme>>();
+    println!("Theme vec: {:?}", theme_vec);
     return AppConfig {
         view_mode: app_config["view_mode"].to_string(),
         last_modified: app_config["last_modified"].to_string(),
@@ -244,6 +265,7 @@ async fn check_app_config() -> AppConfig {
             .iter()
             .map(|x| x.to_string().replace('"', ""))
             .collect(),
+        themes: theme_vec,
     };
 }
 
@@ -368,7 +390,6 @@ async fn list_dirs() -> Vec<FDir> {
             extension: file_ext,
             size: size.to_string(),
             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0,
         });
     }
     dir_list.sort_by_key(|a| a.name.to_lowercase());
@@ -432,7 +453,7 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
 
 // :ftp
 #[tauri::command]
-async fn open_ftp(
+async fn mount_sshfs(
     hostname: String,
     username: String,
     password: String,
@@ -444,211 +465,37 @@ async fn open_ftp(
     // Ensure the local mount point exists
     std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
 
-    // #[cfg(target_os = "macos")]
-    {
-        // Start sshfs process
-        let mut child = Command::new("sshfs")
-            .arg(&remote_address)
-            .arg(&mount_point)
-            .arg("-o")
-            .arg("password_stdin")
-            .stdin(Stdio::piped())
-            .spawn()
-            .expect("Failed to start sshfs process");
+    // Start sshfs process
+    let mut child = Command::new("sshfs")
+        .arg(&remote_address)
+        .arg(&mount_point)
+        .arg("-o")
+        .arg("password_stdin")
+        .stdin(Stdio::piped())
+        .spawn()
+        .expect("Failed to start sshfs process");
 
-        // Write the password to stdin of the sshfs process
-        println!("Connecting to {}", remote_address);
-        let stdin = child.stdin.as_mut().expect("Failed to open stdin");
-        stdin
-            .write_all(password.as_bytes())
-            .expect("Failed to write to stdin");
+    // Write the password to stdin of the sshfs process
+    println!("Connecting to {}", remote_address);
+    let stdin = child.stdin.as_mut().expect("Failed to open stdin");
+    stdin
+        .write_all(password.as_bytes())
+        .expect("Failed to write to stdin");
 
-        let output = child
-            .wait_with_output()
-            .expect("Failed to read sshfs output");
+    let output = child
+        .wait_with_output()
+        .expect("Failed to read sshfs output");
 
-        if output.status.success() {
-            println!("Mounted {} to {}", remote_address, mount_point);
-        } else {
-            wng_log(format!(
-                "Failed to mount: {}",
-                String::from_utf8_lossy(&output.stderr),
-            ));
-        }
+    if output.status.success() {
+        println!("Mounted {} to {}", remote_address, mount_point);
+    } else {
+        wng_log(format!(
+            "Failed to mount: {}",
+            String::from_utf8_lossy(&output.stderr),
+        ));
     }
-    // #[cfg(target_os = "linux")]
-    // {
-    //     // Mount with mount_ftp
-    //     let mut child = Command::new("mount_ftp")
-    //         .arg(format!(
-    //             "ftp://{}:{}@{}{}",
-    //             username, password, hostname, remote_path
-    //         ))
-    //         .arg(&mount_point)
-    //         .spawn()
-    //         .expect("Failed to start mount_ftp process");
-    // }
 
     return open_dir(mount_point).await;
-}
-
-#[tauri::command]
-async fn open_ftp_dir(path: String) -> Vec<FDir> {
-    let mut ftp_stream = get_current_connection().await.unwrap();
-    let _ = ftp_stream.cwd(&path).unwrap();
-    let ftp_dir = ftp_stream.pwd().unwrap();
-    let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).unwrap();
-    unsafe {
-        CURRENT_FTP_DIR = ftp_dir.clone();
-    }
-    ftp_stream.cwd(&ftp_dir).unwrap();
-
-    for item in ftp_dir_list {
-        dbg_log(format!("{:?}", item));
-    }
-
-    // Get the current directory that the client will be reading from and writing to.
-    dbg_log(format!("Current dir: {:?}", &ftp_dir));
-
-    let mut dir_list: Vec<FDir> = Vec::new();
-
-    for item in ftp_dir_list {
-        let name = &item.split("/").last().unwrap().to_string();
-        let mod_date = &ftp_stream.mdtm(&item).unwrap_or_default();
-        let size = &ftp_stream.size(&item).unwrap_or_default();
-        let is_dir = is_directory(&mut ftp_stream, item).await;
-        dir_list.push(FDir {
-            name: name.to_string(),
-            is_dir: is_dir,
-            path: item.to_string(),
-            extension: "".to_string(),
-            size: size.to_string(),
-            last_modified: mod_date.to_string(),
-            is_ftp: 1,
-        });
-    }
-    ftp_stream.cwd(&ftp_dir).unwrap();
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    dir_list
-}
-
-#[tauri::command]
-async fn ftp_copy_paste(path: String) {
-    let mut ftp_stream = get_current_connection().await.unwrap();
-    unsafe {
-        ftp_stream.cwd(CURRENT_FTP_DIR.clone()).unwrap();
-    }
-    let file = ftp_stream.retr_as_buffer(&path);
-    if file.is_err() {
-        err_log("File not found".into());
-    }
-    let file = file.unwrap();
-    let file_content = file.into_inner();
-    let mut reader = std::io::Cursor::new(file_content);
-    let new_file_name = path.split("/").last().unwrap();
-    dbg_log(format!(
-        "Current actual ftp directory: {}",
-        ftp_stream.pwd().unwrap()
-    ));
-    let _ = ftp_stream.put_file(new_file_name, &mut reader);
-    dbg_log(format!("File copied: {}", new_file_name));
-    open_ftp_dir(ftp_stream.pwd().unwrap()).await;
-}
-
-#[tauri::command]
-async fn ftp_remove(path: String) {
-    let mut ftp_stream = get_current_connection().await.unwrap();
-    ftp_stream.rm(path).unwrap();
-    open_ftp_dir(ftp_stream.pwd().unwrap()).await;
-}
-
-async fn is_directory(ftp_stream: &mut FtpStream, path: &str) -> i8 {
-    match ftp_stream.cwd(path) {
-        Ok(_) => {
-            // Zurück zum ursprünglichen Verzeichnis wechseln
-            if let Err(_) = ftp_stream.cdup() {
-                err_log("Fehler beim Wechseln zum ursprünglichen Verzeichnis".into());
-            }
-            1 // Erfolgreich gewechselt, also ist es ein Verzeichnis
-        }
-        Err(_) => 0, // Fehler beim Wechseln, also ist es kein Verzeichnis
-    }
-}
-
-#[tauri::command]
-async fn ftp_go_back(path: String) -> Vec<FDir> {
-    let mut ftp_stream = get_current_connection().await.unwrap();
-    ftp_stream.cwd(&path).unwrap();
-    ftp_stream.cdup().unwrap();
-    let ftp_dir = ftp_stream.pwd().unwrap();
-    let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).unwrap();
-
-    for item in *&ftp_dir_list {
-        dbg_log(format!("{:?}", item.split("/").last().unwrap()));
-    }
-
-    // Get the current directory that the client will be reading from and writing to.
-    dbg_log(format!("Current dir: {:?}", &ftp_dir));
-
-    let mut dir_list: Vec<FDir> = Vec::new();
-
-    for item in ftp_dir_list {
-        let name = &item.split("/").last().unwrap().to_string();
-        let mod_date = &ftp_stream.mdtm(&item).unwrap_or_default();
-        let size = &ftp_stream.size(&item).unwrap_or_default();
-        let is_dir = is_directory(&mut ftp_stream, item).await;
-        dir_list.push(FDir {
-            name: name.to_string(),
-            is_dir: is_dir,
-            path: item.to_string(),
-            extension: "".to_string(),
-            size: size.to_string(),
-            last_modified: mod_date.to_string(),
-            is_ftp: 1,
-        });
-    }
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    dir_list
-}
-
-async fn get_current_connection() -> Result<FtpStream, FtpError> {
-    let host: String;
-    let user: String;
-    let password: String;
-    unsafe {
-        host = HOSTNAME.clone();
-        user = USERNAME.clone();
-        password = PASSWORD.clone();
-    }
-    let mut ftp_stream = FtpStream::connect(host).unwrap();
-    let _ = ftp_stream.login(user.as_str(), password.as_str()).unwrap();
-    Ok(ftp_stream)
-}
-
-#[tauri::command]
-async fn arr_copy_ftp(arr_items: Vec<FDir>) -> Result<(), FtpError> {
-    for item in arr_items {
-        let item_path = item.path;
-        dbg_log(format!("Path: {:?}", item_path));
-        let _filename = item_path
-            .replace("\\", "/")
-            .split("/")
-            .last()
-            .unwrap()
-            .to_string();
-        ftp_copy_paste(item_path).await;
-    }
-    unsafe {
-        open_ftp_dir(CURRENT_FTP_DIR.to_string()).await;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn create_ftp_file(file_name: String) {
-    let mut ftp_connection = get_current_connection().await.unwrap();
-    let mut reader = std::io::Cursor::new("".as_bytes());
-    let _ = ftp_connection.put_file(&file_name, &mut reader).unwrap();
 }
 
 #[tauri::command]
@@ -660,12 +507,10 @@ async fn open_in_terminal() {
 }
 
 #[tauri::command]
-async fn go_home(is_ftp: bool) -> Vec<FDir> {
-    if !is_ftp {
-        let _ = set_current_dir(home_dir().unwrap());
-        unsafe {
-            PATH_HISTORY.push(home_dir().unwrap().to_string_lossy().to_string());
-        }
+async fn go_home() -> Vec<FDir> {
+    let _ = set_current_dir(home_dir().unwrap());
+    unsafe {
+        PATH_HISTORY.push(home_dir().unwrap().to_string_lossy().to_string());
     }
     return list_dirs().await;
 }
@@ -789,7 +634,6 @@ async fn search_for(
                             last_modified: String::from(
                                 file_date.to_string().split(".").nth(0).unwrap(),
                             ),
-                            is_ftp: 0,
                         });
                         break;
                     } else {
@@ -805,7 +649,6 @@ async fn search_for(
                 extension: String::from(&file_ext),
                 size: file_size,
                 last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-                is_ftp: 0,
             });
         }
     }
@@ -886,14 +729,6 @@ async fn arr_copy_paste(
         }
     }
     let sw = Stopwatch::start_new();
-    unsafe {
-        if IS_FTP_CONNECTED {
-            let _ = arr_copy_ftp(arr_items).await;
-            dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
-            app_window.eval("resetProgressBar()").unwrap();
-            return;
-        }
-    }
     for item in arr_items {
         let item_path = item.path;
         filename = item_path
@@ -1197,6 +1032,46 @@ async fn save_config(
         is_image_preview: is_image_preview.replace("\\", "/"),
         is_select_mode: is_select_mode.replace("\\", "/"),
         arr_favorites,
+        themes: app_config["themes"]
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .map(|x| Theme {
+                name: x["name"].to_string().replace('"', "").replace("\"", ""),
+                primary_color: x["primary_color"]
+                    .to_string()
+                    .replace('"', "")
+                    .replace('\"', ""),
+                secondary_color: x["secondary_color"]
+                    .to_string()
+                    .replace('"', "")
+                    .replace('\"', ""),
+                tertiary_color: x["tertiary_color"]
+                    .to_string()
+                    .replace('"', "")
+                    .replace("\"", ""),
+                text_color: x["text_color"]
+                    .to_string()
+                    .replace('"', "")
+                    .replace("\"", ""),
+                text_color2: x["text_color2"]
+                    .to_string()
+                    .replace('"', "")
+                    .replace("\"", ""),
+                text_color3: x["text_color3"]
+                    .to_string()
+                    .replace('"', "")
+                    .replace("\"", ""),
+                transparent_color: x["transparent_color"]
+                    .to_string()
+                    .replace('"', "")
+                    .replace("\"", ""),
+                transparent_color_active: x["transparent_color_active"]
+                    .to_string()
+                    .replace('"', "")
+                    .replace("\"", ""),
+            })
+            .collect::<Vec<Theme>>(),
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
@@ -1269,9 +1144,6 @@ async fn add_favorite(arr_favorites: Vec<String>) {
 
 #[tauri::command]
 async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
-    // #[cfg(not(target_os = "macos"))]
-    // return vec![];
-
     let list_apps = get_apps(extension);
     let mut arr_apps: Vec<(String, String)> = vec![];
     for app in list_apps {
@@ -1463,14 +1335,4 @@ async fn get_df_dir(number: u8) -> String {
             .to_string(),
         _ => current_dir().unwrap().to_string_lossy().to_string(),
     };
-}
-#[tauri::command]
-async fn is_ftp_connected() -> bool {
-    return get_current_connection().await.is_ok();
-}
-#[tauri::command]
-async fn get_current_ftp_dir() -> String {
-    unsafe {
-        return CURRENT_FTP_DIR.clone();
-    }
 }

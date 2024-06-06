@@ -668,7 +668,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		itemLink.setAttribute("itempaneside", dualPaneSide);
 		itemLink.setAttribute("itemisdir", item.is_dir);
 		itemLink.setAttribute("itemext", item.extension);
-		itemLink.setAttribute("isftp", item.is_ftp);
 		itemLink.setAttribute("itemname", item.name);
 		itemLink.setAttribute("itemsize", formatBytes(item.size));
 		itemLink.setAttribute("itemrawsize", item.size);
@@ -1370,7 +1369,6 @@ async function pasteItem() {
 		name: item.getAttribute("itemname"),
 		path: item.getAttribute("itempath"),
 		is_dir: parseInt(item.getAttribute("itemisdir")),
-		is_ftp: parseInt(item.getAttribute("isftp")),
 		size: item.getAttribute("itemrawsize"),
 		last_modified: item.getAttribute("itemmodified"),
 		extension: item.getAttribute("itemext"),
@@ -1619,12 +1617,13 @@ async function checkAppConfig() {
 				await showItems(items);
 			});
 		}
+
+		checkColorMode(appConfig);
 	});
 
 	// DefaultFileIcon = await resolveResource("resources/file-icon.png");
 	// DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
 
-	checkColorMode();
 	applyPlatformFeatures();
 }
 
@@ -1802,46 +1801,29 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 	let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
 	let millerCol = element != null ? element.getAttribute("itemformillercol") : null;
 	let isFtp = element != null ? element.getAttribute("isftp") : null;
-	if (isFtp == false) {
-		if (IsPopUpOpen == false) {
-			if (IsItemPreviewOpen == false && isDir == 1) {
-				DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
-				DirectoryList.classList.add("dir-preloader-container");
-				// Open directory
-				await invoke("open_dir", { path }).then(async (items) => {
-					if (ViewMode == "miller") {
-						await removeExcessMillerCols(parseInt(millerCol));
-						await addMillerCol(millerCol);
-						await setMillerColActive(null, millerCol);
-						await setCurrentDir(element.getAttribute("itempath"));
-					}
-					await showItems(items, dualPaneSide, millerCol);
-					if (IsDualPaneEnabled == true && dualPaneSide != "") {
-						// document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = ""; // Disabled tab functionality
-						goUp(false, true);
-					}
-				});
-				document.querySelector(".fullsearch-loader").style.display = "none";
-				DirectoryList.classList.remove("dir-preloader-container");
-			}
-			else if (IsItemPreviewOpen == false) {
-				await invoke("open_item", { path });
-			}
-		}
-	}
-	else {
-		if (isDir == 1) {
+	if (IsPopUpOpen == false) {
+		if (IsItemPreviewOpen == false && isDir == 1) {
 			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
 			DirectoryList.classList.add("dir-preloader-container");
-			await invoke("open_ftp_dir", { path }).then(async (items) => {
-				await showItems(items);
-				CurrentFtpPath = path;
+			// Open directory
+			await invoke("open_dir", { path }).then(async (items) => {
+				if (ViewMode == "miller") {
+					await removeExcessMillerCols(parseInt(millerCol));
+					await addMillerCol(millerCol);
+					await setMillerColActive(null, millerCol);
+					await setCurrentDir(element.getAttribute("itempath"));
+				}
+				await showItems(items, dualPaneSide, millerCol);
+				if (IsDualPaneEnabled == true && dualPaneSide != "") {
+					// document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = ""; // Disabled tab functionality
+					goUp(false, true);
+				}
 			});
 			document.querySelector(".fullsearch-loader").style.display = "none";
 			DirectoryList.classList.remove("dir-preloader-container");
 		}
-		else {
-			await invoke("copy_from_ftp", { path });
+		else if (IsItemPreviewOpen == false) {
+			await invoke("open_item", { path });
 		}
 	}
 }
@@ -1939,46 +1921,30 @@ async function unSelectAllItems() {
 }
 
 async function goHome() {
-	if (IsFtpActive == false) {
-		await invoke("go_home", { isFtp: IsFTPConnected }).then(async (items) => {
+	await invoke("go_home").then(async (items) => {
+		if (IsDualPaneEnabled == true) {
+			await showItems(items, SelectedItemPaneSide);
+		}
+		else {
+			await showItems(items);
+		}
+		if (IsDualPaneEnabled == true) {
+			goUp(false, true);
+		}
+	});
+}
+
+async function goBack() {
+	if (IsMetaDown == false) {
+		await invoke("go_back").then(async (items) => {
 			if (IsDualPaneEnabled == true) {
 				await showItems(items, SelectedItemPaneSide);
+				goUp(false, true);
 			}
 			else {
 				await showItems(items);
 			}
-			if (IsDualPaneEnabled == true) {
-				goUp(false, true);
-			}
 		});
-	}
-}
-
-async function goBack() {
-	if (IsFtpActive == false) {
-		if (IsMetaDown == false) {
-			await invoke("go_back").then(async (items) => {
-				if (IsDualPaneEnabled == true) {
-					await showItems(items, SelectedItemPaneSide);
-					goUp(false, true);
-				}
-				else {
-					await showItems(items);
-				}
-			});
-		}
-	}
-	else {
-		await invoke("ftp_go_back", { path: CurrentFtpPath }).then(async (items) => {
-			await showItems(items);
-			console.log(CurrentFtpPath);
-			CurrentFtpPath = CurrentFtpPath.replace(
-				"/" + CurrentFtpPath.split("/").pop(),
-				"",
-			);
-			console.log(CurrentFtpPath, CurrentFtpPath.split("/"));
-		},
-		);
 	}
 }
 
@@ -2178,7 +2144,7 @@ async function goToDir(directory) {
 }
 
 async function openFTP(hostname, username, password, remotePath = "/home", mountPoint = "/tmp/rdpFX") {
-	await invoke("open_ftp", { hostname, username, password, remotePath, mountPoint }).then(
+	await invoke("mount_sshfs", { hostname, username, password, remotePath, mountPoint }).then(
 		async (items) => {
 			await showItems(items);
 		},
@@ -2876,37 +2842,22 @@ function getFDirObjectListFromDirectoryList(arrElements) {
 			extension: item.getAttribute("itemext"),
 			last_modified: item.getAttribute("itemmodified"),
 			is_dir: item.getAttribute("itemisdir"),
-			is_ftp: item.getAttribute("isftp")
 		}
 	})
 }
 
-function checkColorMode() {
+function checkColorMode(appConfig) {
 	var r = document.querySelector(":root");
-	if (IsLightMode) {
-		r.style.setProperty("--primaryColor", "whitesmoke");
-		r.style.setProperty("--secondaryColor", "white");
-		r.style.setProperty("--tertiaryColor", "lightgray");
-		r.style.setProperty("--transparentColor", "rgba(225, 225, 225, 0.75)");
-		r.style.setProperty("--transparentColorActive", "rgba(200, 200, 200, 0.75)");
-		r.style.setProperty("--textColor", "rgb(75, 75, 75)");
-		r.style.setProperty("--textColor2", "rgba(0, 0, 0, 0.6)");
-		r.style.setProperty("--textColor3", "rgb(35, 35, 35)");
-		SecondaryColor = "white";
-		PrimaryColor = "whitesmoke";
-	}
-	else {
-		r.style.setProperty("--primaryColor", "#3f4352");
-		r.style.setProperty("--secondaryColor", "rgba(56, 59, 71, 1)");
-		r.style.setProperty("--tertiaryColor", "rgba(225, 225, 225, 0.1)");
-		r.style.setProperty("--transparentColor", "rgba(0, 0, 0, 0.1)");
-		r.style.setProperty("--transparentColorActive", "rgba(0, 0, 0, 0.25)");
-		r.style.setProperty("--textColor", "rgba(255, 255, 255, 0.8)");
-		r.style.setProperty("--textColor2", "rgba(255, 255, 255, 0.6)");
-		r.style.setProperty("--textColor3", "rgb(200, 200, 200)");
-		SecondaryColor = "rgba(56, 59, 71, 1)";
-		PrimaryColor = "#3f4352";
-	}
+	let themeId = 0;
+	console.log(appConfig);
+	r.style.setProperty("--primaryColor", appConfig.themes[themeId].primary_color.replace("\"", "").replace("\"", ""));
+	r.style.setProperty("--secondaryColor", appConfig.themes[themeId].secondary_color.replace("\"", "").replace("\"", ""));
+	r.style.setProperty("--tertiaryColor", appConfig.themes[themeId].tertiary_color.replace("\"", "").replace("\"", ""));
+	r.style.setProperty("--transparentColor", appConfig.themes[themeId].transparent_color.replace("\"", "").replace("\"", ""));
+	r.style.setProperty("--transparentColorActive", appConfig.themes[themeId].transparent_color_active.replace("\"", "").replace("\"", ""));
+	r.style.setProperty("--textColor", appConfig.themes[themeId].text_color.replace("\"", "").replace("\"", ""));
+	r.style.setProperty("--textColor2", appConfig.themes[themeId].text_color2.replace("\"", "").replace("\"", ""));
+	r.style.setProperty("--textColor3", appConfig.themes[themeId].text_color3.replace("\"", "").replace("\"", ""));
 }
 
 async function open_with(filePath, appPath) {

@@ -135,7 +135,7 @@ body {
 	z-index: 3;
 	border-bottom: 1px solid var(--tertiaryColor);
 	color: #3d404f;
-	background-color: var(--transparentColor);
+	background-color: var(--primaryColor);
 }
 .site-nav-bar {
 	background-color: var(--primaryColor);
@@ -266,7 +266,7 @@ body {
 	width: calc(100% - 150px);
 	color: var(--textColor);
 	padding: 5px;
-	background-color: var(--primaryColor);
+	background-color: var(--secondaryColor);
 	z-index: 1;
 	border-bottom: 1px solid var(--tertiaryColor);
 	box-shadow: 0px 0px 5px 0px var(--transparentColorActive);
@@ -365,7 +365,7 @@ body {
 	right: 0;
 	background-color: var(--secondaryColor);
 	width: 100%;
-	padding: 10px 10px 10px 20px;
+	padding: 5px 5px 5px 15px;
 	font-size: large;
 	display: flex;
 	flex-flow: row;
@@ -416,6 +416,7 @@ body {
 }
 .settings-ui-button {
 	background-color: var(--transparentColor) !important;
+	padding:  7.5px 12.5px !important;
 }
 .settings-ui-button:hover {
 	background-color: var(--transparentColorActive) !important;
