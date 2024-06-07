@@ -498,7 +498,7 @@ label {
 	background: var(--transparentColorActive);
 }
 .selected-item {
-	background: rgba(0, 0, 0, 0.1) !important;
+	background: var(--transparentColor) !important;
 	/* border: 1px solid var(--transparentColorActive) !important; */
 }
 .selected-item > p {
@@ -538,6 +538,7 @@ label {
 	max-width: 80%;
 	margin-top: 7.5px;
 	border-radius: 3px;
+	filter: hue-rotate(10deg), brightness(2);
 }
 /* .item-button:hover > img {
 	filter: brightness(0.85);
@@ -634,6 +635,7 @@ label {
 	border-radius: 7.5px;
 	transition: 0.1s ease;
 	width: 100%;
+	z-index: 2;
 }
 .disk-item-button-button {
 	position: relative;
@@ -710,7 +712,7 @@ label {
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	background-color: var(--tertiaryColor);
+	background-color: var(--primaryColor);
 	border-radius: 5px;
 	cursor: pointer;
 	transition: 0.1s ease;
@@ -720,10 +722,10 @@ label {
 	border: 1px solid var(--tertiaryColor);
 }
 .icon-button:hover {
-	background-color: var(--transparentColor);
+	background-color: var(--transparentColorActive);
 }
 .icon-button:active {
-	background-color: var(--transparentColorActive);
+	background-color: var(--transparentColor);
 }
 .button-icon {
 	display: flex;

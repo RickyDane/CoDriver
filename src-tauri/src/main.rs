@@ -1,7 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use async_std::stream::FromIter;
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use flate2::read::GzDecoder;
@@ -44,11 +43,6 @@ use applications::{get_apps, open_file_with};
 use archiver_rs::Compressed;
 mod rdpfs;
 use substring::Substring;
-
-// Global ftp variables
-static mut HOSTNAME: String = String::new();
-static mut USERNAME: String = String::new();
-static mut PASSWORD: String = String::new();
 
 static mut ISCANCELED: bool = false;
 
@@ -236,8 +230,8 @@ async fn check_app_config() -> AppConfig {
         .collect::<Vec<Theme>>();
     println!("Theme vec: {:?}", theme_vec);
     return AppConfig {
-        view_mode: app_config["view_mode"].to_string(),
-        last_modified: app_config["last_modified"].to_string(),
+        view_mode: app_config["view_mode"].to_string().replace('"', ""),
+        last_modified: app_config["last_modified"].to_string().replace('"', ""),
         configured_path_one: app_config["configured_path_one"]
             .to_string()
             .replace('"', ""),
@@ -247,25 +241,48 @@ async fn check_app_config() -> AppConfig {
         configured_path_three: app_config["configured_path_three"]
             .to_string()
             .replace('"', ""),
-        is_open_in_terminal: app_config["is_open_in_terminal"].to_string(),
-        is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string(),
+        is_open_in_terminal: app_config["is_open_in_terminal"]
+            .to_string()
+            .replace('"', ""),
+        is_dual_pane_enabled: app_config["is_dual_pane_enabled"]
+            .to_string()
+            .replace('"', ""),
         launch_path: app_config["launch_path"].to_string().replace('"', ""),
-        is_dual_pane_active: app_config["is_dual_pane_active"].to_string(),
+        is_dual_pane_active: app_config["is_dual_pane_active"]
+            .to_string()
+            .replace('"', ""),
         search_depth: app_config["search_depth"]
             .to_string()
             .parse::<i32>()
             .unwrap(),
         max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
-        is_image_preview: app_config["is_image_preview"].to_string(),
-        is_select_mode: app_config["is_select_mode"].to_string(),
+        is_image_preview: app_config["is_image_preview"].to_string().replace('"', ""),
+        is_select_mode: app_config["is_select_mode"].to_string().replace('"', ""),
         arr_favorites: app_config["arr_favorites"]
             .as_array()
             .unwrap_or_else(|| &default_vec)
             .iter()
             .map(|x| x.to_string().replace('"', ""))
             .collect(),
-        current_theme: app_config["current_theme"].to_string(),
-        themes: theme_vec,
+        current_theme: app_config["current_theme"].to_string().replace('"', ""),
+        themes: theme_vec
+            .iter()
+            .map(|x| Theme {
+                name: x.name.clone().to_string().replace('"', ""),
+                primary_color: x.primary_color.clone().to_string().replace('"', ""),
+                secondary_color: x.secondary_color.clone().to_string().replace('"', ""),
+                tertiary_color: x.tertiary_color.clone().to_string().replace('"', ""),
+                text_color: x.text_color.clone().to_string().replace('"', ""),
+                text_color2: x.text_color2.clone().to_string().replace('"', ""),
+                text_color3: x.text_color3.clone().to_string().replace('"', ""),
+                transparent_color: x.transparent_color.clone().to_string().replace('"', ""),
+                transparent_color_active: x
+                    .transparent_color_active
+                    .clone()
+                    .to_string()
+                    .replace('"', ""),
+            })
+            .collect(),
     };
 }
 
@@ -1003,10 +1020,10 @@ async fn save_config(
     is_dual_pane_active: String,
     search_depth: i32,
     max_items: i32,
-    is_light_mode: String,
     is_image_preview: String,
     is_select_mode: String,
     arr_favorites: Vec<String>,
+    current_theme: String,
 ) {
     let app_config_file = File::open(
         app_config_dir(&Config::default())
@@ -1031,45 +1048,23 @@ async fn save_config(
         is_image_preview: is_image_preview.replace("\\", "/"),
         is_select_mode: is_select_mode.replace("\\", "/"),
         arr_favorites,
-        current_theme: app_config["current_theme"].to_string(),
+        current_theme: current_theme.replace("\\", "/"),
         themes: app_config["themes"]
             .as_array()
             .unwrap_or(&vec![])
             .iter()
             .map(|x| Theme {
-                name: x["name"].to_string().replace('"', "").replace("\"", ""),
-                primary_color: x["primary_color"]
-                    .to_string()
-                    .replace('"', "")
-                    .replace('\"', ""),
-                secondary_color: x["secondary_color"]
-                    .to_string()
-                    .replace('"', "")
-                    .replace('\"', ""),
-                tertiary_color: x["tertiary_color"]
-                    .to_string()
-                    .replace('"', "")
-                    .replace("\"", ""),
-                text_color: x["text_color"]
-                    .to_string()
-                    .replace('"', "")
-                    .replace("\"", ""),
-                text_color2: x["text_color2"]
-                    .to_string()
-                    .replace('"', "")
-                    .replace("\"", ""),
-                text_color3: x["text_color3"]
-                    .to_string()
-                    .replace('"', "")
-                    .replace("\"", ""),
-                transparent_color: x["transparent_color"]
-                    .to_string()
-                    .replace('"', "")
-                    .replace("\"", ""),
+                name: x["name"].to_string().replace('"', ""),
+                primary_color: x["primary_color"].to_string().replace('"', ""),
+                secondary_color: x["secondary_color"].to_string().replace('"', ""),
+                tertiary_color: x["tertiary_color"].to_string().replace('"', ""),
+                text_color: x["text_color"].to_string().replace('"', ""),
+                text_color2: x["text_color2"].to_string().replace('"', ""),
+                text_color3: x["text_color3"].to_string().replace('"', ""),
+                transparent_color: x["transparent_color"].to_string().replace('"', ""),
                 transparent_color_active: x["transparent_color_active"]
                     .to_string()
-                    .replace('"', "")
-                    .replace("\"", ""),
+                    .replace('"', ""),
             })
             .collect::<Vec<Theme>>(),
     };

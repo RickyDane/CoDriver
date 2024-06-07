@@ -80,7 +80,6 @@ let IsFullSearching = false;
 let ArrSelectedItems = [];
 let ArrCopyItems = [];
 
-let IsLightMode = false;
 let IsImagePreview = false;
 let IsFtpActive = false;
 let CurrentFtpPath = "";
@@ -214,8 +213,8 @@ document.addEventListener("click", (e) => {
 		ContextMenu.children[6].classList.add("c-item-disabled");
 		ContextMenu.children[9].setAttribute("disabled", "true");
 		ContextMenu.children[9].classList.add("c-item-disabled");
-		ContextMenu.children[10].setAttribute("disabled", "true");
-		ContextMenu.children[10].classList.add("c-item-disabled");
+		// ContextMenu.children[10].setAttribute("disabled", "true");
+		// ContextMenu.children[10].classList.add("c-item-disabled");
 
 		document.querySelector(".c-item-duplicates").setAttribute("disabled", "true");
 		document.querySelector(".c-item-duplicates").classList.add("c-item-disabled");
@@ -874,13 +873,14 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		}
 		else {
 			itemButtonList.style.display = "none";
-			DirectoryList.style.gridTemplateColumns = "repeat(auto-fill, minmax(90px, 1fr))";
+			DirectoryList.style.gridTemplateColumns = "repeat(auto-fill, minmax(80px, 1fr))";
 			DirectoryList.style.rowGap = "15px";
 		}
 		newRow.append(itemButton);
 		newRow.append(itemButtonList);
 		itemLink.append(newRow);
 		DirectoryList.append(itemLink);
+		ArrDirectoryItems.push(itemLink);
 	});
 	DirectoryList.querySelectorAll("#item-link").forEach((item) => {
 		// Start dragging item
@@ -1595,15 +1595,7 @@ async function checkAppConfig() {
 		CurrentTheme = appConfig.current_theme;
 		console.log(appConfig.current_theme);
 		let themeSelect = document.querySelector(".theme-select");
-		themeSelect.value = CurrentTheme.replace("\"", "");
-		themeSelect.onchange = (e) => {
-			CurrentTheme = e.target.value;
-			changeTheme();
-			invoke("set_app_config", {
-				currentTheme: CurrentTheme,
-			});
-		}
-
+		themeSelect.value = CurrentTheme;
 		document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 		document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
 		document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
@@ -1805,11 +1797,8 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 	let isDir = element != null ? parseInt(element.getAttribute("itemisdir")) : (shortcutDirPath != null ? 1 : 0);
 	let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
 	let millerCol = element != null ? element.getAttribute("itemformillercol") : null;
-	let isFtp = element != null ? element.getAttribute("isftp") : null;
 	if (IsPopUpOpen == false) {
 		if (IsItemPreviewOpen == false && isDir == 1) {
-			DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
-			DirectoryList.classList.add("dir-preloader-container");
 			// Open directory
 			await invoke("open_dir", { path }).then(async (items) => {
 				if (ViewMode == "miller") {
@@ -1817,6 +1806,10 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 					await addMillerCol(millerCol);
 					await setMillerColActive(null, millerCol);
 					await setCurrentDir(element.getAttribute("itempath"));
+				}
+				else {
+					DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+					DirectoryList.classList.add("dir-preloader-container");
 				}
 				await showItems(items, dualPaneSide, millerCol);
 				if (IsDualPaneEnabled == true && dualPaneSide != "") {
@@ -2293,7 +2286,7 @@ async function switchView() {
 			document.querySelector(".explorer-container").style.width = "100%";
 			document.querySelectorAll(".directory-list").forEach((list) => {
 				if (IsShowDisks == false) {
-					list.style.gridTemplateColumns = "repeat(auto-fill, minmax(90px, 1fr))";
+					list.style.gridTemplateColumns = "repeat(auto-fill, minmax(80px, 1fr))";
 					list.style.rowGap = "15px";
 				}
 				else {
@@ -2418,12 +2411,11 @@ async function saveConfig(isToReload = true) {
 	let maxItems = parseInt(document.querySelector(".max-items-input").value);
 	let isImagePreview = (IsImagePreview = document.querySelector(".image-preview-checkbox").checked);
 	let isSelectMode = (IsSelectMode = $("#choose-interaction-mode").is(":checked"));
-	closeSettings();
+	let currentTheme = $(".theme-select").val();
 
 	if (isOpenInTerminal == true) { isOpenInTerminal = "1"; } else { isOpenInTerminal = "0"; }
 	if (isDualPaneEnabled == true) { isDualPaneEnabled = "1"; } else { isDualPaneEnabled = "0"; }
 	if (isDualPaneActive == true) { isDualPaneActive = "1"; } else { isDualPaneActive = "0"; }
-	if (isLightMode == true) { isLightMode = "1"; } else { isLightMode = "0"; }
 	if (isImagePreview == true) { isImagePreview = "1"; } else { isImagePreview = "0"; }
 	if (isSelectMode == true) { isSelectMode = "1"; } else { isSelectMode = "0"; }
 
@@ -2440,8 +2432,8 @@ async function saveConfig(isToReload = true) {
 		maxItems,
 		isImagePreview,
 		isSelectMode,
-		arrFavorites: ArrFavorites,
-		currentTheme: CurrentTheme
+		currentTheme,
+		arrFavorites: ArrFavorites
 	});
 	if (isToReload == true) {
 		checkAppConfig();
@@ -2852,15 +2844,14 @@ function getFDirObjectListFromDirectoryList(arrElements) {
 
 function checkColorMode(appConfig) {
 	var r = document.querySelector(":root");
-	let themeId = 0;
-	console.log(appConfig);
-	r.style.setProperty("--primaryColor", appConfig.themes[themeId].primary_color.replace("\"", "").replace("\"", ""));
-	r.style.setProperty("--secondaryColor", appConfig.themes[themeId].secondary_color.replace("\"", "").replace("\"", ""));
-	r.style.setProperty("--tertiaryColor", appConfig.themes[themeId].tertiary_color.replace("\"", "").replace("\"", ""));
-	r.style.setProperty("--transparentColor", appConfig.themes[themeId].transparent_color.replace("\"", "").replace("\"", ""));
-	r.style.setProperty("--transparentColorActive", appConfig.themes[themeId].transparent_color_active.replace("\"", "").replace("\"", ""));
-	r.style.setProperty("--textColor", appConfig.themes[themeId].text_color.replace("\"", "").replace("\"", ""));
-	r.style.setProperty("--textColor2", appConfig.themes[themeId].text_color2.replace("\"", "").replace("\"", ""));
+	let themeId = parseInt(CurrentTheme);
+	r.style.setProperty("--primaryColor", appConfig.themes[themeId].primary_color);
+	r.style.setProperty("--secondaryColor", appConfig.themes[themeId].secondary_color);
+	r.style.setProperty("--tertiaryColor", appConfig.themes[themeId].tertiary_color);
+	r.style.setProperty("--transparentColor", appConfig.themes[themeId].transparent_color);
+	r.style.setProperty("--transparentColorActive", appConfig.themes[themeId].transparent_color_active);
+	r.style.setProperty("--textColor", appConfig.themes[themeId].text_color);
+	r.style.setProperty("--textColor2", appConfig.themes[themeId].text_color2);
 	r.style.setProperty("--textColor3", appConfig.themes[themeId].text_color3.replace("\"", "").replace("\"", ""));
 }
 
