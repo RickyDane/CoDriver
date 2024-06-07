@@ -1592,7 +1592,8 @@ async function checkAppConfig() {
 		}
 
 		// Set current theme
-		CurrentTheme = appConfig.currentTheme;
+		CurrentTheme = appConfig.current_theme;
+		console.log(appConfig.current_theme);
 		let themeSelect = document.querySelector(".theme-select");
 		themeSelect.value = CurrentTheme.replace("\"", "");
 		themeSelect.onchange = (e) => {
@@ -2415,7 +2416,6 @@ async function saveConfig(isToReload = true) {
 	let isDualPaneActive = IsDualPaneEnabled;
 	let searchDepth = parseInt(document.querySelector(".search-depth-input").value);
 	let maxItems = parseInt(document.querySelector(".max-items-input").value);
-	let isLightMode = document.querySelector(".switch-light-dark-mode-checkbox").checked;
 	let isImagePreview = (IsImagePreview = document.querySelector(".image-preview-checkbox").checked);
 	let isSelectMode = (IsSelectMode = $("#choose-interaction-mode").is(":checked"));
 	closeSettings();
