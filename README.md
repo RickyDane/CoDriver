@@ -17,7 +17,7 @@
 
 The performance is provided by ["rust_search"](https://crates.io/crates/rust_search) and ["Tauri"](https://tauri.app/).
 <br><br>
-rdpFX does not use path caching to access files and folders, so the performance is achieved by Rust, the speed of the disk and the power of the cpu.
+rdpFX does not use path caching to access files and folders, so the performance is purely achieved by Rust, the speed of the disk and the power of the cpu.
 
 ⁉️ Keep in mind that this software is still work in progress and will contain bugs!
 
@@ -37,6 +37,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
   - rar
   - zip
   - 7zip
+  - tar (.gz, .bz2)
 - Navigate to a directory using the shortcut LAlt + 1 / 2 / 3 | (macOS option + 1 / 2 / 3)
   - Configure the paths yourself in the settings
 - Create file with F6
@@ -61,11 +62,11 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - ~~Tabs are not fully worked out yet~~
 
 #### 📝 Todos:
-- Multiple languages
-- FTP-Integration
-- Favorites
+- Themes
+- FTP-Integration (Access network storage)
 - Drag to select
-- Access network storage
+- Multiple languages
+- Favorites
 - Access online storage
 <br>
 
