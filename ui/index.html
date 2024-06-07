@@ -114,24 +114,34 @@
 					<input id="open-in-terminal-checkbox" type="checkbox" class="settings-ui-checkbox openin-terminal-checkbox" />
 					<label for="open-in-terminal-checkbox">Enable "Open in terminal" (Experimental)</p>
 				</span>-->
+            <div class="popup-body-col-section" style="width: 100px;">
+                <p>Theme</p>
+                <select class="select theme-select">
+                    <option value="0">Default</option>
+                    <option value="1">Dark</option>
+                    <option value="2">Light</option>
+                    <option value="3">Icey</option>
+                    <option value="4">Hacker</option>
+                </select>
+            </div>
             <span style="display: flex; gap: 10px; margin-top: 5px;">
                 <input id="choose-interaction-mode" type="checkbox"
                     class="settings-ui-checkbox choose-interaction-mode-checkbox" />
                 <label for="choose-interaction-mode">Double click to open item</p>
             </span>
             <span style="display: flex; gap: 10px; margin-top: 5px;">
-                <input id="show-dual-pane" type="checkbox" class="settings-ui-checkbox show-dual-pane-checkbox" />
-                <label for="show-dual-pane">Enable "Dual pane" view (Experimental)</p>
-            </span>
-            <span style="display: flex; gap: 10px; margin-top: 5px;">
-                <input id="switch-light-dark-mode" type="checkbox"
-                    class="settings-ui-checkbox switch-light-dark-mode-checkbox" />
-                <label for="switch-light-dark-mode">Light-Mode (Experimental)</p>
-            </span>
-            <span style="display: flex; gap: 10px; margin-top: 5px;">
                 <input id="switch-image-preview" type="checkbox" class="settings-ui-checkbox image-preview-checkbox" />
                 <label for="switch-image-preview">Image preview</p>
             </span>
+            <span style="display: flex; gap: 10px; margin-top: 5px;">
+                <input id="show-dual-pane" type="checkbox" class="settings-ui-checkbox show-dual-pane-checkbox" />
+                <label for="show-dual-pane">Enable "Dual pane" view (Experimental)</p>
+            </span>
+            <!-- <span style="display: flex; gap: 10px; margin-top: 5px;">
+                <input id="switch-light-dark-mode" type="checkbox"
+                    class="settings-ui-checkbox switch-light-dark-mode-checkbox" />
+                <label for="switch-light-dark-mode">Light-Mode (Experimental)</p>
+            </span> -->
         </div>
         <div class="popup-controls">
             <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>

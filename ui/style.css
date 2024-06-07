@@ -25,9 +25,9 @@
 }
 
 :root {
-	--primaryColor: #343637;
+	--primaryColor: #3f4352;
 	--secondaryColor: rgba(56, 59, 71, 1);
-	--tertiaryColor: #515567;
+	--tertiaryColor: #474b5c;
 	--transparentColor: rgba(0, 0, 0, 0.1);
 	--transparentColorActive: rgba(0, 0, 0, 0.25);
 	--textColor: white;
@@ -416,7 +416,7 @@ body {
 }
 .settings-ui-button {
 	background-color: var(--transparentColor) !important;
-	padding:  7.5px 12.5px !important;
+	padding: 7.5px 12.5px !important;
 }
 .settings-ui-button:hover {
 	background-color: var(--transparentColorActive) !important;

@@ -158,10 +158,10 @@ struct AppConfig {
     is_dual_pane_active: String,
     search_depth: i32,
     max_items: i32,
-    is_light_mode: String,
     is_image_preview: String,
     is_select_mode: String,
     arr_favorites: Vec<String>,
+    current_theme: String,
     themes: Vec<Theme>,
 }
 
@@ -192,10 +192,10 @@ async fn check_app_config() -> AppConfig {
             is_dual_pane_active: "0".to_string(),
             search_depth: 10,
             max_items: 1000,
-            is_light_mode: "0".to_string(),
             is_image_preview: "0".to_string(),
             is_select_mode: "1".to_string(),
             arr_favorites: vec![],
+            current_theme: "0".to_string(),
             themes: vec![],
         };
         let _ = serde_json::to_writer_pretty(
@@ -256,7 +256,6 @@ async fn check_app_config() -> AppConfig {
             .parse::<i32>()
             .unwrap(),
         max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
-        is_light_mode: app_config["is_light_mode"].to_string(),
         is_image_preview: app_config["is_image_preview"].to_string(),
         is_select_mode: app_config["is_select_mode"].to_string(),
         arr_favorites: app_config["arr_favorites"]
@@ -265,6 +264,7 @@ async fn check_app_config() -> AppConfig {
             .iter()
             .map(|x| x.to_string().replace('"', ""))
             .collect(),
+        current_theme: app_config["current_theme"].to_string(),
         themes: theme_vec,
     };
 }
@@ -1028,10 +1028,10 @@ async fn save_config(
         is_dual_pane_active: is_dual_pane_active.replace("\\", ""),
         search_depth,
         max_items,
-        is_light_mode: is_light_mode.replace("\\", "/"),
         is_image_preview: is_image_preview.replace("\\", "/"),
         is_select_mode: is_select_mode.replace("\\", "/"),
         arr_favorites,
+        current_theme: app_config["current_theme"].to_string(),
         themes: app_config["themes"]
             .as_array()
             .unwrap_or(&vec![])

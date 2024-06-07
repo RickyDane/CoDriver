@@ -107,6 +107,7 @@ let PrimaryColor = "#3f4352";
 let SecondaryColor = "rgb(56, 59, 71)";
 let SelectedColor = "rgba(0, 0, 0, 0.5)";
 let TransparentColor = "rgba(0, 0, 0, 0.1)";
+let CurrentTheme = "0";
 
 /* endregion */
 
@@ -1583,20 +1584,23 @@ async function checkAppConfig() {
 			IsSelectMode = false;
 		}
 
-		if (appConfig.is_light_mode.includes("1")) {
-			document.querySelector(".switch-light-dark-mode-checkbox").checked = true;
-			IsLightMode = true;
-		} else {
-			document.querySelector(".switch-light-dark-mode-checkbox").checked =
-				false;
-			IsLightMode = false;
-		}
-
 		if (appConfig.is_image_preview.includes("1")) {
 			document.querySelector(".image-preview-checkbox").checked =
 				IsImagePreview = true;
 		} else {
 			document.querySelector(".image-preview-checkbox").checked = false;
+		}
+
+		// Set current theme
+		CurrentTheme = appConfig.currentTheme;
+		let themeSelect = document.querySelector(".theme-select");
+		themeSelect.value = CurrentTheme.replace("\"", "");
+		themeSelect.onchange = (e) => {
+			CurrentTheme = e.target.value;
+			changeTheme();
+			invoke("set_app_config", {
+				currentTheme: CurrentTheme,
+			});
 		}
 
 		document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
@@ -1624,7 +1628,7 @@ async function checkAppConfig() {
 	// DefaultFileIcon = await resolveResource("resources/file-icon.png");
 	// DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
 
-	applyPlatformFeatures();
+	await applyPlatformFeatures();
 }
 
 async function applyPlatformFeatures() {
@@ -2434,10 +2438,10 @@ async function saveConfig(isToReload = true) {
 		isDualPaneActive,
 		searchDepth,
 		maxItems,
-		isLightMode,
 		isImagePreview,
 		isSelectMode,
-		arrFavorites: ArrFavorites
+		arrFavorites: ArrFavorites,
+		currentTheme: CurrentTheme
 	});
 	if (isToReload == true) {
 		checkAppConfig();
@@ -2866,7 +2870,7 @@ async function open_with(filePath, appPath) {
 	await invoke("open_with", { filePath: filePath, appPath: appPath });
 }
 
-async function getSetInstalledApplications(ext) {
+async function getSetInstalledApplications(ext = "") {
 	await invoke("get_installed_apps", { extension: ext }).then(apps => Applications = apps);
 }
 
