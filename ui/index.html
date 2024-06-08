@@ -14,16 +14,19 @@
 </head>
 
 <body>
-	<div class="toast-container"></div>
+    <div class="toast-container"></div>
     <div data-tauri-drag-region class="header-nav">
         <div data-tauri-drag-region style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 65%;">
             <button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i></button>
             <p class="nav-seperator-1">|</p>
             <button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
             <p class="nav-seperator-1">|</p>
-            <button onclick="switchView()" class="header-nav-button switch-view-button"><i class="fa-solid fa-list"></i></button>
-            <button onclick="switchHiddenFiles()" class="header-nav-button switch-hidden-files-button"><i class="fa-solid fa-eye-slash"></i></button>
-            <button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i class="fa-solid fa-table-columns"></i></button>
+            <button onclick="switchView()" class="header-nav-button switch-view-button"><i
+                    class="fa-solid fa-list"></i></button>
+            <button onclick="switchHiddenFiles()" class="header-nav-button switch-hidden-files-button"><i
+                    class="fa-solid fa-eye-slash"></i></button>
+            <button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i
+                    class="fa-solid fa-table-columns"></i></button>
             <button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
             <!-- <p>|</p> -->
             <!-- <h5 class="directory-entries-count"></h5> -->
@@ -38,10 +41,13 @@
         <div class="site-nav-bar">
         </div>
         <div class="list-column-header">
-            <button class="list-column-header-button" style="margin-left: 20px;" onclick="sortItems('name')">Name</button>
+            <button class="list-column-header-button" style="margin-left: 20px;"
+                onclick="sortItems('name')">Name</button>
             <div style="display: flex; flex-flow: row; justify-content: flex-end;">
-                <button class="list-column-header-button disk-list-column-header" onclick="sortByLoad()">Available</button>
-                <button class="list-column-header-button normal-list-column-header" onclick="sortItems('date')">Last modified</button>
+                <button class="list-column-header-button disk-list-column-header"
+                    onclick="sortByLoad()">Available</button>
+                <button class="list-column-header-button normal-list-column-header" onclick="sortItems('date')">Last
+                    modified</button>
                 <button class="list-column-header-button" onclick="sortItems('size')" style="width: 75px;">Size</button>
             </div>
         </div>
@@ -69,17 +75,21 @@
         <button class="context-item c-item-paste" onclick="pasteItem()">Paste<i class="fa-solid fa-paste"></i></button>
         <button class="context-item c-item-moveto">Move to<i class="fa-solid fa-arrow-right"></i></button>
         <button class="context-item c-item-newfile">New file<i class="fa-solid fa-file"></i></button>
-        <button class="context-item c-item-newfolder" onclick="createFolderInputPrompt()">New folder<i class="fa-solid fa-folder-plus"></i></button>
+        <button class="context-item c-item-newfolder" onclick="createFolderInputPrompt()">New folder<i
+                class="fa-solid fa-folder-plus"></i></button>
         <button class="context-item c-item-rename">Rename<i class="fa-solid fa-file-signature"></i></button>
         <div class="context-item context-with-dropdown">
             Extras
             <i class="fa-solid fa-chevron-right"></i>
             <div class="context-dropdown">
-                 <button class="context-item c-item-duplicates">Duplicates<i class="fa-solid fa-magnifying-glass"></i></button>
+                <button class="context-item c-item-duplicates">Duplicates<i
+                        class="fa-solid fa-magnifying-glass"></i></button>
+                <button class="context-item c-item-ytdownload">YT-Download<i class="fa-solid fa-video"></i></button>
             </div>
         </div>
         <button class="context-item c-item-properties">Properties<i class="fa-solid fa-info-circle"></i></button>
-        <button class="context-item c-item-openinterminal context-open-in-terminal" onclick="openInTerminal()">Open in Terminal<i class="fa-solid fa-terminal"></i></button>
+        <button class="context-item c-item-openinterminal context-open-in-terminal" onclick="openInTerminal()">Open in
+            Terminal<i class="fa-solid fa-terminal"></i></button>
     </div>
     <div class="settings-ui">
         <div class="settings-ui-header">
@@ -91,14 +101,17 @@
         </div>
         <div class="settings-ui-body">
             <h3>Shortcuts</h3>
-            <hr/>
+            <hr />
             <p>Configure up to 3 paths to switch to in an instant (Alt + 1, 2, 3)</p>
-            <input type="text" class="settings-ui-input text-input configured-path-one-input" placeholder="/home/user" />
-            <input type="text" class="settings-ui-input text-input configured-path-two-input" placeholder="/home/user/folder1" />
-            <input type="text" class="settings-ui-input text-input configured-path-three-input" placeholder="/home/user/folder2" />
+            <input type="text" class="settings-ui-input text-input configured-path-one-input"
+                placeholder="/home/user" />
+            <input type="text" class="settings-ui-input text-input configured-path-two-input"
+                placeholder="/home/user/folder1" />
+            <input type="text" class="settings-ui-input text-input configured-path-three-input"
+                placeholder="/home/user/folder2" />
             <br />
             <h3>Search settings</h3>
-            <hr/>
+            <hr />
             <p>Search depth (higher = slower) | Standard: 10</p>
             <input style="width: 100px;" type="number" class="settings-ui-input number-input search-depth-input"
                 placeholder="0 = off" />
@@ -109,7 +122,7 @@
             <input type="text" class="settings-ui-input text-input launch-path-input" placeholder="/home" />
             <br />
             <h3>Extra options</h3>
-            <hr/>
+            <hr />
             <!--<span style="display: flex; gap: 10px; margin-top: 5px;">
 					<input id="open-in-terminal-checkbox" type="checkbox" class="settings-ui-checkbox openin-terminal-checkbox" />
 					<label for="open-in-terminal-checkbox">Enable "Open in terminal" (Experimental)</p>
@@ -144,8 +157,10 @@
             </span> -->
         </div>
         <div class="popup-controls">
-            <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
-            <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i class="fa-solid fa-floppy-disk"></span></i>Save</button>
+            <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i
+                        class="fa-solid fa-ban"></i></span>Cancel</button>
+            <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i
+                        class="fa-solid fa-floppy-disk"></span></i>Save</button>
         </div>
     </div>
     <div class="search-bar-container">
@@ -164,19 +179,25 @@
         <div class="popup-body">
             <div class="popup-body-col-section">
                 <p class="text-2">Search input</p>
-                <input class="full-dualpane-search-input trigger-for-full-search text-input" type="text" placeholder="example.txt" />
+                <input class="full-dualpane-search-input trigger-for-full-search text-input" type="text"
+                    placeholder="example.txt" />
             </div>
             <div class="popup-body-col-section">
                 <p class="text-2">File content</p>
-                <input class="full-dualpane-search-file-content-input trigger-for-full-search text-input" type="text" placeholder="example.txt" />
+                <input class="full-dualpane-search-file-content-input trigger-for-full-search text-input" type="text"
+                    placeholder="example.txt" />
             </div>
             <div class="popup-body-col-section">
                 <p class="text-2">Max count of search results (0 = off)</p>
-                <input style="width: 100px;" type="number" class="number-input trigger-for-full-search full-search-max-items-input" placeholder="1000" value="1000" />
+                <input style="width: 100px;" type="number"
+                    class="number-input trigger-for-full-search full-search-max-items-input" placeholder="1000"
+                    value="1000" />
             </div>
             <div class="popup-body-col-section">
                 <p class="text-2">Search depth (0 = off)</p>
-                <input style="width: 100px;" type="number" class="number-input trigger-for-full-search full-search-search-depth-input" placeholder="10" value="10" />
+                <input style="width: 100px;" type="number"
+                    class="number-input trigger-for-full-search full-search-search-depth-input" placeholder="10"
+                    value="10" />
             </div>
         </div>
         <div class="popup-controls">
@@ -199,47 +220,50 @@
             </span>
         </div>
         <div class="popup-body">
-			<div class="popup-body-row-section">
-				<div class="popup-body-col-section">
-					<div class="popup-body-row-section">
-						<div class="popup-body-col-section">
-							<p>Hostname</p>
-							<input type="text" class="text-input ftp-hostname-input" placeholder="127.0.0.1" required />
-						</div>
-					</div>
-					<div class="popup-body-row-section">
-						<div class="popup-body-col-section">
-							<p>Username</p>
-							<input type="text" class="text-input ftp-username-input" placeholder="user" required />
-						</div>
-					</div>
-					<div class="popup-body-row-section">
-						<div class="popup-body-col-section">
-							<p>Password</p>
-							<input type="password" class="text-input ftp-password-input" placeholder="*********" required />
-						</div>
-					</div>
-				</div>
-				<div class="popup-body-col-section">
-					<div class="popup-body-row-section">
-						<div class="popup-body-col-section">
-							<p>Remote path</p>
-							<input type="text" class="text-input ftp-path-input" placeholder="/" />
-						</div>
-					</div>
-					<div class="popup-body-row-section">
-						<div class="popup-body-col-section">
-							<p>Mount point</p>
-							<input type="text" class="text-input ftp-mountpoint-input" placeholder="/" />
-						</div>
-					</div>
-				</div>
-			</div>
+            <div class="popup-body-row-section">
+                <div class="popup-body-col-section">
+                    <div class="popup-body-row-section">
+                        <div class="popup-body-col-section">
+                            <p>Hostname</p>
+                            <input type="text" class="text-input ftp-hostname-input" placeholder="127.0.0.1" required />
+                        </div>
+                    </div>
+                    <div class="popup-body-row-section">
+                        <div class="popup-body-col-section">
+                            <p>Username</p>
+                            <input type="text" class="text-input ftp-username-input" placeholder="user" required />
+                        </div>
+                    </div>
+                    <div class="popup-body-row-section">
+                        <div class="popup-body-col-section">
+                            <p>Password</p>
+                            <input type="password" class="text-input ftp-password-input" placeholder="*********"
+                                required />
+                        </div>
+                    </div>
+                </div>
+                <div class="popup-body-col-section">
+                    <div class="popup-body-row-section">
+                        <div class="popup-body-col-section">
+                            <p>Remote path</p>
+                            <input type="text" class="text-input ftp-path-input" placeholder="/" />
+                        </div>
+                    </div>
+                    <div class="popup-body-row-section">
+                        <div class="popup-body-col-section">
+                            <p>Mount point</p>
+                            <input type="text" class="text-input ftp-mountpoint-input" placeholder="/" />
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-		<span class="popup-controls">
-			<button class="icon-button" onclick="closeFtpConfig()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
-			<button class="icon-button" onclick="connectToFtp()"><span class="button-icon"><i class="fa-solid fa-forward"></i></span>Connect</button>
-		</span>
+        <span class="popup-controls">
+            <button class="icon-button" onclick="closeFtpConfig()"><span class="button-icon"><i
+                        class="fa-solid fa-ban"></i></span>Cancel</button>
+            <button class="icon-button" onclick="connectToFtp()"><span class="button-icon"><i
+                        class="fa-solid fa-forward"></i></span>Connect</button>
+        </span>
     </div>
     <div class="progress-bar-container-popup">
         <div class="progress-bar">
@@ -254,4 +278,5 @@
     </div>
     <div class="current-path"></div>
 </body>
+
 </html>

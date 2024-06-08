@@ -267,23 +267,20 @@ impl DirWalker {
     }
 }
 
-pub fn format_bytes(bytes: u64) -> String {
-    let kb = bytes / 1024;
-    let mb = kb / 1024;
-    let gb = mb / 1024;
-    let tb = gb / 1024;
+pub fn format_bytes(size: u64) -> String {
+    // Define size units and their labels
+    const UNITS: [&str; 7] = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
+    let mut size = size as f64; // Convert to float for division
+    let mut unit_index = 0; // Start with bytes (B)
 
-    if tb > 0 {
-        format!("{:.2} TB", tb as f32)
-    } else if gb > 0 {
-        format!("{:.2} GB", gb as f32)
-    } else if mb > 0 {
-        format!("{:.2} MB", mb as f32)
-    } else if kb > 0 {
-        format!("{:.2} KB", kb as f32)
-    } else {
-        format!("{:.2} B", bytes as f32)
+    // Find the appropriate unit
+    while size >= 1024.0 && unit_index < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit_index += 1;
     }
+
+    // Format with 2 decimal places
+    format!("{:.2} {}", size, UNITS[unit_index])
 }
 
 pub fn unpack_tar(file: File) {

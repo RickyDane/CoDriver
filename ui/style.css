@@ -843,7 +843,7 @@ label {
 	padding: 10px 15px;
 	background-color: var(--secondaryColor);
 	border-radius: 5px;
-	border: 1px solid var(--transparentColor);
+	border: 1px solid var(--transparentColorActive);
 	z-index: 3;
 	outline: none;
 	width: 100%;
@@ -1322,6 +1322,13 @@ label {
 	text-overflow: ellipsis;
 	word-break: break-all;
 	overflow: hidden;
+}
+
+/*  Yt-downloader */
+
+.yt-download-popup {
+	width: 50%;
+	height: fit-content;
 }
 
 /* List  */

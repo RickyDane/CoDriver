@@ -170,6 +170,8 @@ function closeAllPopups() {
 	closeItemPreview();
 	closeMultiRenamePopup();
 	closeCompressPopup();
+	closeYtDownloadPopup();
+	unSelectAllItems();
 	IsPopUpOpen = false;
 	IsInputFocused = false;
 }
@@ -227,6 +229,7 @@ document.addEventListener("click", (e) => {
 });
 
 // Open context menu for pasting for example
+// :context open
 document.addEventListener("contextmenu", (e) => {
 	e.preventDefault();
 	if (IsPopUpOpen == false) {
@@ -245,6 +248,8 @@ document.addEventListener("contextmenu", (e) => {
 			document.querySelector(".c-item-paste").classList.remove("c-item-disabled");
 		}
 	}
+	document.querySelector(".c-item-ytdownload").replaceWith(document.querySelector(".c-item-ytdownload").cloneNode(true));
+	document.querySelector(".c-item-ytdownload").addEventListener("click", async () => { await showYtDownload(); }, { once: true })
 });
 
 // Position contextmenu
@@ -923,11 +928,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", async (e) => {
 			e.preventDefault();
-			// if (ArrSelectedItems.length <= 1) {
-			// 	ArrSelectedItems = [];
-			// 	ArrSelectedItems.push(item);
-			// }
-			selectItem(item);
+			if (ArrSelectedItems.length <= 1) {
+				ArrSelectedItems = [];
+				selectItem(item);
+			}
+			// selectItem(item);
 			if (IsPopUpOpen == false) {
 				let appsCMenu = document.querySelector(".context-open-item-with");
 				appsCMenu.innerHTML = "";
@@ -1407,6 +1412,8 @@ async function pasteItem() {
 }
 
 function resetProgressBar() {
+	document.querySelector(".progress-bar-text").textContent = "";
+	document.querySelector(".progress-bar-item-text").textContent = "";
 	document.querySelector('.progress-bar-fill').style.width = '0px';
 	document.querySelector('.progress-bar-container-popup').style.display = 'none';
 	document.querySelector('.progress-bar-2-fill').style.width = '0px';
@@ -2925,6 +2932,56 @@ async function findDuplicates(item, depth) {
 	await invoke("find_duplicates", { appWindow: appWindow, path: item.getAttribute("itempath"), depth: parseInt(depth) });
 	closeLoadingPopup();
 	IsPopUpOpen = true;
+}
+
+async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
+	ContextMenu.style.display = "none";
+	IsPopUpOpen = true;
+	let popup = document.createElement("div");
+	popup.className = "uni-popup yt-download-popup";
+	popup.innerHTML = `
+		<div class="popup-header">
+			<h3>Download</h3>
+		</div>
+		<div class="popup-body">
+			<div class="popup-body-row-section">
+				<div class="popup-body-col-section" style="width: 100%;">
+					<p>URL</p>
+					<p class="yt-download-title"></p>
+					<input type="text" class="text-input yt-url-input" style='width: 100%;' placeholder="https://youtube.com/watch?v=dQw4w9WgXcQ" value="${url}" />
+				</div>
+			</div>
+		</div>
+		<div class="popup-controls">
+			<button class="icon-button" onclick="closeYtDownloadPopup()">
+				<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+				Cancel
+			</button>
+			<button class="icon-button yt-download-button-run">
+				<div class="button-icon"><i class="fa-solid fa-download"></i></div>
+				Download
+			</button>
+		</div>
+		`;
+	document.querySelector("body").append(popup);
+	document.querySelector(".yt-url-input").addEventListener("focus", () => IsInputFocused = true);
+	document.querySelector(".yt-url-input").addEventListener("blur", () => IsInputFocused = false);
+	document.querySelector(".yt-download-button-run").addEventListener("click", async () => {
+		await startYtDownload(document.querySelector(".yt-url-input").value);
+	});
+}
+
+async function startYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
+	closeYtDownloadPopup();
+	showLoadingPopup("Downloading ...");
+	await invoke("download_yt_video", { url });
+	closeLoadingPopup();
+}
+
+async function closeYtDownloadPopup() {
+	IsPopUpOpen = false;
+	cancelOperation();
+	document.querySelector(".yt-download-popup").remove();
 }
 
 async function cancelOperation() {

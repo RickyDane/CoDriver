@@ -4,7 +4,9 @@
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use flate2::read::GzDecoder;
+use reqwest::Client;
 use rust_search::{similarity_sort, SearchBuilder};
+use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
 use std::fs::{self, ReadDir};
 use std::io::{BufReader, Read, Write};
@@ -31,8 +33,9 @@ mod utils;
 use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
-    copy_to, count_entries, dbg_log, err_log, format_bytes, unpack_tar, wng_log, DirWalker,
-    DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER,
+    calc_transfer_speed, copy_to, count_entries, dbg_log, err_log, format_bytes, unpack_tar,
+    update_progressbar, update_progressbar_2, wng_log, DirWalker, DirWalkerEntry, COPY_COUNTER,
+    TO_COPY_COUNTER,
 };
 #[cfg(target_os = "macos")]
 mod window_tauri_ext;
@@ -110,6 +113,7 @@ fn main() {
             find_duplicates,
             cancel_operation,
             get_df_dir,
+            download_yt_video
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -838,9 +842,9 @@ async fn delete_item(act_file_name: String) {
     }
     dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
     if is_dir {
-        let _ = remove_dir_all(act_file_name.replace("\\", "/"));
+        let _ = remove_dir_all(act_file_name.replace("\\", "/")).expect("Failed to delete dir");
     } else {
-        let _ = remove_file(act_file_name.replace("\\", "/"));
+        let _ = remove_file(act_file_name.replace("\\", "/")).expect("Failed to delete file");
     }
 }
 
@@ -1330,4 +1334,64 @@ async fn get_df_dir(number: u8) -> String {
             .to_string(),
         _ => current_dir().unwrap().to_string_lossy().to_string(),
     };
+}
+
+#[tauri::command]
+async fn download_yt_video(app_window: Window, url: String) {
+    println!("Downloading {}", url);
+    // let id = Id::from_raw(&url).unwrap();
+    // let descrambler = VideoFetcher::from_id(id.into_owned())
+    //     .unwrap()
+    //     .fetch()
+    //     .await
+    //     .unwrap();
+
+    // let _ = app_window.eval("closeLoadingPopup();");
+    // let _ = app_window.eval("refreshView()");
+
+    // let js_query =
+    //     "showLoadingPopup('Downloading: ".to_owned() + &descrambler.video_title() + "');";
+    // let _ = app_window.eval(&js_query);
+    // let result = rustube::download_best_quality(&url).await;
+    // if result.is_err() {
+    //     wng_log(format!("Error: {}", result.unwrap_err()));
+    // }
+    // let _ = app_window.eval("closeLoadingPopup();");
+    // let _ = app_window.eval("refreshView()");
+
+    let video_options = VideoOptions {
+        quality: VideoQuality::HighestVideo,
+        filter: VideoSearchOptions::Video,
+        ..Default::default()
+    };
+
+    let video = Video::new_with_options(url, video_options).unwrap();
+
+    let stream = video.stream().await.unwrap();
+    let video_info = video.get_basic_info().await.unwrap();
+    let mut file = File::create(video_info.video_details.title.to_owned() + ".mp4").unwrap();
+    let total_size = stream.content_length() as f32;
+    let mut downloaded: f64 = 0.0;
+    let sw = Stopwatch::start_new();
+
+    let _ = &app_window
+        .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
+    let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
+
+    while let Some(chunk) = stream.chunk().await.unwrap() {
+        file.write_all(&chunk).unwrap();
+        downloaded += chunk.len() as f64;
+        let speed = calc_transfer_speed(downloaded, sw.elapsed_ms() as f64 / 1000.0);
+        update_progressbar_2(&app_window, 0.0, &video_info.video_details.title);
+        update_progressbar(
+            &app_window,
+            100.0 / total_size * downloaded as f32,
+            &format_bytes(downloaded as u64),
+            speed,
+        );
+        println!("Downloaded {}/{}", downloaded, total_size);
+    }
+
+    app_window.eval("resetProgressBar()").unwrap();
+    app_window.eval("listDirectories(true)").unwrap();
 }

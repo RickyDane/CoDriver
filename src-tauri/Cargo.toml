@@ -63,6 +63,8 @@ tokio = "1.37.0"
 ssh2 = "0.9.4"
 libc = "0.2.155"
 suppaftp = "6.0.1"
+reqwest = "0.12.4"
+rusty_ytdl = "0.7.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"
