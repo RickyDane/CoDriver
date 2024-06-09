@@ -1385,14 +1385,19 @@ async fn download_yt_video(app_window: Window, url: String) {
 #[tauri::command]
 async fn get_llm_response(app_window: Window, prompt: String) {
     let model_architecture = ModelArchitecture::Llama;
-    let model_path = Path::new("/Users/rickyperlick/Downloads/llama-2-7b-chat.ggmlv3.q2_K.bin");
-    let prompt = prompt;
+    let model_path = config_dir()
+        .unwrap()
+        .join("com.rdpFX.dev")
+        .join("models")
+        .join("ggml-model.bin");
+    //.join("gguf-model.gguf");
+    let prompt = format!("{}\n", prompt);
 
     let now = std::time::Instant::now();
 
     let model = llm::load_dynamic(
         Some(model_architecture),
-        model_path,
+        &model_path,
         llm::TokenizerSource::Embedded,
         Default::default(),
         llm::load_progress_callback_stdout,
@@ -1406,13 +1411,112 @@ async fn get_llm_response(app_window: Window, prompt: String) {
         now.elapsed().as_millis()
     );
 
+    app_window.eval("closeLoadingPopup()").unwrap();
+    app_window
+        .eval("showLoadingPopup('Loading files ...')")
+        .unwrap();
+
+    let mut context: String = String::from("Files containing the keywords of the prompt:\n");
+
+    let items: Vec<String> = rust_search::SearchBuilder::default()
+        .location(current_dir().unwrap())
+        .search_input("")
+        .ignore_case()
+        .hidden()
+        .depth(1)
+        .build()
+        .collect();
+
+    for item in items {
+        let item: String = item;
+        println!("Item: {:?}", item);
+        let path = item;
+        let file_ext = ".".to_string().to_owned()
+            + &path
+                .split(".")
+                .nth(&path.split(".").count() - 1)
+                .unwrap_or("");
+        if file_ext == ".txt" {
+            let file_content = fs::read_to_string(&path).unwrap_or_else(|x| {
+                err_log(format!("Error reading: {}", x));
+                String::from("")
+            });
+            let mut found_keywords: String = String::new();
+            for keyword in prompt.split(" ") {
+                println!("Searching for keyword: {}", keyword);
+                if file_content
+                    .to_lowercase()
+                    .contains(keyword.to_lowercase().as_str())
+                {
+                    println!("Found keyword: {}", keyword);
+                    found_keywords += &format!("{} ", keyword);
+                }
+            }
+            context += &format!(
+                "\n<start_of_file>\nFile: {}\nFound keywords: {}\n<end_of_file>",
+                path, found_keywords
+            );
+            /*context += &format!(
+                "\n<start_of_file>\nFile: {}\nContent: {}\n<end_of_file>\n",
+                path,
+                fs::read_to_string(&path).unwrap_or_else(|x| {
+                    err_log(format!("Error reading: {}", x));
+                    String::from("")
+                })
+            );*/
+        }
+    }
+
+    let general_information = "Provide a concise list of files which match the meaning of the prompt. Just display the paths, nothing more. If no file matches the prompt, respond with: 'No files found'.";
+
+    app_window.eval("closeLoadingPopup()").unwrap();
+    app_window
+        .eval("showLoadingPopup('Analyzing ...')")
+        .unwrap();
+
     let mut session = model.start_session(Default::default());
+    session
+        .feed_prompt(
+            model.as_ref(),
+            format!(
+                "General information: {}\nCurrent directory: {}\nContext: \n{}\nPrompt: {}",
+                general_information,
+                current_dir().unwrap().to_str().unwrap(),
+                context,
+                prompt
+            )
+            .as_str(),
+            &mut Default::default(),
+            llm::feed_prompt_callback(|resp| match resp {
+                llm::InferenceResponse::PromptToken(t)
+                | llm::InferenceResponse::InferredToken(t) => {
+                    unsafe {
+                        if ISCANCELED {
+                            ISCANCELED = false;
+                            return Ok(llm::InferenceFeedback::Halt);
+                        }
+                    }
+                    print!("{t}");
+                    std::io::stdout().flush().unwrap();
+                    Ok::<llm::InferenceFeedback, Infallible>(llm::InferenceFeedback::Continue)
+                }
+                _ => Ok(llm::InferenceFeedback::Continue),
+            }),
+        )
+        .expect("Failed to ingest initial prompt.");
+
+    let mut is_first_run = true;
+
+    app_window.eval("closeLoadingPopup()").unwrap();
+    app_window
+        .eval("showLoadingPopup('Generating response ...')")
+        .unwrap();
 
     let res = session.infer::<Infallible>(
         model.as_ref(),
         &mut rand::thread_rng(),
         &llm::InferenceRequest {
-            prompt: (&prompt).into(),
+            prompt: format!("Response: ").as_str().into(),
             parameters: &llm::InferenceParameters::default(),
             play_back_previous_tokens: false,
             maximum_token_count: None,
@@ -1421,19 +1525,46 @@ async fn get_llm_response(app_window: Window, prompt: String) {
         &mut Default::default(),
         |r| match r {
             llm::InferenceResponse::PromptToken(t) | llm::InferenceResponse::InferredToken(t) => {
+                if is_first_run {
+                    let _ = app_window
+                        .eval("document.querySelector('.llm-prompt-response').value = ''")
+                        .expect("Failed to set llm-prompt-response value");
+                    app_window.eval("closeLoadingPopup();").unwrap();
+                    is_first_run = false;
+                }
+                unsafe {
+                    if ISCANCELED {
+                        ISCANCELED = false;
+                        return Ok(llm::InferenceFeedback::Halt);
+                    }
+                }
                 let _ = app_window
                     .eval(&format!(
                         "document.querySelector('.llm-prompt-response').value += `{t}`"
                     ))
                     .unwrap();
-                print!("{t}");
-                std::io::stdout().flush().unwrap();
-
+                if prompt.starts_with(t.to_string().as_str()) {
+                    return Ok(llm::InferenceFeedback::Continue);
+                }
                 Ok(llm::InferenceFeedback::Continue)
             }
             _ => Ok(llm::InferenceFeedback::Continue),
         },
     );
+
+    // Reset input and run button
+    app_window
+        .eval("document.querySelector('.llm-prompt-input').disabled = false")
+        .unwrap();
+    app_window
+        .eval("document.querySelector('.llm-prompt-input').style.opacity = 1")
+        .unwrap();
+    app_window
+        .eval("document.querySelector('.llm-prompt-run').disabled = false")
+        .unwrap();
+    app_window
+        .eval("document.querySelector('.llm-prompt-run').style.opacity = 1")
+        .unwrap();
 
     match res {
         Ok(result) => println!("\n\nInference stats:\n{result}"),

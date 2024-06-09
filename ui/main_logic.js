@@ -3164,11 +3164,13 @@ async function showPromptInput() {
 				<h3>Prompt</h3>
 			</div>
 			<div class="popup-body">
-				<input type="text" class="text-input llm-prompt-input" placeholder="Enter your prompt here">
+				<div class="popup-body-row-section">
+					<input type="text" class="text-input llm-prompt-input" placeholder="Enter your prompt here">
+				</div>
 				<div class="popup-body-row-section">
 					<div style='width: 100%' class="popup-body-col-section">
 						<p>Response</p>
-						<textarea style='width: 100%; resize: none; height: 200px;' class="text-input llm-prompt-response"></textarea>
+						<textarea style='width: 100%; resize: none; height: 200px;' class="text-input llm-prompt-response" readonly></textarea>
 					</div>
 				</div>
 			</div>
@@ -3195,20 +3197,27 @@ async function showPromptInput() {
 	};
 
 	document.querySelector(".llm-prompt-input").focus();
+	IsInputFocused = true;
 
 	document.querySelector(".llm-prompt-run").onclick = async () => {
+		showLoadingPopup("Loading model ...");
+		document.querySelector(".llm-prompt-run").disabled = true;
+		document.querySelector(".llm-prompt-run").style.opacity = "0.5";
+		document.querySelector(".llm-prompt-input").disabled = true;
+		document.querySelector(".llm-prompt-input").style.opacity = "0.5";
+		document.querySelector(".llm-prompt-response").value = "Loading ...";
 		let prompt = document.querySelector(".llm-prompt-input").value;
 		if (prompt.length > 0) {
-			let response = await get_llm_response(prompt);
-			if (response) {
-				document.querySelector(".llm-prompt-input").value = response;
-			}
+			await get_llm_response(prompt);
 		}
 	};
 }
 
 async function closeLLMPromptInputPopup() {
+	cancelOperation();
 	document.querySelector(".llm-prompt-input-popup").remove();
+	IsInputFocused = false;
+	IsPopUpOpen = false;
 }
 
 async function get_llm_response(prompt) {
