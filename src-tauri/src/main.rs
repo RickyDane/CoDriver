@@ -1398,7 +1398,7 @@ async fn get_llm_response(app_window: Window, prompt: String) {
         llm::load_progress_callback_stdout,
     )
     .unwrap_or_else(|err| {
-        panic!("Failed to load {model_architecture} model from {model_path:?}: {err}")
+        panic!("Failed to load the {model_architecture} model from {model_path:?}: {err}")
     });
 
     println!(
