@@ -171,6 +171,7 @@ function closeAllPopups() {
 	closeMultiRenamePopup();
 	closeCompressPopup();
 	closeYtDownloadPopup();
+	closeLLMPromptInputPopup();
 	unSelectAllItems();
 	IsPopUpOpen = false;
 	IsInputFocused = false;
@@ -559,6 +560,13 @@ document.onkeydown = async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 		}
+
+		// Check if ctrl / cmd + p is pressed
+		if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.shiftKey && (e.key == "P" || e.key == "p")) {
+			showPromptInput();
+			e.preventDefault();
+			e.stopPropagation();
+		}
 	}
 };
 
@@ -835,6 +843,20 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				case ".appimage":
 					fileIcon = "resources/appimage-file.png";
 					break;
+				case ".mp4":
+				case ".mkv":
+				case ".webm":
+					fileIcon = "resources/video-file.png";
+					break;
+				case ".mp3":
+				case ".wav":
+				case ".ogg":
+				case ".opus":
+					fileIcon = "resources/audio-file.png";
+					break;
+				case ".iso":
+					fileIcon = "resources/iso-file.png";
+					break;
 				default:
 					fileIcon = "resources/file-icon.png";
 					break;
@@ -966,8 +988,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				ContextMenu.children[9].replaceWith(ContextMenu.children[9].cloneNode(true));
 				ContextMenu.children[10].replaceWith(ContextMenu.children[10].cloneNode(true));
 				ContextMenu.children[11].replaceWith(ContextMenu.children[11].cloneNode(true));
-
-				let extension = item.getAttribute("itemext");
+				document.querySelector(".c-item-ytdownload").replaceWith(document.querySelector(".c-item-ytdownload").cloneNode(true));
 
 				ContextMenu.children[0].removeAttribute("disabled");
 				ContextMenu.children[0].classList.remove("c-item-disabled");
@@ -987,6 +1008,8 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				ContextMenu.children[10].classList.remove("c-item-disabled");
 				ContextMenu.children[11].removeAttribute("disabled");
 				ContextMenu.children[11].classList.remove("c-item-disabled")
+
+				let extension = item.getAttribute("itemext");
 
 				// Check if item is an supported archive
 				if (extension != ".zip" && extension != ".rar" && extension != ".7z" && extension != ".tar" && extension != ".gz" && extension != ".br" && extension != ".bz2") {
@@ -1017,6 +1040,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				document.querySelector(".c-item-rename").addEventListener("click", () => { renameElementInputPrompt(item); }, { once: true });
 				document.querySelector(".c-item-properties").addEventListener("click", () => { showProperties(item); }, { once: true });
 				document.querySelector(".c-item-duplicates").addEventListener("click", () => { showFindDuplicates(item); }, { once: true })
+				document.querySelector(".c-item-ytdownload").addEventListener("click", async () => { await showYtDownload(); }, { once: true })
 
 				positionContextMenu(e);
 			}
@@ -2144,7 +2168,6 @@ async function goToDir(directory) {
 		else {
 			await showItems(items);
 		}
-		IsFtpActive = false;
 	});
 }
 
@@ -2947,8 +2970,18 @@ async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
 			<div class="popup-body-row-section">
 				<div class="popup-body-col-section" style="width: 100%;">
 					<p>URL</p>
-					<p class="yt-download-title"></p>
 					<input type="text" class="text-input yt-url-input" style='width: 100%;' placeholder="https://youtube.com/watch?v=dQw4w9WgXcQ" value="${url}" />
+				</div>
+			</div>
+			<div class="popup-body-row-section">
+				<div class="popup-body-col-section">
+					<p>Type</p>
+					<select class="text-input select yt-quality-input" style="width: 100%;">
+						<option value="highvideo">Highest video</option>
+						<option value="highaudio">Highest audio</option>
+						<option value="lowvideo">Lowest video</option>
+						<option value="lowaudio">Lowest audio</option>
+					</select>
 				</div>
 			</div>
 		</div>
@@ -3057,12 +3090,12 @@ async function getDir(number) {
 
 async function insertSiteNavButtons() {
 	let siteNavButtons = [
-		["Desktop", await getDir(0), "fa-solid fa-desktop", () => goToDir(0)],
-		["Downloads", await getDir(1), "fa-solid fa-download", () => goToDir(1)],
-		["Documents", await getDir(2), "fa-solid fa-file", () => goToDir(2)],
-		["Pictures", await getDir(3), "fa-solid fa-image", () => goToDir(3)],
-		["Videos", await getDir(4), "fa-solid fa-video", () => goToDir(4)],
-		["Music", await getDir(5), "fa-solid fa-music", () => goToDir(5)],
+		["Desktop", await getDir(0), "fa-solid fa-desktop", async () => await goToDir(0)],
+		["Downloads", await getDir(1), "fa-solid fa-download", async () => await goToDir(1)],
+		["Documents", await getDir(2), "fa-solid fa-file", async () => await goToDir(2)],
+		["Pictures", await getDir(3), "fa-solid fa-image", async () => await goToDir(3)],
+		["Videos", await getDir(4), "fa-solid fa-video", async () => await goToDir(4)],
+		["Music", await getDir(5), "fa-solid fa-music", async () => await goToDir(5)],
 		["FTP", "", "fa-solid fa-network-wired", showFtpConfig]
 	];
 
@@ -3086,6 +3119,7 @@ async function insertSiteNavButtons() {
 	let seperator = document.createElement("div");
 	seperator.className = "horizontal-seperator";
 	document.querySelector(".site-nav-bar").append(seperator);
+
 	let diskButton = document.createElement("button");
 	diskButton.className = "site-nav-bar-button";
 	diskButton.onclick = () => listDisks();
@@ -3122,6 +3156,66 @@ async function fileOperationContextMenu() {
 	return FileOperation;
 }
 
+async function showPromptInput() {
+	let popup = document.createElement("div");
+	popup.className = "uni-popup llm-prompt-input-popup";
+	popup.innerHTML = `
+			<div class="popup-header">
+				<h3>Prompt</h3>
+			</div>
+			<div class="popup-body">
+				<input type="text" class="text-input llm-prompt-input" placeholder="Enter your prompt here">
+				<div class="popup-body-row-section">
+					<div style='width: 100%' class="popup-body-col-section">
+						<p>Response</p>
+						<textarea style='width: 100%; resize: none; height: 200px;' class="text-input llm-prompt-response"></textarea>
+					</div>
+				</div>
+			</div>
+			<div class="popup-controls">
+				<button class="icon-button" onclick="closeLLMPromptInputPopup()">
+					<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+					Cancel
+				</button>
+				<button class="icon-button llm-prompt-run">
+					<div class="button-icon"><i class="fa-solid fa-arrow-right"></i></div>
+					Run
+				</button>
+			</div>
+		`;
+	document.body.appendChild(popup);
+	IsPopUpOpen = true;
+
+	document.querySelector(".llm-prompt-response").value = "";
+
+	document.querySelector(".llm-prompt-input").onkeyup = (e) => {
+		if (e.key === "Enter") {
+			document.querySelector(".llm-prompt-run").click();
+		}
+	};
+
+	document.querySelector(".llm-prompt-input").focus();
+
+	document.querySelector(".llm-prompt-run").onclick = async () => {
+		let prompt = document.querySelector(".llm-prompt-input").value;
+		if (prompt.length > 0) {
+			let response = await get_llm_response(prompt);
+			if (response) {
+				document.querySelector(".llm-prompt-input").value = response;
+			}
+		}
+	};
+}
+
+async function closeLLMPromptInputPopup() {
+	document.querySelector(".llm-prompt-input-popup").remove();
+}
+
+async function get_llm_response(prompt) {
+	return await invoke("get_llm_response", { appWindow, prompt });
+}
+
 insertSiteNavButtons();
 checkAppConfig();
 getSetInstalledApplications();
+showPromptInput();

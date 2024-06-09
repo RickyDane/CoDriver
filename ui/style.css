@@ -436,7 +436,7 @@ label {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	max-width: 50%;
+	width: fit-content;
 	margin: auto;
 	height: fit-content;
 	max-height: 70vh;
@@ -448,6 +448,7 @@ label {
 
 /* Custom controls*/
 .select {
+	position: relative;
 	appearance: none;
 	-moz-appearance: none;
 	-webkit-appearance: none;
@@ -456,6 +457,11 @@ label {
 	border: 1px solid var(--transparentColor);
 	border-radius: 5px;
 	cursor: pointer;
+}
+.select::after {
+	content: "\25BC"; /* Unicode for down chevron */
+	font-size: 12px;
+	margin-left: 8px;
 }
 .button {
 	padding: 10px 15px;
@@ -1033,7 +1039,7 @@ label {
 	width: 100%;
 	height: fit-content;
 	border: none;
-	background-color: var(--secondaryColor);
+	background-color: transparent;
 	border-radius: 5px;
 	margin: 2px 0;
 	padding: 5px 10px;
@@ -1048,15 +1054,15 @@ label {
 	/* display: ; */
 }
 .context-item:hover {
-	background-color: var(--transparentColorActive);
+	background-color: var(--transparentColor);
 	color: var(--textColor);
 }
 .c-item-disabled {
-	color: grey !important;
+	color: var(--transparentColorActive) !important;
 	background-color: var(--primaryColor);
 }
 .c-item-disabled:hover {
-	color: grey !important;
+	color: var(--transparentColorActive) !important;
 	background-color: var(--primaryColor);
 }
 .context-with-dropdown {
@@ -1327,6 +1333,11 @@ label {
 /*  Yt-downloader */
 
 .yt-download-popup {
+	width: 50%;
+	height: fit-content;
+}
+
+.llm-prompt-input-popup {
 	width: 50%;
 	height: fit-content;
 }

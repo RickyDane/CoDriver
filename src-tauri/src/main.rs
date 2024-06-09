@@ -4,12 +4,14 @@
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use flate2::read::GzDecoder;
-use reqwest::Client;
+use llm::ModelArchitecture;
 use rust_search::{similarity_sort, SearchBuilder};
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
+use std::convert::Infallible;
 use std::fs::{self, ReadDir};
 use std::io::{BufReader, Read, Write};
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::{
     env::{current_dir, set_current_dir},
@@ -113,7 +115,8 @@ fn main() {
             find_duplicates,
             cancel_operation,
             get_df_dir,
-            download_yt_video
+            download_yt_video,
+            get_llm_response
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -232,7 +235,6 @@ async fn check_app_config() -> AppConfig {
             transparent_color_active: x["transparent_color_active"].to_string(),
         })
         .collect::<Vec<Theme>>();
-    println!("Theme vec: {:?}", theme_vec);
     return AppConfig {
         view_mode: app_config["view_mode"].to_string().replace('"', ""),
         last_modified: app_config["last_modified"].to_string().replace('"', ""),
@@ -464,6 +466,9 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
     };
     if wanted_directory.is_err() {
         err_log("Not a valid directory".into());
+        dialog::Message::new("Not a valid directory")
+            .show()
+            .unwrap();
     } else {
         unsafe {
             PATH_HISTORY.push(current_dir().unwrap().to_string_lossy().to_string());
@@ -1339,25 +1344,6 @@ async fn get_df_dir(number: u8) -> String {
 #[tauri::command]
 async fn download_yt_video(app_window: Window, url: String) {
     println!("Downloading {}", url);
-    // let id = Id::from_raw(&url).unwrap();
-    // let descrambler = VideoFetcher::from_id(id.into_owned())
-    //     .unwrap()
-    //     .fetch()
-    //     .await
-    //     .unwrap();
-
-    // let _ = app_window.eval("closeLoadingPopup();");
-    // let _ = app_window.eval("refreshView()");
-
-    // let js_query =
-    //     "showLoadingPopup('Downloading: ".to_owned() + &descrambler.video_title() + "');";
-    // let _ = app_window.eval(&js_query);
-    // let result = rustube::download_best_quality(&url).await;
-    // if result.is_err() {
-    //     wng_log(format!("Error: {}", result.unwrap_err()));
-    // }
-    // let _ = app_window.eval("closeLoadingPopup();");
-    // let _ = app_window.eval("refreshView()");
 
     let video_options = VideoOptions {
         quality: VideoQuality::HighestVideo,
@@ -1394,4 +1380,63 @@ async fn download_yt_video(app_window: Window, url: String) {
 
     app_window.eval("resetProgressBar()").unwrap();
     app_window.eval("listDirectories(true)").unwrap();
+}
+
+#[tauri::command]
+async fn get_llm_response(app_window: Window, prompt: String) {
+    let model_architecture = ModelArchitecture::Llama;
+    let model_path = Path::new("/Users/rickyperlick/Downloads/llama-2-7b-chat.ggmlv3.q2_K.bin");
+    let prompt = prompt;
+
+    let now = std::time::Instant::now();
+
+    let model = llm::load_dynamic(
+        Some(model_architecture),
+        model_path,
+        llm::TokenizerSource::Embedded,
+        Default::default(),
+        llm::load_progress_callback_stdout,
+    )
+    .unwrap_or_else(|err| {
+        panic!("Failed to load {model_architecture} model from {model_path:?}: {err}")
+    });
+
+    println!(
+        "Model fully loaded! Elapsed: {}ms",
+        now.elapsed().as_millis()
+    );
+
+    let mut session = model.start_session(Default::default());
+
+    let res = session.infer::<Infallible>(
+        model.as_ref(),
+        &mut rand::thread_rng(),
+        &llm::InferenceRequest {
+            prompt: (&prompt).into(),
+            parameters: &llm::InferenceParameters::default(),
+            play_back_previous_tokens: false,
+            maximum_token_count: None,
+        },
+        // OutputRequest
+        &mut Default::default(),
+        |r| match r {
+            llm::InferenceResponse::PromptToken(t) | llm::InferenceResponse::InferredToken(t) => {
+                let _ = app_window
+                    .eval(&format!(
+                        "document.querySelector('.llm-prompt-response').value += `{t}`"
+                    ))
+                    .unwrap();
+                print!("{t}");
+                std::io::stdout().flush().unwrap();
+
+                Ok(llm::InferenceFeedback::Continue)
+            }
+            _ => Ok(llm::InferenceFeedback::Continue),
+        },
+    );
+
+    match res {
+        Ok(result) => println!("\n\nInference stats:\n{result}"),
+        Err(err) => println!("\n{err}"),
+    }
 }
