@@ -60,7 +60,6 @@ thread_local = "1.1.8"
 mio = "0.8.11"
 lazy_static = "1.4.0"
 tokio = "1.37.0"
-ssh2 = "0.9.4"
 libc = "0.2.155"
 suppaftp = "6.0.1"
 reqwest = "0.12.4"
@@ -68,6 +67,7 @@ rusty_ytdl = "0.7.2"
 rand = "0.8.5"
 llm = { git = "https://github.com/rustformers/llm", branch = "main", features = [
     "models",
+    "metal",
 ], default-features = false }
 
 [target.'cfg(target_os = "macos")'.dependencies]

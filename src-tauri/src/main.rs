@@ -1384,13 +1384,12 @@ async fn download_yt_video(app_window: Window, url: String) {
 
 #[tauri::command]
 async fn get_llm_response(app_window: Window, prompt: String) {
-    let model_architecture = ModelArchitecture::Llama;
+    let model_architecture = ModelArchitecture::GptNeoX;
     let model_path = config_dir()
         .unwrap()
         .join("com.rdpFX.dev")
         .join("models")
         .join("ggml-model.bin");
-    //.join("gguf-model.gguf");
     let prompt = format!("{}\n", prompt);
 
     let now = std::time::Instant::now();
@@ -1416,7 +1415,7 @@ async fn get_llm_response(app_window: Window, prompt: String) {
         .eval("showLoadingPopup('Loading files ...')")
         .unwrap();
 
-    let mut context: String = String::from("Files containing the keywords of the prompt:\n");
+    let mut context: String = String::new();
 
     let items: Vec<String> = rust_search::SearchBuilder::default()
         .location(current_dir().unwrap())
@@ -1431,43 +1430,39 @@ async fn get_llm_response(app_window: Window, prompt: String) {
         let item: String = item;
         println!("Item: {:?}", item);
         let path = item;
-        let file_ext = ".".to_string().to_owned()
-            + &path
-                .split(".")
-                .nth(&path.split(".").count() - 1)
-                .unwrap_or("");
+        let file_ext = ".".to_string().to_owned() + &path.split(".").last().unwrap_or("");
         if file_ext == ".txt" {
-            let file_content = fs::read_to_string(&path).unwrap_or_else(|x| {
-                err_log(format!("Error reading: {}", x));
-                String::from("")
-            });
-            let mut found_keywords: String = String::new();
-            for keyword in prompt.split(" ") {
-                println!("Searching for keyword: {}", keyword);
-                if file_content
-                    .to_lowercase()
-                    .contains(keyword.to_lowercase().as_str())
-                {
-                    println!("Found keyword: {}", keyword);
-                    found_keywords += &format!("{} ", keyword);
-                }
-            }
+            // let file_content = fs::read_to_string(&path).unwrap_or_else(|x| {
+            //     err_log(format!("Error reading: {}", x));
+            //     String::from("")
+            // });
+            // let mut found_keywords: String = String::new();
+            // for keyword in prompt.split(" ") {
+            //     println!("Searching for keyword: {}", keyword);
+            //     if file_content
+            //         .to_lowercase()
+            //         .contains(keyword.to_lowercase().as_str())
+            //     {
+            //         println!("Found keyword: {}", keyword);
+            //         found_keywords += &format!("{} ", keyword);
+            //     }
+            // }
+            // context += &format!(
+            //     "\n<start_of_file>\nFile: {}\nFound keywords: {}\n<end_of_file>",
+            //     path, found_keywords
+            // );
             context += &format!(
-                "\n<start_of_file>\nFile: {}\nFound keywords: {}\n<end_of_file>",
-                path, found_keywords
-            );
-            /*context += &format!(
-                "\n<start_of_file>\nFile: {}\nContent: {}\n<end_of_file>\n",
+                "\nFile: {}\nContent: {}\n",
                 path,
                 fs::read_to_string(&path).unwrap_or_else(|x| {
                     err_log(format!("Error reading: {}", x));
                     String::from("")
                 })
-            );*/
+            );
         }
     }
 
-    let general_information = "Provide a concise list of files which match the meaning of the prompt. Just display the paths, nothing more. If no file matches the prompt, respond with: 'No files found'.";
+    let general_information = "Provide a list of files which match the meaning of the prompt. If no file matches the prompt, respond with: 'No files found'. The response needs to be a reference to the files. There musn't be any other detail.";
 
     app_window.eval("closeLoadingPopup()").unwrap();
     app_window
@@ -1479,7 +1474,7 @@ async fn get_llm_response(app_window: Window, prompt: String) {
         .feed_prompt(
             model.as_ref(),
             format!(
-                "General information: {}\nCurrent directory: {}\nContext: \n{}\nPrompt: {}",
+                "General information: {}\nCurrent directory: {}\nFiles: \n{}\nPrompt: {}",
                 general_information,
                 current_dir().unwrap().to_str().unwrap(),
                 context,
