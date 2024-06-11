@@ -81,7 +81,6 @@ let ArrSelectedItems = [];
 let ArrCopyItems = [];
 
 let IsImagePreview = false;
-let IsFtpActive = false;
 let CurrentFtpPath = "";
 let IsCopyToCut = false;
 let Platform = "";
@@ -99,7 +98,6 @@ let IsFileOpIntern = false;
 let DraggedOverElement = null;
 let MousePos = [];
 let FileOperation = "";
-let IsFTPConnected = false;
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -692,7 +690,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		let newRow = document.createElement("div");
 		newRow.className = "directory-item-entry";
 		let fileIcon = "resources/file-icon.png"; // Default
-		let iconSize = "38px";
+		let iconSize = "48px";
 		if (item.is_dir == 1) {
 			fileIcon = "resources/folder-icon.png";
 			// Check for dir name to apply custom icons
@@ -1106,7 +1104,6 @@ async function setCurrentDir(currentDir, dualPaneSide = "") {
 			pathItem.setAttribute("itempath", currentPathTracker);
 			pathItem.setAttribute("itempaneside", dualPaneSide);
 			pathItem.setAttribute("itemisdir", 1);
-			pathItem.setAttribute("isftp", 0);
 			pathItem.setAttribute("onClick", "openItem(this, '" + dualPaneSide + "', '')");
 			let divider = document.createElement("p");
 			divider.textContent = "/";
@@ -1143,11 +1140,7 @@ async function deleteItems() {
 		showLoadingPopup("Items are being deleted");
 		for (let i = 0; i < ArrSelectedItems.length; i++) {
 			let actFileName = ArrSelectedItems[i].getAttribute("itempath");
-			if (IsFTPConnected == true) {
-				await invoke("ftp_remove", { path: actFileName });
-			} else {
-				await invoke("delete_item", { actFileName });
-			}
+			await invoke("delete_item", { actFileName });
 		}
 		IsCopyToCut = false;
 		await listDirectories();
@@ -1433,6 +1426,7 @@ async function pasteItem() {
 		showToast("Copy", "Done copying some files", "success");
 	}
 	await listDirectories(true);
+	await unSelectAllItems();
 }
 
 function resetProgressBar() {
@@ -1689,7 +1683,6 @@ async function listDisks() {
 			let itemLink = document.createElement("button");
 			itemLink.setAttribute("itempath", item.path.replace('"', '').replace('"', ''));
 			itemLink.setAttribute("itemname", item.name.replace('"', '').replace('"', ''));
-			itemLink.setAttribute("isftp", 0);
 			itemLink.setAttribute("itemisdir", 1);
 			itemLink.setAttribute("onclick", "interactWithItem(this, '')");
 			let newRow = document.createElement("div");
@@ -1821,7 +1814,7 @@ async function interactWithItem(element = null, dualPaneSide = "", shortcutPath 
 	// Double click logic / reset after 500 ms to force double click to open
 	setTimeout(() => {
 		SelectedItemToOpen = null;
-	}, 500);
+	}, 250);
 }
 
 async function openItem(element, dualPaneSide, shortcutDirPath = null) {
@@ -1873,7 +1866,8 @@ function selectItem(element, dualPaneSide = "") {
 				item.children[0].children[1].classList.remove("selected-item");
 			}
 			else {
-				item.children[0].children[0].classList.remove("selected-item");
+				item.children[0].children[0].children[0].classList.remove("selected-item");
+				item.children[0].children[0].children[1].classList.remove("selected-item-min");
 			}
 		});
 		ArrSelectedItems = [];
@@ -1887,7 +1881,8 @@ function selectItem(element, dualPaneSide = "") {
 		SelectedElement.children[0].children[1].classList.add("selected-item");
 	}
 	else {
-		SelectedElement.children[0].children[0].classList.add("selected-item");
+		SelectedElement.children[0].children[0].children[0].classList.add("selected-item");
+		SelectedElement.children[0].children[0].children[1].classList.add("selected-item-min");
 	}
 	SelectedItemPath = path;
 	if (dualPaneSide != "" && dualPaneSide != null) {
@@ -1924,7 +1919,8 @@ function deSelectitem(item) {
 		item.children[0].children[1].classList.remove("selected-item");
 	}
 	else {
-		item.children[0].children[0].classList.remove("selected-item");
+		item.children[0].children[0].children[0].classList.remove("selected-item");
+		item.children[0].children[0].children[1].classList.remove("selected-item-min");
 	}
 	let index = ArrSelectedItems.indexOf(item);
 	ArrSelected.splice(index, index);
@@ -1940,12 +1936,14 @@ async function unSelectAllItems() {
 				ArrSelectedItems[i].children[0].children[1].classList.remove("selected-item");
 			}
 			else {
-				ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
+				ArrSelectedItems[i].children[0].children[0].children[0].classList.remove("selected-item");
+				ArrSelectedItems[i].children[0].children[0].children[1].classList.remove("selected-item-min");
 			}
 		}
-		SelectedElement = null;
-		ArrSelectedItems = [];
 	}
+	SelectedElement = null;
+	ArrSelectedItems = [];
+	SelectedItemToOpen = null;
 	$(".selected-item").removeClass("selected-item");
 }
 
@@ -3014,7 +3012,7 @@ async function startYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") 
 async function closeYtDownloadPopup() {
 	IsPopUpOpen = false;
 	cancelOperation();
-	document.querySelector(".yt-download-popup").remove();
+	document.querySelector(".yt-download-popup")?.remove();
 }
 
 async function cancelOperation() {
@@ -3102,7 +3100,7 @@ async function insertSiteNavButtons() {
 	for (let i = 0; i < siteNavButtons.length; i++) {
 		let button = document.createElement("button");
 		button.className = "site-nav-bar-button";
-		button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
+		button.innerHTML = `<i color="blue" class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
 		button.setAttribute("itempath", siteNavButtons[i][1]);
 		button.onclick = siteNavButtons[i][3];		// Support for dragging files to the directory
 		button.ondragover = (e) => {
@@ -3215,7 +3213,7 @@ async function showPromptInput() {
 
 async function closeLLMPromptInputPopup() {
 	cancelOperation();
-	document.querySelector(".llm-prompt-input-popup").remove();
+	document.querySelector(".llm-prompt-input-popup")?.remove();
 	IsInputFocused = false;
 	IsPopUpOpen = false;
 }
@@ -3227,4 +3225,4 @@ async function get_llm_response(prompt) {
 insertSiteNavButtons();
 checkAppConfig();
 getSetInstalledApplications();
-showPromptInput();
+// showPromptInput();

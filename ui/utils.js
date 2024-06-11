@@ -3,9 +3,9 @@ const { listen } = window.__TAURI__.event;
 /* Drag and drop files into file explorer */
 listen('tauri://file-drop', async event => {
   if (IsFileOpIntern == false) {
-      ArrSelectedItems = [];
-      ArrCopyItems = [];
-      event.payload.forEach(async item => {
+    ArrSelectedItems = [];
+    ArrCopyItems = [];
+    event.payload.forEach(async item => {
       CopyFilePath = item;
       CopyFileName = CopyFilePath.split("/")[CopyFilePath.split("/").length - 1].replace("'", "");
       let element = document.createElement("button");
@@ -52,34 +52,34 @@ listen('tauri://file-drop', async event => {
 function showToast(title, message, type = "info") {
   let toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
-  let iconClass = "fa-solid fa-info-circle";
+  let colorClass = "";
 
-  if (type == "success") {
-      iconClass = "fa-solid fa-circle-check";
-  }
-  else if (type == "error") {
-      iconClass = "fa-solid fa-triangle-exclamation";
+  switch (type) {
+    case "info":
+      colorClass = "toast-info";
+      break;
+    case "success":
+      colorClass = "toast-success";
+      break;
+    case "error":
+      colorClass = "toast-error";
+      break;
   }
 
   toast.innerHTML = `
-      <div class="toast-icon toast-icon-${type}">
-          <i class="fa-regular ${iconClass}"></i>
-      </div>
-      <div class="toast-content">
-          <h5>
-              <span>${title}</span>
-          </h5>
-          <p>${message}</p>
-      </div>
+    <div class="toast-content ${colorClass}">
+      <p>${message}</p>
+    </div>
   `;
 
   $(".toast-container").append(toast);
+
   setTimeout(() => {
-      toast.style.opacity = 0;
-      toast.style.translate = "100px";
+    toast.style.opacity = 0;
+    toast.style.translate = "100px";
   }, 2000);
 
   setTimeout(() => {
-      toast?.remove();
+    toast?.remove();
   }, 2200);
 }
