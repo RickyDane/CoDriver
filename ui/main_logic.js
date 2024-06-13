@@ -773,6 +773,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		}
 		else {
 			switch (item.extension.toLowerCase()) {
+				case ".rs":
+					fileIcon = "resources/rust-file.png";
+					break;
 				case ".json":
 				case ".sql":
 				case ".js":
@@ -780,7 +783,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				case ".scss":
 				case ".cs":
 				case ".c":
-				case ".rs":
 				case ".xml":
 				case ".htm":
 				case ".html":
@@ -1695,7 +1697,7 @@ async function listDisks() {
 			itemButton.innerHTML = `
 				<span class="disk-item-button">
 				<div class="disk-item-top">
-				<img class="item-icon" src="resources/disk-icon.png" width="56px" height="auto"/>
+				<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto"/>
 				<span class="disk-info">
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><b class="disk-info">Description:</b><b class="disk-info">${item.name}</b></span>
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">File-System:</span><span class="disk-info">${item.format.replace('"', "").replace('"', "")}</span></span>
@@ -1715,7 +1717,7 @@ async function listDisks() {
 			let itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center; width: 50%;">
-				<img class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
+				<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
 				<p class="disk-info" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
@@ -1832,7 +1834,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 					await setCurrentDir(element.getAttribute("itempath"));
 				}
 				else {
-					DirectoryList.innerHTML = `<img src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+					DirectoryList.innerHTML = `<img decoding="async" src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
 					DirectoryList.classList.add("dir-preloader-container");
 				}
 				await showItems(items, dualPaneSide, millerCol);
