@@ -11,7 +11,6 @@ use serde_json::Value;
 use std::convert::Infallible;
 use std::fs::{self, ReadDir};
 use std::io::{BufReader, Read, Write};
-use std::path::Path;
 use std::process::{Command, Stdio};
 use std::{
     env::{current_dir, set_current_dir},
@@ -1342,18 +1341,33 @@ async fn get_df_dir(number: u8) -> String {
 }
 
 #[tauri::command]
-async fn download_yt_video(app_window: Window, url: String) {
-    println!("Downloading {}", url);
+async fn download_yt_video(app_window: Window, url: String, quality: String) {
+    println!("Downloading {} as {}", url, quality);
+    let chosen_quality = match quality.as_str() {
+        "lowestvideo" => VideoQuality::LowestVideo,
+        "lowestaudio" => VideoQuality::LowestAudio,
+        "highestvideo" => VideoQuality::HighestVideo,
+        "highestaudio" => VideoQuality::HighestAudio,
+        _ => VideoQuality::HighestVideo,
+    };
+
+    println!("Chosen quality: {:?}", chosen_quality);
 
     let video_options = VideoOptions {
-        quality: VideoQuality::HighestVideo,
+        quality: chosen_quality,
         filter: VideoSearchOptions::Video,
         ..Default::default()
     };
 
     let video = Video::new_with_options(url, video_options).unwrap();
 
-    let stream = video.stream().await.unwrap();
+    let stream = video.stream().await;
+    if stream.is_err() {
+        let _ = &app_window.eval("closeLoadingPopup()");
+        let _ = &app_window.eval("alert('Failed to retrieve source')");
+        return;
+    }
+    let stream = stream.unwrap();
     let video_info = video.get_basic_info().await.unwrap();
     let mut file = File::create(video_info.video_details.title.to_owned() + ".mp4").unwrap();
     let total_size = stream.content_length() as f32;

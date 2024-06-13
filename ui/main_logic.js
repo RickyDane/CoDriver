@@ -98,6 +98,7 @@ let IsFileOpIntern = false;
 let DraggedOverElement = null;
 let MousePos = [];
 let FileOperation = "";
+let IsFirstRun = true;
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -776,11 +777,25 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				case ".rs":
 					fileIcon = "resources/rust-file.png";
 					break;
-				case ".json":
-				case ".sql":
 				case ".js":
+				case ".jsx":
+					fileIcon = "resources/javascript-file.png";
+					break;
 				case ".css":
 				case ".scss":
+					fileIcon = "resources/css-file.png";
+					break;
+				case ".sql":
+				case ".db":
+					fileIcon = "resources/sql-file.png";
+					break;
+				case ".go":
+					fileIcon = "resources/go-file.png";
+					break;
+				case ".md":
+					fileIcon = "resources/markdown-file.png";
+					break;
+				case ".json":
 				case ".cs":
 				case ".c":
 				case ".xml":
@@ -788,6 +803,8 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				case ".html":
 				case ".php":
 				case ".py":
+				case ".ts":
+				case ".tsx":
 					fileIcon = "resources/code-file.png";
 					break;
 				case ".png":
@@ -845,6 +862,10 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 					break;
 				case ".mp4":
 				case ".mkv":
+				case ".avi":
+				case ".mov":
+				case ".wmv":
+				case ".flv":
 				case ".webm":
 					fileIcon = "resources/video-file.png";
 					break;
@@ -1635,11 +1656,15 @@ async function checkAppConfig() {
 				await switchToDualPane();
 			}
 		}
-		else if (appConfig.launch_path.length >= 1) {
+		else if (appConfig.launch_path.length >= 1 && IsFirstRun == true) {
 			let path = appConfig.launch_path;
-			invoke("open_dir", { path }).then(async (items) => {
+			await invoke("open_dir", { path }).then(async (items) => {
 				await showItems(items);
 			});
+			IsFirstRun = false;
+		}
+		else if (IsFirstRun == false) {
+			await refreshView();
 		}
 
 		checkColorMode(appConfig);
@@ -1947,6 +1972,7 @@ async function unSelectAllItems() {
 	ArrSelectedItems = [];
 	SelectedItemToOpen = null;
 	$(".selected-item").removeClass("selected-item");
+	$(".selected-item-min").removeClass("selected-item-min");
 }
 
 async function goHome() {
@@ -2977,10 +3003,10 @@ async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
 				<div class="popup-body-col-section">
 					<p>Type</p>
 					<select class="text-input select yt-quality-input" style="width: 100%;">
-						<option value="highvideo">Highest video</option>
-						<option value="highaudio">Highest audio</option>
-						<option value="lowvideo">Lowest video</option>
-						<option value="lowaudio">Lowest audio</option>
+						<option value="highestvideo">Highest video</option>
+						<option value="highestaudio">Highest audio</option>
+						<option value="lowestvideo">Lowest video</option>
+						<option value="lowestaudio">Lowest audio</option>
 					</select>
 				</div>
 			</div>
@@ -3000,14 +3026,14 @@ async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
 	document.querySelector(".yt-url-input").addEventListener("focus", () => IsInputFocused = true);
 	document.querySelector(".yt-url-input").addEventListener("blur", () => IsInputFocused = false);
 	document.querySelector(".yt-download-button-run").addEventListener("click", async () => {
-		await startYtDownload(document.querySelector(".yt-url-input").value);
+		await startYtDownload(document.querySelector(".yt-url-input").value, document.querySelector(".yt-quality-input").value);
 	});
 }
 
-async function startYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
+async function startYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ", quality = "highvideo") {
 	closeYtDownloadPopup();
 	showLoadingPopup("Downloading ...");
-	await invoke("download_yt_video", { url });
+	await invoke("download_yt_video", { appWindow, url, quality });
 	closeLoadingPopup();
 }
 
