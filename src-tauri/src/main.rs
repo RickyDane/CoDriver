@@ -4,13 +4,14 @@
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use flate2::read::GzDecoder;
+use icns::{IconFamily, IconType, Image};
 use llm::ModelArchitecture;
 use rust_search::{similarity_sort, SearchBuilder};
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
 use std::convert::Infallible;
 use std::fs::{self, ReadDir};
-use std::io::{BufReader, Read, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::{
     env::{current_dir, set_current_dir},
@@ -25,7 +26,7 @@ use tauri::{
     },
     Config,
 };
-use tauri::{Manager, Window, WindowEvent};
+use tauri::{Icon, Manager, Window, WindowEvent};
 use unrar::Archive;
 use zip::write::FileOptions;
 use zip_extensions::*;
@@ -115,7 +116,8 @@ fn main() {
             cancel_operation,
             get_df_dir,
             download_yt_video,
-            get_llm_response
+            get_llm_response,
+            get_app_icns
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -1578,5 +1580,119 @@ async fn get_llm_response(app_window: Window, prompt: String) {
     match res {
         Ok(result) => println!("\n\nInference stats:\n{result}"),
         Err(err) => println!("\n{err}"),
+    }
+}
+#[tauri::command]
+async fn get_app_icns(path: String) -> String {
+    let icns = applications::find_app_icns(path.into());
+    if icns.is_some() {
+        let icns = icns.unwrap();
+
+        // Save additional icon to read from rdpFX
+        let file = BufReader::new(File::open(icns.to_string_lossy().to_string()).unwrap());
+        let mut icon_family = IconFamily::read(file);
+        if icon_family.is_err() {
+            return String::from("");
+        }
+        let icon_family = icon_family.unwrap();
+
+        let mut image = icon_family.get_icon_with_type(IconType::RGBA32_512x512_2x);
+        if image.is_err() {
+            image = icon_family.get_icon_with_type(IconType::RGBA32_512x512);
+            if image.is_err() {
+                image = icon_family.get_icon_with_type(IconType::RGBA32_256x256_2x);
+                if image.is_err() {
+                    image = icon_family.get_icon_with_type(IconType::RGBA32_256x256);
+                    if image.is_err() {
+                        image = icon_family.get_icon_with_type(IconType::RGBA32_128x128_2x);
+                        if image.is_err() {
+                            image = icon_family.get_icon_with_type(IconType::RGBA32_128x128);
+                            if image.is_err() {
+                                image = icon_family.get_icon_with_type(IconType::RGBA32_64x64);
+                                if image.is_err() {
+                                    image =
+                                        icon_family.get_icon_with_type(IconType::RGBA32_32x32_2x);
+                                    if image.is_err() {
+                                        image =
+                                            icon_family.get_icon_with_type(IconType::RGBA32_32x32);
+                                        if image.is_err() {
+                                            image = icon_family
+                                                .get_icon_with_type(IconType::RGBA32_16x16_2x);
+                                            if image.is_err() {
+                                                image = icon_family
+                                                    .get_icon_with_type(IconType::RGBA32_16x16);
+                                                if image.is_err() {
+                                                    image = icon_family.get_icon_with_type(
+                                                        IconType::RGB24_128x128,
+                                                    );
+                                                    if image.is_err() {
+                                                        image = icon_family.get_icon_with_type(
+                                                            IconType::RGB24_48x48,
+                                                        );
+                                                        if image.is_err() {
+                                                            image = icon_family.get_icon_with_type(
+                                                                IconType::RGB24_32x32,
+                                                            );
+                                                            if image.is_err() {
+                                                                image = icon_family
+                                                                    .get_icon_with_type(
+                                                                        IconType::RGB24_16x16,
+                                                                    );
+                                                                if image.is_err() {
+                                                                    image = icon_family
+                                                                        .get_icon_with_type(
+                                                                            IconType::Mask8_128x128,
+                                                                        );
+                                                                    if image.is_err() {
+                                                                        image = icon_family
+                                                                            .get_icon_with_type(
+                                                                            IconType::Mask8_48x48,
+                                                                        );
+                                                                        if image.is_err() {
+                                                                            image = icon_family.get_icon_with_type(IconType::Mask8_32x32);
+                                                                            if image.is_err() {
+                                                                                image = icon_family.get_icon_with_type(IconType::Mask8_16x16);
+                                                                                if image.is_err() {
+                                                                                    return String::from("");
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let image = image.unwrap();
+        let new_img_path = icns.as_path().to_string_lossy().to_string().replace(
+            icns.as_path()
+                .to_string_lossy()
+                .to_string()
+                .split("/")
+                .last()
+                .unwrap(),
+            "",
+        ) + icns.file_name().unwrap().to_str().unwrap()
+            + ".png";
+        println!("Writing image to: {}", new_img_path);
+        if !PathBuf::from(&new_img_path).exists() {
+            let file = BufWriter::new(File::create(&new_img_path).unwrap());
+            image.write_png(file).unwrap();
+        }
+
+        return new_img_path;
+    } else {
+        return String::from("");
     }
 }

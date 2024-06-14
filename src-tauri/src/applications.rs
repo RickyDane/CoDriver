@@ -180,6 +180,8 @@ pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
     let default_icns_path = resources_path.join("AppIcon.icns");
     if default_icns_path.exists() {
         return Some(default_icns_path);
+    } else if (resources_path.join("electron.icns").exists()) {
+        return Some(resources_path.join("electron.icns"));
     }
     let mut all_icons: Vec<PathBuf> = vec![];
     for entry in WalkDir::new(contents_path.clone()) {

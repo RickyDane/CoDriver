@@ -672,7 +672,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 	// DirectoryCount.innerHTML = "Objects: " + items.length + " / " + hiddenItemsLength;
 	delete hiddenItemsLength;
 	let counter = 0;
-	items.forEach((item) => {
+	items.forEach(async (item) => {
 		let itemLink = document.createElement("button");
 		itemLink.setAttribute("onclick", "interactWithItem(this, '" + dualPaneSide + "')");
 		itemLink.setAttribute("itempath", item.path);
@@ -766,11 +766,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			) {
 				fileIcon = "resources/folder-development.png";
 			}
-			// else if (item.name.toLowerCase().includes(".app") && Platform == "darwin") {
-			// 	let path = item.path + "/Contents/Resources/AppIcon.icns";
-			// 	fileIcon = window.__TAURI__.tauri.convertFileSrc("/Applications/Arc.app/Contents/Resources/AppIcon.icns");
-			// 	// alert(fileIcon);
-			// }
+			else if (item.path.split(".")[1] == "app") {
+				fileIcon = convertFileSrc(await invoke("get_app_icns", { path: item.path }));
+			}
 		}
 		else {
 			switch (item.extension.toLowerCase()) {
@@ -820,8 +818,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				case ".jfif":
 				case ".avif":
 				case ".pdf":
+				case ".icns":
 					if (IsImagePreview) {
-						fileIcon = window.__TAURI__.tauri.convertFileSrc(item.path);// Beispiel für die Verwendung der Funktion
+						fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
 					}
 					else {
 						fileIcon = "resources/img-file.png";
@@ -1849,7 +1848,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 	let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
 	let millerCol = element != null ? element.getAttribute("itemformillercol") : null;
 	if (IsPopUpOpen == false) {
-		if (IsItemPreviewOpen == false && isDir == 1) {
+		if (IsItemPreviewOpen == false && (isDir == 1 && path.split(".")[path.split(".").length - 1] != "app")) {
 			// Open directory
 			await invoke("open_dir", { path }).then(async (items) => {
 				if (ViewMode == "miller") {
