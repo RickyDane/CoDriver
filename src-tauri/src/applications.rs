@@ -1,6 +1,4 @@
 #[allow(unused)]
-use ini::ini;
-#[allow(unused)]
 use serde::Serialize;
 #[allow(unused)]
 use std::collections::HashSet;
@@ -119,8 +117,8 @@ pub fn open_file_with(file_path: String, exec_path: String) {
 
 // macOS
 
-#[cfg(target_os = "macos")]
 #[allow(unused)]
+#[cfg(target_os = "macos")]
 fn find_ios_app_icon(app_path: PathBuf) -> Option<PathBuf> {
     // find all png files in the app_path, search for AppIcon ignore case in the pngs
     let mut all_icons: Vec<PathBuf> = vec![];
