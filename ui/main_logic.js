@@ -793,6 +793,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				case ".md":
 					fileIcon = "resources/markdown-file.png";
 					break;
+				case ".bin":
+					fileIcon = "resources/bin-file.png";
+					break;
 				case ".json":
 				case ".cs":
 				case ".c":
@@ -1660,7 +1663,6 @@ async function checkAppConfig() {
 			await invoke("open_dir", { path }).then(async (items) => {
 				await showItems(items);
 			});
-			IsFirstRun = false;
 		}
 		else if (IsFirstRun == false) {
 			await refreshView();
@@ -1673,6 +1675,7 @@ async function checkAppConfig() {
 	// DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
 
 	await applyPlatformFeatures();
+	IsFirstRun = false;
 }
 
 async function applyPlatformFeatures() {
@@ -1840,7 +1843,7 @@ async function interactWithItem(element = null, dualPaneSide = "", shortcutPath 
 	// Double click logic / reset after 500 ms to force double click to open
 	setTimeout(() => {
 		SelectedItemToOpen = null;
-	}, 250);
+	}, 250); // Maybe make this customizable in the future
 }
 
 async function openItem(element, dualPaneSide, shortcutDirPath = null) {
@@ -1892,8 +1895,13 @@ function selectItem(element, dualPaneSide = "") {
 				item.children[0].children[1].classList.remove("selected-item");
 			}
 			else {
-				item.children[0].children[0].children[0].classList.remove("selected-item");
-				item.children[0].children[0].children[1].classList.remove("selected-item-min");
+				if (IsShowDisks == true) {
+					item.children[0].children[0].classList.remove("selected-item");
+				}
+				else {
+					item.children[0].children[0].children[0].classList.remove("selected-item");
+					item.children[0].children[0].children[1].classList.remove("selected-item-min");
+				}
 			}
 		});
 		ArrSelectedItems = [];
@@ -1907,8 +1915,13 @@ function selectItem(element, dualPaneSide = "") {
 		SelectedElement.children[0].children[1].classList.add("selected-item");
 	}
 	else {
-		SelectedElement.children[0].children[0].children[0].classList.add("selected-item");
-		SelectedElement.children[0].children[0].children[1].classList.add("selected-item-min");
+		if (IsShowDisks == true) {
+			SelectedElement.children[0].children[0].classList.add("selected-item");
+		}
+		else {
+			SelectedElement.children[0].children[0].children[0].classList.add("selected-item");
+			SelectedElement.children[0].children[0].children[1].classList.add("selected-item-min");
+		}
 	}
 	SelectedItemPath = path;
 	if (dualPaneSide != "" && dualPaneSide != null) {

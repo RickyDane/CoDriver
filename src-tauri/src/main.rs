@@ -179,6 +179,17 @@ async fn check_app_config() -> AppConfig {
     )
     .await;
 
+    create_folder(
+        config_dir()
+            .unwrap()
+            .join("com.rdpFX.dev")
+            .join("App-Thumbnails")
+            .to_str()
+            .unwrap()
+            .to_string(),
+    )
+    .await;
+
     // If config doesn't exist, create it
     if fs::metadata(config_dir().unwrap().join("com.rdpFX.dev/app_config.json")).is_err() {
         let _ = File::create(config_dir().unwrap().join("com.rdpFX.dev/app_config.json"));
@@ -1584,15 +1595,28 @@ async fn get_llm_response(app_window: Window, prompt: String) {
 }
 #[tauri::command]
 async fn get_app_icns(path: String) -> String {
-    let icns = applications::find_app_icns(path.into());
+    let icns = applications::find_app_icns(path.clone().into());
     if icns.is_some() {
         let icns = icns.unwrap();
 
-        // Save additional icon to read from rdpFX
+        let icns_path = config_dir()
+            .unwrap()
+            .join("com.rdpFX.dev")
+            .join("App-Thumbnails");
+        let new_img_path = icns_path.to_string_lossy().to_string()
+            + "/"
+            + path.split("/").last().unwrap()
+            + icns.file_name().unwrap().to_str().unwrap()
+            + ".png";
+
+        if PathBuf::from(new_img_path.clone()).exists() {
+            return new_img_path;
+        }
+
         let file = BufReader::new(File::open(icns.to_string_lossy().to_string()).unwrap());
         let mut icon_family = IconFamily::read(file);
         if icon_family.is_err() {
-            return String::from("");
+            return icns.to_string_lossy().to_string();
         }
         let icon_family = icon_family.unwrap();
 
@@ -1653,7 +1677,7 @@ async fn get_app_icns(path: String) -> String {
                                                                             if image.is_err() {
                                                                                 image = icon_family.get_icon_with_type(IconType::Mask8_16x16);
                                                                                 if image.is_err() {
-                                                                                    return String::from("");
+                                                                                    return icns.to_string_lossy().to_string();
                                                                                 }
                                                                             }
                                                                         }
@@ -1674,21 +1698,17 @@ async fn get_app_icns(path: String) -> String {
             }
         }
 
+        // Save additional icon to read from rdpFX
         let image = image.unwrap();
-        let new_img_path = icns.as_path().to_string_lossy().to_string().replace(
-            icns.as_path()
-                .to_string_lossy()
-                .to_string()
-                .split("/")
-                .last()
-                .unwrap(),
-            "",
-        ) + icns.file_name().unwrap().to_str().unwrap()
-            + ".png";
-        println!("Writing image to: {}", new_img_path);
         if !PathBuf::from(&new_img_path).exists() {
-            let file = BufWriter::new(File::create(&new_img_path).unwrap());
+            let file = File::create_new(&new_img_path);
+            if file.is_err() {
+                return icns.to_string_lossy().to_string();
+            }
+            let file = file.unwrap();
+            BufWriter::new(&file);
             image.write_png(file).unwrap();
+            println!("Writing image to: {}", new_img_path);
         }
 
         return new_img_path;
