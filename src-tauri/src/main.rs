@@ -1700,7 +1700,7 @@ async fn get_app_icns(path: String) -> String {
         // Save additional icon to read from rdpFX
         let image = image.unwrap();
         if !PathBuf::from(&new_img_path).exists() {
-            let file = File::create_new(&new_img_path);
+            let file = File::create(&new_img_path);
             if file.is_err() {
                 return icns.to_string_lossy().to_string();
             }
