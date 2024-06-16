@@ -1739,6 +1739,7 @@ async fn get_thumbnail(image_path: String) -> String {
     let new_thumbnail_path = thumbnails_dir.join(image_path.clone().split("/").last().unwrap());
 
     if PathBuf::from(&new_thumbnail_path).exists() {
+        println!("Getting thumbnail for: {}", image_path);
         return new_thumbnail_path.to_string_lossy().to_string();
     }
 
