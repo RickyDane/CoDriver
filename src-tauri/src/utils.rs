@@ -126,12 +126,19 @@ pub fn count_entries(path: &str) -> Result<f32, std::io::Error> {
     Ok(count)
 }
 
+pub fn show_progressbar(app_window: &Window) {
+    let _ = &app_window
+        .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
+    let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
+}
+
 pub fn update_progressbar(
     app_window: &Window,
     progress: f32,
     items_count_text: &str,
     mb_per_sec: f64,
 ) {
+    show_progressbar(app_window);
     let _ = app_window.eval(
         format!(
             "document.querySelector('.progress-bar-fill').style.width = '{}%'",

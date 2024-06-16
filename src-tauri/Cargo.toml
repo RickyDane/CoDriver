@@ -1,12 +1,12 @@
-# cargo-features = ["profile-rustflags"]
+cargo-features = ["profile-rustflags"]
 [package]
-name = "app"
+name = "rdpfx"
 version = "0.4.5"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "none"
 repository = "https://github.com/RickyDane/rdpfx"
-default-run = "app"
+default-run = "rdpfx"
 edition = "2021"
 rust-version = "1.73"
 
@@ -60,6 +60,10 @@ rand = "0.8.5"
 icns = "0.3.1"
 # image = "0.25.1"
 
+[profile.dev]
+[profile.release]
+rustflags = ["-Z", "threads=7"]
+
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"
 objc = "0.2.7"
@@ -71,10 +75,6 @@ windows = { version = "0.56.0", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 winreg = "0.52"
-# rustflags = ["-Z", "threads=3"]
-
-[profile.dev.package.ggml-sys]
-opt-level = 3
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

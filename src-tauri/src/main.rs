@@ -781,6 +781,9 @@ async fn arr_copy_paste(
         )
         .await;
         // Execute the copy process for either a dir or file
+        #[cfg(target_os = "macos")]
+        let _ = copy(item_path, final_filename); // Copying of files is different on macOS
+        #[cfg(not(target_os = "macos"))]
         copy_to(&app_window, final_filename, item_path);
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
@@ -1385,10 +1388,6 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
     let mut downloaded: f64 = 0.0;
     let sw = Stopwatch::start_new();
 
-    let _ = &app_window
-        .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
-    let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
-
     while let Some(chunk) = stream.chunk().await.unwrap() {
         file.write_all(&chunk).unwrap();
         downloaded += chunk.len() as f64;
@@ -1400,7 +1399,6 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
             &format_bytes(downloaded as u64),
             speed,
         );
-        println!("Downloaded {}/{}", downloaded, total_size);
     }
 
     app_window.eval("resetProgressBar()").unwrap();
@@ -1613,7 +1611,7 @@ async fn get_app_icns(path: String) -> String {
         }
 
         let file = BufReader::new(File::open(icns.to_string_lossy().to_string()).unwrap());
-        let mut icon_family = IconFamily::read(file);
+        let icon_family = IconFamily::read(file);
         if icon_family.is_err() {
             return icns.to_string_lossy().to_string();
         }
