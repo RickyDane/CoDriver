@@ -24,12 +24,11 @@ use tauri::{
     },
     Config,
 };
-use tauri::{Icon, Manager, Window, WindowEvent};
+use tauri::{Manager, Window, WindowEvent};
 use unrar::Archive;
 use zip::write::FileOptions;
 use zip_extensions::*;
 mod utils;
-#[allow(unused_imports)]
 use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
@@ -115,7 +114,8 @@ fn main() {
             get_df_dir,
             download_yt_video,
             // get_llm_response,
-            get_app_icns
+            get_app_icns,
+            get_thumbnail
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -1712,4 +1712,47 @@ async fn get_app_icns(path: String) -> String {
     } else {
         return String::from("");
     }
+}
+
+#[tauri::command]
+async fn get_thumbnail(image_path: String) -> String {
+    let item = image::open(&image_path);
+
+    if item.is_err() {
+        println!(
+            "Couldn't load image for thumbnail: {}",
+            &image_path.split("/").last().unwrap()
+        );
+        return image_path;
+    }
+    let item = item.unwrap();
+    let thumbnails_dir = config_dir()
+        .unwrap()
+        .join("com.rdpFX.dev")
+        .join("Thumbnails");
+
+    if !PathBuf::from(&thumbnails_dir).exists() {
+        let _ = create_dir(&thumbnails_dir);
+    }
+
+    let thumbnail = item.thumbnail(100, 50);
+    let new_thumbnail_path = thumbnails_dir.join(image_path.clone().split("/").last().unwrap());
+
+    if PathBuf::from(&new_thumbnail_path).exists() {
+        return new_thumbnail_path.to_string_lossy().to_string();
+    }
+
+    println!(
+        "Saving thumbnail for: {}",
+        image_path.split("/").last().unwrap()
+    );
+
+    let _ = thumbnail
+        .save_with_format(
+            &new_thumbnail_path,
+            image::ImageFormat::from_extension(image_path.split(".").last().unwrap())
+                .expect("Couldn't get format by extension"),
+        )
+        .expect("Couldn't save thumbnail");
+    new_thumbnail_path.to_string_lossy().to_string()
 }

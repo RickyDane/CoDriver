@@ -144,7 +144,7 @@
       {
         "decorations": true,
         "fullscreen": false,
-        "transparent": true,
+        "transparent": false,
         "height": 650,
         "resizable": true,
         "title": "rdpFX",
