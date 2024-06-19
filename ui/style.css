@@ -591,7 +591,7 @@ label {
     cursor: pointer;
     text-align: left;
     font-size: small;
-    height: 75px;
+    height: calc(48px + calc(16px * 2) + 10px);
     width: 100%;
     overflow: hidden;
     display: flex;
@@ -606,31 +606,41 @@ label {
 /* .item-button:active {
 	background-color: var(--secondaryColor);
 } */
+
 .item-button>img {
     transition: 0.1s ease;
     width: auto;
-    max-width: 80%;
+    max-width: 90%;
     border-radius: 5px;
-    filter: hue-rotate(10deg), brightness(2);
-    padding: 5px;
+    padding: 3px;
+    /* filter: hue-rotate(10deg), brightness(2); */
+    object-fit: contain;
 }
 
-/* .item-button:hover > img {
-	filter: brightness(0.85);
+.item-button>img>svg {
+    color: black;
+}
+
+/* .item-button:hover>img {
+    background-color: var(--transparentColor);
+    filter: brightness(0.85);
 } */
+
 .item-button>p {
     position: absolute;
-    bottom: 0;
     width: fit-content;
     max-width: 100%;
+    top: calc(48px + 10px);
     /* background-color: var(--primaryColor); */
     font-size: var(--fontSize);
     padding: 1px 5px;
-    line-height: 20px;
+    line-height: 16px;
     overflow: hidden;
     transition: 0.1s ease;
     border-radius: 5px;
     text-align: center !important;
+    word-break: break-all;
+    text-overflow: ellipsis;
     /* border: 1px solid var(--tertiaryColor); */
 }
 

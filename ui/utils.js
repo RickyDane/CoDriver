@@ -77,3 +77,8 @@ function showToast(title, message, type = "info") {
     toast?.remove();
   }, 2200);
 }
+
+async function getThumbnail(imagePath) {
+  let thumbnailPath = await invoke("get_thumbnail", { imagePath });
+  return thumbnailPath;
+}

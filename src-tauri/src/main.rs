@@ -9,7 +9,7 @@ use rust_search::{similarity_sort, SearchBuilder};
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
 use std::fs::{self, ReadDir};
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Error, Read, Write};
 use std::process::{Command, Stdio};
 use std::{
     env::{current_dir, set_current_dir},
@@ -115,7 +115,8 @@ fn main() {
             download_yt_video,
             // get_llm_response,
             get_app_icns,
-            get_thumbnail
+            get_thumbnail,
+            install_dep
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -1756,4 +1757,42 @@ async fn get_thumbnail(image_path: String) -> String {
         )
         .expect("Couldn't save thumbnail");
     new_thumbnail_path.to_string_lossy().to_string()
+}
+
+#[tauri::command]
+async fn install_dep(dep_name: String, password: String) {
+    println!("Starting to install dep: {}", dep_name);
+    match dep_name.as_str() {
+        "fuse-t" => {
+            let mut fc = Command::new("brew")
+                .arg("tap")
+                .arg("macos-fuse-t/homebrew-cask")
+                .spawn()
+                .expect("Failed to spawn sudo command");
+
+            let mut sc = Command::new("brew")
+                .arg("install")
+                .arg("fuse-t")
+                .spawn()
+                .unwrap();
+
+            let mut tc = Command::new("brew")
+                .arg("install")
+                .arg("fuse-t-sshfs")
+                .arg("--appdir=~/Applications ")
+                // .stdin(Stdio::piped())
+                // .stdout(Stdio::inherit())
+                // .stderr(Stdio::inherit())
+                .spawn()
+                .unwrap();
+
+            // if let Some(stdin) = tc.stdin.as_mut() {
+            //     stdin
+            //         .write_all(password.as_bytes())
+            //         .expect("Failed to write password to stdin");
+            // }
+        }
+        "homebrew" => {}
+        _ => unimplemented!(),
+    }
 }
