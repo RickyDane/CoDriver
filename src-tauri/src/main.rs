@@ -782,9 +782,9 @@ async fn arr_copy_paste(
         )
         .await;
         // Execute the copy process for either a dir or file
-        #[cfg(target_os = "macos")]
-        let _ = copy(item_path, final_filename); // Copying of files is different on macOS
-        #[cfg(not(target_os = "macos"))]
+        // #[cfg(target_os = "macos")]
+        // let _ = copy(item_path, final_filename); // Copying of files is different on macOS
+        // #[cfg(not(target_os = "macos"))]
         copy_to(&app_window, final_filename, item_path);
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
