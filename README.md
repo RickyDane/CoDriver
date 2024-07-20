@@ -70,6 +70,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
   ```
   sudo apt-get install sshfs
   ```
+<br/>
 
 ## 🏴‍☠️ Language Support
 - English
