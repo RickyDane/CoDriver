@@ -697,27 +697,28 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
   IsShowDisks = false;
   // Check which tab is currently active and write CurrentDir to TabOnePath and so on
   // Todo: Make more "dynamic friendly"
-  switch (CurrentActiveTab) {
-    case 1:
-      TabOnePath = CurrentDir;
-      break;
-    case 2:
-      TabTwoPath = CurrentDir;
-      break;
-    case 3:
-      TabThreePath = CurrentDir;
-      break;
-    case 4:
-      TabFourPath = CurrentDir;
-      break;
-    case 5:
-      TabFivePath = CurrentDir;
-      break;
-  }
+  // switch (CurrentActiveTab) {
+  //   case 1:
+  //     TabOnePath = CurrentDir;
+  //     break;
+  //   case 2:
+  //     TabTwoPath = CurrentDir;
+  //     break;
+  //   case 3:
+  //     TabThreePath = CurrentDir;
+  //     break;
+  //   case 4:
+  //     TabFourPath = CurrentDir;
+  //     break;
+  //   case 5:
+  //     TabFivePath = CurrentDir;
+  //     break;
+  // }
+  // if (IsTabsEnabled == true) {
+  //   document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = "";
+  // }
+  // Reset position when navigating in another directory
   window.scrollTo(0, 0);
-  if (IsTabsEnabled == true) {
-    document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = "";
-  }
   if (IsDualPaneEnabled == true) {
     if (dualPaneSide == "left") {
       document.querySelector(".dual-pane-left").innerHTML = "";
@@ -745,14 +746,13 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
   } else {
     DirectoryList.className = "directory-list";
   }
-  let hiddenItemsLength = items.filter((str) =>
-    str.name.startsWith("."),
-  ).length;
+  // let hiddenItemsLength = items.filter((str) =>
+  //   str.name.startsWith("."),
+  // ).length;
   if (!IsShowHiddenFiles) {
     items = items.filter((str) => !str.name.startsWith("."));
   }
   // DirectoryCount.innerHTML = "Objects: " + items.length + " / " + hiddenItemsLength;
-  delete hiddenItemsLength;
   let counter = 0;
   items.forEach(async (item) => {
     let itemLink = document.createElement("button");
@@ -2164,7 +2164,11 @@ function selectItem(element, dualPaneSide = "") {
       if (IsDualPaneEnabled) {
         item.children[0].classList.remove("selected-item");
       } else if (ViewMode == "column" || ViewMode == "miller") {
-        item.children[0].children[0].classList.remove("selected-item");
+        if (IsShowDisks) {
+          item.children[0].children[1].classList.remove("selected-item");
+        } else {
+          item.children[0].children[0].classList.remove("selected-item");
+        }
       } else {
         if (IsShowDisks == true) {
           item.children[0].children[0].classList.remove("selected-item");
@@ -2185,7 +2189,11 @@ function selectItem(element, dualPaneSide = "") {
   if (IsDualPaneEnabled) {
     SelectedElement.children[0].classList.add("selected-item");
   } else if (ViewMode == "column" || ViewMode == "miller") {
-    SelectedElement.children[0].children[0].classList.add("selected-item");
+    if (IsShowDisks) {
+      SelectedElement.children[0].children[1].classList.add("selected-item");
+    } else {
+      SelectedElement.children[0].children[0].classList.add("selected-item");
+    }
   } else {
     if (IsShowDisks == true) {
       SelectedElement.children[0].children[0].classList.add("selected-item");
@@ -3031,7 +3039,7 @@ function showProperties(item) {
   ContextMenu.style.display = "none";
 }
 
-function showItemPreview(item, isOverride = false) {
+async function showItemPreview(item, isOverride = false) {
   let fadeTime = 200;
   if (isOverride) {
     $(".item-preview-popup").fadeOut(50);
@@ -3066,14 +3074,14 @@ function showItemPreview(item, isOverride = false) {
 				<div>
   				<p><b>Name:</b> ${name}</p>
   				<p><b>Path:</b> ${path}</p>
-  				<p><b>Size:</b> ${size}</p>
+  				<p><b>Size:</b> ${item.getAttribute("itemisdir") ? formatBytes(await dirSize(path)) : size}</p>
   				<p><b>Last modified:</b> ${modified}</p>
 				</div>
 				`;
       break;
   }
   popup.innerHTML = `
-	${module}
+    ${module}
 	`;
   document.querySelector("body").append(popup);
   IsPopUpOpen = true;
@@ -3252,6 +3260,14 @@ async function showFtpConfig() {
     // await invoke("install_dep", { depName: "fuse-t", password: "WinnerDane17!" });
     document.querySelector(".ftp-connect-container").style.display = "block";
     IsPopUpOpen = true;
+    document.querySelectorAll(".ftp-popup-input").forEach(
+      (input) =>
+        (input.onkeyup = (e) => {
+          if (e.key === "Enter") {
+            connectToFtp();
+          }
+        }),
+    );
   }
 }
 
@@ -3260,8 +3276,7 @@ async function connectToFtp() {
   let username = document.querySelector(".ftp-username-input").value;
   let password = document.querySelector(".ftp-password-input").value;
   let remotePath = document.querySelector(".ftp-path-input").value;
-  let mountPoint = document.querySelector(".ftp-mountpoint-input").value;
-  openFTP(hostname, username, password, remotePath, mountPoint);
+  openFTP(hostname, username, password, remotePath);
   closeFtpConfig();
 }
 

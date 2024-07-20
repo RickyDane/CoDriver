@@ -1,12 +1,14 @@
 const { listen } = window.__TAURI__.event;
 
 /* Drag and drop files into file explorer */
-listen('tauri://file-drop', async event => {
+listen("tauri://file-drop", async (event) => {
   ArrSelectedItems = [];
   ArrCopyItems = [];
-  event.payload.forEach(async item => {
+  event.payload.forEach(async (item) => {
     CopyFilePath = item;
-    CopyFileName = CopyFilePath.split("/")[CopyFilePath.split("/").length - 1].replace("'", "");
+    CopyFileName = CopyFilePath.split("/")[
+      CopyFilePath.split("/").length - 1
+    ].replace("'", "");
     let element = document.createElement("button");
     element.setAttribute("itemname", CopyFileName);
     element.setAttribute("itempath", CopyFilePath);
@@ -18,14 +20,12 @@ listen('tauri://file-drop', async event => {
     CopyFilePath = "";
     ArrCopyItems = [];
     ArrSelectedItems = [];
-  }
-  else if (DraggedOverElement != null) {
+  } else if (DraggedOverElement != null) {
     let operation = await fileOperationContextMenu();
     if (operation == "copy") {
       await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
       await listDirectories();
-    }
-    else if (operation == "move") {
+    } else if (operation == "move") {
       IsCopyToCut = true;
       await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
       IsCopyToCut = false;
@@ -39,7 +39,9 @@ listen('tauri://file-drop', async event => {
     DraggedOverElement = null;
   }
   resetProgressBar();
-  document.querySelectorAll(".site-nav-bar-button").forEach(item => { item.style.opacity = "1"; });
+  document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
+    item.style.opacity = "1";
+  });
 });
 
 /* Toasts */
@@ -81,4 +83,8 @@ function showToast(title, message, type = "info") {
 async function getThumbnail(imagePath) {
   let thumbnailPath = await invoke("get_thumbnail", { imagePath });
   return thumbnailPath;
+}
+
+async function dirSize(path = "") {
+  return await invoke("dir_size", { path });
 }

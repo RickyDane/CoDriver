@@ -116,7 +116,8 @@ fn main() {
             // get_llm_response,
             get_app_icns,
             get_thumbnail,
-            install_dep
+            install_dep,
+            dir_size
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -335,6 +336,26 @@ async fn list_disks() -> Vec<DisksInfo> {
             is_removable: disk.is_removable(),
         });
     }
+
+    let ls_sshfs_mounts = fs::read_dir("/tmp/rdpFX-sshfs-mount").unwrap();
+    for mount in ls_sshfs_mounts {
+        let mount = mount.unwrap();
+        println!("{:?} || {:?}", mount.file_name(), mount.path());
+        ls_disks.push(DisksInfo {
+            name: format!("{:?}", mount.file_name())
+                .split("/")
+                .last()
+                .unwrap_or("/")
+                .to_string()
+                .replace("\"", ""),
+            dev: format!("{:?}", mount.file_name()),
+            format: format!("{:?}", mount.file_type()),
+            path: format!("{:?}", mount.path()),
+            avail: format!("{:?}", mount.metadata().unwrap().len()),
+            capacity: format!("{:?}", mount.metadata().unwrap().len()),
+            is_removable: true,
+        });
+    }
     return ls_disks;
 }
 
@@ -495,9 +516,10 @@ async fn mount_sshfs(
     username: String,
     password: String,
     remote_path: String,
-    mount_point: String,
 ) -> Vec<FDir> {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
+
+    let mount_point = "/tmp/rdpFX-sshfs-mount/".to_owned() + &hostname;
 
     // Ensure the local mount point exists
     std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
@@ -1760,39 +1782,65 @@ async fn get_thumbnail(image_path: String) -> String {
 }
 
 #[tauri::command]
-async fn install_dep(dep_name: String, password: String) {
-    println!("Starting to install dep: {}", dep_name);
-    match dep_name.as_str() {
-        "fuse-t" => {
-            let mut fc = Command::new("brew")
-                .arg("tap")
-                .arg("macos-fuse-t/homebrew-cask")
-                .spawn()
-                .expect("Failed to spawn sudo command");
+async fn install_dep(_dep_name: String, _password: String) {
+    // println!("Starting to install dep: {}", dep_name);
+    // match dep_name.as_str() {
+    //     "fuse-t" => {
+    //         let mut fc = Command::new("brew")
+    //             .arg("tap")
+    //             .arg("macos-fuse-t/homebrew-cask")
+    //             .spawn()
+    //             .expect("Failed to spawn sudo command");
 
-            let mut sc = Command::new("brew")
-                .arg("install")
-                .arg("fuse-t")
-                .spawn()
-                .unwrap();
+    //         let mut sc = Command::new("brew")
+    //             .arg("install")
+    //             .arg("fuse-t")
+    //             .spawn()
+    //             .unwrap();
 
-            let mut tc = Command::new("brew")
-                .arg("install")
-                .arg("fuse-t-sshfs")
-                .arg("--appdir=~/Applications ")
-                // .stdin(Stdio::piped())
-                // .stdout(Stdio::inherit())
-                // .stderr(Stdio::inherit())
-                .spawn()
-                .unwrap();
+    //         let mut tc = Command::new("brew")
+    //             .arg("install")
+    //             .arg("fuse-t-sshfs")
+    //             .arg("--appdir=~/Applications ")
+    //             // .stdin(Stdio::piped())
+    //             // .stdout(Stdio::inherit())
+    //             // .stderr(Stdio::inherit())
+    //             .spawn()
+    //             .unwrap();
 
-            // if let Some(stdin) = tc.stdin.as_mut() {
-            //     stdin
-            //         .write_all(password.as_bytes())
-            //         .expect("Failed to write password to stdin");
-            // }
+    //         // if let Some(stdin) = tc.stdin.as_mut() {
+    //         //     stdin
+    //         //         .write_all(password.as_bytes())
+    //         //         .expect("Failed to write password to stdin");
+    //         // }
+    //     }
+    //     "homebrew" => {}
+    //     _ => unimplemented!(),
+    // }
+}
+
+#[tauri::command]
+fn dir_size(path: String) -> u64 {
+    let entry = match fs::read_dir(path) {
+        Ok(entry) => entry,
+        Err(_) => return 0,
+    };
+    let mut size = 0;
+
+    for entry in entry {
+        if let Ok(entry) = entry {
+            if entry.file_type().unwrap().is_file() {
+                let file_size = match entry.metadata() {
+                    Ok(s) => s.len(),
+                    Err(_) => continue,
+                };
+                size += file_size;
+            } else if entry.file_type().unwrap().is_dir() {
+                let dir_size = dir_size(entry.path().to_string_lossy().to_string());
+                size += dir_size;
+            }
         }
-        "homebrew" => {}
-        _ => unimplemented!(),
     }
+
+    size
 }
