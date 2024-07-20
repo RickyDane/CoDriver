@@ -50,12 +50,24 @@ rdpFX does not use path caching to access files and folders, so the performance 
   - Run multi rename with Ctrl / Cmd + Return
 - FTP integration (sshfs)
 - Dependencies (Need to be installed additionally):
-| macOS | Linux | Windows |
-|-------|-------|---------|
-| fuse-t | libfuse | Not supported yet |
-| fuse-t-sshfs | | |
 
-#### Language Support
+  | macOS | Linux | Windows |
+  | ----- | ----- | ------- |
+  | fuse-t <br/> fuse-t-sshfs | libfuse | Not supported **_yet_** |
+  
+  ## Installation:
+  #### macOS
+  ```
+  brew tap macos-fuse-t/homebrew-cask
+  brew install fuse-t
+  brew install fuse-t-sshfs
+  ```
+  #### Linux
+  ```
+  sudo apt-get install sshfs
+  ```
+
+#### 🏴‍☠️ Language Support
 - English
   - Option to choose between languages coming soon ...
 
@@ -68,11 +80,9 @@ rdpFX does not use path caching to access files and folders, so the performance 
 
 #### 📝 Todos:
 - Multiple languages
-- FTP-Integration
 - Favorites
 - Drag to select
-- Access network storage
-- Access online storage
+- Access online storage services (Google drive, etc.)
 <br>
 
 ## Star History
