@@ -48,6 +48,12 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Drag and drop files into the explorer to copy them into the current directory
 - Multi rename your selection with Ctrl / Cmd + LShift + M
   - Run multi rename with Ctrl / Cmd + Return
+- FTP integration (sshfs)
+- Dependencies (Need to be installed additionally):
+| macOS | Linux | Windows |
+|-------|-------|---------|
+| fuse-t | libfuse | Not supported yet |
+| fuse-t-sshfs | | |
 
 #### Language Support
 - English
