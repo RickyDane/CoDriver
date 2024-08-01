@@ -117,7 +117,7 @@ fn main() {
             get_app_icns,
             get_thumbnail,
             install_dep,
-            dir_size
+            get_dir_size
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -337,24 +337,27 @@ async fn list_disks() -> Vec<DisksInfo> {
         });
     }
 
-    let ls_sshfs_mounts = fs::read_dir("/tmp/rdpFX-sshfs-mount").unwrap();
-    for mount in ls_sshfs_mounts {
-        let mount = mount.unwrap();
-        println!("{:?} || {:?}", mount.file_name(), mount.path());
-        ls_disks.push(DisksInfo {
-            name: format!("{:?}", mount.file_name())
-                .split("/")
-                .last()
-                .unwrap_or("/")
-                .to_string()
-                .replace("\"", ""),
-            dev: format!("{:?}", mount.file_name()),
-            format: format!("{:?}", mount.file_type()),
-            path: format!("{:?}", mount.path()),
-            avail: format!("{:?}", mount.metadata().unwrap().len()),
-            capacity: format!("{:?}", mount.metadata().unwrap().len()),
-            is_removable: true,
-        });
+    let ls_sshfs_mounts = fs::read_dir("/tmp/rdpFX-sshfs-mount");
+    if ls_sshfs_mounts.is_ok() {
+        let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
+        for mount in ls_sshfs_mounts {
+            let mount = mount.unwrap();
+            println!("{:?} || {:?}", mount.file_name(), mount.path());
+            ls_disks.push(DisksInfo {
+                name: format!("{:?}", mount.file_name())
+                    .split("/")
+                    .last()
+                    .unwrap_or("/")
+                    .to_string()
+                    .replace("\"", ""),
+                dev: format!("{:?}", mount.file_name()),
+                format: format!("{:?}", mount.file_type()),
+                path: format!("{:?}", mount.path()),
+                avail: format!("{:?}", mount.metadata().unwrap().len()),
+                capacity: format!("{:?}", mount.metadata().unwrap().len()),
+                is_removable: true,
+            });
+        }
     }
     return ls_disks;
 }
@@ -1820,7 +1823,20 @@ async fn install_dep(_dep_name: String, _password: String) {
 }
 
 #[tauri::command]
-fn dir_size(path: String) -> u64 {
+async fn get_dir_size(path: String, app_window: Window, class_to_fill: String) -> u64 {
+    unsafe {
+        calced_size = 0;
+    }
+    dir_size(path, &app_window, class_to_fill)
+}
+
+static mut calced_size: u64 = 0;
+
+fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
+    if PathBuf::from(&path).is_file() {
+        return PathBuf::from(&path).metadata().unwrap().len();
+    }
+
     let entry = match fs::read_dir(path) {
         Ok(entry) => entry,
         Err(_) => return 0,
@@ -1835,12 +1851,29 @@ fn dir_size(path: String) -> u64 {
                     Err(_) => continue,
                 };
                 size += file_size;
+                unsafe {
+                    calced_size += file_size;
+                }
             } else if entry.file_type().unwrap().is_dir() {
-                let dir_size = dir_size(entry.path().to_string_lossy().to_string());
+                let dir_size = dir_size(
+                    entry.path().to_string_lossy().to_string(),
+                    app_window,
+                    class_to_fill.clone(),
+                );
                 size += dir_size;
+                unsafe {
+                    calced_size += dir_size;
+                }
+            }
+        }
+        unsafe {
+            if calced_size % 1000 == 0 {
+                let _ = app_window.eval(&format!(
+                    "document.querySelector('{}').innerHTML = formatBytes({})",
+                    class_to_fill, calced_size
+                ));
             }
         }
     }
-
     size
 }
