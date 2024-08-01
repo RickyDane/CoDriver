@@ -85,6 +85,12 @@ async function getThumbnail(imagePath) {
   return thumbnailPath;
 }
 
-async function dirSize(path = "") {
-  return await invoke("dir_size", { path });
+async function dirSize(path = "", classToFill = "") {
+  document.querySelector(classToFill).innerHTML =
+    `<div style="display: flex; gap: 10px;"><div class="preloader-small-invert"></div> Loading ...</div>`;
+  await invoke("get_dir_size", { path, appWindow, classToFill }).then(
+    (bytes) => {
+      document.querySelector(classToFill).innerHTML = " " + formatBytes(bytes);
+    },
+  );
 }

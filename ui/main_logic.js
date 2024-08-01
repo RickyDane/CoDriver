@@ -187,6 +187,7 @@ function closeAllPopups() {
   closeCompressPopup();
   closeYtDownloadPopup();
   closeLLMPromptInputPopup();
+  closeInfoProperties();
   unSelectAllItems();
   IsPopUpOpen = false;
   IsInputFocused = false;
@@ -1571,7 +1572,7 @@ function showInputPopup(msg) {
     if (e.keyCode == 13) {
       await invoke("open_dir", { path: popup.children[1].value }).then(
         async (items) => {
-          await showItems(items);
+          await showItems(items, SelectedItemPaneSide);
           closeInputPopup();
         },
       );
@@ -3020,23 +3021,36 @@ async function switchToTab(tabNo) {
 }
   */
 
-function showProperties(item) {
+async function showProperties(item) {
   let name = item.getAttribute("itemname");
   let path = item.getAttribute("itempath");
   let size = item.getAttribute("itemsize");
   let modifiedAt = item.getAttribute("itemmodified");
   console.log(name, path, size, modifiedAt);
-  alert(
-    "Name: " +
-      name +
-      "\nModified: " +
-      modifiedAt +
-      "\nPath: " +
-      path +
-      "\nSize: " +
-      size,
-  );
   ContextMenu.style.display = "none";
+  let popup = document.createElement("div");
+  popup.className = "uni-popup item-properties-popup";
+  popup.innerHTML = `
+    <div class="popup-header">${name}</div>
+    <div class="popup-body">
+      <p>Path: ${path}</p>
+      <br/>
+      <p>Modified: ${modifiedAt}</p>
+      <br/>
+      <div style="display: flex; gap: 5px;">
+        <div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
+      </div>
+    </div>
+    <div class="popup-controls">
+    <button class="icon-button" onclick="closeInfoProperties()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Close</button>
+    </div>
+  `;
+  document.querySelector("body").append(popup);
+  await dirSize(path, ".properties-item-size");
+}
+
+function closeInfoProperties() {
+  $(".item-properties-popup")?.remove();
 }
 
 async function showItemPreview(item, isOverride = false) {
@@ -3074,7 +3088,7 @@ async function showItemPreview(item, isOverride = false) {
 				<div>
   				<p><b>Name:</b> ${name}</p>
   				<p><b>Path:</b> ${path}</p>
-  				<p><b>Size:</b> ${item.getAttribute("itemisdir") ? formatBytes(await dirSize(path)) : size}</p>
+  				<p style="display: flex; gap: 5px;"><b>Size:</b><span class="current-item-preview-size"></span></p>
   				<p><b>Last modified:</b> ${modified}</p>
 				</div>
 				`;
@@ -3087,6 +3101,7 @@ async function showItemPreview(item, isOverride = false) {
   IsPopUpOpen = true;
   $(popup).fadeIn(fadeTime);
   IsItemPreviewOpen = true;
+  await dirSize(path, ".current-item-preview-size");
 }
 
 function showMultiRenamePopup() {
