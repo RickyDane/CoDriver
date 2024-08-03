@@ -165,11 +165,11 @@ struct AppConfig {
     is_select_mode: String,
     arr_favorites: Vec<String>,
     current_theme: String,
-    themes: Vec<Theme>,
 }
 
 #[tauri::command]
 async fn check_app_config() -> AppConfig {
+    // Create general config directory for the app
     create_folder(
         config_dir()
             .unwrap()
@@ -179,7 +179,7 @@ async fn check_app_config() -> AppConfig {
             .to_string(),
     )
     .await;
-
+    // Create directory for saving app thumnails on a mac
     create_folder(
         config_dir()
             .unwrap()
@@ -190,7 +190,7 @@ async fn check_app_config() -> AppConfig {
             .to_string(),
     )
     .await;
-
+    // Create a directory for themes
     create_folder(
         config_dir()
             .unwrap()
@@ -221,7 +221,6 @@ async fn check_app_config() -> AppConfig {
             is_select_mode: "1".to_string(),
             arr_favorites: vec![],
             current_theme: "0".to_string(),
-            themes: vec![],
         };
         let _ = serde_json::to_writer_pretty(
             File::create(
@@ -243,22 +242,6 @@ async fn check_app_config() -> AppConfig {
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
 
     let default_vec: Vec<Value> = vec![];
-    let theme_vec: Vec<Theme> = app_config["themes"]
-        .as_array()
-        .unwrap_or(&default_vec)
-        .iter()
-        .map(|x| Theme {
-            name: x["name"].to_string(),
-            primary_color: x["primary_color"].to_string(),
-            secondary_color: x["secondary_color"].to_string(),
-            tertiary_color: x["tertiary_color"].to_string(),
-            text_color: x["text_color"].to_string(),
-            text_color2: x["text_color2"].to_string(),
-            text_color3: x["text_color3"].to_string(),
-            transparent_color: x["transparent_color"].to_string(),
-            transparent_color_active: x["transparent_color_active"].to_string(),
-        })
-        .collect::<Vec<Theme>>();
     return AppConfig {
         view_mode: app_config["view_mode"].to_string().replace('"', ""),
         last_modified: app_config["last_modified"].to_string().replace('"', ""),
@@ -295,24 +278,6 @@ async fn check_app_config() -> AppConfig {
             .map(|x| x.to_string().replace('"', ""))
             .collect(),
         current_theme: app_config["current_theme"].to_string().replace('"', ""),
-        themes: theme_vec
-            .iter()
-            .map(|x| Theme {
-                name: x.name.clone().to_string().replace('"', ""),
-                primary_color: x.primary_color.clone().to_string().replace('"', ""),
-                secondary_color: x.secondary_color.clone().to_string().replace('"', ""),
-                tertiary_color: x.tertiary_color.clone().to_string().replace('"', ""),
-                text_color: x.text_color.clone().to_string().replace('"', ""),
-                text_color2: x.text_color2.clone().to_string().replace('"', ""),
-                text_color3: x.text_color3.clone().to_string().replace('"', ""),
-                transparent_color: x.transparent_color.clone().to_string().replace('"', ""),
-                transparent_color_active: x
-                    .transparent_color_active
-                    .clone()
-                    .to_string()
-                    .replace('"', ""),
-            })
-            .collect(),
     };
 }
 
@@ -1134,24 +1099,6 @@ async fn save_config(
         is_select_mode: is_select_mode.replace("\\", "/"),
         arr_favorites,
         current_theme: current_theme.replace("\\", "/"),
-        themes: app_config["themes"]
-            .as_array()
-            .unwrap_or(&vec![])
-            .iter()
-            .map(|x| Theme {
-                name: x["name"].to_string().replace('"', ""),
-                primary_color: x["primary_color"].to_string().replace('"', ""),
-                secondary_color: x["secondary_color"].to_string().replace('"', ""),
-                tertiary_color: x["tertiary_color"].to_string().replace('"', ""),
-                text_color: x["text_color"].to_string().replace('"', ""),
-                text_color2: x["text_color2"].to_string().replace('"', ""),
-                text_color3: x["text_color3"].to_string().replace('"', ""),
-                transparent_color: x["transparent_color"].to_string().replace('"', ""),
-                transparent_color_active: x["transparent_color_active"]
-                    .to_string()
-                    .replace('"', ""),
-            })
-            .collect::<Vec<Theme>>(),
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
@@ -1862,13 +1809,12 @@ async fn install_dep(_dep_name: String, _password: String) {
 #[tauri::command]
 async fn get_dir_size(path: String, app_window: Window, class_to_fill: String) -> u64 {
     unsafe {
-        calced_size = 0;
+        CALCED_SIZE = 0;
     }
     dir_size(path, &app_window, class_to_fill)
 }
 
-static mut calced_size: u64 = 0;
-
+static mut CALCED_SIZE: u64 = 0; // Currently unused -> Coming implementation for showing progress
 fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
     if PathBuf::from(&path).is_file() {
         return PathBuf::from(&path).metadata().unwrap().len();
@@ -1896,11 +1842,11 @@ fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
                 );
                 size += dir_size;
                 // unsafe {
-                //     calced_size += dir_size;
-                //     if calced_size % 1000 == 0 {
+                //     CALCED_SIZE += dir_size;
+                //     if CALCED_SIZE % 1000 == 0 {
                 //         let _ = app_window.eval(&format!(
                 //             "document.querySelector('{}').innerHTML = formatBytes({}) + ' ' + formatBytes({})",
-                //             class_to_fill, calced_size, dir_size
+                //             class_to_fill, CALCED_SIZE, dir_size
                 //         ));
                 //     }
                 // }
