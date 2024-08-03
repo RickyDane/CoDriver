@@ -497,6 +497,22 @@ label {
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
 }
 
+.ftp-loader {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--transparentColor);
+    backdrop-filter: blur(1px);
+    z-index: 99;
+}
+
 /* Custom controls*/
 .select {
     position: relative;
@@ -1140,6 +1156,15 @@ label {
     animation: spin 1s linear infinite;
 }
 
+.preloader-invert {
+    width: 38px;
+    height: 38px;
+    border: 5px solid var(--transparentColorActive);
+    border-top: 5px solid white !important;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
 .preloader-small {
     width: 16px;
     height: 16px;
@@ -1422,7 +1447,11 @@ label {
 
 .item-properties-popup {
     width: fit-content;
+    max-width: 50%;
     height: fit-content;
+}
+.item-properties-popup > .popup-body {
+    padding: 20px !important;
 }
 
 .popup-close-button {

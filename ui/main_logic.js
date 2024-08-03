@@ -1296,6 +1296,567 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
   }
 }
 
+async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
+  IsShowDisks = false;
+  // Reset position when navigating in another directory
+  window.scrollTo(0, 0);
+  if (IsDualPaneEnabled == true) {
+    if (dualPaneSide == "left") {
+      document.querySelector(".dual-pane-left").innerHTML = "";
+      document.querySelector(".dual-pane-left").scrollTop = 0;
+    } else if (dualPaneSide == "right") {
+      document.querySelector(".dual-pane-right").innerHTML = "";
+      document.querySelector(".dual-pane-right").scrollTop = 0;
+    } else {
+      document.querySelector(".dual-pane-left").innerHTML = "";
+      document.querySelector(".dual-pane-right").innerHTML = "";
+    }
+  }
+  document.querySelector(".normal-list-column-header").style.display = "block";
+  document.querySelector(".disk-list-column-header").style.display = "none";
+
+  let counter = 0;
+  let itemLink = document.createElement("button");
+  itemLink.setAttribute(
+    "onclick",
+    "interactWithItem(this, '" + dualPaneSide + "')",
+  );
+  itemLink.setAttribute("itempath", item.path);
+  itemLink.setAttribute("itemindex", counter++);
+  itemLink.setAttribute("itempaneside", dualPaneSide);
+  itemLink.setAttribute("itemisdir", item.is_dir);
+  itemLink.setAttribute("itemext", item.extension);
+  itemLink.setAttribute("itemname", item.name);
+  itemLink.setAttribute("itemsize", formatBytes(item.size));
+  itemLink.setAttribute("itemrawsize", item.size);
+  itemLink.setAttribute("itemmodified", item.last_modified);
+  itemLink.setAttribute("draggable", true);
+  itemLink.setAttribute("id", "item-link");
+  itemLink.setAttribute("itemformillercol", parseInt(millerCol) + 1);
+
+  let newRow = document.createElement("div");
+  newRow.className = "directory-item-entry";
+  let fileIcon = "resources/file-icon.png"; // Default
+  let iconSize = "48px";
+  if (item.is_dir == 1) {
+    fileIcon = "resources/folder-icon.png";
+    // Check for dir name to apply custom icons
+    if (item.name.toLowerCase().includes("downloads")) {
+      fileIcon = "resources/folder-downloads.png";
+    } else if (
+      item.name.toLowerCase().includes("desktop") ||
+      item.name.toLowerCase().includes("schreibtisch")
+    ) {
+      fileIcon = "resources/folder-desktop.png";
+    } else if (
+      item.name.toLowerCase().includes("dokumente") ||
+      item.name.toLowerCase().includes("documents") ||
+      item.name.toLowerCase().includes("docs")
+    ) {
+      fileIcon = "resources/folder-docs.png";
+    } else if (
+      item.name.toLowerCase().includes("musik") ||
+      item.name.toLowerCase().includes("music")
+    ) {
+      fileIcon = "resources/folder-music.png";
+    } else if (
+      item.name.toLowerCase().includes("bilder") ||
+      item.name.toLowerCase().includes("pictures") ||
+      item.name.toLowerCase().includes("images")
+    ) {
+      fileIcon = "resources/folder-images.png";
+    } else if (
+      item.name.toLowerCase().includes("videos") ||
+      item.name.toLowerCase().includes("movies") ||
+      item.name.toLowerCase().includes("films") ||
+      item.name.toLowerCase().includes("filme")
+    ) {
+      fileIcon = "resources/folder-videos.png";
+    } else if (
+      item.name.toLowerCase().includes("coding") ||
+      item.name.toLowerCase().includes("programming") ||
+      item.name.toLowerCase().includes("programmieren") ||
+      item.name.toLowerCase().includes("code")
+    ) {
+      fileIcon = "resources/folder-coding.png";
+    } else if (
+      item.name.toLowerCase().includes("werkzeuge") ||
+      item.name.toLowerCase().includes("tools")
+    ) {
+      fileIcon = "resources/folder-tools.png";
+    } else if (
+      item.name.toLowerCase().includes("public") ||
+      item.name.toLowerCase().includes("öffentlich") ||
+      item.name.toLowerCase().includes("shared") ||
+      item.name.toLowerCase().includes("geteilt")
+    ) {
+      fileIcon = "resources/folder-public.png";
+    } else if (
+      item.name.toLowerCase().includes("games") ||
+      item.name.toLowerCase().includes("spiele")
+    ) {
+      fileIcon = "resources/folder-games.png";
+    } else if (
+      item.name.toLowerCase().includes("developer") ||
+      item.name.toLowerCase().includes("development")
+    ) {
+      fileIcon = "resources/folder-development.png";
+    } else if (item.path.split(".")[1] == "app") {
+      fileIcon = convertFileSrc(
+        await invoke("get_app_icns", { path: item.path }),
+      );
+    }
+  } else {
+    switch (item.extension.toLowerCase()) {
+      case ".rs":
+        fileIcon = "resources/rust-file.png";
+        break;
+      case ".js":
+      case ".jsx":
+        fileIcon = "resources/javascript-file.png";
+        break;
+      case ".css":
+      case ".scss":
+        fileIcon = "resources/css-file.png";
+        break;
+      case ".sql":
+      case ".db":
+        fileIcon = "resources/sql-file.png";
+        break;
+      case ".go":
+        fileIcon = "resources/go-file.png";
+        break;
+      case ".md":
+        fileIcon = "resources/markdown-file.png";
+        break;
+      case ".bin":
+        fileIcon = "resources/bin-file.png";
+        break;
+      case ".json":
+      case ".cs":
+      case ".c":
+      case ".xml":
+      case ".htm":
+      case ".html":
+      case ".php":
+      case ".py":
+      case ".ts":
+      case ".tsx":
+        fileIcon = "resources/code-file.png";
+        break;
+      case ".png":
+      case ".jpg":
+      case ".jpeg":
+      case ".gif":
+      case ".webp":
+      case ".svg":
+      case ".ico":
+      case ".bmp":
+      case ".tiff":
+      case ".tif":
+      case ".jfif":
+      case ".avif":
+      case ".icns":
+        if (IsImagePreview) {
+          fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+          // if (item.size > 20000000) {
+          //   fileIcon = convertFileSrc(await getThumbnail(item.path)); // Beispiel für die Verwendung der Funktion
+          // }
+        } else {
+          fileIcon = "resources/img-file.png";
+        }
+        break;
+      case ".pdf":
+        if (IsImagePreview) {
+          fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+        } else {
+          fileIcon = "resources/img-file.png";
+        }
+        break;
+      case ".txt":
+        fileIcon = "resources/text-file.png";
+        break;
+      case ".docx":
+      case ".doc":
+        fileIcon = "resources/word-file.png";
+        break;
+      case ".pdf":
+        fileIcon = "resources/pdf-file.png";
+        break;
+      case ".zip":
+      case ".rar":
+      case ".tar":
+      case ".zst":
+      case ".7z":
+      case ".gz":
+      case ".xz":
+      case ".bz2":
+      case ".lz":
+      case ".lz4":
+      case ".lzma":
+      case ".lzo":
+      case ".z":
+      case ".zstd":
+      case ".br":
+        fileIcon = "resources/zip-file.png";
+        break;
+      case ".xlsx":
+        fileIcon = "resources/spreadsheet-file.png";
+        break;
+      case ".appimage":
+        fileIcon = "resources/appimage-file.png";
+        break;
+      case ".mp4":
+      case ".mkv":
+      case ".avi":
+      case ".mov":
+      case ".wmv":
+      case ".flv":
+      case ".webm":
+        fileIcon = "resources/video-file.png";
+        break;
+      case ".mp3":
+      case ".wav":
+      case ".ogg":
+      case ".opus":
+        fileIcon = "resources/audio-file.png";
+        break;
+      case ".iso":
+        fileIcon = "resources/iso-file.png";
+        break;
+      default:
+        fileIcon = "resources/file-icon.png";
+        break;
+    }
+  }
+  itemLink.className = "item-link directory-entry";
+  if (ViewMode == "wrap") {
+    var itemButton = document.createElement("div");
+    itemButton.innerHTML = `
+  			<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" />
+  			<p class="item-button-text" style="text-align: left;">${item.name}</p>
+  			`;
+    itemButton.className = "item-button directory-entry";
+    newRow.append(itemButton);
+    // $(".directory-list").style.gridTemplateColumns =
+    //   "repeat(auto-fill, minmax(80px, 1fr))";
+    // DirectoryList.style.rowGap = "15px";
+  } else if (ViewMode == "column") {
+    var itemButtonList = document.createElement("div");
+    itemButtonList.innerHTML = `
+			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
+			<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+			<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+			</span>
+			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
+			<p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
+			<p class="item-button-list-text" style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+			</span>
+			`;
+    if (dualPaneSide != null && dualPaneSide != "") {
+      itemButtonList.className = "directory-entry dual-pane-list-item";
+    } else {
+      itemButtonList.className = "item-button-list directory-entry";
+    }
+    newRow.append(itemButtonList);
+    // DirectoryList.style.gridTemplateColumns = "unset";
+    // DirectoryList.style.rowGap = "2px";
+  }
+  if (ViewMode == "miller") {
+    // DirectoryList.style.gridTemplateColumns = "unset";
+    // DirectoryList.style.rowGap = "1px";
+  }
+  itemLink.append(newRow);
+  document.querySelector(".directory-list").append(itemLink);
+  ArrDirectoryItems.push(itemLink);
+  document
+    .querySelector(".directory-list")
+    .querySelectorAll("#item-link")
+    .forEach((item) => {
+      // Start dragging item
+      item.ondragstart = async (e) => {
+        e.preventDefault();
+        IsFileOpIntern = true;
+        let icon = DefaultFileIcon;
+        if (item.getAttribute("itemisdir") == 1) {
+          icon = DefaultFolderIcon;
+        }
+        if (
+          ArrSelectedItems.find(
+            (itemOfArray) =>
+              itemOfArray.getAttribute("itempath") ==
+              item.getAttribute("itempath"),
+          ) == null ||
+          ArrSelectedItems.length == 0
+        ) {
+          ArrSelectedItems.push(item);
+        }
+        let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
+        if (
+          Platform != "darwin" &&
+          (Platform.includes("win") || Platform.includes("linux"))
+        ) {
+          await startDrag({ item: arr, icon: "" });
+          unSelectAllItems();
+          IsFileOpIntern = true;
+        } else {
+          await startDrag({ item: arr, icon: icon });
+          unSelectAllItems();
+          IsFileOpIntern = true;
+        }
+      };
+      // Accept file drop into folders
+      item.addEventListener("dragover", (e) => {
+        MousePos = [e.clientX, e.clientY];
+        if (item.getAttribute("itemisdir") == "1") {
+          item.style.opacity = "0.5";
+          if (!ArrSelectedItems.includes(item)) {
+            DraggedOverElement = item;
+          }
+        }
+      });
+      item.addEventListener("dragleave", () => {
+        item.style.opacity = "1";
+      });
+      // :item_right_click :context_menu
+      // Open context menu when right-clicking on file/folder
+      item.addEventListener("contextmenu", async (e) => {
+        e.preventDefault();
+        if (ArrSelectedItems.length <= 1) {
+          unSelectAllItems();
+          selectItem(item);
+        } else {
+          selectItem(item);
+        }
+        if (IsPopUpOpen == false) {
+          let appsCMenu = document.querySelector(".context-open-item-with");
+          appsCMenu.innerHTML = "";
+          await getSetInstalledApplications(item.getAttribute("itemext"));
+          if (Platform.includes("linux")) {
+            appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
+          } else if (Applications.length > 0) {
+            Applications.forEach((app) => {
+              let newItem = document.createElement("button");
+              newItem.innerHTML = app[0].split(".")[0];
+              newItem.className = "context-item";
+              newItem.setAttribute("appname", app[0].split(".")[0]);
+              newItem.setAttribute("apppath", app[1]);
+              newItem.addEventListener("click", () =>
+                open_with(item.getAttribute("itempath"), app[1]),
+              );
+              appsCMenu.appendChild(newItem);
+            });
+          } else {
+            appsCMenu.innerHTML = "<p>No applications found</p>";
+          }
+
+          // Reset so that the commands are not triggered multiple times
+          ContextMenu.children[0].replaceWith(
+            ContextMenu.children[0].cloneNode(true),
+          );
+          ContextMenu.children[2].replaceWith(
+            ContextMenu.children[2].cloneNode(true),
+          );
+          ContextMenu.children[3].replaceWith(
+            ContextMenu.children[3].cloneNode(true),
+          );
+          ContextMenu.children[4].replaceWith(
+            ContextMenu.children[4].cloneNode(true),
+          );
+          ContextMenu.children[5].replaceWith(
+            ContextMenu.children[5].cloneNode(true),
+          );
+          ContextMenu.children[6].replaceWith(
+            ContextMenu.children[6].cloneNode(true),
+          );
+          ContextMenu.children[7].replaceWith(
+            ContextMenu.children[7].cloneNode(true),
+          );
+          ContextMenu.children[8].replaceWith(
+            ContextMenu.children[8].cloneNode(true),
+          );
+          ContextMenu.children[9].replaceWith(
+            ContextMenu.children[9].cloneNode(true),
+          );
+          ContextMenu.children[10].replaceWith(
+            ContextMenu.children[10].cloneNode(true),
+          );
+          ContextMenu.children[11].replaceWith(
+            ContextMenu.children[11].cloneNode(true),
+          );
+          document
+            .querySelector(".c-item-ytdownload")
+            .replaceWith(
+              document.querySelector(".c-item-ytdownload").cloneNode(true),
+            );
+
+          ContextMenu.children[0].removeAttribute("disabled");
+          ContextMenu.children[0].classList.remove("c-item-disabled");
+          ContextMenu.children[1].removeAttribute("disabled");
+          ContextMenu.children[1].classList.remove("c-item-disabled");
+          ContextMenu.children[3].removeAttribute("disabled");
+          ContextMenu.children[3].classList.remove("c-item-disabled");
+          ContextMenu.children[4].removeAttribute("disabled");
+          ContextMenu.children[4].classList.remove("c-item-disabled");
+          ContextMenu.children[5].removeAttribute("disabled");
+          ContextMenu.children[5].classList.remove("c-item-disabled");
+          ContextMenu.children[6].removeAttribute("disabled");
+          ContextMenu.children[6].classList.remove("c-item-disabled");
+          ContextMenu.children[9].removeAttribute("disabled");
+          ContextMenu.children[9].classList.remove("c-item-disabled");
+          ContextMenu.children[10].removeAttribute("disabled");
+          ContextMenu.children[10].classList.remove("c-item-disabled");
+          ContextMenu.children[11].removeAttribute("disabled");
+          ContextMenu.children[11].classList.remove("c-item-disabled");
+
+          let extension = item.getAttribute("itemext");
+
+          // Check if item is an supported archive
+          if (
+            extension != ".zip" &&
+            extension != ".rar" &&
+            extension != ".7z" &&
+            extension != ".tar" &&
+            extension != ".gz" &&
+            extension != ".br" &&
+            extension != ".bz2"
+          ) {
+            document
+              .querySelector(".c-item-extract")
+              .setAttribute("disabled", "true");
+            document
+              .querySelector(".c-item-extract")
+              .classList.add("c-item-disabled");
+          } else {
+            document
+              .querySelector(".c-item-extract")
+              .removeAttribute("disabled");
+            document
+              .querySelector(".c-item-extract")
+              .classList.remove("c-item-disabled");
+          }
+
+          // Check if item can be searched through for duplicates
+          if (item.getAttribute("itemisdir") == "1") {
+            document
+              .querySelector(".c-item-duplicates")
+              .removeAttribute("disabled");
+            document
+              .querySelector(".c-item-duplicates")
+              .classList.remove("c-item-disabled");
+          } else {
+            document
+              .querySelector(".c-item-duplicates")
+              .setAttribute("disabled", "true");
+            document
+              .querySelector(".c-item-duplicates")
+              .classList.add("c-item-disabled");
+          }
+
+          document.querySelector(".c-item-delete").addEventListener(
+            "click",
+            async () => {
+              await deleteItems();
+            },
+            { once: true },
+          );
+          document.querySelector(".c-item-extract").addEventListener(
+            "click",
+            async () => {
+              await extractItem(item);
+            },
+            { once: true },
+          );
+          document.querySelector(".c-item-compress").addEventListener(
+            "click",
+            async () => {
+              await showCompressPopup(item);
+            },
+            { once: true },
+          );
+          document.querySelector(".c-item-copy").addEventListener(
+            "click",
+            async () => {
+              await copyItem(item);
+            },
+            { once: true },
+          );
+          document.querySelector(".c-item-moveto").addEventListener(
+            "click",
+            async () => {
+              await itemMoveTo(false);
+            },
+            { once: true },
+          );
+          document.querySelector(".c-item-newfile").addEventListener(
+            "click",
+            () => {
+              createFileInputPrompt(e);
+            },
+            { once: true },
+          );
+          document.querySelector(".c-item-rename").addEventListener(
+            "click",
+            () => {
+              renameElementInputPrompt(item);
+            },
+            { once: true },
+          );
+          document.querySelector(".c-item-properties").addEventListener(
+            "click",
+            () => {
+              showProperties(item);
+            },
+            { once: true },
+          );
+          document.querySelector(".c-item-duplicates").addEventListener(
+            "click",
+            () => {
+              showFindDuplicates(item);
+            },
+            { once: true },
+          );
+          document.querySelector(".c-item-ytdownload").addEventListener(
+            "click",
+            async () => {
+              await showYtDownload();
+            },
+            { once: true },
+          );
+
+          positionContextMenu(e);
+        }
+      });
+    });
+  if (IsDualPaneEnabled == true) {
+    if (dualPaneSide == "left") {
+      document.querySelector(".dual-pane-left").append(DirectoryList);
+      LeftDualPanePath = CurrentDir;
+      LeftPaneItemCollection = DirectoryList;
+    } else if (dualPaneSide == "right") {
+      document.querySelector(".dual-pane-right").append(DirectoryList);
+      RightDualPanePath = CurrentDir;
+      RightPaneItemCollection = DirectoryList;
+    } else {
+      document.querySelector(".dual-pane-left").append(DirectoryList);
+      document
+        .querySelector(".dual-pane-right")
+        .append(DirectoryList.cloneNode(true));
+      LeftDualPanePath = RightDualPanePath = CurrentDir;
+    }
+  } else if (ViewMode == "miller") {
+    document.querySelector(".miller-col-" + millerCol).innerHTML = "";
+    document.querySelector(".miller-col-" + millerCol).append(DirectoryList);
+    document
+      .querySelector(".miller-col-" + millerCol)
+      .setAttribute("miller-col-path", CurrentDir);
+    CurrentMillerCol = millerCol;
+  } else {
+    document.querySelector(".explorer-container").innerHTML = "";
+    document.querySelector(".explorer-container").append(DirectoryList);
+  }
+}
+
 async function getCurrentDir() {
   await invoke("get_current_dir").then((path) => {
     setCurrentDir(path);
@@ -1878,7 +2439,7 @@ async function checkAppConfig() {
     // Theme options
     CurrentTheme = appConfig.current_theme;
     appConfig.themes = await invoke("get_themes");
-    console.log(appConfig.current_theme, appConfig.themes);
+    // console.log(appConfig.current_theme, appConfig.themes);
     let themeSelect = document.querySelector(".theme-select");
     themeSelect.innerHTML = "";
     let themeCounter = 0;
@@ -2529,6 +3090,7 @@ async function openFTP(
   }).then(async (items) => {
     await showItems(items);
   });
+  closeFtpConfig();
 }
 
 async function openInTerminal() {
@@ -3267,13 +3829,19 @@ function evalCurrentLoad(available, total) {
 }
 
 function closeFtpConfig() {
-  document.querySelector(".ftp-connect-container").style.display = "none";
+  $(".ftp-connect-container").css("display", "none");
+  $(".ftp-loader").css("display", "none");
   IsPopUpOpen = false;
 }
 
 async function showFtpConfig() {
   if (IsPopUpOpen == false) {
-    // await invoke("install_dep", { depName: "fuse-t", password: "WinnerDane17!" });
+    // await invoke("install_dep", {
+    //   depName: "fuse-t",
+    // });
+    // await invoke("install_dep", {
+    //   depName: "fuse-t-sshfs",
+    // });
     document.querySelector(".ftp-connect-container").style.display = "block";
     IsPopUpOpen = true;
     document.querySelectorAll(".ftp-popup-input").forEach(
@@ -3288,12 +3856,12 @@ async function showFtpConfig() {
 }
 
 async function connectToFtp() {
-  let hostname = document.querySelector(".ftp-hostname-input").value;
-  let username = document.querySelector(".ftp-username-input").value;
-  let password = document.querySelector(".ftp-password-input").value;
-  let remotePath = document.querySelector(".ftp-path-input").value;
+  let hostname = $(".ftp-hostname-input").val();
+  let username = $(".ftp-username-input").val();
+  let password = $(".ftp-password-input").val();
+  let remotePath = $(".ftp-path-input").val();
+  $(".ftp-loader").css("display", "flex");
   openFTP(hostname, username, password, remotePath);
-  closeFtpConfig();
 }
 
 function formatBytes(bytes, decimals = 2) {

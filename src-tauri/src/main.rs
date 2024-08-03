@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use brew::Package;
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use flate2::read::GzDecoder;
@@ -585,6 +586,7 @@ async fn search_for(
     max_items: i32,
     search_depth: i32,
     file_content: String,
+    app_window: Window,
 ) -> Vec<FDir> {
     dbg_log(format!("Start searching for {}", &file_name));
     let temp_file_name = String::from(&file_name);
@@ -600,18 +602,28 @@ async fn search_for(
     println!("");
 
     let sw = Stopwatch::start_new();
-    let mut search: Vec<String>;
+    let mut search: Vec<String> = vec![];
     if file_ext != ".".to_string().to_owned() + &file_name {
-        search = SearchBuilder::default()
-            .location(current_dir().unwrap())
-            .search_input(file_name.strip_suffix(&file_ext).unwrap())
-            .ignore_case()
-            .hidden()
-            .depth(search_depth as usize)
-            .limit(max_items as usize)
-            .ext(&file_ext)
-            .build()
-            .collect();
+        let _ = DirWalker::new()
+            .set_ext(vec![file_ext.to_lowercase()])
+            .search(
+                current_dir().unwrap().to_str().unwrap(),
+                search_depth as u32,
+                file_name,
+                &|item| {
+                    let _ = app_window.eval(&format!("console.log('{:?}')", item));
+                },
+            );
+        // search = SearchBuilder::default()
+        //     .location(current_dir().unwrap())
+        //     .search_input(file_name.strip_suffix(&file_ext).unwrap())
+        //     .ignore_case()
+        //     .hidden()
+        //     .depth(search_depth as usize)
+        //     .limit(max_items as usize)
+        //     .ext(&file_ext)
+        //     .build()
+        //     .collect();
     } else {
         search = SearchBuilder::default()
             .location(current_dir().unwrap())
@@ -626,7 +638,7 @@ async fn search_for(
 
     // Sorting search results by input
     let sw2 = Stopwatch::start_new();
-    similarity_sort(&mut search, &file_name);
+    // similarity_sort(&mut search, &file_name);
     dbg_log(format!("Sorting took: {:?}", sw2.elapsed()));
 
     let mut dir_list: Vec<FDir> = Vec::new();
@@ -1769,41 +1781,22 @@ async fn get_thumbnail(image_path: String) -> String {
 }
 
 #[tauri::command]
-async fn install_dep(_dep_name: String, _password: String) {
-    // println!("Starting to install dep: {}", dep_name);
-    // match dep_name.as_str() {
-    //     "fuse-t" => {
-    //         let mut fc = Command::new("brew")
-    //             .arg("tap")
-    //             .arg("macos-fuse-t/homebrew-cask")
-    //             .spawn()
-    //             .expect("Failed to spawn sudo command");
-
-    //         let mut sc = Command::new("brew")
-    //             .arg("install")
-    //             .arg("fuse-t")
-    //             .spawn()
-    //             .unwrap();
-
-    //         let mut tc = Command::new("brew")
-    //             .arg("install")
-    //             .arg("fuse-t-sshfs")
-    //             .arg("--appdir=~/Applications ")
-    //             // .stdin(Stdio::piped())
-    //             // .stdout(Stdio::inherit())
-    //             // .stderr(Stdio::inherit())
-    //             .spawn()
-    //             .unwrap();
-
-    //         // if let Some(stdin) = tc.stdin.as_mut() {
-    //         //     stdin
-    //         //         .write_all(password.as_bytes())
-    //         //         .expect("Failed to write password to stdin");
-    //         // }
-    //     }
-    //     "homebrew" => {}
-    //     _ => unimplemented!(),
-    // }
+async fn install_dep(dep_name: String) {
+    // Check if package is already installed
+    let package = Package::new(&dep_name);
+    if package.is_err() {
+        let err = package.err();
+        println!(
+            "Installation of dependency not possible: {:?}",
+            err.unwrap()
+        );
+        return;
+    }
+    let package = package.unwrap();
+    if !package.is_installed() {
+        let package_result = package.install(&brew::Options::new().head().force().env_std());
+        println!("{} = {}", dep_name, package_result.unwrap().is_installed());
+    }
 }
 
 #[tauri::command]

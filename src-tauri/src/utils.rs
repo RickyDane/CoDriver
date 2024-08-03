@@ -1,5 +1,6 @@
 use chrono::prelude::*;
 use color_print::cprintln;
+use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use serde::Serialize;
 use std::{
     fmt::Debug,
@@ -196,6 +197,7 @@ pub struct DirWalkerEntry {
 pub struct DirWalker {
     pub items: Vec<DirWalkerEntry>,
     pub depth: u32,
+    pub exts: Vec<String>,
 }
 
 impl DirWalker {
@@ -203,6 +205,7 @@ impl DirWalker {
         DirWalker {
             items: Vec::new(),
             depth: 0,
+            exts: vec![],
         }
     }
 
@@ -221,7 +224,19 @@ impl DirWalker {
                 continue;
             }
             let path = item.path();
-            if !fs::metadata(&path).is_ok() {
+            if !fs::metadata(&path).is_ok()
+                || (self.exts.len() > 0
+                    && !self.exts.contains(
+                        &item
+                            .file_name()
+                            .to_str()
+                            .unwrap()
+                            .split(".")
+                            .last()
+                            .unwrap()
+                            .to_string(),
+                    ))
+            {
                 continue;
             }
             if path.is_dir() {
@@ -247,8 +262,77 @@ impl DirWalker {
         }
     }
 
+    pub fn search(
+        &mut self,
+        path: &str,
+        depth: u32,
+        file_name: String,
+        callback: &impl Fn(DirWalkerEntry),
+    ) {
+        if self.depth >= depth {
+            return;
+        }
+        let matcher = SkimMatcherV2::default();
+        for entry in fs::read_dir(path).unwrap() {
+            let item = entry.unwrap();
+            let path = item.path();
+            if !matcher
+                .fuzzy_match(
+                    &item.file_name().to_str().unwrap().to_lowercase(),
+                    &file_name.to_lowercase(),
+                )
+                .is_some()
+            {
+                continue;
+            }
+            if !fs::metadata(&path).is_ok()
+                || (self.exts.len() > 0
+                    && !self.exts.contains(&format!(
+                        "{}{}",
+                        ".",
+                        &item
+                            .file_name()
+                            .to_str()
+                            .unwrap()
+                            .split(".")
+                            .last()
+                            .unwrap()
+                            .to_string()
+                    )))
+            {
+                continue;
+            }
+            if path.is_dir() {
+                self.items.push(DirWalkerEntry {
+                    file_name: item.file_name().to_str().unwrap().to_string(),
+                    path: path.to_str().unwrap().to_string().replace("\\", "/"),
+                    depth: depth,
+                    is_dir: true,
+                    is_file: false,
+                    size: 0,
+                });
+                self.walk(path.to_str().unwrap(), depth + 1);
+            } else {
+                self.items.push(DirWalkerEntry {
+                    file_name: item.file_name().to_str().unwrap().to_string(),
+                    path: path.to_str().unwrap().to_string().replace("\\", "/"),
+                    depth: depth,
+                    is_dir: false,
+                    is_file: true,
+                    size: fs::metadata(&path).unwrap().len(),
+                });
+            }
+            callback(self.items.last().unwrap().clone());
+        }
+    }
+
     pub fn depth(&mut self, depth: u32) -> &mut Self {
         self.depth = depth;
+        self
+    }
+
+    pub fn set_ext(&mut self, exts: Vec<String>) -> &mut Self {
+        self.exts = exts;
         self
     }
 

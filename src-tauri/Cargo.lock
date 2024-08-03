@@ -653,6 +653,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3190f92dfe48224adc92881c620f08ccf37ff62b91a094bb357fe53bd5e84647"
 
 [[package]]
+name = "brew"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54588e423e3e70e11a119e8ed77bd5293f53a6f18b852c911a30e8065f81f240"
+dependencies = [
+ "command-builder",
+ "serde",
+ "serde_json",
+ "version-rs",
+]
+
+[[package]]
 name = "brotli"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -996,6 +1008,12 @@ dependencies = [
  "bytes",
  "memchr",
 ]
+
+[[package]]
+name = "command-builder"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b47974622599cbe625fe6e7cc7c431e6c5dedc0c96aa6bd94b2f08d368fd27eb"
 
 [[package]]
 name = "concurrent-queue"
@@ -1922,6 +1940,15 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
+]
+
+[[package]]
+name = "fuzzy-matcher"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54614a3312934d066701a80f20f15fa3b56d67ac7722b39eea5b4c9dd1d66c94"
+dependencies = [
+ "thread_local",
 ]
 
 [[package]]
@@ -4671,6 +4698,7 @@ dependencies = [
  "archiver-rs",
  "async-std",
  "base64 0.21.7",
+ "brew",
  "chrono",
  "cocoa 0.25.0",
  "color-print",
@@ -4679,6 +4707,7 @@ dependencies = [
  "dialog",
  "flate2",
  "fs_extra",
+ "fuzzy-matcher",
  "icns",
  "image 0.25.1",
  "libc",
@@ -6590,6 +6619,15 @@ name = "version-compare"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "852e951cb7832cb45cb1169900d19760cfa39b82bc0ea9c0e5a14ae88411c98b"
+
+[[package]]
+name = "version-rs"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a66e9c46910141cf992cbae2f743234e8c8eed1124442ec045075981612431b4"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "version_check"
