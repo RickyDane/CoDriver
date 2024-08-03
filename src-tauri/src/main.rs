@@ -8,8 +8,8 @@ use icns::{IconFamily, IconType};
 use rust_search::{similarity_sort, SearchBuilder};
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
-use std::fs::{self, ReadDir};
-use std::io::{BufReader, BufWriter, Error, Read, Write};
+use std::fs::{self, read_dir, ReadDir};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::{
     env::{current_dir, set_current_dir},
@@ -117,7 +117,8 @@ fn main() {
             get_app_icns,
             get_thumbnail,
             install_dep,
-            get_dir_size
+            get_dir_size,
+            get_themes
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -184,6 +185,17 @@ async fn check_app_config() -> AppConfig {
             .unwrap()
             .join("com.rdpFX.dev")
             .join("App-Thumbnails")
+            .to_str()
+            .unwrap()
+            .to_string(),
+    )
+    .await;
+
+    create_folder(
+        config_dir()
+            .unwrap()
+            .join("com.rdpFX.dev")
+            .join("Themes")
             .to_str()
             .unwrap()
             .to_string(),
@@ -302,6 +314,31 @@ async fn check_app_config() -> AppConfig {
             })
             .collect(),
     };
+}
+
+#[tauri::command]
+async fn get_themes() -> Vec<Theme> {
+    let mut vec_themes: Vec<Theme> = vec![];
+    let themes = read_dir(config_dir().unwrap().join("com.rdpFX.dev").join("Themes"));
+    for theme_entry in themes.unwrap() {
+        let app_config_file = File::open(theme_entry.unwrap().path()).unwrap();
+        let app_config_reader = BufReader::new(app_config_file);
+        let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+        vec_themes.push(Theme {
+            name: app_config["name"].to_string().replace('"', ""),
+            primary_color: app_config["primary_color"].to_string().replace('"', ""),
+            secondary_color: app_config["secondary_color"].to_string().replace('"', ""),
+            tertiary_color: app_config["tertiary_color"].to_string().replace('"', ""),
+            text_color: app_config["text_color"].to_string().replace('"', ""),
+            text_color2: app_config["text_color2"].to_string().replace('"', ""),
+            text_color3: app_config["text_color3"].to_string().replace('"', ""),
+            transparent_color: app_config["transparent_color"].to_string().replace('"', ""),
+            transparent_color_active: app_config["transparent_color_active"]
+                .to_string()
+                .replace('"', ""),
+        })
+    }
+    vec_themes
 }
 
 #[derive(serde::Serialize)]
@@ -1851,9 +1888,6 @@ fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
                     Err(_) => continue,
                 };
                 size += file_size;
-                unsafe {
-                    calced_size += file_size;
-                }
             } else if entry.file_type().unwrap().is_dir() {
                 let dir_size = dir_size(
                     entry.path().to_string_lossy().to_string(),
@@ -1861,17 +1895,15 @@ fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
                     class_to_fill.clone(),
                 );
                 size += dir_size;
-                unsafe {
-                    calced_size += dir_size;
-                }
-            }
-        }
-        unsafe {
-            if calced_size % 1000 == 0 {
-                let _ = app_window.eval(&format!(
-                    "document.querySelector('{}').innerHTML = formatBytes({})",
-                    class_to_fill, calced_size
-                ));
+                // unsafe {
+                //     calced_size += dir_size;
+                //     if calced_size % 1000 == 0 {
+                //         let _ = app_window.eval(&format!(
+                //             "document.querySelector('{}').innerHTML = formatBytes({}) + ' ' + formatBytes({})",
+                //             class_to_fill, calced_size, dir_size
+                //         ));
+                //     }
+                // }
             }
         }
     }

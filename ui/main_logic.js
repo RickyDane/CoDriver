@@ -1877,7 +1877,8 @@ async function checkAppConfig() {
 
     // Theme options
     CurrentTheme = appConfig.current_theme;
-    console.log(appConfig.current_theme);
+    appConfig.themes = await invoke("get_themes");
+    console.log(appConfig.current_theme, appConfig.themes);
     let themeSelect = document.querySelector(".theme-select");
     themeSelect.innerHTML = "";
     let themeCounter = 0;
