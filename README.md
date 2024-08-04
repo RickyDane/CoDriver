@@ -39,6 +39,7 @@ rdpFX does not use path caching to access files and folders, so the performance 
   - rar
   - zip
   - 7zip
+  - tar (.gz, .bz2)
 - Navigate to a directory using the shortcut LAlt + 1 / 2 / 3 | (macOS option + 1 / 2 / 3)
   - Configure the paths yourself in the settings
 - Create file with F6
