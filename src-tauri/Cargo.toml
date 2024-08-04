@@ -58,18 +58,16 @@ rusty_ytdl = "0.7.2"
 rand = "0.8.5"
 icns = "0.3.1"
 image = "0.25.1"
-brew = "0.2.0"
 fuzzy-matcher = "0.3.7"
-jwalk = "0.8.1"
 regex = "1.10.6"
 
-[profile.dev]
-rustflags = ["-Z", "threads=7"]
-
-[profile.release]
+# [profile.dev]
 # rustflags = ["-Z", "threads=7"]
-lto = true
-opt-level = "z"
+
+# [profile.release]
+# rustflags = ["-Z", "threads=7"]
+# lto = true
+# opt-level = "z"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"
