@@ -976,6 +976,7 @@ label {
     border-radius: 10px;
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
     border: 1px solid var(--tertiaryColor);
+    z-index: 99;
 }
 
 .text-input {
@@ -1509,6 +1510,7 @@ label {
 }
 
 .popup-body-col-section {
+    padding: 5px 0;
     display: flex;
     flex-flow: column;
     gap: 5px;

@@ -1,13 +1,19 @@
 use chrono::prelude::*;
 use color_print::cprintln;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
+use regex::Regex;
 use serde::Serialize;
 use std::{
-    env::current_dir, ffi::OsStr, fmt::Debug, fs::{self, File}, io::{BufReader, BufWriter, Read, Write}
+    env::current_dir,
+    ffi::OsStr,
+    fmt::Debug,
+    fs::{self, File},
+    io::{BufReader, BufWriter, Read, Write},
 };
 use stopwatch::Stopwatch;
 use tar::Archive as TarArchive;
 use tauri::Window;
+const FUZZY_SEARCH: &str = r".*";
 
 use crate::COUNT_CALLED_BACK;
 #[allow(unused_imports)]
@@ -278,13 +284,25 @@ impl DirWalker {
         // if self.depth >= depth {
         //     return;
         // }
-        let dir_depth = path.split(current_dir().unwrap().to_str().unwrap()).last().unwrap().split("/").count() - 1;
+        let dir_depth = path
+            .split(current_dir().unwrap().to_str().unwrap())
+            .last()
+            .unwrap()
+            .split("/")
+            .count()
+            - 1;
         // println!("Dir depth: {}", dir_depth);
         unsafe {
             if dir_depth >= depth as usize || COUNT_CALLED_BACK >= max_items {
                 return;
             }
         }
+        let reg_exp = build_regex_search_input(
+            Some(&file_name),
+            self.exts.first().map(|x| x.as_str()),
+            true,
+            true,
+        );
         let matcher = SkimMatcherV2::default();
         let dir = fs::read_dir(path);
         if dir.is_err() {
@@ -296,10 +314,10 @@ impl DirWalker {
             let path = item.path();
             let item_path = item.file_name().clone().to_str().unwrap().to_lowercase();
             let item_ext = ".".to_owned()
-                + &path
-                    .extension()
-                    .unwrap_or_else(|| &OsStr::new(""))
-                    .to_string_lossy()
+                + &item_path
+                    .split(".")
+                    .last()
+                    .unwrap()
                     .to_string()
                     .to_lowercase();
             let search_pattern = file_name.to_lowercase();
@@ -307,23 +325,49 @@ impl DirWalker {
             if file_metadata.is_err() {
                 continue;
             }
-            let last_mod: DateTime<Utc> = file_metadata.unwrap()
-                .modified()
-                .unwrap()
-                .clone()
-                .into();
-            if !matcher.fuzzy_match(&item_path, &search_pattern).is_some() && path.is_file() {
+            let last_mod: DateTime<Utc> = file_metadata.unwrap().modified().unwrap().clone().into();
+            let matching_score = matcher
+                .fuzzy_match(&item_path, &search_pattern)
+                .unwrap_or_else(|| 0);
+            // !reg_exp.is_match(&item_path)
+            if matching_score == 0 && path.is_file() && !path.is_dir() {
                 continue;
             }
+
+            // println!(
+            //     "Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}",
+            //     matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file()
+            // );
+
             if !fs::metadata(&path).is_ok()
-                || (self.exts.len() > 0 && path.is_file() && !self.exts.contains(&item_ext))
+                || (self.exts.len() > 0
+                    && path.is_file()
+                    && !path.is_dir()
+                    && !self.exts.contains(&item_ext))
             {
                 continue;
             }
-            if path.is_dir() {
-                self.search(&path.clone().to_str().unwrap(), depth, file_name.clone(), max_items, callback);
-            } else {
-                println!("Calling the callback for: {:?}", path);
+            if path.is_dir() && matching_score > 0 {
+                println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path,matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file());
+                callback(DirWalkerEntry {
+                    name: item.file_name().to_str().unwrap().to_string(),
+                    path: path.to_str().unwrap().to_string().replace("\\", "/"),
+                    depth: depth,
+                    is_dir: true,
+                    is_file: false,
+                    extension: item_ext,
+                    last_modified: format!("{:?}", last_mod),
+                    size: fs::metadata(&path).unwrap().len(),
+                });
+                self.search(
+                    &path.clone().to_str().unwrap(),
+                    depth,
+                    file_name.clone(),
+                    max_items,
+                    callback,
+                );
+            } else if path.is_file() && matching_score > 0{
+                println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path,matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file());
                 callback(DirWalkerEntry {
                     name: item.file_name().to_str().unwrap().to_string(),
                     path: path.to_str().unwrap().to_string().replace("\\", "/"),
@@ -335,7 +379,7 @@ impl DirWalker {
                     size: fs::metadata(&path).unwrap().len(),
                 });
             }
-        };
+        }
     }
 
     pub fn depth(&mut self, depth: u32) -> &mut Self {
@@ -399,4 +443,29 @@ pub fn unpack_tar(file: File) {
         let mut file = file.unwrap();
         let _ = file.unpack_in("Unpacked_Archive").unwrap_or_default();
     }
+}
+
+pub fn build_regex_search_input(
+    search_input: Option<&str>,
+    file_ext: Option<&str>,
+    strict: bool,
+    ignore_case: bool,
+) -> Regex {
+    let file_type = file_ext.unwrap_or("*");
+    let search_input = search_input.unwrap_or(r"\w+");
+
+    let mut formatted_search_input = if strict {
+        format!(r#"{search_input}\.{file_type}$"#)
+    } else {
+        format!(r#"{search_input}{FUZZY_SEARCH}\.{file_type}$"#)
+    };
+
+    if ignore_case {
+        formatted_search_input = set_case_insensitive(&formatted_search_input);
+    }
+    Regex::new(&formatted_search_input).unwrap()
+}
+
+fn set_case_insensitive(formatted_search_input: &str) -> String {
+    "(?i)".to_owned() + formatted_search_input
 }

@@ -30,7 +30,6 @@ tauri = { version = "1.6", features = [
     "fs-all",
 ] }
 open = "5.0.0"
-rust_search = "2.1.0"
 stopwatch = "0.0.7"
 base64 = "0.21.2"
 zip-extensions = "0.6.1"
@@ -61,6 +60,8 @@ icns = "0.3.1"
 image = "0.25.1"
 brew = "0.2.0"
 fuzzy-matcher = "0.3.7"
+jwalk = "0.8.1"
+regex = "1.10.6"
 
 [profile.dev]
 rustflags = ["-Z", "threads=7"]

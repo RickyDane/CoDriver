@@ -1300,7 +1300,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 listen("addSingleItem", async (item) => {
   item = JSON.parse(item.payload);
   setTimeout(async () => {
-    await addSingleItem(item);
+    await addSingleItem(item, SelectedItemPaneSide);
   }, 10);
 });
 
@@ -1310,14 +1310,12 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
   window.scrollTo(0, 0);
   if (IsDualPaneEnabled == true) {
     if (dualPaneSide == "left") {
-      document.querySelector(".dual-pane-left").innerHTML = "";
       document.querySelector(".dual-pane-left").scrollTop = 0;
     } else if (dualPaneSide == "right") {
-      document.querySelector(".dual-pane-right").innerHTML = "";
       document.querySelector(".dual-pane-right").scrollTop = 0;
     } else {
-      document.querySelector(".dual-pane-left").innerHTML = "";
-      document.querySelector(".dual-pane-right").innerHTML = "";
+      document.querySelector(".dual-pane-left").scrollTop = 0;
+      document.querySelector(".dual-pane-right").scrollTop = 0;
     }
   }
   document.querySelector(".normal-list-column-header").style.display = "block";
@@ -1765,21 +1763,21 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
       document.querySelector(".c-item-extract").addEventListener(
         "click",
         async () => {
-          await extractItem(item);
+          await extractItem(itemLink);
         },
         { once: true },
       );
       document.querySelector(".c-item-compress").addEventListener(
         "click",
         async () => {
-          await showCompressPopup(item);
+          await showCompressPopup(itemLink);
         },
         { once: true },
       );
       document.querySelector(".c-item-copy").addEventListener(
         "click",
         async () => {
-          await copyItem(item);
+          await copyItem(itemLink);
         },
         { once: true },
       );
@@ -1800,21 +1798,21 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
       document.querySelector(".c-item-rename").addEventListener(
         "click",
         () => {
-          renameElementInputPrompt(item);
+          renameElementInputPrompt(itemLink);
         },
         { once: true },
       );
       document.querySelector(".c-item-properties").addEventListener(
         "click",
         () => {
-          showProperties(item);
+          showProperties(itemLink);
         },
         { once: true },
       );
       document.querySelector(".c-item-duplicates").addEventListener(
         "click",
         () => {
-          showFindDuplicates(item);
+          showFindDuplicates(itemLink);
         },
         { once: true },
       );
@@ -1830,7 +1828,20 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
     }
   });
 
-  $(".directory-list").append(itemLink);
+  if (IsDualPaneEnabled === true) {
+    if (dualPaneSide === "left") {
+      $(".dual-pane-left").append(itemLink);
+      LeftPaneItemCollection = document.querySelector(".dual-pane-left");
+      goUp(false, true);
+    } else if (dualPaneSide === "right") {
+      $(".dual-pane-right").append(itemLink);
+      RightPaneItemCollection = document.querySelector(".dual-pane-right");
+      goUp(false, true);
+    }
+  }
+  else {
+    $(".directory-list").append(itemLink);
+  }
   ArrDirectoryItems.push(itemLink);
 
   // if (IsDualPaneEnabled == true) {
@@ -1856,7 +1867,8 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
   //     .querySelector(".miller-col-" + millerCol)
   //     .setAttribute("miller-col-path", CurrentDir);
   //   CurrentMillerCol = millerCol;
-  // } else {
+  // }
+  //  else {
   //   document.querySelector(".explorer-container").innerHTML = "";
   //   document.querySelector(".explorer-container").append(DirectoryList);
   // }
@@ -2712,14 +2724,16 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
     ) {
       // Open directory
       await invoke("open_dir", { path }).then(async (items) => {
-        if (ViewMode == "miller") {
-          await removeExcessMillerCols(parseInt(millerCol));
-          await addMillerCol(millerCol);
-          await setMillerColActive(null, millerCol);
-          await setCurrentDir(element.getAttribute("itempath"));
-        } else {
-          DirectoryList.innerHTML = `<img decoding="async" src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
-          DirectoryList.classList.add("dir-preloader-container");
+        if (IsDualPaneEnabled === false) {
+          if (ViewMode == "miller") {
+            await removeExcessMillerCols(parseInt(millerCol));
+            await addMillerCol(millerCol);
+            await setMillerColActive(null, millerCol);
+            await setCurrentDir(element.getAttribute("itempath"));
+          } else {
+            DirectoryList.innerHTML = `<img decoding="async" src="resources/preloader.gif" width="48px" height="auto" /><p>Loading ...</p>`;
+            DirectoryList.classList.add("dir-preloader-container");
+          }
         }
         await showItems(items, dualPaneSide, millerCol);
         if (IsDualPaneEnabled == true && dualPaneSide != "") {
@@ -3125,27 +3139,30 @@ async function searchFor(
   isQuickSearch = false,
   fileContent = "",
 ) {
-  $(".is-file-searching").css("display", "block");
   // document.querySelector(".fullsearch-loader").style.display = "block";
   if (fileName.length > 1 || isQuickSearch == true) {
+    $(".is-file-searching").css("display", "block");
     document.querySelector(".cancel-search-button").style.display = "block";
     // if (IsDualPaneEnabled == false) {
     //   DirectoryList.innerHTML = `<div class="preloader"></div><p>Loading ...</p>`;
     //   DirectoryList.classList.add("dir-preloader-container");
     // }
-    $(".directory-list").html("");
+    if (IsDualPaneEnabled === true) {
+      if (SelectedItemPaneSide === "left") {
+        $(".dual-pane-left").html("");
+      }
+      else {
+        $(".dual-pane-right").html("");
+      }
+    }
+    else {
+      $(".directory-list").html("");
+    }
     await invoke("search_for", {
       fileName,
       maxItems,
       searchDepth,
       fileContent,
-    }).then(async (items) => {
-      if (IsDualPaneEnabled == true) {
-        // await showItems(items, SelectedItemPaneSide);
-        goUp(false, true);
-      } else {
-        // await showItems(items);
-      }
     });
   } else {
     alert("Type in a minimum of 2 characters");
@@ -3172,11 +3189,11 @@ function closeFullSearchContainer() {
 
 document
   .querySelector(".dualpane-search-input")
-  .addEventListener("keyup", (e) => {
+  .addEventListener("keyup", async (e) => {
     if (e.keyCode === 13) {
       closeSearchBar();
     } else if (IsQuickSearchOpen == true) {
-      searchFor($(".dualpane-search-input").val(), 999999, 1, true);
+      await searchFor($(".dualpane-search-input").val(), 999999, 1, true);
     }
   });
 

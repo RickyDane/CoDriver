@@ -130,13 +130,10 @@
 				</span>-->
             <div class="popup-body-col-section" style="width: 100px;">
                 <p>Theme</p>
-                <select class="select theme-select">
-                    <!-- <option value="0">Default</option>
-                    <option value="1">Light</option>
-                    <option value="2">Dark</option>
-                    <option value="3">Icey</option>
-                    <option value="4">Hacker</option> -->
-                </select>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select class="select theme-select" onchange="saveConfig(true)"></select>
+                    <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig()"></i>
+                </div>
             </div>
             <span style="display: flex; gap: 10px; margin-top: 5px;">
                 <input id="choose-interaction-mode" type="checkbox"
