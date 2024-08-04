@@ -1,0 +1,70 @@
+{
+  "diskImage" : {
+    "appleID" : "danericky@outlook.de",
+    "autoopen" : true,
+    "background" : {
+      "color" : "{0.825516, 0.878203, 0.975955, 1.000000}",
+      "endingColor" : "{0.653191, 0.615872, 0.836443, 1.000000}",
+      "gradientAngle" : 12.3743896484375,
+      "layoutObjects" : [
+        {
+          "alignment" : 1,
+          "bounds" : "{{149, 64}, {200, 97}}",
+          "hasShadow" : true,
+          "identifier" : "vuuaobncgn",
+          "layoutObjectType" : "text",
+          "shadowAngle" : 315,
+          "shadowBlurRadius" : 3,
+          "shadowColor" : "{0.000000, 0.000000, 0.000000, 1.000000}",
+          "shadowOffset" : 3,
+          "shadowOpacity" : 0.25,
+          "stringRTF" : "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2807\n\\cocoatextscaling0\\cocoaplatform0{\\fonttbl\\f0\\fnil\\fcharset0 ComicSansMS;}\n{\\colortbl;\\red255\\green255\\blue255;}\n{\\*\\expandedcolortbl;;}\n\\pard\\tx560\\tx1120\\tx1680\\tx2240\\tx2800\\tx3360\\tx3920\\tx4480\\tx5040\\tx5600\\tx6160\\tx6720\\pardirnatural\\qc\\partightenfactor0\n\n\\f0\\fs128 \\cf0 \\'97>}",
+          "uid" : "vuuaobncgn",
+          "verticalAlignment" : 0
+        }
+      ],
+      "type" : 2
+    },
+    "iconPreviewVisible" : false,
+    "iconSize" : 111,
+    "itemInfoVisible" : false,
+    "labelPosition" : 0,
+    "licenses" : [
+
+    ],
+    "nameFontSize" : 15,
+    "statusBarVisible" : false,
+    "suggestedDiskImageName" : "rdpFX.dmg",
+    "teamID" : "W89BX7H9RQ",
+    "toolbarVisible" : false,
+    "uid" : "frwuyrczco",
+    "validationScheme" : 2,
+    "viewLayout" : 0,
+    "volumeName" : "rdpFX",
+    "volumeSize" : 0,
+    "volumeSizeOption" : "Automatic",
+    "windowContentHeight" : 224,
+    "windowContents" : [
+      {
+        "filePath" : "\/Applications",
+        "iconSize" : 100,
+        "invisible" : false,
+        "isAnAlias" : true,
+        "location" : "{410, 119}",
+        "relativeFilePath" : "..\/..\/..\/..\/..\/..\/Applications"
+      },
+      {
+        "filePath" : "\/Applications\/rdpFX.app",
+        "iconSize" : 100,
+        "invisible" : false,
+        "isAnAlias" : false,
+        "location" : "{99, 119}",
+        "relativeFilePath" : "..\/..\/..\/..\/..\/..\/Applications\/rdpFX.app"
+      }
+    ],
+    "windowContentWidth" : 512,
+    "windowLeft" : 200,
+    "windowTop" : 120
+  },
+  "version" : 4
+}

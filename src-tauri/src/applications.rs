@@ -1,6 +1,4 @@
 #[allow(unused)]
-use ini::ini;
-#[allow(unused)]
 use serde::Serialize;
 #[allow(unused)]
 use std::collections::HashSet;
@@ -119,8 +117,8 @@ pub fn open_file_with(file_path: String, exec_path: String) {
 
 // macOS
 
-#[cfg(target_os = "macos")]
 #[allow(unused)]
+#[cfg(target_os = "macos")]
 fn find_ios_app_icon(app_path: PathBuf) -> Option<PathBuf> {
     // find all png files in the app_path, search for AppIcon ignore case in the pngs
     let mut all_icons: Vec<PathBuf> = vec![];
@@ -167,8 +165,8 @@ fn find_ios_app_icon(app_path: PathBuf) -> Option<PathBuf> {
     }
 }
 
-#[cfg(target_os = "macos")]
 #[allow(unused)]
+#[cfg(target_os = "macos")]
 pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
     // default location: Contents/Resources/AppIcon.icns
     let contents_path = app_path.join("Contents");
@@ -180,6 +178,8 @@ pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
     let default_icns_path = resources_path.join("AppIcon.icns");
     if default_icns_path.exists() {
         return Some(default_icns_path);
+    } else if (resources_path.join("electron.icns").exists()) {
+        return Some(resources_path.join("electron.icns"));
     }
     let mut all_icons: Vec<PathBuf> = vec![];
     for entry in WalkDir::new(contents_path.clone()) {

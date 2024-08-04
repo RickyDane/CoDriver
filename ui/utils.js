@@ -1,85 +1,97 @@
 const { listen } = window.__TAURI__.event;
 
 /* Drag and drop files into file explorer */
-listen('tauri://file-drop', async event => {
+listen("tauri://file-drop", async (event) => {
+  ArrSelectedItems = [];
+  ArrCopyItems = [];
+  event.payload.forEach(async (item) => {
+    CopyFilePath = item;
+    CopyFileName = CopyFilePath.split("/")[
+      CopyFilePath.split("/").length - 1
+    ].replace("'", "");
+    let element = document.createElement("button");
+    element.setAttribute("itemname", CopyFileName);
+    element.setAttribute("itempath", CopyFilePath);
+    ArrCopyItems.push(element);
+  });
   if (IsFileOpIntern == false) {
-      ArrSelectedItems = [];
-      ArrCopyItems = [];
-      event.payload.forEach(async item => {
-      CopyFilePath = item;
-      CopyFileName = CopyFilePath.split("/")[CopyFilePath.split("/").length - 1].replace("'", "");
-      let element = document.createElement("button");
-      element.setAttribute("itemname", CopyFileName);
-      element.setAttribute("itempath", CopyFilePath);
-      ArrCopyItems.push(element);
-    });
     await pasteItem();
     CopyFileName = "";
     CopyFilePath = "";
     ArrCopyItems = [];
     ArrSelectedItems = [];
-  }
-  else if (DraggedOverElement != null) {
-    ArrSelectedItems = [];
-    ArrCopyItems = [];
-    event.payload.forEach(async item => {
-      ArrCopyItems.push(item);
-    });
+  } else if (DraggedOverElement != null) {
     let operation = await fileOperationContextMenu();
     if (operation == "copy") {
-      await invoke("arr_copy_paste", { appWindow, arrItems: ArrCopyItems, isForDualPane: "0", copyToPath: DraggedOverElement.getAttribute("itempath") });
-      showToast("File Operation", "Files copied successfully", "success");
+      await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
       await listDirectories();
-    }
-    else if (operation == "move") {
-      await invoke("arr_copy_paste", { appWindow, arrItems: ArrCopyItems, isForDualPane: "0", copyToPath: DraggedOverElement.getAttribute("itempath") });
-      await invoke("arr_delete_items", { appWindow, arrItems: ArrCopyItems });
+    } else if (operation == "move") {
+      IsCopyToCut = true;
+      await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
+      IsCopyToCut = false;
       await listDirectories();
-      showToast("File Operation", "Files moved successfully", "success");
     }
     CopyFileName = "";
     CopyFilePath = "";
     ArrCopyItems = [];
     ArrSelectedItems = [];
+    DraggedOverElement.style.opacity = "1";
+    DraggedOverElement = null;
   }
   resetProgressBar();
-  document.querySelectorAll(".site-nav-bar-button").forEach(item => { item.style.opacity = "1"; });
-  DraggedOverElement.style.opacity = "1";
-  DraggedOverElement = null;
+  document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
+    item.style.opacity = "1";
+  });
 });
 
 /* Toasts */
 function showToast(title, message, type = "info") {
   let toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
-  let iconClass = "fa-solid fa-info-circle";
+  let colorClass = "";
 
-  if (type == "success") {
-      iconClass = "fa-solid fa-circle-check";
-  }
-  else if (type == "error") {
-      iconClass = "fa-solid fa-triangle-exclamation";
+  switch (type) {
+    case "info":
+      colorClass = "toast-info";
+      break;
+    case "success":
+      colorClass = "toast-success";
+      break;
+    case "error":
+      colorClass = "toast-error";
+      break;
   }
 
   toast.innerHTML = `
-      <div class="toast-icon toast-icon-${type}">
-          <i class="fa-regular ${iconClass}"></i>
-      </div>
-      <div class="toast-content">
-          <h5>
-              <span>${title}</span>
-          </h5>
-          <p>${message}</p>
-      </div>
+    <div class="toast-content ${colorClass}">
+      <p>${message}</p>
+    </div>
   `;
 
   $(".toast-container").append(toast);
+
   setTimeout(() => {
-      toast.style.opacity = 0;
-      toast.style.translate = "100px";
+    toast.style.opacity = 0;
+    toast.style.translate = "100px";
   }, 2000);
 
   setTimeout(() => {
-      toast?.remove();
+    toast?.remove();
   }, 2200);
+}
+
+async function getThumbnail(imagePath) {
+  let thumbnailPath = await invoke("get_thumbnail", { imagePath });
+  return thumbnailPath;
+}
+
+async function dirSize(path = "", classToFill = "") {
+  $(classToFill).html(
+    `<div style="display: flex; gap: 10px;"><div class="preloader-small-invert"></div> Loading ...</div>`,
+  );
+  await invoke("get_dir_size", { path, appWindow, classToFill }).then(
+    (bytes) => {
+      $(classToFill).html(formatBytes(bytes));
+    },
+  );
 }

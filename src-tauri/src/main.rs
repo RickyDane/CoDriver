@@ -1,20 +1,23 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use brew::Package;
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use flate2::read::GzDecoder;
-use rust_search::{similarity_sort, SearchBuilder};
+use icns::{IconFamily, IconType};
+// use rust_search::{similarity_sort, SearchBuilder};
+use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
-use std::fs::{self, ReadDir};
-use std::io::{BufReader, Read, Write};
+use std::fs::{self, read_dir, ReadDir};
+use std::io::{BufReader, BufWriter, Read, Write};
+use std::process::{Command, Stdio};
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_dir_all, remove_file, File},
     path::PathBuf,
 };
 use stopwatch::Stopwatch;
-use suppaftp::{FtpError, FtpStream};
 use tauri::{
     api::path::{
         app_config_dir, audio_dir, config_dir, desktop_dir, document_dir, download_dir, home_dir,
@@ -27,12 +30,12 @@ use unrar::Archive;
 use zip::write::FileOptions;
 use zip_extensions::*;
 mod utils;
-#[allow(unused_imports)]
 use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
-    copy_to, count_entries, dbg_log, err_log, format_bytes, unpack_tar, wng_log, DirWalker,
-    DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER,
+    calc_transfer_speed, copy_to, count_entries, dbg_log, err_log, format_bytes, unpack_tar,
+    update_progressbar, update_progressbar_2, wng_log, DirWalker, DirWalkerEntry, COPY_COUNTER,
+    TO_COPY_COUNTER,
 };
 #[cfg(target_os = "macos")]
 mod window_tauri_ext;
@@ -41,15 +44,8 @@ use window_tauri_ext::WindowExt;
 mod applications;
 use applications::{get_apps, open_file_with};
 use archiver_rs::Compressed;
+mod rdpfs;
 use substring::Substring;
-
-// Global ftp variables
-static mut HOSTNAME: String = String::new();
-static mut USERNAME: String = String::new();
-static mut PASSWORD: String = String::new();
-
-static mut CURRENT_FTP_DIR: String = String::new();
-static mut IS_FTP_CONNECTED: bool = false;
 
 static mut ISCANCELED: bool = false;
 
@@ -106,10 +102,7 @@ fn main() {
             rename_element,
             save_config,
             switch_to_directory,
-            open_ftp,
-            open_ftp_dir,
-            ftp_go_back,
-            ftp_copy_paste,
+            mount_sshfs,
             rename_elements_with_format,
             add_favorite,
             arr_copy_paste,
@@ -120,10 +113,13 @@ fn main() {
             find_duplicates,
             cancel_operation,
             get_df_dir,
-            is_ftp_connected,
-            get_current_ftp_dir,
-            create_ftp_file,
-            ftp_remove
+            download_yt_video,
+            // get_llm_response,
+            get_app_icns,
+            get_thumbnail,
+            install_dep,
+            get_dir_size,
+            get_themes
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -138,7 +134,19 @@ struct FDir {
     extension: String,
     size: String,
     last_modified: String,
-    is_ftp: i8,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+struct Theme {
+    name: String,
+    primary_color: String,
+    secondary_color: String,
+    tertiary_color: String,
+    text_color: String,
+    text_color2: String,
+    text_color3: String,
+    transparent_color: String,
+    transparent_color_active: String,
 }
 
 #[derive(serde::Serialize)]
@@ -154,18 +162,41 @@ struct AppConfig {
     is_dual_pane_active: String,
     search_depth: i32,
     max_items: i32,
-    is_light_mode: String,
     is_image_preview: String,
     is_select_mode: String,
     arr_favorites: Vec<String>,
+    current_theme: String,
 }
 
 #[tauri::command]
 async fn check_app_config() -> AppConfig {
+    // Create general config directory for the app
     create_folder(
         config_dir()
             .unwrap()
             .join("com.rdpFX.dev")
+            .to_str()
+            .unwrap()
+            .to_string(),
+    )
+    .await;
+    // Create directory for saving app thumnails on a mac
+    create_folder(
+        config_dir()
+            .unwrap()
+            .join("com.rdpFX.dev")
+            .join("App-Thumbnails")
+            .to_str()
+            .unwrap()
+            .to_string(),
+    )
+    .await;
+    // Create a directory for themes
+    create_folder(
+        config_dir()
+            .unwrap()
+            .join("com.rdpFX.dev")
+            .join("Themes")
             .to_str()
             .unwrap()
             .to_string(),
@@ -187,10 +218,10 @@ async fn check_app_config() -> AppConfig {
             is_dual_pane_active: "0".to_string(),
             search_depth: 10,
             max_items: 1000,
-            is_light_mode: "0".to_string(),
             is_image_preview: "0".to_string(),
             is_select_mode: "1".to_string(),
             arr_favorites: vec![],
+            current_theme: "0".to_string(),
         };
         let _ = serde_json::to_writer_pretty(
             File::create(
@@ -213,8 +244,8 @@ async fn check_app_config() -> AppConfig {
 
     let default_vec: Vec<Value> = vec![];
     return AppConfig {
-        view_mode: app_config["view_mode"].to_string(),
-        last_modified: app_config["last_modified"].to_string(),
+        view_mode: app_config["view_mode"].to_string().replace('"', ""),
+        last_modified: app_config["last_modified"].to_string().replace('"', ""),
         configured_path_one: app_config["configured_path_one"]
             .to_string()
             .replace('"', ""),
@@ -224,25 +255,56 @@ async fn check_app_config() -> AppConfig {
         configured_path_three: app_config["configured_path_three"]
             .to_string()
             .replace('"', ""),
-        is_open_in_terminal: app_config["is_open_in_terminal"].to_string(),
-        is_dual_pane_enabled: app_config["is_dual_pane_enabled"].to_string(),
+        is_open_in_terminal: app_config["is_open_in_terminal"]
+            .to_string()
+            .replace('"', ""),
+        is_dual_pane_enabled: app_config["is_dual_pane_enabled"]
+            .to_string()
+            .replace('"', ""),
         launch_path: app_config["launch_path"].to_string().replace('"', ""),
-        is_dual_pane_active: app_config["is_dual_pane_active"].to_string(),
+        is_dual_pane_active: app_config["is_dual_pane_active"]
+            .to_string()
+            .replace('"', ""),
         search_depth: app_config["search_depth"]
             .to_string()
             .parse::<i32>()
             .unwrap(),
         max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
-        is_light_mode: app_config["is_light_mode"].to_string(),
-        is_image_preview: app_config["is_image_preview"].to_string(),
-        is_select_mode: app_config["is_select_mode"].to_string(),
+        is_image_preview: app_config["is_image_preview"].to_string().replace('"', ""),
+        is_select_mode: app_config["is_select_mode"].to_string().replace('"', ""),
         arr_favorites: app_config["arr_favorites"]
             .as_array()
             .unwrap_or_else(|| &default_vec)
             .iter()
             .map(|x| x.to_string().replace('"', ""))
             .collect(),
+        current_theme: app_config["current_theme"].to_string().replace('"', ""),
     };
+}
+
+#[tauri::command]
+async fn get_themes() -> Vec<Theme> {
+    let mut vec_themes: Vec<Theme> = vec![];
+    let themes = read_dir(config_dir().unwrap().join("com.rdpFX.dev").join("Themes"));
+    for theme_entry in themes.unwrap() {
+        let app_config_file = File::open(theme_entry.unwrap().path()).unwrap();
+        let app_config_reader = BufReader::new(app_config_file);
+        let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+        vec_themes.push(Theme {
+            name: app_config["name"].to_string().replace('"', ""),
+            primary_color: app_config["primary_color"].to_string().replace('"', ""),
+            secondary_color: app_config["secondary_color"].to_string().replace('"', ""),
+            tertiary_color: app_config["tertiary_color"].to_string().replace('"', ""),
+            text_color: app_config["text_color"].to_string().replace('"', ""),
+            text_color2: app_config["text_color2"].to_string().replace('"', ""),
+            text_color3: app_config["text_color3"].to_string().replace('"', ""),
+            transparent_color: app_config["transparent_color"].to_string().replace('"', ""),
+            transparent_color_active: app_config["transparent_color_active"]
+                .to_string()
+                .replace('"', ""),
+        })
+    }
+    vec_themes
 }
 
 #[derive(serde::Serialize)]
@@ -276,6 +338,29 @@ async fn list_disks() -> Vec<DisksInfo> {
             capacity: format!("{:?}", disk.total_space()),
             is_removable: disk.is_removable(),
         });
+    }
+
+    let ls_sshfs_mounts = fs::read_dir("/tmp/rdpFX-sshfs-mount");
+    if ls_sshfs_mounts.is_ok() {
+        let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
+        for mount in ls_sshfs_mounts {
+            let mount = mount.unwrap();
+            println!("{:?} || {:?}", mount.file_name(), mount.path());
+            ls_disks.push(DisksInfo {
+                name: format!("{:?}", mount.file_name())
+                    .split("/")
+                    .last()
+                    .unwrap_or("/")
+                    .to_string()
+                    .replace("\"", ""),
+                dev: format!("{:?}", mount.file_name()),
+                format: format!("{:?}", mount.file_type()),
+                path: format!("{:?}", mount.path()),
+                avail: format!("{:?}", mount.metadata().unwrap().len()),
+                capacity: format!("{:?}", mount.metadata().unwrap().len()),
+                is_removable: true,
+            });
+        }
     }
     return ls_disks;
 }
@@ -366,7 +451,6 @@ async fn list_dirs() -> Vec<FDir> {
             extension: file_ext,
             size: size.to_string(),
             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            is_ftp: 0,
         });
     }
     dir_list.sort_by_key(|a| a.name.to_lowercase());
@@ -420,6 +504,9 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
     };
     if wanted_directory.is_err() {
         err_log("Not a valid directory".into());
+        dialog::Message::new("Not a valid directory")
+            .show()
+            .unwrap();
     } else {
         unsafe {
             PATH_HISTORY.push(current_dir().unwrap().to_string_lossy().to_string());
@@ -430,204 +517,50 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
 
 // :ftp
 #[tauri::command]
-async fn open_ftp(hostname: String, username: String, password: String) -> Vec<FDir> {
-    // Initialize ftp arguments
-    unsafe {
-        USERNAME = username.clone();
-        PASSWORD = password.clone();
-        HOSTNAME = hostname.clone();
-    }
-    let mut ftp_stream = FtpStream::connect(hostname).unwrap();
-    let _ = &ftp_stream
-        .login(username.as_str(), password.as_str())
-        .unwrap();
-    let ftp_dir = ftp_stream.pwd().unwrap();
-    let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).unwrap();
+async fn mount_sshfs(
+    hostname: String,
+    username: String,
+    password: String,
+    remote_path: String,
+) -> Vec<FDir> {
+    let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
-    // Get the current directory that the client will be reading from and writing to.
-    dbg_log(format!("Current dir: {:?}", &ftp_dir));
+    let mount_point = "/tmp/rdpFX-sshfs-mount/".to_owned() + &hostname;
 
-    let mut dir_list: Vec<FDir> = Vec::new();
+    // Ensure the local mount point exists
+    std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
 
-    for item in ftp_dir_list {
-        let name = &item.split("/").last().unwrap().to_string();
-        let mod_date = &ftp_stream.mdtm(&item).unwrap_or_default();
-        let size = &ftp_stream.size(&item).unwrap_or_default();
-        let is_dir = is_directory(&mut ftp_stream, item).await;
-        dir_list.push(FDir {
-            name: name.to_string(),
-            is_dir: is_dir,
-            path: item.to_string(),
-            extension: "".to_string(),
-            size: size.to_string(),
-            last_modified: mod_date.to_string(),
-            is_ftp: 1,
-        });
-    }
-    unsafe {
-        IS_FTP_CONNECTED = true;
-    }
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    dir_list
-}
+    // Start sshfs process
+    let mut child = Command::new("sshfs")
+        .arg(&remote_address)
+        .arg(&mount_point)
+        .arg("-o")
+        .arg("password_stdin")
+        .stdin(Stdio::piped())
+        .spawn()
+        .expect("Failed to start sshfs process");
 
-#[tauri::command]
-async fn open_ftp_dir(path: String) -> Vec<FDir> {
-    let mut ftp_stream = get_current_connection().await.unwrap();
-    let _ = ftp_stream.cwd(&path).unwrap();
-    let ftp_dir = ftp_stream.pwd().unwrap();
-    let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).unwrap();
-    unsafe {
-        CURRENT_FTP_DIR = ftp_dir.clone();
-    }
-    ftp_stream.cwd(&ftp_dir).unwrap();
+    // Write the password to stdin of the sshfs process
+    println!("Connecting to {}", remote_address);
+    let stdin = child.stdin.as_mut().expect("Failed to open stdin");
+    stdin
+        .write_all(password.as_bytes())
+        .expect("Failed to write to stdin");
 
-    for item in ftp_dir_list {
-        dbg_log(format!("{:?}", item));
+    let output = child
+        .wait_with_output()
+        .expect("Failed to read sshfs output");
+
+    if output.status.success() {
+        println!("Mounted {} to {}", remote_address, mount_point);
+    } else {
+        wng_log(format!(
+            "Failed to mount: {}",
+            String::from_utf8_lossy(&output.stderr),
+        ));
     }
 
-    // Get the current directory that the client will be reading from and writing to.
-    dbg_log(format!("Current dir: {:?}", &ftp_dir));
-
-    let mut dir_list: Vec<FDir> = Vec::new();
-
-    for item in ftp_dir_list {
-        let name = &item.split("/").last().unwrap().to_string();
-        let mod_date = &ftp_stream.mdtm(&item).unwrap_or_default();
-        let size = &ftp_stream.size(&item).unwrap_or_default();
-        let is_dir = is_directory(&mut ftp_stream, item).await;
-        dir_list.push(FDir {
-            name: name.to_string(),
-            is_dir: is_dir,
-            path: item.to_string(),
-            extension: "".to_string(),
-            size: size.to_string(),
-            last_modified: mod_date.to_string(),
-            is_ftp: 1,
-        });
-    }
-    ftp_stream.cwd(&ftp_dir).unwrap();
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    dir_list
-}
-
-#[tauri::command]
-async fn ftp_copy_paste(path: String) {
-    let mut ftp_stream = get_current_connection().await.unwrap();
-    unsafe {
-        ftp_stream.cwd(CURRENT_FTP_DIR.clone()).unwrap();
-    }
-    let file = ftp_stream.retr_as_buffer(&path);
-    if file.is_err() {
-        err_log("File not found".into());
-    }
-    let file = file.unwrap();
-    let file_content = file.into_inner();
-    let mut reader = std::io::Cursor::new(file_content);
-    let new_file_name = path.split("/").last().unwrap();
-    dbg_log(format!(
-        "Current actual ftp directory: {}",
-        ftp_stream.pwd().unwrap()
-    ));
-    let _ = ftp_stream.put_file(new_file_name, &mut reader);
-    dbg_log(format!("File copied: {}", new_file_name));
-    open_ftp_dir(ftp_stream.pwd().unwrap()).await;
-}
-
-#[tauri::command]
-async fn ftp_remove(path: String) {
-    let mut ftp_stream = get_current_connection().await.unwrap();
-    ftp_stream.rm(path).unwrap();
-    open_ftp_dir(ftp_stream.pwd().unwrap()).await;
-}
-
-async fn is_directory(ftp_stream: &mut FtpStream, path: &str) -> i8 {
-    match ftp_stream.cwd(path) {
-        Ok(_) => {
-            // Zurück zum ursprünglichen Verzeichnis wechseln
-            if let Err(_) = ftp_stream.cdup() {
-                err_log("Fehler beim Wechseln zum ursprünglichen Verzeichnis".into());
-            }
-            1 // Erfolgreich gewechselt, also ist es ein Verzeichnis
-        }
-        Err(_) => 0, // Fehler beim Wechseln, also ist es kein Verzeichnis
-    }
-}
-
-#[tauri::command]
-async fn ftp_go_back(path: String) -> Vec<FDir> {
-    let mut ftp_stream = get_current_connection().await.unwrap();
-    ftp_stream.cwd(&path).unwrap();
-    ftp_stream.cdup().unwrap();
-    let ftp_dir = ftp_stream.pwd().unwrap();
-    let ftp_dir_list = &ftp_stream.nlst(Some(&ftp_dir)).unwrap();
-
-    for item in *&ftp_dir_list {
-        dbg_log(format!("{:?}", item.split("/").last().unwrap()));
-    }
-
-    // Get the current directory that the client will be reading from and writing to.
-    dbg_log(format!("Current dir: {:?}", &ftp_dir));
-
-    let mut dir_list: Vec<FDir> = Vec::new();
-
-    for item in ftp_dir_list {
-        let name = &item.split("/").last().unwrap().to_string();
-        let mod_date = &ftp_stream.mdtm(&item).unwrap_or_default();
-        let size = &ftp_stream.size(&item).unwrap_or_default();
-        let is_dir = is_directory(&mut ftp_stream, item).await;
-        dir_list.push(FDir {
-            name: name.to_string(),
-            is_dir: is_dir,
-            path: item.to_string(),
-            extension: "".to_string(),
-            size: size.to_string(),
-            last_modified: mod_date.to_string(),
-            is_ftp: 1,
-        });
-    }
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    dir_list
-}
-
-async fn get_current_connection() -> Result<FtpStream, FtpError> {
-    let host: String;
-    let user: String;
-    let password: String;
-    unsafe {
-        host = HOSTNAME.clone();
-        user = USERNAME.clone();
-        password = PASSWORD.clone();
-    }
-    let mut ftp_stream = FtpStream::connect(host).unwrap();
-    let _ = ftp_stream.login(user.as_str(), password.as_str()).unwrap();
-    Ok(ftp_stream)
-}
-
-#[tauri::command]
-async fn arr_copy_ftp(arr_items: Vec<FDir>) -> Result<(), FtpError> {
-    for item in arr_items {
-        let item_path = item.path;
-        dbg_log(format!("Path: {:?}", item_path));
-        let _filename = item_path
-            .replace("\\", "/")
-            .split("/")
-            .last()
-            .unwrap()
-            .to_string();
-        ftp_copy_paste(item_path).await;
-    }
-    unsafe {
-        open_ftp_dir(CURRENT_FTP_DIR.to_string()).await;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn create_ftp_file(file_name: String) {
-    let mut ftp_connection = get_current_connection().await.unwrap();
-    let mut reader = std::io::Cursor::new("".as_bytes());
-    let _ = ftp_connection.put_file(&file_name, &mut reader).unwrap();
+    return open_dir(mount_point).await;
 }
 
 #[tauri::command]
@@ -639,30 +572,30 @@ async fn open_in_terminal() {
 }
 
 #[tauri::command]
-async fn go_home(is_ftp: bool) -> Vec<FDir> {
-    if !is_ftp {
-        let _ = set_current_dir(home_dir().unwrap());
-        unsafe {
-            PATH_HISTORY.push(home_dir().unwrap().to_string_lossy().to_string());
-        }
+async fn go_home() -> Vec<FDir> {
+    let _ = set_current_dir(home_dir().unwrap());
+    unsafe {
+        PATH_HISTORY.push(home_dir().unwrap().to_string_lossy().to_string());
     }
     return list_dirs().await;
 }
 
+static mut COUNT_CALLED_BACK: i32 = 0;
 #[tauri::command]
 async fn search_for(
     mut file_name: String,
     max_items: i32,
     search_depth: i32,
     file_content: String,
-) -> Vec<FDir> {
-    dbg_log(format!("Start searching for {}", &file_name));
+    app_window: Window,
+) {
+    dbg_log(format!("Start searching for: {}", &file_name));
     let temp_file_name = String::from(&file_name);
     if temp_file_name.split(".").nth(0).unwrap().contains("*") {
         file_name = temp_file_name.trim().replace("*", "");
     }
 
-    let mut file_ext = ".".to_string().to_owned()
+    let file_ext = ".".to_string().to_owned()
         + file_name
             .split(".")
             .nth(file_name.split(".").count() - 1)
@@ -670,131 +603,149 @@ async fn search_for(
     println!("");
 
     let sw = Stopwatch::start_new();
-    let mut search: Vec<String>;
+    // let mut search: Vec<String> = vec![];
     if file_ext != ".".to_string().to_owned() + &file_name {
-        search = SearchBuilder::default()
-            .location(current_dir().unwrap())
-            .search_input(file_name.strip_suffix(&file_ext).unwrap())
-            .ignore_case()
-            .hidden()
-            .depth(search_depth as usize)
-            .limit(max_items as usize)
-            .ext(&file_ext)
-            .build()
-            .collect();
-    } else {
-        search = SearchBuilder::default()
-            .location(current_dir().unwrap())
-            .search_input(&file_name)
-            .ignore_case()
-            .hidden()
-            .depth(search_depth as usize)
-            .limit(max_items as usize)
-            .build()
-            .collect();
-    }
-
-    // Sorting search results by input
-    let sw2 = Stopwatch::start_new();
-    similarity_sort(&mut search, &file_name);
-    dbg_log(format!("Sorting took: {:?}", sw2.elapsed()));
-
-    let mut dir_list: Vec<FDir> = Vec::new();
-    for item in search {
-        file_ext = ".".to_string().to_owned()
-            + item
-                .split(".")
-                .nth(item.split(".").count() - 1)
-                .unwrap_or("");
-        let item = item.replace("\\", "/");
-        let temp_item = &item.split("/").collect::<Vec<&str>>();
-        let name = &temp_item[*&temp_item.len() - 1];
-        let path = &item.replace("\\", "/");
-        let temp_file = fs::metadata(&item);
-        let file_size: String;
-        let file_date: DateTime<Utc>;
-
-        if &temp_file.is_ok() == &true {
-            file_size = String::from(fs::metadata(&item).unwrap().len().to_string());
-            file_date = fs::metadata(&item)
-                .unwrap()
-                .modified()
-                .unwrap()
-                .clone()
-                .into();
-        } else {
-            continue;
+        unsafe {
+            COUNT_CALLED_BACK = 0;
         }
-
-        // Check if the item is a directory
-        let is_dir_int;
-        if &temp_file.is_ok() == &true && *&temp_file.unwrap().is_dir() {
-            is_dir_int = 1;
-        } else {
-            is_dir_int = 0;
-        }
-
-        // Don't include the directory searched in
-        if path == current_dir().unwrap().to_str().unwrap() {
-            continue;
-        }
-
-        // Search for file contents
-        if *&file_content.as_str() != "" {
-            let check_file = fs::File::open(&path);
-            let mut file: File;
-            if &check_file.is_ok() == &true {
-                file = check_file.unwrap();
-            } else {
-                err_log("Couldn't access file. Probably due to insufficient permissions".into());
-                continue;
-            }
-            let mut buffer = String::from("");
-            // dbg_log(format!("Checking {}", &path));
-
-            if &file.metadata().unwrap().is_dir() == &false {
-                file.read_to_string(&mut buffer).unwrap_or_else(|x| {
-                    err_log(format!("Error reading: {}", x));
-                    0 as usize
-                });
-                for (_idx, line) in buffer.lines().enumerate() {
-                    if line.contains(&file_content) {
-                        dir_list.push(FDir {
-                            name: name.to_string(),
-                            is_dir: is_dir_int,
-                            path: path.to_string(),
-                            extension: String::from(&file_ext),
-                            size: file_size.clone(),
-                            last_modified: String::from(
-                                file_date.to_string().split(".").nth(0).unwrap(),
-                            ),
-                            is_ftp: 0,
-                        });
-                        break;
-                    } else {
-                        continue;
+        let _ = DirWalker::new()
+            .set_ext(vec![file_ext.to_lowercase()])
+            .search(
+                current_dir().unwrap().to_str().unwrap(),
+                search_depth as u32,
+                file_name,
+                max_items,
+                &|item| {
+                    let _ = app_window.emit_all(
+                        "addSingleItem",
+                        serde_json::to_string(&item).unwrap().to_string(),
+                    );
+                    unsafe {
+                        COUNT_CALLED_BACK += 1;
                     }
-                }
-            }
-        } else {
-            dir_list.push(FDir {
-                name: name.to_string(),
-                is_dir: is_dir_int,
-                path: path.to_string(),
-                extension: String::from(&file_ext),
-                size: file_size,
-                last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-                is_ftp: 0,
-            });
+                },
+            );
+    } else {
+        unsafe {
+            COUNT_CALLED_BACK = 0;
         }
+        let _ = DirWalker::new()
+            .search(
+                current_dir().unwrap().to_str().unwrap(),
+                search_depth as u32,
+                file_name,
+                max_items,
+                &|item| {
+                    let _ = app_window.emit_all(
+                        "addSingleItem",
+                        serde_json::to_string(&item).unwrap().to_string(),
+                    );
+                    unsafe {
+                        COUNT_CALLED_BACK += 1;
+                    }
+                },
+            );
     }
-    if dir_list.len() == 0 {
-        wng_log("No item found ".into());
-    }
+    let _ = app_window.eval("$('.is-file-searching').css('display', 'none')");
+    let _ = app_window.eval("$('.file-searching-done').css('display', 'block')");
+    let _ = app_window.eval(&format!("$('.file-searching-done').html('Searching done in: {:.2} sec.!')", sw.elapsed().as_millis() as f64 / 1000.0));
+    let _ = app_window.eval("setTimeout(() => $('.file-searching-done').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
-    dbg_log(format!("{} items found", dir_list.len()));
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    return dir_list;
+
+    // let mut dir_list: Vec<FDir> = Vec::new();
+    // for item in search {
+    //     file_ext = ".".to_string().to_owned()
+    //         + item
+    //             .split(".")
+    //             .nth(item.split(".").count() - 1)
+    //             .unwrap_or("");
+    //     let item = item.replace("\\", "/");
+    //     let temp_item = &item.split("/").collect::<Vec<&str>>();
+    //     let name = &temp_item[*&temp_item.len() - 1];
+    //     let path = &item.replace("\\", "/");
+    //     let temp_file = fs::metadata(&item);
+    //     let file_size: String;
+    //     let file_date: DateTime<Utc>;
+
+    //     if &temp_file.is_ok() == &true {
+    //         file_size = String::from(fs::metadata(&item).unwrap().len().to_string());
+    //         file_date = fs::metadata(&item)
+    //             .unwrap()
+    //             .modified()
+    //             .unwrap()
+    //             .clone()
+    //             .into();
+    //     } else {
+    //         continue;
+    //     }
+
+    //     // Check if the item is a directory
+    //     let is_dir_int;
+    //     if &temp_file.is_ok() == &true && *&temp_file.unwrap().is_dir() {
+    //         is_dir_int = 1;
+    //     } else {
+    //         is_dir_int = 0;
+    //     }
+
+    //     // Don't include the directory searched in
+    //     if path == current_dir().unwrap().to_str().unwrap() {
+    //         continue;
+    //     }
+
+    //     // Search for file contents
+    //     if *&file_content.as_str() != "" {
+    //         let check_file = fs::File::open(&path);
+    //         let mut file: File;
+    //         if &check_file.is_ok() == &true {
+    //             file = check_file.unwrap();
+    //         } else {
+    //             err_log("Couldn't access file. Probably due to insufficient permissions".into());
+    //             continue;
+    //         }
+    //         let mut buffer = String::from("");
+    //         // dbg_log(format!("Checking {}", &path));
+
+    //         if &file.metadata().unwrap().is_dir() == &false {
+    //             file.read_to_string(&mut buffer).unwrap_or_else(|x| {
+    //                 err_log(format!("Error reading: {}", x));
+    //                 0 as usize
+    //             });
+    //             for (_idx, line) in buffer.lines().enumerate() {
+    //                 if line.contains(&file_content) {
+    //                     dir_list.push(FDir {
+    //                         name: name.to_string(),
+    //                         is_dir: is_dir_int,
+    //                         path: path.to_string(),
+    //                         extension: String::from(&file_ext),
+    //                         size: file_size.clone(),
+    //                         last_modified: String::from(
+    //                             file_date.to_string().split(".").nth(0).unwrap(),
+    //                         ),
+    //                     });
+    //                     break;
+    //                 } else {
+    //                     continue;
+    //                 }
+    //             }
+    //         }
+    //     } else {
+    //         dir_list.push(FDir {
+    //             name: name.to_string(),
+    //             is_dir: is_dir_int,
+    //             path: path.to_string(),
+    //             extension: String::from(&file_ext),
+    //             size: file_size,
+    //             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
+    //         });
+    //     }
+    // }
+    // if dir_list.len() == 0 {
+    //     wng_log("No item found ".into());
+    // }
+    // dbg_log(format!("Search took: {:?}", sw.elapsed()));
+    // dbg_log(format!("{} items found", dir_list.len()));
+    // dir_list.sort_by_key(|a| a.name.to_lowercase());
+    // return dir_list;
 }
 
 #[tauri::command]
@@ -865,14 +816,6 @@ async fn arr_copy_paste(
         }
     }
     let sw = Stopwatch::start_new();
-    unsafe {
-        if IS_FTP_CONNECTED {
-            let _ = arr_copy_ftp(arr_items).await;
-            dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
-            app_window.eval("resetProgressBar()").unwrap();
-            return;
-        }
-    }
     for item in arr_items {
         let item_path = item.path;
         filename = item_path
@@ -889,6 +832,9 @@ async fn arr_copy_paste(
         )
         .await;
         // Execute the copy process for either a dir or file
+        // #[cfg(target_os = "macos")]
+        // let _ = copy(item_path, final_filename); // Copying of files is different on macOS
+        // #[cfg(not(target_os = "macos"))]
         copy_to(&app_window, final_filename, item_path);
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
@@ -965,9 +911,9 @@ async fn delete_item(act_file_name: String) {
     }
     dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
     if is_dir {
-        let _ = remove_dir_all(act_file_name.replace("\\", "/"));
+        let _ = remove_dir_all(act_file_name.replace("\\", "/")).expect("Failed to delete dir");
     } else {
-        let _ = remove_file(act_file_name.replace("\\", "/"));
+        let _ = remove_file(act_file_name.replace("\\", "/")).expect("Failed to delete file");
     }
 }
 
@@ -1147,10 +1093,10 @@ async fn save_config(
     is_dual_pane_active: String,
     search_depth: i32,
     max_items: i32,
-    is_light_mode: String,
     is_image_preview: String,
     is_select_mode: String,
     arr_favorites: Vec<String>,
+    current_theme: String,
 ) {
     let app_config_file = File::open(
         app_config_dir(&Config::default())
@@ -1172,10 +1118,10 @@ async fn save_config(
         is_dual_pane_active: is_dual_pane_active.replace("\\", ""),
         search_depth,
         max_items,
-        is_light_mode: is_light_mode.replace("\\", "/"),
         is_image_preview: is_image_preview.replace("\\", "/"),
         is_select_mode: is_select_mode.replace("\\", "/"),
         arr_favorites,
+        current_theme: current_theme.replace("\\", "/"),
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
@@ -1248,9 +1194,6 @@ async fn add_favorite(arr_favorites: Vec<String>) {
 
 #[tauri::command]
 async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
-    // #[cfg(not(target_os = "macos"))]
-    // return vec![];
-
     let list_apps = get_apps(extension);
     let mut arr_apps: Vec<(String, String)> = vec![];
     for app in list_apps {
@@ -1283,8 +1226,8 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
             x.is_file == true
                 && x.size == item.size
                 && x.size > 0
-                && x.file_name
-                    .contains(&item.file_name.substring(0, item.file_name.len() - 3))
+                && x.name
+                    .contains(&item.name.substring(0, item.name.len() - 3))
         });
         if *&seen_item.is_some() {
             if duplicates.len() == 0 {
@@ -1294,8 +1237,8 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                     x[0].size == seen_item.unwrap().size
                         && x[0].size > 0
                         && x[0]
-                            .file_name
-                            .contains(&item.file_name.substring(0, item.file_name.len() - 3))
+                            .name
+                            .contains(&item.name.substring(0, item.name.len() - 3))
                 });
                 if *&collection.is_some() {
                     collection.unwrap().push(item.clone());
@@ -1338,7 +1281,7 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                 <div style='display: flex; align-items: center; justify-content: space-between;'>
                     <div>
                         <h4>"
-                    + &item.file_name
+                    + &item.name
                     + "</h3>
                         <h4 class='text-2'>"
                     + &item.path
@@ -1349,14 +1292,14 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                     </div>
             "),
             );
-            if item.file_name.ends_with("jpg")
-                || item.file_name.ends_with("jpeg")
-                || item.file_name.ends_with("png")
-                || item.file_name.ends_with("gif")
-                || item.file_name.ends_with("svg")
-                || item.file_name.ends_with("webp")
-                || item.file_name.ends_with("jfif")
-                || item.file_name.ends_with("tiff")
+            if item.name.ends_with("jpg")
+                || item.name.ends_with("jpeg")
+                || item.name.ends_with("png")
+                || item.name.ends_with("gif")
+                || item.name.ends_with("svg")
+                || item.name.ends_with("webp")
+                || item.name.ends_with("jfif")
+                || item.name.ends_with("tiff")
             {
                 inner_html.push_str(&(String::new()+"
                     <img style='box-shadow: 0px 0px 10px 1px var(--transparentColorActive); border-radius: 5px;' width='64px' height='auto' src='"+ASSET_LOCATION+""+&item.path+"'>
@@ -1443,13 +1386,476 @@ async fn get_df_dir(number: u8) -> String {
         _ => current_dir().unwrap().to_string_lossy().to_string(),
     };
 }
+
 #[tauri::command]
-async fn is_ftp_connected() -> bool {
-    return get_current_connection().await.is_ok();
-}
-#[tauri::command]
-async fn get_current_ftp_dir() -> String {
-    unsafe {
-        return CURRENT_FTP_DIR.clone();
+async fn download_yt_video(app_window: Window, url: String, quality: String) {
+    println!("Downloading {} as {}", url, quality);
+    let chosen_quality = match quality.as_str() {
+        "lowestvideo" => VideoQuality::LowestVideo,
+        "lowestaudio" => VideoQuality::LowestAudio,
+        "highestvideo" => VideoQuality::HighestVideo,
+        "highestaudio" => VideoQuality::HighestAudio,
+        _ => VideoQuality::HighestVideo,
+    };
+
+    println!("Chosen quality: {:?}", chosen_quality);
+
+    let video_options = VideoOptions {
+        quality: chosen_quality,
+        filter: VideoSearchOptions::Video,
+        ..Default::default()
+    };
+
+    let video = Video::new_with_options(url, video_options).unwrap();
+
+    let stream = video.stream().await;
+    if stream.is_err() {
+        let _ = &app_window.eval("closeLoadingPopup()");
+        let _ = &app_window.eval("alert('Failed to retrieve source')");
+        return;
     }
+    let stream = stream.unwrap();
+    let video_info = video.get_basic_info().await.unwrap();
+    let mut file = File::create(video_info.video_details.title.to_owned() + ".mp4").unwrap();
+    let total_size = stream.content_length() as f32;
+    let mut downloaded: f64 = 0.0;
+    let sw = Stopwatch::start_new();
+
+    while let Some(chunk) = stream.chunk().await.unwrap() {
+        file.write_all(&chunk).unwrap();
+        downloaded += chunk.len() as f64;
+        let speed = calc_transfer_speed(downloaded, sw.elapsed_ms() as f64 / 1000.0);
+        update_progressbar_2(&app_window, 0.0, &video_info.video_details.title);
+        update_progressbar(
+            &app_window,
+            100.0 / total_size * downloaded as f32,
+            &format_bytes(downloaded as u64),
+            speed,
+        );
+    }
+
+    app_window.eval("resetProgressBar()").unwrap();
+    app_window.eval("listDirectories(true)").unwrap();
+}
+
+// #[tauri::command]
+// async fn get_llm_response(app_window: Window, prompt: String) {
+//     let model_architecture = ModelArchitecture::GptNeoX;
+//     let model_path = config_dir()
+//         .unwrap()
+//         .join("com.rdpFX.dev")
+//         .join("models")
+//         .join("ggml-model.bin");
+//     let prompt = format!("{}\n", prompt);
+
+//     let now = std::time::Instant::now();
+
+//     let model = llm::load_dynamic(
+//         Some(model_architecture),
+//         &model_path,
+//         llm::TokenizerSource::Embedded,
+//         Default::default(),
+//         llm::load_progress_callback_stdout,
+//     )
+//     .unwrap_or_else(|err| {
+//         panic!("Failed to load the {model_architecture} model from {model_path:?}: {err}")
+//     });
+
+//     println!(
+//         "Model fully loaded! Elapsed: {}ms",
+//         now.elapsed().as_millis()
+//     );
+
+//     app_window.eval("closeLoadingPopup()").unwrap();
+//     app_window
+//         .eval("showLoadingPopup('Loading files ...')")
+//         .unwrap();
+
+//     let mut context: String = String::new();
+
+//     let items: Vec<String> = rust_search::SearchBuilder::default()
+//         .location(current_dir().unwrap())
+//         .search_input("")
+//         .ignore_case()
+//         .hidden()
+//         .depth(1)
+//         .build()
+//         .collect();
+
+//     for item in items {
+//         let item: String = item;
+//         println!("Item: {:?}", item);
+//         let path = item;
+//         let file_ext = ".".to_string().to_owned() + &path.split(".").last().unwrap_or("");
+//         if file_ext == ".txt" {
+//             // let file_content = fs::read_to_string(&path).unwrap_or_else(|x| {
+//             //     err_log(format!("Error reading: {}", x));
+//             //     String::from("")
+//             // });
+//             // let mut found_keywords: String = String::new();
+//             // for keyword in prompt.split(" ") {
+//             //     println!("Searching for keyword: {}", keyword);
+//             //     if file_content
+//             //         .to_lowercase()
+//             //         .contains(keyword.to_lowercase().as_str())
+//             //     {
+//             //         println!("Found keyword: {}", keyword);
+//             //         found_keywords += &format!("{} ", keyword);
+//             //     }
+//             // }
+//             // context += &format!(
+//             //     "\n<start_of_file>\nFile: {}\nFound keywords: {}\n<end_of_file>",
+//             //     path, found_keywords
+//             // );
+//             context += &format!(
+//                 "\nFile: {}\nContent: {}\n",
+//                 path,
+//                 fs::read_to_string(&path).unwrap_or_else(|x| {
+//                     err_log(format!("Error reading: {}", x));
+//                     String::from("")
+//                 })
+//             );
+//         }
+//     }
+
+//     let general_information = "Provide a list of files which match the meaning of the prompt. If no file matches the prompt, respond with: 'No files found'. The response needs to be a reference to the files. There musn't be any other detail.";
+
+//     app_window.eval("closeLoadingPopup()").unwrap();
+//     app_window
+//         .eval("showLoadingPopup('Analyzing ...')")
+//         .unwrap();
+
+//     let mut session = model.start_session(Default::default());
+//     session
+//         .feed_prompt(
+//             model.as_ref(),
+//             format!(
+//                 "General information: {}\nCurrent directory: {}\nFiles: \n{}\nPrompt: {}",
+//                 general_information,
+//                 current_dir().unwrap().to_str().unwrap(),
+//                 context,
+//                 prompt
+//             )
+//             .as_str(),
+//             &mut Default::default(),
+//             llm::feed_prompt_callback(|resp| match resp {
+//                 llm::InferenceResponse::PromptToken(t)
+//                 | llm::InferenceResponse::InferredToken(t) => {
+//                     unsafe {
+//                         if ISCANCELED {
+//                             ISCANCELED = false;
+//                             return Ok(llm::InferenceFeedback::Halt);
+//                         }
+//                     }
+//                     print!("{t}");
+//                     std::io::stdout().flush().unwrap();
+//                     Ok::<llm::InferenceFeedback, Infallible>(llm::InferenceFeedback::Continue)
+//                 }
+//                 _ => Ok(llm::InferenceFeedback::Continue),
+//             }),
+//         )
+//         .expect("Failed to ingest initial prompt.");
+
+//     let mut is_first_run = true;
+
+//     app_window.eval("closeLoadingPopup()").unwrap();
+//     app_window
+//         .eval("showLoadingPopup('Generating response ...')")
+//         .unwrap();
+
+//     let res = session.infer::<Infallible>(
+//         model.as_ref(),
+//         &mut rand::thread_rng(),
+//         &llm::InferenceRequest {
+//             prompt: format!("Response: ").as_str().into(),
+//             parameters: &llm::InferenceParameters::default(),
+//             play_back_previous_tokens: false,
+//             maximum_token_count: None,
+//         },
+//         // OutputRequest
+//         &mut Default::default(),
+//         |r| match r {
+//             llm::InferenceResponse::PromptToken(t) | llm::InferenceResponse::InferredToken(t) => {
+//                 if is_first_run {
+//                     let _ = app_window
+//                         .eval("document.querySelector('.llm-prompt-response').value = ''")
+//                         .expect("Failed to set llm-prompt-response value");
+//                     app_window.eval("closeLoadingPopup();").unwrap();
+//                     is_first_run = false;
+//                 }
+//                 unsafe {
+//                     if ISCANCELED {
+//                         ISCANCELED = false;
+//                         return Ok(llm::InferenceFeedback::Halt);
+//                     }
+//                 }
+//                 let _ = app_window
+//                     .eval(&format!(
+//                         "document.querySelector('.llm-prompt-response').value += `{t}`"
+//                     ))
+//                     .unwrap();
+//                 if prompt.starts_with(t.to_string().as_str()) {
+//                     return Ok(llm::InferenceFeedback::Continue);
+//                 }
+//                 Ok(llm::InferenceFeedback::Continue)
+//             }
+//             _ => Ok(llm::InferenceFeedback::Continue),
+//         },
+//     );
+
+//     // Reset input and run button
+//     app_window
+//         .eval("document.querySelector('.llm-prompt-input').disabled = false")
+//         .unwrap();
+//     app_window
+//         .eval("document.querySelector('.llm-prompt-input').style.opacity = 1")
+//         .unwrap();
+//     app_window
+//         .eval("document.querySelector('.llm-prompt-run').disabled = false")
+//         .unwrap();
+//     app_window
+//         .eval("document.querySelector('.llm-prompt-run').style.opacity = 1")
+//         .unwrap();
+
+//     match res {
+//         Ok(result) => println!("\n\nInference stats:\n{result}"),
+//         Err(err) => println!("\n{err}"),
+//     }
+// }
+
+#[tauri::command]
+async fn get_app_icns(path: String) -> String {
+    let icns = applications::find_app_icns(path.clone().into());
+    if icns.is_some() {
+        let icns = icns.unwrap();
+
+        let icns_path = config_dir()
+            .unwrap()
+            .join("com.rdpFX.dev")
+            .join("App-Thumbnails");
+        let new_img_path = icns_path.to_string_lossy().to_string()
+            + "/"
+            + path.split("/").last().unwrap()
+            + icns.file_name().unwrap().to_str().unwrap()
+            + ".png";
+
+        if PathBuf::from(new_img_path.clone()).exists() {
+            return new_img_path;
+        }
+
+        let file = BufReader::new(File::open(icns.to_string_lossy().to_string()).unwrap());
+        let icon_family = IconFamily::read(file);
+        if icon_family.is_err() {
+            return icns.to_string_lossy().to_string();
+        }
+        let icon_family = icon_family.unwrap();
+
+        let mut image = icon_family.get_icon_with_type(IconType::RGBA32_512x512_2x);
+        if image.is_err() {
+            image = icon_family.get_icon_with_type(IconType::RGBA32_512x512);
+            if image.is_err() {
+                image = icon_family.get_icon_with_type(IconType::RGBA32_256x256_2x);
+                if image.is_err() {
+                    image = icon_family.get_icon_with_type(IconType::RGBA32_256x256);
+                    if image.is_err() {
+                        image = icon_family.get_icon_with_type(IconType::RGBA32_128x128_2x);
+                        if image.is_err() {
+                            image = icon_family.get_icon_with_type(IconType::RGBA32_128x128);
+                            if image.is_err() {
+                                image = icon_family.get_icon_with_type(IconType::RGBA32_64x64);
+                                if image.is_err() {
+                                    image =
+                                        icon_family.get_icon_with_type(IconType::RGBA32_32x32_2x);
+                                    if image.is_err() {
+                                        image =
+                                            icon_family.get_icon_with_type(IconType::RGBA32_32x32);
+                                        if image.is_err() {
+                                            image = icon_family
+                                                .get_icon_with_type(IconType::RGBA32_16x16_2x);
+                                            if image.is_err() {
+                                                image = icon_family
+                                                    .get_icon_with_type(IconType::RGBA32_16x16);
+                                                if image.is_err() {
+                                                    image = icon_family.get_icon_with_type(
+                                                        IconType::RGB24_128x128,
+                                                    );
+                                                    if image.is_err() {
+                                                        image = icon_family.get_icon_with_type(
+                                                            IconType::RGB24_48x48,
+                                                        );
+                                                        if image.is_err() {
+                                                            image = icon_family.get_icon_with_type(
+                                                                IconType::RGB24_32x32,
+                                                            );
+                                                            if image.is_err() {
+                                                                image = icon_family
+                                                                    .get_icon_with_type(
+                                                                        IconType::RGB24_16x16,
+                                                                    );
+                                                                if image.is_err() {
+                                                                    image = icon_family
+                                                                        .get_icon_with_type(
+                                                                            IconType::Mask8_128x128,
+                                                                        );
+                                                                    if image.is_err() {
+                                                                        image = icon_family
+                                                                            .get_icon_with_type(
+                                                                            IconType::Mask8_48x48,
+                                                                        );
+                                                                        if image.is_err() {
+                                                                            image = icon_family.get_icon_with_type(IconType::Mask8_32x32);
+                                                                            if image.is_err() {
+                                                                                image = icon_family.get_icon_with_type(IconType::Mask8_16x16);
+                                                                                if image.is_err() {
+                                                                                    return icns.to_string_lossy().to_string();
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Save additional icon to read from rdpFX
+        let image = image.unwrap();
+        if !PathBuf::from(&new_img_path).exists() {
+            let file = File::create(&new_img_path);
+            if file.is_err() {
+                return icns.to_string_lossy().to_string();
+            }
+            let file = file.unwrap();
+            BufWriter::new(&file);
+            image.write_png(file).unwrap();
+            println!("Writing image to: {}", new_img_path);
+        }
+
+        return new_img_path;
+    } else {
+        return String::from("");
+    }
+}
+
+#[tauri::command]
+async fn get_thumbnail(image_path: String) -> String {
+    let item = image::open(&image_path);
+
+    if item.is_err() {
+        println!(
+            "Couldn't load image for thumbnail: {}",
+            &image_path.split("/").last().unwrap()
+        );
+        return image_path;
+    }
+    let item = item.unwrap();
+    let thumbnails_dir = config_dir()
+        .unwrap()
+        .join("com.rdpFX.dev")
+        .join("Thumbnails");
+
+    if !PathBuf::from(&thumbnails_dir).exists() {
+        let _ = create_dir(&thumbnails_dir);
+    }
+
+    let thumbnail = item.thumbnail(100, 50);
+    let new_thumbnail_path = thumbnails_dir.join(image_path.clone().split("/").last().unwrap());
+
+    if PathBuf::from(&new_thumbnail_path).exists() {
+        println!("Getting thumbnail for: {}", image_path);
+        return new_thumbnail_path.to_string_lossy().to_string();
+    }
+
+    println!(
+        "Saving thumbnail for: {}",
+        image_path.split("/").last().unwrap()
+    );
+
+    let _ = thumbnail
+        .save_with_format(
+            &new_thumbnail_path,
+            image::ImageFormat::from_extension(image_path.split(".").last().unwrap())
+                .expect("Couldn't get format by extension"),
+        )
+        .expect("Couldn't save thumbnail");
+    new_thumbnail_path.to_string_lossy().to_string()
+}
+
+#[tauri::command]
+async fn install_dep(dep_name: String) {
+    // Check if package is already installed
+    let package = Package::new(&dep_name);
+    if package.is_err() {
+        let err = package.err();
+        println!(
+            "Installation of dependency not possible: {:?}",
+            err.unwrap()
+        );
+        return;
+    }
+    let package = package.unwrap();
+    if !package.is_installed() {
+        let package_result = package.install(&brew::Options::new().head().force().env_std());
+        println!("{} = {}", dep_name, package_result.unwrap().is_installed());
+    }
+}
+
+#[tauri::command]
+async fn get_dir_size(path: String, app_window: Window, class_to_fill: String) -> u64 {
+    unsafe {
+        CALCED_SIZE = 0;
+    }
+    dir_size(path, &app_window, class_to_fill)
+}
+
+static mut CALCED_SIZE: u64 = 0; // Currently unused -> Coming implementation for showing progress
+fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
+    if PathBuf::from(&path).is_file() {
+        return PathBuf::from(&path).metadata().unwrap().len();
+    }
+
+    let entry = match fs::read_dir(path) {
+        Ok(entry) => entry,
+        Err(_) => return 0,
+    };
+    let mut size = 0;
+
+    for entry in entry {
+        if let Ok(entry) = entry {
+            if entry.file_type().unwrap().is_file() {
+                let file_size = match entry.metadata() {
+                    Ok(s) => s.len(),
+                    Err(_) => continue,
+                };
+                size += file_size;
+            } else if entry.file_type().unwrap().is_dir() {
+                let dir_size = dir_size(
+                    entry.path().to_string_lossy().to_string(),
+                    app_window,
+                    class_to_fill.clone(),
+                );
+                size += dir_size;
+                // unsafe {
+                //     CALCED_SIZE += dir_size;
+                //     if CALCED_SIZE % 1000 == 0 {
+                //         let _ = app_window.eval(&format!(
+                //             "document.querySelector('{}').innerHTML = formatBytes({}) + ' ' + formatBytes({})",
+                //             class_to_fill, CALCED_SIZE, dir_size
+                //         ));
+                //     }
+                // }
+            }
+        }
+    }
+    size
 }

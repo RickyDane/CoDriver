@@ -1,7 +1,11 @@
 use chrono::prelude::*;
 use color_print::cprintln;
+use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
+use regex::Regex;
 use serde::Serialize;
 use std::{
+    env::current_dir,
+    ffi::OsStr,
     fmt::Debug,
     fs::{self, File},
     io::{BufReader, BufWriter, Read, Write},
@@ -9,7 +13,9 @@ use std::{
 use stopwatch::Stopwatch;
 use tar::Archive as TarArchive;
 use tauri::Window;
+const FUZZY_SEARCH: &str = r".*";
 
+use crate::COUNT_CALLED_BACK;
 #[allow(unused_imports)]
 use crate::ISCANCELED;
 
@@ -48,10 +54,9 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
         let file_size = fs::metadata(&from_path).unwrap().len() as f32;
         let mut fw = BufWriter::new(new_file);
         let mut s = 0;
-        let mut speed = 0.0;
+        let mut speed: f64;
         let sw = Stopwatch::start_new();
-        let mut byte_counter = 0;
-        let mut progress = 0.0;
+        let mut progress: f32;
         unsafe {
             update_progressbar_2(
                 app_window,
@@ -69,13 +74,11 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                     }
                     fw.write_all(&buf[..ds]).unwrap();
                     // Calculate transfer speed and progres
-                    if byte_counter % 5 == 0 {
-                        speed = calc_transfer_speed(s as f64, sw.elapsed_ms() as f64 / 1000.0);
-                        if speed.is_infinite() {
-                            speed = 0.0
-                        }
-                        progress = (100.0 / file_size) * s as f32;
-                    };
+                    speed = calc_transfer_speed(s as f64, sw.elapsed_ms() as f64 / 1000.0);
+                    if speed.is_infinite() {
+                        speed = 0.0
+                    }
+                    progress = (100.0 / file_size) * s as f32;
                     unsafe {
                         update_progressbar(
                             app_window,
@@ -90,7 +93,6 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                     break;
                 }
             }
-            byte_counter += 32;
         }
     } else if file.is_dir() {
         // Recursive copying of the directory
@@ -130,12 +132,19 @@ pub fn count_entries(path: &str) -> Result<f32, std::io::Error> {
     Ok(count)
 }
 
+pub fn show_progressbar(app_window: &Window) {
+    let _ = &app_window
+        .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
+    let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
+}
+
 pub fn update_progressbar(
     app_window: &Window,
     progress: f32,
     items_count_text: &str,
     mb_per_sec: f64,
 ) {
+    show_progressbar(app_window);
     let _ = app_window.eval(
         format!(
             "document.querySelector('.progress-bar-fill').style.width = '{}%'",
@@ -145,14 +154,14 @@ pub fn update_progressbar(
     );
     let _ = app_window.eval(
         format!(
-            "document.querySelector('.progress-bar-text').innerText = '{:.1} %'",
+            "document.querySelector('.progress-bar-text').innerText = '{:.2} %'",
             progress
         )
         .as_str(),
     );
     let _ = app_window.eval(
         format!(
-            "document.querySelector('.progress-bar-text-2').innerText = '{:.0} MB/s | {}'",
+            "document.querySelector('.progress-bar-text-2').innerText = '{:.2} MB/s | {}'",
             mb_per_sec, items_count_text
         )
         .as_str(),
@@ -182,17 +191,20 @@ pub fn calc_transfer_speed(file_size: f64, time: f64) -> f64 {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct DirWalkerEntry {
-    pub file_name: String,
+    pub name: String,
     pub path: String,
     pub depth: u32,
     pub is_dir: bool,
     pub is_file: bool,
     pub size: u64,
+    pub extension: String,
+    pub last_modified: String,
 }
 
 pub struct DirWalker {
     pub items: Vec<DirWalkerEntry>,
     pub depth: u32,
+    pub exts: Vec<String>,
 }
 
 impl DirWalker {
@@ -200,6 +212,7 @@ impl DirWalker {
         DirWalker {
             items: Vec::new(),
             depth: 0,
+            exts: vec![],
         }
     }
 
@@ -218,26 +231,151 @@ impl DirWalker {
                 continue;
             }
             let path = item.path();
-            if !fs::metadata(&path).is_ok() {
+            if !fs::metadata(&path).is_ok()
+                || (self.exts.len() > 0
+                    && !self.exts.contains(
+                        &item
+                            .file_name()
+                            .to_str()
+                            .unwrap()
+                            .split(".")
+                            .last()
+                            .unwrap()
+                            .to_string(),
+                    ))
+            {
                 continue;
             }
             if path.is_dir() {
                 self.items.push(DirWalkerEntry {
-                    file_name: item.file_name().to_str().unwrap().to_string(),
+                    name: item.file_name().to_str().unwrap().to_string(),
                     path: path.to_str().unwrap().to_string().replace("\\", "/"),
                     depth: depth,
                     is_dir: true,
                     is_file: false,
+                    extension: path.extension().unwrap().to_string_lossy().to_string(),
+                    last_modified: format!("{:?}", item.metadata().unwrap().modified().unwrap()),
                     size: 0,
                 });
                 self.walk(path.to_str().unwrap(), depth + 1);
             } else {
                 self.items.push(DirWalkerEntry {
-                    file_name: item.file_name().to_str().unwrap().to_string(),
+                    name: item.file_name().to_str().unwrap().to_string(),
                     path: path.to_str().unwrap().to_string().replace("\\", "/"),
                     depth: depth,
                     is_dir: false,
                     is_file: true,
+                    extension: path.extension().unwrap().to_string_lossy().to_string(),
+                    last_modified: format!("{:?}", item.metadata().unwrap().modified().unwrap()),
+                    size: fs::metadata(&path).unwrap().len(),
+                });
+            }
+        }
+    }
+
+    pub fn search(
+        &mut self,
+        path: &str,
+        depth: u32,
+        file_name: String,
+        max_items: i32,
+        callback: &impl Fn(DirWalkerEntry),
+    ) {
+        // if self.depth >= depth {
+        //     return;
+        // }
+        let dir_depth = path
+            .split(current_dir().unwrap().to_str().unwrap())
+            .last()
+            .unwrap()
+            .split("/")
+            .count()
+            - 1;
+        // println!("Dir depth: {}", dir_depth);
+        unsafe {
+            if dir_depth >= depth as usize || COUNT_CALLED_BACK >= max_items {
+                return;
+            }
+        }
+        let reg_exp = build_regex_search_input(
+            Some(&file_name),
+            self.exts.first().map(|x| x.as_str()),
+            true,
+            true,
+        );
+        let matcher = SkimMatcherV2::default();
+        let dir = fs::read_dir(path);
+        if dir.is_err() {
+            return;
+        }
+        for entry in dir.unwrap() {
+            // let entry: Result<DirEntry, Error> = entry;
+            let item = entry.unwrap();
+            let path = item.path();
+            let item_path = item.file_name().clone().to_str().unwrap().to_lowercase();
+            let item_ext = ".".to_owned()
+                + &item_path
+                    .split(".")
+                    .last()
+                    .unwrap()
+                    .to_string()
+                    .to_lowercase();
+            let search_pattern = file_name.to_lowercase();
+            let file_metadata = fs::metadata(&path);
+            if file_metadata.is_err() {
+                continue;
+            }
+            let last_mod: DateTime<Utc> = file_metadata.unwrap().modified().unwrap().clone().into();
+            let matching_score = matcher
+                .fuzzy_match(&item_path, &search_pattern)
+                .unwrap_or_else(|| 0);
+            // !reg_exp.is_match(&item_path)
+            if matching_score == 0 && path.is_file() && !path.is_dir() {
+                continue;
+            }
+
+            // println!(
+            //     "Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}",
+            //     matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file()
+            // );
+
+            if !fs::metadata(&path).is_ok()
+                || (self.exts.len() > 0
+                    && path.is_file()
+                    && !path.is_dir()
+                    && !self.exts.contains(&item_ext))
+            {
+                continue;
+            }
+            if path.is_dir() && matching_score > 0 {
+                println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path,matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file());
+                callback(DirWalkerEntry {
+                    name: item.file_name().to_str().unwrap().to_string(),
+                    path: path.to_str().unwrap().to_string().replace("\\", "/"),
+                    depth: depth,
+                    is_dir: true,
+                    is_file: false,
+                    extension: item_ext,
+                    last_modified: format!("{:?}", last_mod),
+                    size: fs::metadata(&path).unwrap().len(),
+                });
+                self.search(
+                    &path.clone().to_str().unwrap(),
+                    depth,
+                    file_name.clone(),
+                    max_items,
+                    callback,
+                );
+            } else if path.is_file() && matching_score > 0{
+                println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path,matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file());
+                callback(DirWalkerEntry {
+                    name: item.file_name().to_str().unwrap().to_string(),
+                    path: path.to_str().unwrap().to_string().replace("\\", "/"),
+                    depth: depth,
+                    is_dir: false,
+                    is_file: true,
+                    extension: item_ext,
+                    last_modified: format!("{:?}", last_mod),
                     size: fs::metadata(&path).unwrap().len(),
                 });
             }
@@ -249,6 +387,11 @@ impl DirWalker {
         self
     }
 
+    pub fn set_ext(&mut self, exts: Vec<String>) -> &mut Self {
+        self.exts = exts;
+        self
+    }
+
     pub fn ext(&mut self, extensions: Vec<&str>) -> &mut Self {
         self.items = self
             .items
@@ -256,7 +399,7 @@ impl DirWalker {
             .into_iter()
             .filter(|item| {
                 for ext in &extensions {
-                    if item.file_name.ends_with(ext) {
+                    if item.name.ends_with(ext) {
                         return true;
                     }
                 }
@@ -271,23 +414,20 @@ impl DirWalker {
     }
 }
 
-pub fn format_bytes(bytes: u64) -> String {
-    let kb = bytes / 1024;
-    let mb = kb / 1024;
-    let gb = mb / 1024;
-    let tb = gb / 1024;
+pub fn format_bytes(size: u64) -> String {
+    // Define size units and their labels
+    const UNITS: [&str; 7] = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
+    let mut size = size as f64; // Convert to float for division
+    let mut unit_index = 0; // Start with bytes (B)
 
-    if tb > 0 {
-        format!("{:.2} TB", tb as f32)
-    } else if gb > 0 {
-        format!("{:.2} GB", gb as f32)
-    } else if mb > 0 {
-        format!("{:.2} MB", mb as f32)
-    } else if kb > 0 {
-        format!("{:.2} KB", kb as f32)
-    } else {
-        format!("{:.2} B", bytes as f32)
+    // Find the appropriate unit
+    while size >= 1024.0 && unit_index < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit_index += 1;
     }
+
+    // Format with 2 decimal places
+    format!("{:.2} {}", size, UNITS[unit_index])
 }
 
 pub fn unpack_tar(file: File) {
@@ -303,4 +443,29 @@ pub fn unpack_tar(file: File) {
         let mut file = file.unwrap();
         let _ = file.unpack_in("Unpacked_Archive").unwrap_or_default();
     }
+}
+
+pub fn build_regex_search_input(
+    search_input: Option<&str>,
+    file_ext: Option<&str>,
+    strict: bool,
+    ignore_case: bool,
+) -> Regex {
+    let file_type = file_ext.unwrap_or("*");
+    let search_input = search_input.unwrap_or(r"\w+");
+
+    let mut formatted_search_input = if strict {
+        format!(r#"{search_input}\.{file_type}$"#)
+    } else {
+        format!(r#"{search_input}{FUZZY_SEARCH}\.{file_type}$"#)
+    };
+
+    if ignore_case {
+        formatted_search_input = set_case_insensitive(&formatted_search_input);
+    }
+    Regex::new(&formatted_search_input).unwrap()
+}
+
+fn set_case_insensitive(formatted_search_input: &str) -> String {
+    "(?i)".to_owned() + formatted_search_input
 }
