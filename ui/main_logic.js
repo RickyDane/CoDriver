@@ -1,5 +1,6 @@
 const TAURI = window.__TAURI__;
 const { invoke } = TAURI.tauri;
+// const { listen } = window.__TAURI__.event;
 const { confirm } = TAURI.dialog;
 const { message } = TAURI.dialog;
 const { open } = TAURI.dialog;
@@ -1296,6 +1297,13 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
   }
 }
 
+listen("addSingleItem", async (item) => {
+  item = JSON.parse(item.payload);
+  setTimeout(async () => {
+    await addSingleItem(item);
+  }, 10);
+});
+
 async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
   IsShowDisks = false;
   // Reset position when navigating in another directory
@@ -1324,7 +1332,7 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
   itemLink.setAttribute("itempath", item.path);
   itemLink.setAttribute("itemindex", counter++);
   itemLink.setAttribute("itempaneside", dualPaneSide);
-  itemLink.setAttribute("itemisdir", item.is_dir);
+  itemLink.setAttribute("itemisdir", item.is_dir ? 1 : 0);
   itemLink.setAttribute("itemext", item.extension);
   itemLink.setAttribute("itemname", item.name);
   itemLink.setAttribute("itemsize", formatBytes(item.size));
@@ -1407,7 +1415,7 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
       );
     }
   } else {
-    switch (item.extension.toLowerCase()) {
+    switch (item.extension) {
       case ".rs":
         fileIcon = "resources/rust-file.png";
         break;
@@ -1538,9 +1546,11 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
   			`;
     itemButton.className = "item-button directory-entry";
     newRow.append(itemButton);
-    // $(".directory-list").style.gridTemplateColumns =
-    //   "repeat(auto-fill, minmax(80px, 1fr))";
-    // DirectoryList.style.rowGap = "15px";
+    $(".directory-list").css(
+      "gridTemplateColumns",
+      "repeat(auto-fill, minmax(80px, 1fr))",
+    );
+    $(".directory-list").css("rowGap", "15px");
   } else if (ViewMode == "column") {
     var itemButtonList = document.createElement("div");
     itemButtonList.innerHTML = `
@@ -1559,302 +1569,297 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
       itemButtonList.className = "item-button-list directory-entry";
     }
     newRow.append(itemButtonList);
-    // DirectoryList.style.gridTemplateColumns = "unset";
-    // DirectoryList.style.rowGap = "2px";
+    $(".directory-list").css("gridTemplateColumns", "unset");
+    $(".directory-list").css("rowGap", "2px");
   }
   if (ViewMode == "miller") {
-    // DirectoryList.style.gridTemplateColumns = "unset";
-    // DirectoryList.style.rowGap = "1px";
+    $(".directory-list").style.gridTemplateColumns = "unset";
+    $(".directory-list").style.rowGap = "1px";
   }
   itemLink.append(newRow);
-  document.querySelector(".directory-list").append(itemLink);
-  ArrDirectoryItems.push(itemLink);
-  document
-    .querySelector(".directory-list")
-    .querySelectorAll("#item-link")
-    .forEach((item) => {
-      // Start dragging item
-      item.ondragstart = async (e) => {
-        e.preventDefault();
-        IsFileOpIntern = true;
-        let icon = DefaultFileIcon;
-        if (item.getAttribute("itemisdir") == 1) {
-          icon = DefaultFolderIcon;
-        }
-        if (
-          ArrSelectedItems.find(
-            (itemOfArray) =>
-              itemOfArray.getAttribute("itempath") ==
-              item.getAttribute("itempath"),
-          ) == null ||
-          ArrSelectedItems.length == 0
-        ) {
-          ArrSelectedItems.push(item);
-        }
-        let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
-        if (
-          Platform != "darwin" &&
-          (Platform.includes("win") || Platform.includes("linux"))
-        ) {
-          await startDrag({ item: arr, icon: "" });
-          unSelectAllItems();
-          IsFileOpIntern = true;
-        } else {
-          await startDrag({ item: arr, icon: icon });
-          unSelectAllItems();
-          IsFileOpIntern = true;
-        }
-      };
-      // Accept file drop into folders
-      item.addEventListener("dragover", (e) => {
-        MousePos = [e.clientX, e.clientY];
-        if (item.getAttribute("itemisdir") == "1") {
-          item.style.opacity = "0.5";
-          if (!ArrSelectedItems.includes(item)) {
-            DraggedOverElement = item;
-          }
-        }
-      });
-      item.addEventListener("dragleave", () => {
-        item.style.opacity = "1";
-      });
-      // :item_right_click :context_menu
-      // Open context menu when right-clicking on file/folder
-      item.addEventListener("contextmenu", async (e) => {
-        e.preventDefault();
-        if (ArrSelectedItems.length <= 1) {
-          unSelectAllItems();
-          selectItem(item);
-        } else {
-          selectItem(item);
-        }
-        if (IsPopUpOpen == false) {
-          let appsCMenu = document.querySelector(".context-open-item-with");
-          appsCMenu.innerHTML = "";
-          await getSetInstalledApplications(item.getAttribute("itemext"));
-          if (Platform.includes("linux")) {
-            appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
-          } else if (Applications.length > 0) {
-            Applications.forEach((app) => {
-              let newItem = document.createElement("button");
-              newItem.innerHTML = app[0].split(".")[0];
-              newItem.className = "context-item";
-              newItem.setAttribute("appname", app[0].split(".")[0]);
-              newItem.setAttribute("apppath", app[1]);
-              newItem.addEventListener("click", () =>
-                open_with(item.getAttribute("itempath"), app[1]),
-              );
-              appsCMenu.appendChild(newItem);
-            });
-          } else {
-            appsCMenu.innerHTML = "<p>No applications found</p>";
-          }
-
-          // Reset so that the commands are not triggered multiple times
-          ContextMenu.children[0].replaceWith(
-            ContextMenu.children[0].cloneNode(true),
-          );
-          ContextMenu.children[2].replaceWith(
-            ContextMenu.children[2].cloneNode(true),
-          );
-          ContextMenu.children[3].replaceWith(
-            ContextMenu.children[3].cloneNode(true),
-          );
-          ContextMenu.children[4].replaceWith(
-            ContextMenu.children[4].cloneNode(true),
-          );
-          ContextMenu.children[5].replaceWith(
-            ContextMenu.children[5].cloneNode(true),
-          );
-          ContextMenu.children[6].replaceWith(
-            ContextMenu.children[6].cloneNode(true),
-          );
-          ContextMenu.children[7].replaceWith(
-            ContextMenu.children[7].cloneNode(true),
-          );
-          ContextMenu.children[8].replaceWith(
-            ContextMenu.children[8].cloneNode(true),
-          );
-          ContextMenu.children[9].replaceWith(
-            ContextMenu.children[9].cloneNode(true),
-          );
-          ContextMenu.children[10].replaceWith(
-            ContextMenu.children[10].cloneNode(true),
-          );
-          ContextMenu.children[11].replaceWith(
-            ContextMenu.children[11].cloneNode(true),
-          );
-          document
-            .querySelector(".c-item-ytdownload")
-            .replaceWith(
-              document.querySelector(".c-item-ytdownload").cloneNode(true),
-            );
-
-          ContextMenu.children[0].removeAttribute("disabled");
-          ContextMenu.children[0].classList.remove("c-item-disabled");
-          ContextMenu.children[1].removeAttribute("disabled");
-          ContextMenu.children[1].classList.remove("c-item-disabled");
-          ContextMenu.children[3].removeAttribute("disabled");
-          ContextMenu.children[3].classList.remove("c-item-disabled");
-          ContextMenu.children[4].removeAttribute("disabled");
-          ContextMenu.children[4].classList.remove("c-item-disabled");
-          ContextMenu.children[5].removeAttribute("disabled");
-          ContextMenu.children[5].classList.remove("c-item-disabled");
-          ContextMenu.children[6].removeAttribute("disabled");
-          ContextMenu.children[6].classList.remove("c-item-disabled");
-          ContextMenu.children[9].removeAttribute("disabled");
-          ContextMenu.children[9].classList.remove("c-item-disabled");
-          ContextMenu.children[10].removeAttribute("disabled");
-          ContextMenu.children[10].classList.remove("c-item-disabled");
-          ContextMenu.children[11].removeAttribute("disabled");
-          ContextMenu.children[11].classList.remove("c-item-disabled");
-
-          let extension = item.getAttribute("itemext");
-
-          // Check if item is an supported archive
-          if (
-            extension != ".zip" &&
-            extension != ".rar" &&
-            extension != ".7z" &&
-            extension != ".tar" &&
-            extension != ".gz" &&
-            extension != ".br" &&
-            extension != ".bz2"
-          ) {
-            document
-              .querySelector(".c-item-extract")
-              .setAttribute("disabled", "true");
-            document
-              .querySelector(".c-item-extract")
-              .classList.add("c-item-disabled");
-          } else {
-            document
-              .querySelector(".c-item-extract")
-              .removeAttribute("disabled");
-            document
-              .querySelector(".c-item-extract")
-              .classList.remove("c-item-disabled");
-          }
-
-          // Check if item can be searched through for duplicates
-          if (item.getAttribute("itemisdir") == "1") {
-            document
-              .querySelector(".c-item-duplicates")
-              .removeAttribute("disabled");
-            document
-              .querySelector(".c-item-duplicates")
-              .classList.remove("c-item-disabled");
-          } else {
-            document
-              .querySelector(".c-item-duplicates")
-              .setAttribute("disabled", "true");
-            document
-              .querySelector(".c-item-duplicates")
-              .classList.add("c-item-disabled");
-          }
-
-          document.querySelector(".c-item-delete").addEventListener(
-            "click",
-            async () => {
-              await deleteItems();
-            },
-            { once: true },
-          );
-          document.querySelector(".c-item-extract").addEventListener(
-            "click",
-            async () => {
-              await extractItem(item);
-            },
-            { once: true },
-          );
-          document.querySelector(".c-item-compress").addEventListener(
-            "click",
-            async () => {
-              await showCompressPopup(item);
-            },
-            { once: true },
-          );
-          document.querySelector(".c-item-copy").addEventListener(
-            "click",
-            async () => {
-              await copyItem(item);
-            },
-            { once: true },
-          );
-          document.querySelector(".c-item-moveto").addEventListener(
-            "click",
-            async () => {
-              await itemMoveTo(false);
-            },
-            { once: true },
-          );
-          document.querySelector(".c-item-newfile").addEventListener(
-            "click",
-            () => {
-              createFileInputPrompt(e);
-            },
-            { once: true },
-          );
-          document.querySelector(".c-item-rename").addEventListener(
-            "click",
-            () => {
-              renameElementInputPrompt(item);
-            },
-            { once: true },
-          );
-          document.querySelector(".c-item-properties").addEventListener(
-            "click",
-            () => {
-              showProperties(item);
-            },
-            { once: true },
-          );
-          document.querySelector(".c-item-duplicates").addEventListener(
-            "click",
-            () => {
-              showFindDuplicates(item);
-            },
-            { once: true },
-          );
-          document.querySelector(".c-item-ytdownload").addEventListener(
-            "click",
-            async () => {
-              await showYtDownload();
-            },
-            { once: true },
-          );
-
-          positionContextMenu(e);
-        }
-      });
-    });
-  if (IsDualPaneEnabled == true) {
-    if (dualPaneSide == "left") {
-      document.querySelector(".dual-pane-left").append(DirectoryList);
-      LeftDualPanePath = CurrentDir;
-      LeftPaneItemCollection = DirectoryList;
-    } else if (dualPaneSide == "right") {
-      document.querySelector(".dual-pane-right").append(DirectoryList);
-      RightDualPanePath = CurrentDir;
-      RightPaneItemCollection = DirectoryList;
-    } else {
-      document.querySelector(".dual-pane-left").append(DirectoryList);
-      document
-        .querySelector(".dual-pane-right")
-        .append(DirectoryList.cloneNode(true));
-      LeftDualPanePath = RightDualPanePath = CurrentDir;
+  // Start dragging item
+  itemLink.ondragstart = async (e) => {
+    e.preventDefault();
+    IsFileOpIntern = true;
+    let icon = DefaultFileIcon;
+    if (itemLink.getAttribute("itemisdir") == 1) {
+      icon = DefaultFolderIcon;
     }
-  } else if (ViewMode == "miller") {
-    document.querySelector(".miller-col-" + millerCol).innerHTML = "";
-    document.querySelector(".miller-col-" + millerCol).append(DirectoryList);
-    document
-      .querySelector(".miller-col-" + millerCol)
-      .setAttribute("miller-col-path", CurrentDir);
-    CurrentMillerCol = millerCol;
-  } else {
-    document.querySelector(".explorer-container").innerHTML = "";
-    document.querySelector(".explorer-container").append(DirectoryList);
-  }
+    if (
+      ArrSelectedItems.find(
+        (itemOfArray) =>
+          itemOfArray.getAttribute("itempath") ==
+          itemLink.getAttribute("itempath"),
+      ) == null ||
+      ArrSelectedItems.length == 0
+    ) {
+      ArrSelectedItems.push(itemLink);
+    }
+    let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
+    if (
+      Platform != "darwin" &&
+      (Platform.includes("win") || Platform.includes("linux"))
+    ) {
+      await startDrag({ item: arr, icon: "" });
+      unSelectAllItems();
+      IsFileOpIntern = true;
+    } else {
+      await startDrag({ item: arr, icon: icon });
+      unSelectAllItems();
+      IsFileOpIntern = true;
+    }
+  };
+  // Accept file drop into folders
+  itemLink.addEventListener("dragover", (e) => {
+    MousePos = [e.clientX, e.clientY];
+    if (itemLink.getAttribute("itemisdir") == "1") {
+      itemLink.style.opacity = "0.5";
+      if (!ArrSelectedItems.includes(itemLink)) {
+        DraggedOverElement = itemLink;
+      }
+    }
+  });
+  itemLink.addEventListener("dragleave", () => {
+    itemLink.style.opacity = "1";
+  });
+  // :item_right_click :context_menu
+  // Open context menu when right-clicking on file/folder
+  itemLink.addEventListener("contextmenu", async (e) => {
+    e.preventDefault();
+    if (ArrSelectedItems.length <= 1) {
+      unSelectAllItems();
+      selectItem(itemLink);
+    } else {
+      selectItem(itemLink);
+    }
+    if (IsPopUpOpen == false) {
+      let appsCMenu = document.querySelector(".context-open-item-with");
+      appsCMenu.innerHTML = "";
+      await getSetInstalledApplications(itemLink.getAttribute("itemext"));
+      if (Platform.includes("linux")) {
+        appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
+      } else if (Applications.length > 0) {
+        Applications.forEach((app) => {
+          let newItem = document.createElement("button");
+          newItem.innerHTML = app[0].split(".")[0];
+          newItem.className = "context-item";
+          newItem.setAttribute("appname", app[0].split(".")[0]);
+          newItem.setAttribute("apppath", app[1]);
+          newItem.addEventListener("click", () =>
+            open_with(item.getAttribute("itempath"), app[1]),
+          );
+          appsCMenu.appendChild(newItem);
+        });
+      } else {
+        appsCMenu.innerHTML = "<p>No applications found</p>";
+      }
+
+      // Reset so that the commands are not triggered multiple times
+      ContextMenu.children[0].replaceWith(
+        ContextMenu.children[0].cloneNode(true),
+      );
+      ContextMenu.children[2].replaceWith(
+        ContextMenu.children[2].cloneNode(true),
+      );
+      ContextMenu.children[3].replaceWith(
+        ContextMenu.children[3].cloneNode(true),
+      );
+      ContextMenu.children[4].replaceWith(
+        ContextMenu.children[4].cloneNode(true),
+      );
+      ContextMenu.children[5].replaceWith(
+        ContextMenu.children[5].cloneNode(true),
+      );
+      ContextMenu.children[6].replaceWith(
+        ContextMenu.children[6].cloneNode(true),
+      );
+      ContextMenu.children[7].replaceWith(
+        ContextMenu.children[7].cloneNode(true),
+      );
+      ContextMenu.children[8].replaceWith(
+        ContextMenu.children[8].cloneNode(true),
+      );
+      ContextMenu.children[9].replaceWith(
+        ContextMenu.children[9].cloneNode(true),
+      );
+      ContextMenu.children[10].replaceWith(
+        ContextMenu.children[10].cloneNode(true),
+      );
+      ContextMenu.children[11].replaceWith(
+        ContextMenu.children[11].cloneNode(true),
+      );
+      document
+        .querySelector(".c-item-ytdownload")
+        .replaceWith(
+          document.querySelector(".c-item-ytdownload").cloneNode(true),
+        );
+
+      ContextMenu.children[0].removeAttribute("disabled");
+      ContextMenu.children[0].classList.remove("c-item-disabled");
+      ContextMenu.children[1].removeAttribute("disabled");
+      ContextMenu.children[1].classList.remove("c-item-disabled");
+      ContextMenu.children[3].removeAttribute("disabled");
+      ContextMenu.children[3].classList.remove("c-item-disabled");
+      ContextMenu.children[4].removeAttribute("disabled");
+      ContextMenu.children[4].classList.remove("c-item-disabled");
+      ContextMenu.children[5].removeAttribute("disabled");
+      ContextMenu.children[5].classList.remove("c-item-disabled");
+      ContextMenu.children[6].removeAttribute("disabled");
+      ContextMenu.children[6].classList.remove("c-item-disabled");
+      ContextMenu.children[9].removeAttribute("disabled");
+      ContextMenu.children[9].classList.remove("c-item-disabled");
+      ContextMenu.children[10].removeAttribute("disabled");
+      ContextMenu.children[10].classList.remove("c-item-disabled");
+      ContextMenu.children[11].removeAttribute("disabled");
+      ContextMenu.children[11].classList.remove("c-item-disabled");
+
+      let extension = itemLink.getAttribute("itemext");
+
+      // Check if item is a supported archive
+      if (
+        extension != ".zip" &&
+        extension != ".rar" &&
+        extension != ".7z" &&
+        extension != ".tar" &&
+        extension != ".gz" &&
+        extension != ".br" &&
+        extension != ".bz2"
+      ) {
+        document
+          .querySelector(".c-item-extract")
+          .setAttribute("disabled", "true");
+        document
+          .querySelector(".c-item-extract")
+          .classList.add("c-item-disabled");
+      } else {
+        document.querySelector(".c-item-extract").removeAttribute("disabled");
+        document
+          .querySelector(".c-item-extract")
+          .classList.remove("c-item-disabled");
+      }
+
+      // Check if item can be searched through for duplicates
+      if (itemLink.getAttribute("itemisdir") == "1") {
+        document
+          .querySelector(".c-item-duplicates")
+          .removeAttribute("disabled");
+        document
+          .querySelector(".c-item-duplicates")
+          .classList.remove("c-item-disabled");
+      } else {
+        document
+          .querySelector(".c-item-duplicates")
+          .setAttribute("disabled", "true");
+        document
+          .querySelector(".c-item-duplicates")
+          .classList.add("c-item-disabled");
+      }
+
+      document.querySelector(".c-item-delete").addEventListener(
+        "click",
+        async () => {
+          await deleteItems();
+        },
+        { once: true },
+      );
+      document.querySelector(".c-item-extract").addEventListener(
+        "click",
+        async () => {
+          await extractItem(item);
+        },
+        { once: true },
+      );
+      document.querySelector(".c-item-compress").addEventListener(
+        "click",
+        async () => {
+          await showCompressPopup(item);
+        },
+        { once: true },
+      );
+      document.querySelector(".c-item-copy").addEventListener(
+        "click",
+        async () => {
+          await copyItem(item);
+        },
+        { once: true },
+      );
+      document.querySelector(".c-item-moveto").addEventListener(
+        "click",
+        async () => {
+          await itemMoveTo(false);
+        },
+        { once: true },
+      );
+      document.querySelector(".c-item-newfile").addEventListener(
+        "click",
+        () => {
+          createFileInputPrompt(e);
+        },
+        { once: true },
+      );
+      document.querySelector(".c-item-rename").addEventListener(
+        "click",
+        () => {
+          renameElementInputPrompt(item);
+        },
+        { once: true },
+      );
+      document.querySelector(".c-item-properties").addEventListener(
+        "click",
+        () => {
+          showProperties(item);
+        },
+        { once: true },
+      );
+      document.querySelector(".c-item-duplicates").addEventListener(
+        "click",
+        () => {
+          showFindDuplicates(item);
+        },
+        { once: true },
+      );
+      document.querySelector(".c-item-ytdownload").addEventListener(
+        "click",
+        async () => {
+          await showYtDownload();
+        },
+        { once: true },
+      );
+
+      positionContextMenu(e);
+    }
+  });
+
+  $(".directory-list").append(itemLink);
+  ArrDirectoryItems.push(itemLink);
+
+  // if (IsDualPaneEnabled == true) {
+  //   if (dualPaneSide == "left") {
+  //     document.querySelector(".dual-pane-left").append(DirectoryList);
+  //     LeftDualPanePath = CurrentDir;
+  //     LeftPaneItemCollection = DirectoryList;
+  //   } else if (dualPaneSide == "right") {
+  //     document.querySelector(".dual-pane-right").append(DirectoryList);
+  //     RightDualPanePath = CurrentDir;
+  //     RightPaneItemCollection = DirectoryList;
+  //   } else {
+  //     document.querySelector(".dual-pane-left").append(DirectoryList);
+  //     document
+  //       .querySelector(".dual-pane-right")
+  //       .append(DirectoryList.cloneNode(true));
+  //     LeftDualPanePath = RightDualPanePath = CurrentDir;
+  //   }
+  // } else if (ViewMode == "miller") {
+  //   document.querySelector(".miller-col-" + millerCol).innerHTML = "";
+  //   document.querySelector(".miller-col-" + millerCol).append(DirectoryList);
+  //   document
+  //     .querySelector(".miller-col-" + millerCol)
+  //     .setAttribute("miller-col-path", CurrentDir);
+  //   CurrentMillerCol = millerCol;
+  // } else {
+  //   document.querySelector(".explorer-container").innerHTML = "";
+  //   document.querySelector(".explorer-container").append(DirectoryList);
+  // }
 }
 
 async function getCurrentDir() {
@@ -1964,7 +1969,7 @@ async function extractItem(item) {
   let compressFilePath = item.getAttribute("itempath");
   let compressFileName = compressFilePath
     .split("/")
-    [compressFilePath.split("/").length - 1].replace("'", "");
+  [compressFilePath.split("/").length - 1].replace("'", "");
   let isExtracting = await confirm(
     "Do you want to extract " + compressFileName + "?",
   );
@@ -2439,6 +2444,21 @@ async function checkAppConfig() {
     // Theme options
     CurrentTheme = appConfig.current_theme;
     appConfig.themes = await invoke("get_themes");
+    if (appConfig.themes.length == 0) {
+      appConfig.themes = [
+        {
+          "name": "Default",
+          "primary_color": "#3f4352",
+          "secondary_color": "rgba(56, 59, 71, 1)",
+          "tertiary_color": "#474b5c",
+          "text_color": "rgba(255, 255, 255, 0.8)",
+          "text_color2": "rgba(255, 255, 255, 0.6)",
+          "text_color3": "rgb(255, 255, 255)",
+          "transparent_color": "rgba(0, 0, 0, 0.15)",
+          "transparent_color_active": "rgba(0, 0, 0, 0.25)"
+        }
+      ];
+    }
     // console.log(appConfig.current_theme, appConfig.themes);
     let themeSelect = document.querySelector(".theme-select");
     themeSelect.innerHTML = "";
@@ -2877,7 +2897,7 @@ function goUp(isSwitched = false, toFirst = false) {
           selectedItemIndex = LeftPaneItemIndex;
           element =
             LeftPaneItemCollection.querySelectorAll(".item-link")[
-              selectedItemIndex
+            selectedItemIndex
             ];
         } else if (parseInt(selectedItemIndex) < 1) {
           selectedItemIndex = 0;
@@ -2886,7 +2906,7 @@ function goUp(isSwitched = false, toFirst = false) {
           selectedItemIndex = parseInt(selectedItemIndex) - 1;
           element =
             LeftPaneItemCollection.querySelectorAll(".item-link")[
-              selectedItemIndex
+            selectedItemIndex
             ];
         }
         LeftPaneItemIndex = selectedItemIndex;
@@ -2896,7 +2916,7 @@ function goUp(isSwitched = false, toFirst = false) {
           selectedItemIndex = RightPaneItemIndex;
           element =
             RightPaneItemCollection.querySelectorAll(".item-link")[
-              selectedItemIndex
+            selectedItemIndex
             ];
         } else if (parseInt(selectedItemIndex) - 1 < 1) {
           selectedItemIndex = 0;
@@ -2905,7 +2925,7 @@ function goUp(isSwitched = false, toFirst = false) {
           selectedItemIndex = parseInt(selectedItemIndex) - 1;
           element =
             RightPaneItemCollection.querySelectorAll(".item-link")[
-              selectedItemIndex
+            selectedItemIndex
             ];
         }
         RightPaneItemIndex = selectedItemIndex;
@@ -2935,7 +2955,7 @@ function goUp(isSwitched = false, toFirst = false) {
     if (SelectedItemPaneSide == "left") {
       if (
         parseInt(selectedItemIndex) * 36 -
-          document.querySelector(".dual-pane-left").scrollTop <
+        document.querySelector(".dual-pane-left").scrollTop <
         10
       ) {
         document.querySelector(".dual-pane-left").scrollTop -= 36;
@@ -2943,7 +2963,7 @@ function goUp(isSwitched = false, toFirst = false) {
     } else if (SelectedItemPaneSide == "right") {
       if (
         parseInt(selectedItemIndex) * 36 -
-          document.querySelector(".dual-pane-right").scrollTop <
+        document.querySelector(".dual-pane-right").scrollTop <
         10
       ) {
         document.querySelector(".dual-pane-right").scrollTop -= 36;
@@ -2977,13 +2997,13 @@ function goDown() {
           LeftPaneItemCollection.querySelectorAll(".item-link").length - 1;
         element =
           LeftPaneItemCollection.querySelectorAll(".item-link")[
-            parseInt(selectedItemIndex)
+          parseInt(selectedItemIndex)
           ];
       } else {
         selectedItemIndex = parseInt(selectedItemIndex) + 1;
         element =
           LeftPaneItemCollection.querySelectorAll(".item-link")[
-            selectedItemIndex
+          selectedItemIndex
           ];
       }
       LeftPaneItemIndex = selectedItemIndex;
@@ -2996,13 +3016,13 @@ function goDown() {
           RightPaneItemCollection.querySelectorAll(".item-link").length - 1;
         element =
           RightPaneItemCollection.querySelectorAll(".item-link")[
-            selectedItemIndex
+          selectedItemIndex
           ];
       } else {
         selectedItemIndex = parseInt(selectedItemIndex) + 1;
         element =
           RightPaneItemCollection.querySelectorAll(".item-link")[
-            selectedItemIndex
+          selectedItemIndex
           ];
       }
       RightPaneItemIndex = selectedItemIndex;
@@ -3031,7 +3051,7 @@ function goDown() {
   if (SelectedItemPaneSide == "left") {
     if (
       parseInt(selectedItemIndex) * 36 -
-        document.querySelector(".dual-pane-left").scrollTop >
+      document.querySelector(".dual-pane-left").scrollTop >
       window.innerHeight - 200
     ) {
       document.querySelector(".dual-pane-left").scrollTop += 36;
@@ -3039,7 +3059,7 @@ function goDown() {
   } else if (SelectedItemPaneSide == "right") {
     if (
       parseInt(selectedItemIndex) * 36 -
-        document.querySelector(".dual-pane-right").scrollTop >
+      document.querySelector(".dual-pane-right").scrollTop >
       window.innerHeight - 200
     ) {
       document.querySelector(".dual-pane-right").scrollTop += 36;
@@ -3105,13 +3125,15 @@ async function searchFor(
   isQuickSearch = false,
   fileContent = "",
 ) {
-  document.querySelector(".fullsearch-loader").style.display = "block";
+  $(".is-file-searching").css("display", "block");
+  // document.querySelector(".fullsearch-loader").style.display = "block";
   if (fileName.length > 1 || isQuickSearch == true) {
     document.querySelector(".cancel-search-button").style.display = "block";
-    if (IsDualPaneEnabled == false) {
-      DirectoryList.innerHTML = `<div class="preloader"></div><p>Loading ...</p>`;
-      DirectoryList.classList.add("dir-preloader-container");
-    }
+    // if (IsDualPaneEnabled == false) {
+    //   DirectoryList.innerHTML = `<div class="preloader"></div><p>Loading ...</p>`;
+    //   DirectoryList.classList.add("dir-preloader-container");
+    // }
+    $(".directory-list").html("");
     await invoke("search_for", {
       fileName,
       maxItems,
@@ -3119,18 +3141,18 @@ async function searchFor(
       fileContent,
     }).then(async (items) => {
       if (IsDualPaneEnabled == true) {
-        await showItems(items, SelectedItemPaneSide);
+        // await showItems(items, SelectedItemPaneSide);
         goUp(false, true);
       } else {
-        await showItems(items);
+        // await showItems(items);
       }
     });
   } else {
     alert("Type in a minimum of 2 characters");
   }
   IsFullSearching = false;
-  document.querySelector(".fullsearch-loader").style.display = "none";
-  DirectoryList.classList.remove("dir-preloader-container");
+  // document.querySelector(".fullsearch-loader").style.display = "none";
+  // DirectoryList.classList.remove("dir-preloader-container");
 }
 
 function openFullSearchContainer() {
@@ -3846,11 +3868,11 @@ async function showFtpConfig() {
     IsPopUpOpen = true;
     document.querySelectorAll(".ftp-popup-input").forEach(
       (input) =>
-        (input.onkeyup = (e) => {
-          if (e.key === "Enter") {
-            connectToFtp();
-          }
-        }),
+      (input.onkeyup = (e) => {
+        if (e.key === "Enter") {
+          connectToFtp();
+        }
+      }),
     );
   }
 }

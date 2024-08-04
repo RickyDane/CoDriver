@@ -1183,6 +1183,14 @@ label {
     animation: spin 1s linear infinite;
 }
 
+.is-file-searching {
+    display: none;
+    margin: 0px 10px;
+}
+.file-searching-done {
+    font-size: var(--fontSize);
+}
+
 .context-menu {
     width: 150px;
     height: fit-content;

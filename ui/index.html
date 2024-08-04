@@ -2,11 +2,11 @@
 <html>
 
 <head>
-    <script src="jquery.js" defer></script>
-    <script src="jquery-ui/jquery-ui.js" defer></script>
+    <script src="jquery.js"></script>
+    <script src="jquery-ui/jquery-ui.js"></script>
     <script src="jquery-dragout.js" defer></script>
     <script src="font-awesome/js/all.min.js" async></script>
-    <script src="utils.js" async defer></script>
+    <script src="utils.js"></script>
     <script src="main_logic.js" async defer></script>
     <link rel="stylesheet" href="font-awesome/css/all.min.css" />
     <link rel="stylesheet" href="style.css" />
@@ -30,6 +30,8 @@
             <button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
             <!-- <p>|</p> -->
             <!-- <h5 class="directory-entries-count"></h5> -->
+            <div class="preloader-small-invert is-file-searching"></div>
+            <div class="file-searching-done"></div>
         </div>
         <div class="file-searchbar">
             <input class="search-bar-input text-input" type="text" placeholder="Ctrl + K" />
@@ -38,8 +40,7 @@
         </div>
     </div>
     <div class="main-container">
-        <div class="site-nav-bar">
-        </div>
+        <div class="site-nav-bar"></div>
         <div class="list-column-header">
             <button class="list-column-header-button" style="margin-left: 20px;"
                 onclick="sortItems('name')">Name</button>

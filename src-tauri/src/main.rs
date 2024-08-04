@@ -6,7 +6,7 @@ use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use flate2::read::GzDecoder;
 use icns::{IconFamily, IconType};
-use rust_search::{similarity_sort, SearchBuilder};
+// use rust_search::{similarity_sort, SearchBuilder};
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
 use std::fs::{self, read_dir, ReadDir};
@@ -580,6 +580,7 @@ async fn go_home() -> Vec<FDir> {
     return list_dirs().await;
 }
 
+static mut COUNT_CALLED_BACK: i32 = 0;
 #[tauri::command]
 async fn search_for(
     mut file_name: String,
@@ -587,14 +588,14 @@ async fn search_for(
     search_depth: i32,
     file_content: String,
     app_window: Window,
-) -> Vec<FDir> {
-    dbg_log(format!("Start searching for {}", &file_name));
+) {
+    dbg_log(format!("Start searching for: {}", &file_name));
     let temp_file_name = String::from(&file_name);
     if temp_file_name.split(".").nth(0).unwrap().contains("*") {
         file_name = temp_file_name.trim().replace("*", "");
     }
 
-    let mut file_ext = ".".to_string().to_owned()
+    let file_ext = ".".to_string().to_owned()
         + file_name
             .split(".")
             .nth(file_name.split(".").count() - 1)
@@ -602,139 +603,149 @@ async fn search_for(
     println!("");
 
     let sw = Stopwatch::start_new();
-    let mut search: Vec<String> = vec![];
+    // let mut search: Vec<String> = vec![];
     if file_ext != ".".to_string().to_owned() + &file_name {
+        unsafe {
+            COUNT_CALLED_BACK = 0;
+        }
         let _ = DirWalker::new()
             .set_ext(vec![file_ext.to_lowercase()])
             .search(
                 current_dir().unwrap().to_str().unwrap(),
                 search_depth as u32,
                 file_name,
+                max_items,
                 &|item| {
-                    let _ = app_window.eval(&format!("console.log('{:?}')", item));
+                    let _ = app_window.emit_all(
+                        "addSingleItem",
+                        serde_json::to_string(&item).unwrap().to_string(),
+                    );
+                    unsafe {
+                        COUNT_CALLED_BACK += 1;
+                    }
                 },
             );
-        // search = SearchBuilder::default()
-        //     .location(current_dir().unwrap())
-        //     .search_input(file_name.strip_suffix(&file_ext).unwrap())
-        //     .ignore_case()
-        //     .hidden()
-        //     .depth(search_depth as usize)
-        //     .limit(max_items as usize)
-        //     .ext(&file_ext)
-        //     .build()
-        //     .collect();
     } else {
-        search = SearchBuilder::default()
-            .location(current_dir().unwrap())
-            .search_input(&file_name)
-            .ignore_case()
-            .hidden()
-            .depth(search_depth as usize)
-            .limit(max_items as usize)
-            .build()
-            .collect();
-    }
-
-    // Sorting search results by input
-    let sw2 = Stopwatch::start_new();
-    // similarity_sort(&mut search, &file_name);
-    dbg_log(format!("Sorting took: {:?}", sw2.elapsed()));
-
-    let mut dir_list: Vec<FDir> = Vec::new();
-    for item in search {
-        file_ext = ".".to_string().to_owned()
-            + item
-                .split(".")
-                .nth(item.split(".").count() - 1)
-                .unwrap_or("");
-        let item = item.replace("\\", "/");
-        let temp_item = &item.split("/").collect::<Vec<&str>>();
-        let name = &temp_item[*&temp_item.len() - 1];
-        let path = &item.replace("\\", "/");
-        let temp_file = fs::metadata(&item);
-        let file_size: String;
-        let file_date: DateTime<Utc>;
-
-        if &temp_file.is_ok() == &true {
-            file_size = String::from(fs::metadata(&item).unwrap().len().to_string());
-            file_date = fs::metadata(&item)
-                .unwrap()
-                .modified()
-                .unwrap()
-                .clone()
-                .into();
-        } else {
-            continue;
+        unsafe {
+            COUNT_CALLED_BACK = 0;
         }
-
-        // Check if the item is a directory
-        let is_dir_int;
-        if &temp_file.is_ok() == &true && *&temp_file.unwrap().is_dir() {
-            is_dir_int = 1;
-        } else {
-            is_dir_int = 0;
-        }
-
-        // Don't include the directory searched in
-        if path == current_dir().unwrap().to_str().unwrap() {
-            continue;
-        }
-
-        // Search for file contents
-        if *&file_content.as_str() != "" {
-            let check_file = fs::File::open(&path);
-            let mut file: File;
-            if &check_file.is_ok() == &true {
-                file = check_file.unwrap();
-            } else {
-                err_log("Couldn't access file. Probably due to insufficient permissions".into());
-                continue;
-            }
-            let mut buffer = String::from("");
-            // dbg_log(format!("Checking {}", &path));
-
-            if &file.metadata().unwrap().is_dir() == &false {
-                file.read_to_string(&mut buffer).unwrap_or_else(|x| {
-                    err_log(format!("Error reading: {}", x));
-                    0 as usize
-                });
-                for (_idx, line) in buffer.lines().enumerate() {
-                    if line.contains(&file_content) {
-                        dir_list.push(FDir {
-                            name: name.to_string(),
-                            is_dir: is_dir_int,
-                            path: path.to_string(),
-                            extension: String::from(&file_ext),
-                            size: file_size.clone(),
-                            last_modified: String::from(
-                                file_date.to_string().split(".").nth(0).unwrap(),
-                            ),
-                        });
-                        break;
-                    } else {
-                        continue;
+        let _ = DirWalker::new()
+            .search(
+                current_dir().unwrap().to_str().unwrap(),
+                search_depth as u32,
+                file_name,
+                max_items,
+                &|item| {
+                    let _ = app_window.emit_all(
+                        "addSingleItem",
+                        serde_json::to_string(&item).unwrap().to_string(),
+                    );
+                    unsafe {
+                        COUNT_CALLED_BACK += 1;
                     }
-                }
-            }
-        } else {
-            dir_list.push(FDir {
-                name: name.to_string(),
-                is_dir: is_dir_int,
-                path: path.to_string(),
-                extension: String::from(&file_ext),
-                size: file_size,
-                last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-            });
-        }
+                },
+            );
     }
-    if dir_list.len() == 0 {
-        wng_log("No item found ".into());
-    }
+    let _ = app_window.eval("$('.is-file-searching').css('display', 'none')");
+    let _ = app_window.eval("$('.file-searching-done').css('display', 'block')");
+    let _ = app_window.eval(&format!("$('.file-searching-done').html('Searching done in: {:.2} sec.!')", sw.elapsed().as_millis() as f64 / 1000.0));
+    let _ = app_window.eval("setTimeout(() => $('.file-searching-done').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
-    dbg_log(format!("{} items found", dir_list.len()));
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    return dir_list;
+
+    // let mut dir_list: Vec<FDir> = Vec::new();
+    // for item in search {
+    //     file_ext = ".".to_string().to_owned()
+    //         + item
+    //             .split(".")
+    //             .nth(item.split(".").count() - 1)
+    //             .unwrap_or("");
+    //     let item = item.replace("\\", "/");
+    //     let temp_item = &item.split("/").collect::<Vec<&str>>();
+    //     let name = &temp_item[*&temp_item.len() - 1];
+    //     let path = &item.replace("\\", "/");
+    //     let temp_file = fs::metadata(&item);
+    //     let file_size: String;
+    //     let file_date: DateTime<Utc>;
+
+    //     if &temp_file.is_ok() == &true {
+    //         file_size = String::from(fs::metadata(&item).unwrap().len().to_string());
+    //         file_date = fs::metadata(&item)
+    //             .unwrap()
+    //             .modified()
+    //             .unwrap()
+    //             .clone()
+    //             .into();
+    //     } else {
+    //         continue;
+    //     }
+
+    //     // Check if the item is a directory
+    //     let is_dir_int;
+    //     if &temp_file.is_ok() == &true && *&temp_file.unwrap().is_dir() {
+    //         is_dir_int = 1;
+    //     } else {
+    //         is_dir_int = 0;
+    //     }
+
+    //     // Don't include the directory searched in
+    //     if path == current_dir().unwrap().to_str().unwrap() {
+    //         continue;
+    //     }
+
+    //     // Search for file contents
+    //     if *&file_content.as_str() != "" {
+    //         let check_file = fs::File::open(&path);
+    //         let mut file: File;
+    //         if &check_file.is_ok() == &true {
+    //             file = check_file.unwrap();
+    //         } else {
+    //             err_log("Couldn't access file. Probably due to insufficient permissions".into());
+    //             continue;
+    //         }
+    //         let mut buffer = String::from("");
+    //         // dbg_log(format!("Checking {}", &path));
+
+    //         if &file.metadata().unwrap().is_dir() == &false {
+    //             file.read_to_string(&mut buffer).unwrap_or_else(|x| {
+    //                 err_log(format!("Error reading: {}", x));
+    //                 0 as usize
+    //             });
+    //             for (_idx, line) in buffer.lines().enumerate() {
+    //                 if line.contains(&file_content) {
+    //                     dir_list.push(FDir {
+    //                         name: name.to_string(),
+    //                         is_dir: is_dir_int,
+    //                         path: path.to_string(),
+    //                         extension: String::from(&file_ext),
+    //                         size: file_size.clone(),
+    //                         last_modified: String::from(
+    //                             file_date.to_string().split(".").nth(0).unwrap(),
+    //                         ),
+    //                     });
+    //                     break;
+    //                 } else {
+    //                     continue;
+    //                 }
+    //             }
+    //         }
+    //     } else {
+    //         dir_list.push(FDir {
+    //             name: name.to_string(),
+    //             is_dir: is_dir_int,
+    //             path: path.to_string(),
+    //             extension: String::from(&file_ext),
+    //             size: file_size,
+    //             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
+    //         });
+    //     }
+    // }
+    // if dir_list.len() == 0 {
+    //     wng_log("No item found ".into());
+    // }
+    // dbg_log(format!("Search took: {:?}", sw.elapsed()));
+    // dbg_log(format!("{} items found", dir_list.len()));
+    // dir_list.sort_by_key(|a| a.name.to_lowercase());
+    // return dir_list;
 }
 
 #[tauri::command]
@@ -1215,8 +1226,8 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
             x.is_file == true
                 && x.size == item.size
                 && x.size > 0
-                && x.file_name
-                    .contains(&item.file_name.substring(0, item.file_name.len() - 3))
+                && x.name
+                    .contains(&item.name.substring(0, item.name.len() - 3))
         });
         if *&seen_item.is_some() {
             if duplicates.len() == 0 {
@@ -1226,8 +1237,8 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                     x[0].size == seen_item.unwrap().size
                         && x[0].size > 0
                         && x[0]
-                            .file_name
-                            .contains(&item.file_name.substring(0, item.file_name.len() - 3))
+                            .name
+                            .contains(&item.name.substring(0, item.name.len() - 3))
                 });
                 if *&collection.is_some() {
                     collection.unwrap().push(item.clone());
@@ -1270,7 +1281,7 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                 <div style='display: flex; align-items: center; justify-content: space-between;'>
                     <div>
                         <h4>"
-                    + &item.file_name
+                    + &item.name
                     + "</h3>
                         <h4 class='text-2'>"
                     + &item.path
@@ -1281,14 +1292,14 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                     </div>
             "),
             );
-            if item.file_name.ends_with("jpg")
-                || item.file_name.ends_with("jpeg")
-                || item.file_name.ends_with("png")
-                || item.file_name.ends_with("gif")
-                || item.file_name.ends_with("svg")
-                || item.file_name.ends_with("webp")
-                || item.file_name.ends_with("jfif")
-                || item.file_name.ends_with("tiff")
+            if item.name.ends_with("jpg")
+                || item.name.ends_with("jpeg")
+                || item.name.ends_with("png")
+                || item.name.ends_with("gif")
+                || item.name.ends_with("svg")
+                || item.name.ends_with("webp")
+                || item.name.ends_with("jfif")
+                || item.name.ends_with("tiff")
             {
                 inner_html.push_str(&(String::new()+"
                     <img style='box-shadow: 0px 0px 10px 1px var(--transparentColorActive); border-radius: 5px;' width='64px' height='auto' src='"+ASSET_LOCATION+""+&item.path+"'>
