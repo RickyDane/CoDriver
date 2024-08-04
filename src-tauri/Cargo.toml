@@ -1,4 +1,4 @@
-cargo-features = ["profile-rustflags"]
+# cargo-features = ["profile-rustflags"]
 [package]
 name = "rdpfx"
 version = "0.4.5"
@@ -67,7 +67,7 @@ regex = "1.10.6"
 rustflags = ["-Z", "threads=7"]
 
 [profile.release]
-rustflags = ["-Z", "threads=7"]
+# rustflags = ["-Z", "threads=7"]
 lto = true
 opt-level = "z"
 
