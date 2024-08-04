@@ -629,27 +629,30 @@ async fn search_for(
         unsafe {
             COUNT_CALLED_BACK = 0;
         }
-        let _ = DirWalker::new()
-            .search(
-                current_dir().unwrap().to_str().unwrap(),
-                search_depth as u32,
-                file_name,
-                max_items,
-                &|item| {
-                    let _ = app_window.emit_all(
-                        "addSingleItem",
-                        serde_json::to_string(&item).unwrap().to_string(),
-                    );
-                    unsafe {
-                        COUNT_CALLED_BACK += 1;
-                    }
-                },
-            );
+        let _ = DirWalker::new().search(
+            current_dir().unwrap().to_str().unwrap(),
+            search_depth as u32,
+            file_name,
+            max_items,
+            &|item| {
+                let _ = app_window.emit_all(
+                    "addSingleItem",
+                    serde_json::to_string(&item).unwrap().to_string(),
+                );
+                unsafe {
+                    COUNT_CALLED_BACK += 1;
+                }
+            },
+        );
     }
     let _ = app_window.eval("$('.is-file-searching').css('display', 'none')");
     let _ = app_window.eval("$('.file-searching-done').css('display', 'block')");
-    let _ = app_window.eval(&format!("$('.file-searching-done').html('Searching done in: {:.2} sec.!')", sw.elapsed().as_millis() as f64 / 1000.0));
-    let _ = app_window.eval("setTimeout(() => $('.file-searching-done').css('display', 'none'), 1500)");
+    let _ = app_window.eval(&format!(
+        "$('.file-searching-done').html('Searching done in: {:.2} sec.!')",
+        sw.elapsed().as_millis() as f64 / 1000.0
+    ));
+    let _ =
+        app_window.eval("setTimeout(() => $('.file-searching-done').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
 
     // let mut dir_list: Vec<FDir> = Vec::new();
@@ -1625,89 +1628,101 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
 
 #[tauri::command]
 async fn get_app_icns(path: String) -> String {
-    let icns = applications::find_app_icns(path.clone().into());
-    if icns.is_some() {
-        let icns = icns.unwrap();
+    #[cfg(target_os = "linux")]
+    return "".into();
 
-        let icns_path = config_dir()
-            .unwrap()
-            .join("com.rdpFX.dev")
-            .join("App-Thumbnails");
-        let new_img_path = icns_path.to_string_lossy().to_string()
-            + "/"
-            + path.split("/").last().unwrap()
-            + icns.file_name().unwrap().to_str().unwrap()
-            + ".png";
+    #[cfg(target_os = "windows")]
+    return "".into();
 
-        if PathBuf::from(new_img_path.clone()).exists() {
-            return new_img_path;
-        }
+    #[cfg(target_os = "macos")]
+    {
+        let icns = applications::find_app_icns(path.clone().into());
+        if icns.is_some() {
+            let icns = icns.unwrap();
 
-        let file = BufReader::new(File::open(icns.to_string_lossy().to_string()).unwrap());
-        let icon_family = IconFamily::read(file);
-        if icon_family.is_err() {
-            return icns.to_string_lossy().to_string();
-        }
-        let icon_family = icon_family.unwrap();
+            let icns_path = config_dir()
+                .unwrap()
+                .join("com.rdpFX.dev")
+                .join("App-Thumbnails");
+            let new_img_path = icns_path.to_string_lossy().to_string()
+                + "/"
+                + path.split("/").last().unwrap()
+                + icns.file_name().unwrap().to_str().unwrap()
+                + ".png";
 
-        let mut image = icon_family.get_icon_with_type(IconType::RGBA32_512x512_2x);
-        if image.is_err() {
-            image = icon_family.get_icon_with_type(IconType::RGBA32_512x512);
+            if PathBuf::from(new_img_path.clone()).exists() {
+                return new_img_path;
+            }
+
+            let file = BufReader::new(File::open(icns.to_string_lossy().to_string()).unwrap());
+            let icon_family = IconFamily::read(file);
+            if icon_family.is_err() {
+                return icns.to_string_lossy().to_string();
+            }
+            let icon_family = icon_family.unwrap();
+
+            let mut image = icon_family.get_icon_with_type(IconType::RGBA32_512x512_2x);
             if image.is_err() {
-                image = icon_family.get_icon_with_type(IconType::RGBA32_256x256_2x);
+                image = icon_family.get_icon_with_type(IconType::RGBA32_512x512);
                 if image.is_err() {
-                    image = icon_family.get_icon_with_type(IconType::RGBA32_256x256);
+                    image = icon_family.get_icon_with_type(IconType::RGBA32_256x256_2x);
                     if image.is_err() {
-                        image = icon_family.get_icon_with_type(IconType::RGBA32_128x128_2x);
+                        image = icon_family.get_icon_with_type(IconType::RGBA32_256x256);
                         if image.is_err() {
-                            image = icon_family.get_icon_with_type(IconType::RGBA32_128x128);
+                            image = icon_family.get_icon_with_type(IconType::RGBA32_128x128_2x);
                             if image.is_err() {
-                                image = icon_family.get_icon_with_type(IconType::RGBA32_64x64);
+                                image = icon_family.get_icon_with_type(IconType::RGBA32_128x128);
                                 if image.is_err() {
-                                    image =
-                                        icon_family.get_icon_with_type(IconType::RGBA32_32x32_2x);
+                                    image = icon_family.get_icon_with_type(IconType::RGBA32_64x64);
                                     if image.is_err() {
-                                        image =
-                                            icon_family.get_icon_with_type(IconType::RGBA32_32x32);
+                                        image = icon_family
+                                            .get_icon_with_type(IconType::RGBA32_32x32_2x);
                                         if image.is_err() {
                                             image = icon_family
-                                                .get_icon_with_type(IconType::RGBA32_16x16_2x);
+                                                .get_icon_with_type(IconType::RGBA32_32x32);
                                             if image.is_err() {
                                                 image = icon_family
-                                                    .get_icon_with_type(IconType::RGBA32_16x16);
+                                                    .get_icon_with_type(IconType::RGBA32_16x16_2x);
                                                 if image.is_err() {
-                                                    image = icon_family.get_icon_with_type(
-                                                        IconType::RGB24_128x128,
-                                                    );
+                                                    image = icon_family
+                                                        .get_icon_with_type(IconType::RGBA32_16x16);
                                                     if image.is_err() {
                                                         image = icon_family.get_icon_with_type(
-                                                            IconType::RGB24_48x48,
+                                                            IconType::RGB24_128x128,
                                                         );
                                                         if image.is_err() {
                                                             image = icon_family.get_icon_with_type(
-                                                                IconType::RGB24_32x32,
+                                                                IconType::RGB24_48x48,
                                                             );
                                                             if image.is_err() {
                                                                 image = icon_family
                                                                     .get_icon_with_type(
-                                                                        IconType::RGB24_16x16,
+                                                                        IconType::RGB24_32x32,
                                                                     );
                                                                 if image.is_err() {
                                                                     image = icon_family
                                                                         .get_icon_with_type(
-                                                                            IconType::Mask8_128x128,
+                                                                            IconType::RGB24_16x16,
                                                                         );
                                                                     if image.is_err() {
                                                                         image = icon_family
                                                                             .get_icon_with_type(
-                                                                            IconType::Mask8_48x48,
+                                                                            IconType::Mask8_128x128,
                                                                         );
                                                                         if image.is_err() {
-                                                                            image = icon_family.get_icon_with_type(IconType::Mask8_32x32);
+                                                                            image = icon_family
+                                                                                .get_icon_with_type(
+                                                                                    IconType::Mask8_48x48,
+                                                                                );
                                                                             if image.is_err() {
-                                                                                image = icon_family.get_icon_with_type(IconType::Mask8_16x16);
+                                                                                image = icon_family.get_icon_with_type(IconType::Mask8_32x32);
                                                                                 if image.is_err() {
-                                                                                    return icns.to_string_lossy().to_string();
+                                                                                    image = icon_family.get_icon_with_type(IconType::Mask8_16x16);
+                                                                                    if image
+                                                                                        .is_err()
+                                                                                    {
+                                                                                        return icns.to_string_lossy().to_string();
+                                                                                    }
                                                                                 }
                                                                             }
                                                                         }
@@ -1726,24 +1741,24 @@ async fn get_app_icns(path: String) -> String {
                     }
                 }
             }
-        }
 
-        // Save additional icon to read from rdpFX
-        let image = image.unwrap();
-        if !PathBuf::from(&new_img_path).exists() {
-            let file = File::create(&new_img_path);
-            if file.is_err() {
-                return icns.to_string_lossy().to_string();
+            // Save additional icon to read from rdpFX
+            let image = image.unwrap();
+            if !PathBuf::from(&new_img_path).exists() {
+                let file = File::create(&new_img_path);
+                if file.is_err() {
+                    return icns.to_string_lossy().to_string();
+                }
+                let file = file.unwrap();
+                BufWriter::new(&file);
+                image.write_png(file).unwrap();
+                println!("Writing image to: {}", new_img_path);
             }
-            let file = file.unwrap();
-            BufWriter::new(&file);
-            image.write_png(file).unwrap();
-            println!("Writing image to: {}", new_img_path);
-        }
 
-        return new_img_path;
-    } else {
-        return String::from("");
+            return new_img_path;
+        } else {
+            return String::from("");
+        }
     }
 }
 
