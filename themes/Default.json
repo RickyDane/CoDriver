@@ -1,0 +1,11 @@
+{
+  "name": "Default",
+  "primary_color": "#3f4352",
+  "secondary_color": "rgba(56, 59, 71, 1)",
+  "tertiary_color": "#474b5c",
+  "text_color": "rgba(255, 255, 255, 0.8)",
+  "text_color2": "rgba(255, 255, 255, 0.6)",
+  "text_color3": "rgb(255, 255, 255)",
+  "transparent_color": "rgba(0, 0, 0, 0.15)",
+  "transparent_color_active": "rgba(0, 0, 0, 0.25)"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Hacker",
+  "primary_color": "rgb(10, 10, 10)",
+  "secondary_color": "rgb(20, 20, 20)",
+  "tertiary_color": "rgb(0, 100, 0)",
+  "text_color": "rgb(0, 225, 0)",
+  "text_color2": "rgb(0, 200, 0)",
+  "text_color3": "rgb(0, 225, 0)",
+  "transparent_color": "rgba(0, 200, 0, 0.15)",
+  "transparent_color_active": "rgba(0, 200, 0, 0.25)"
+}
