@@ -1003,7 +1003,20 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       DirectoryList.style.gridTemplateColumns = "unset";
       DirectoryList.style.rowGap = "2px";
     }
-    if (ViewMode == "miller") {
+    else if (ViewMode == "miller") {
+      var itemButtonList = document.createElement("div");
+      itemButtonList.innerHTML = `
+			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
+			<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+			<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+			</span>
+			`;
+      if (dualPaneSide != null && dualPaneSide != "") {
+        itemButtonList.className = "directory-entry dual-pane-list-item";
+      } else {
+        itemButtonList.className = "item-button-list directory-entry";
+      }
+      newRow.append(itemButtonList);
       DirectoryList.style.gridTemplateColumns = "unset";
       DirectoryList.style.rowGap = "1px";
     }
@@ -1285,11 +1298,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       LeftDualPanePath = RightDualPanePath = CurrentDir;
     }
   } else if (ViewMode == "miller") {
-    document.querySelector(".miller-col-" + millerCol).innerHTML = "";
-    document.querySelector(".miller-col-" + millerCol).append(DirectoryList);
-    document
-      .querySelector(".miller-col-" + millerCol)
-      .setAttribute("miller-col-path", CurrentDir);
+    $(".miller-col-" + millerCol)?.html("");
+    $(".miller-col-" + millerCol)?.append(DirectoryList);
+    $(".miller-col-" + millerCol)?.attr("miller-col-path", CurrentDir);
     CurrentMillerCol = millerCol;
   } else {
     document.querySelector(".explorer-container").innerHTML = "";
@@ -1880,7 +1891,7 @@ async function getCurrentDir() {
   });
 }
 
-async function setCurrentDir(currentDir, dualPaneSide = "") {
+async function setCurrentDir(currentDir = "", dualPaneSide = "") {
   CurrentDir = currentDir;
   if (dualPaneSide != "") {
     SelectedItemPaneSide = dualPaneSide;
@@ -3263,30 +3274,28 @@ async function switchView() {
       document.querySelector(".list-column-header").style.display = "flex";
       ViewMode = "column";
     } else if (ViewMode == "column" && IsShowDisks == false) {
-      if (IsShowDisks == false) {
+
         document.querySelector(".list-column-header").style.display = "none";
-        document.querySelector(".switch-view-button").innerHTML =
-          `<i class="fa-solid fa-grip"></i>`;
+        document.querySelector(".switch-view-button").innerHTML =`<i class="fa-solid fa-grip"></i>`;
         document.querySelector(".miller-container").style.display = "flex";
-        document.querySelector(".miller-column").style.display = "block";
-        document.querySelector(".non-dual-pane-container").style.display =
-          "none";
-        document.querySelectorAll(".item-button-list").forEach((item) => {
-          item.children[0].style.textOverflow = "ellipsis";
-          item.children[1].style.display = "none";
-        });
+        document.querySelector(".miller-column").style.display = "flex";
+        document.querySelector(".non-dual-pane-container").style.display = "none";
+        // document.querySelectorAll(".item-button-list").forEach((item) => {
+        //   item.children[0].style.textOverflow = "ellipsis";
+        //   item.children[1].style.display = "none";
+        // });
         document.querySelectorAll(".explorer-container").forEach((item) => {
           item.style.height = "calc(100vh - 85px)";
           item.style.marginTop = "0";
-          item.style.padding = "10px 20px";
+          item.style.padding = "5px 10px";
         });
         document.querySelectorAll(".directory-list").forEach((list) => {
-          // list.style.flexFlow = "column";
+          list.style.flexFlow = "column";
           list.style.gridTemplateColumns = "unset";
           list.style.rowGap = "2px";
         });
         ViewMode = "miller";
-      }
+
     } else if (ViewMode == "miller" || IsShowDisks == true) {
       document.querySelector(".explorer-container").style.width = "100%";
       document.querySelectorAll(".directory-list").forEach((list) => {
@@ -3317,6 +3326,9 @@ async function switchView() {
         item.style.marginTop = "0";
         if (IsShowDisks == true) {
           item.style.padding = "10px";
+        }
+        else {
+          item.style.padding = "10px 20px";
         }
       });
       ViewMode = "wrap";
