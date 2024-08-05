@@ -589,7 +589,14 @@ async fn search_for(
     file_content: String,
     app_window: Window,
 ) {
-    dbg_log(format!("Start searching for: {} with depth: {}, max items: {}, content: {}", &file_name, search_depth, max_items, &file_content));
+    dbg_log(format!(
+        "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}",
+        &file_name,
+        search_depth,
+        max_items,
+        &file_content,
+        num_cpus::get()
+    ));
     let temp_file_name = String::from(&file_name);
     if temp_file_name.split(".").nth(0).unwrap().contains("*") {
         file_name = temp_file_name.trim().replace("*", "");
@@ -616,7 +623,7 @@ async fn search_for(
                 search_depth as u32,
                 file_name,
                 max_items,
-                &|item| {
+                &|item: DirWalkerEntry| {
                     let _ = app_window.emit_all(
                         "addSingleItem",
                         serde_json::to_string(&item).unwrap().to_string(),
