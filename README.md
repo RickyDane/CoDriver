@@ -99,10 +99,14 @@ rdpFX does not use path caching to access files and folders, so the performance 
 
 ## User interface
 
-<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/234f3761-252c-481e-aa20-0980ec7defdd" />
-<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/88659fd9-5376-49dd-ad0b-4d1013a2079e" />
-<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/40d4cfd8-3d0e-4158-aa0d-1ce711d4d517" />
-<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/59d4d1ce-f837-4638-8ad4-87e163423660" />
+### List style
+![Screenshot 2024-08-05 at 22 14 26](https://github.com/user-attachments/assets/88c12d18-bfce-4b0e-ab6a-1a1d06a358b1)
+### Grid style
+![Screenshot 2024-08-05 at 22 15 49](https://github.com/user-attachments/assets/62c35ae9-f548-4f81-ab34-f70bfc5a7ba5)
+### Dual pane view
+![Screenshot 2024-08-05 at 22 16 21](https://github.com/user-attachments/assets/5004af5f-9755-4fec-af88-677812ff3246)
+### Miller column view
+![Screenshot 2024-08-05 at 22 15 44](https://github.com/user-attachments/assets/b8da7a2a-8a5e-432e-8e07-196177ee0363)
 
 ## Speed comparison
 Windows File Explorer: _39.83 sec._<br/>
