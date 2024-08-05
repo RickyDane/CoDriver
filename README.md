@@ -97,6 +97,24 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Access online storage services (Google drive, etc.)
 <br/>
 
+## User interface
+
+<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/234f3761-252c-481e-aa20-0980ec7defdd" />
+<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/88659fd9-5376-49dd-ad0b-4d1013a2079e" />
+<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/40d4cfd8-3d0e-4158-aa0d-1ce711d4d517" />
+<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/59d4d1ce-f837-4638-8ad4-87e163423660" />
+
+## Speed comparison
+Windows File Explorer: _39.83 sec._<br/>
+rdpFX: **_0.81 sec._**
+
+https://github.com/user-attachments/assets/17116fa5-8f43-4339-a4ff-2525e7c94ae0
+
+Windows File Explorer: _44.91 sec._<br/>
+rdpFX: **_< 0.5 sec._**
+
+https://github.com/user-attachments/assets/169da3d0-06ac-4775-a631-5c5708ae4766
+
 ## Star History
 
 <a href="https://star-history.com/#rickydane/rdpfx&Date">
@@ -106,13 +124,3 @@ rdpFX does not use path caching to access files and folders, so the performance 
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=rickydane/rdpfx&type=Date" />
  </picture>
 </a>
-
-<br/><br/>
-
-<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/234f3761-252c-481e-aa20-0980ec7defdd" />
-<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/88659fd9-5376-49dd-ad0b-4d1013a2079e" />
-<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/40d4cfd8-3d0e-4158-aa0d-1ce711d4d517" />
-<img width="700" src="https://github.com/RickyDane/rdpFX/assets/82893522/59d4d1ce-f837-4638-8ad4-87e163423660" />
-
-## Speed comparison
-![2023-08-27-08-14-02](https://github.com/RickyDane/rdpFX/assets/82893522/237b28a0-d667-4bea-91a9-a43cb9277c49)
