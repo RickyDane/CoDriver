@@ -51,6 +51,9 @@ rdpFX does not use path caching to access files and folders, so the performance 
 - Drag and drop files into the explorer to copy them into the current directory
 - Multi rename your selection with Ctrl / Cmd + LShift + M
   - Run multi rename with Ctrl / Cmd + Return
+- File quick preview -> Select directory entry and tap the space bar.
+  - Supported files: all image files (.jpg, .png, ...), pdf's
+  - All other items will show a small tile with some information about it. (path, size, last modified)
 <br/>
 
 ## 🖥️ FTP integration (sshfs)
