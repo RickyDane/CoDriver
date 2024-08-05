@@ -320,24 +320,23 @@ impl DirWalker {
                     .unwrap()
                     .to_string()
                     .to_lowercase();
+
             let search_pattern = file_name.to_lowercase();
+
             let file_metadata = fs::metadata(&path);
             if file_metadata.is_err() {
                 continue;
             }
+
             let last_mod: DateTime<Utc> = file_metadata.unwrap().modified().unwrap().clone().into();
+
             let matching_score = matcher
                 .fuzzy_match(&item_path, &search_pattern)
                 .unwrap_or_else(|| 0);
-            // !reg_exp.is_match(&item_path)
+
             if matching_score == 0 && path.is_file() && !path.is_dir() {
                 continue;
             }
-
-            // println!(
-            //     "Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}",
-            //     matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file()
-            // );
 
             if !fs::metadata(&path).is_ok()
                 || (self.exts.len() > 0
@@ -347,18 +346,7 @@ impl DirWalker {
             {
                 continue;
             }
-            if path.is_dir() && matching_score > 0 {
-                println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path,matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file());
-                callback(DirWalkerEntry {
-                    name: item.file_name().to_str().unwrap().to_string(),
-                    path: path.to_str().unwrap().to_string().replace("\\", "/"),
-                    depth: depth,
-                    is_dir: true,
-                    is_file: false,
-                    extension: item_ext,
-                    last_modified: format!("{:?}", last_mod),
-                    size: fs::metadata(&path).unwrap().len(),
-                });
+            if path.is_dir() {
                 self.search(
                     &path.clone().to_str().unwrap(),
                     depth,
@@ -366,7 +354,20 @@ impl DirWalker {
                     max_items,
                     callback,
                 );
-            } else if path.is_file() && matching_score > 0{
+                if matching_score > 0 {
+                    println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path,matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file());
+                    callback(DirWalkerEntry {
+                        name: item.file_name().to_str().unwrap().to_string(),
+                        path: path.to_str().unwrap().to_string().replace("\\", "/"),
+                        depth: depth,
+                        is_dir: true,
+                        is_file: false,
+                        extension: item_ext,
+                        last_modified: format!("{:?}", last_mod),
+                        size: fs::metadata(&path).unwrap().len(),
+                    });
+                }
+            } else if path.is_file() && matching_score > 0 {
                 println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path,matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file());
                 callback(DirWalkerEntry {
                     name: item.file_name().to_str().unwrap().to_string(),

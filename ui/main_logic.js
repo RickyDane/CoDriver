@@ -3163,6 +3163,7 @@ async function searchFor(
       maxItems,
       searchDepth,
       fileContent,
+      appWindow
     });
   } else {
     alert("Type in a minimum of 2 characters");

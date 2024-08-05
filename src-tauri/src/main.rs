@@ -589,7 +589,7 @@ async fn search_for(
     file_content: String,
     app_window: Window,
 ) {
-    dbg_log(format!("Start searching for: {}", &file_name));
+    dbg_log(format!("Start searching for: {} with depth: {}, max items: {}, content: {}", &file_name, search_depth, max_items, &file_content));
     let temp_file_name = String::from(&file_name);
     if temp_file_name.split(".").nth(0).unwrap().contains("*") {
         file_name = temp_file_name.trim().replace("*", "");
@@ -600,10 +600,11 @@ async fn search_for(
             .split(".")
             .nth(file_name.split(".").count() - 1)
             .unwrap_or("");
+
     println!("");
 
     let sw = Stopwatch::start_new();
-    // let mut search: Vec<String> = vec![];
+
     if file_ext != ".".to_string().to_owned() + &file_name {
         unsafe {
             COUNT_CALLED_BACK = 0;
