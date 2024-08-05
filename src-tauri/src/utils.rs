@@ -277,9 +277,6 @@ impl DirWalker {
         max_items: i32,
         callback: &impl Fn(DirWalkerEntry),
     ) {
-        // if self.depth >= depth {
-        //     return;
-        // }
         let dir_depth = path
             .split(current_dir().unwrap().to_str().unwrap())
             .last()
@@ -287,14 +284,6 @@ impl DirWalker {
             .split("/")
             .count()
             - 1;
-        // println!("Dir depth: {}", dir_depth);
-
-        // let reg_exp = build_regex_search_input(
-        //     Some(&file_name),
-        //     Some(self.exts.first().unwrap_or(&"".to_string()).as_str()),
-        //     false,
-        //     true,
-        // );
 
         let reg_exp: Regex;
 
@@ -341,23 +330,6 @@ impl DirWalker {
 
                 let last_mod: DateTime<Utc> = file_metadata.unwrap().modified().unwrap().clone().into();
 
-                // let matching_score = matcher
-                    // .fuzzy_match(&item_path, &search_pattern)
-                    // .unwrap_or_else(|| 0);
-
-                // if ! && path.is_file() && !path.is_dir() {
-                //     return;
-                // }
-
-                // if !fs::metadata(&path).is_ok()
-                //     || (self.exts.len() > 0
-                //         && path.is_file()
-                //         && !path.is_dir()
-                //         && !self.exts.contains(&item_ext))
-                // {
-                //     return;
-                // }
-                
                 if reg_exp.is_match(&name) && (self.exts.len() > 0 && self.exts.contains(&item_ext) || self.exts.len() == 0) {
                     println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path, 0, &item_path, &search_pattern, path.is_dir(), path.is_file());
                     callback(DirWalkerEntry {
@@ -372,84 +344,6 @@ impl DirWalker {
                     });
                 }
             });
-
-        // let dir = fs::read_dir(path);
-        // if dir.is_err() {
-        //     return;
-        // }
-        // for entry in dir.unwrap() {
-        //     // let entry: Result<DirEntry, Error> = entry;
-        //     let item = entry.unwrap();
-        //     let path = item.path();
-        //     let item_path = item.file_name().clone().to_str().unwrap().to_lowercase();
-        //     let item_ext = ".".to_owned()
-        //         + &item_path
-        //             .split(".")
-        //             .last()
-        //             .unwrap()
-        //             .to_string()
-        //             .to_lowercase();
-
-        //     let search_pattern = file_name.to_lowercase();
-
-        //     let file_metadata = fs::metadata(&path);
-        //     if file_metadata.is_err() {
-        //         continue;
-        //     }
-
-        //     let last_mod: DateTime<Utc> = file_metadata.unwrap().modified().unwrap().clone().into();
-
-        //     let matching_score = matcher
-        //         .fuzzy_match(&item_path, &search_pattern)
-        //         .unwrap_or_else(|| 0);
-
-        //     if matching_score == 0 && path.is_file() && !path.is_dir() {
-        //         continue;
-        //     }
-
-        //     if !fs::metadata(&path).is_ok()
-        //         || (self.exts.len() > 0
-        //             && path.is_file()
-        //             && !path.is_dir()
-        //             && !self.exts.contains(&item_ext))
-        //     {
-        //         continue;
-        //     }
-        //     if path.is_dir() {
-        //         self.search(
-        //             &path.clone().to_str().unwrap(),
-        //             depth,
-        //             file_name.clone(),
-        //             max_items,
-        //             callback,
-        //         );
-        //         if matching_score > 0 {
-        //             println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path,matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file());
-        //             callback(DirWalkerEntry {
-        //                 name: item.file_name().to_str().unwrap().to_string(),
-        //                 path: path.to_str().unwrap().to_string().replace("\\", "/"),
-        //                 depth: depth,
-        //                 is_dir: true,
-        //                 is_file: false,
-        //                 extension: item_ext,
-        //                 last_modified: format!("{:?}", last_mod),
-        //                 size: fs::metadata(&path).unwrap().len(),
-        //             });
-        //         }
-        //     } else if path.is_file() && matching_score > 0 {
-        //         println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path,matching_score, &item_path, &search_pattern, path.is_dir(), path.is_file());
-        //         callback(DirWalkerEntry {
-        //             name: item.file_name().to_str().unwrap().to_string(),
-        //             path: path.to_str().unwrap().to_string().replace("\\", "/"),
-        //             depth: depth,
-        //             is_dir: false,
-        //             is_file: true,
-        //             extension: item_ext,
-        //             last_modified: format!("{:?}", last_mod),
-        //             size: fs::metadata(&path).unwrap().len(),
-        //         });
-        //     }
-        // }
     }
 
     pub fn depth(&mut self, depth: u32) -> &mut Self {
