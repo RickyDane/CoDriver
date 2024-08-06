@@ -284,6 +284,7 @@ impl DirWalker {
         depth: u32,
         file_name: String,
         max_items: i32,
+        is_quick_search: bool,
         callback: &impl Fn(DirWalkerEntry),
     ) {
         let reg_exp: Regex;
@@ -336,7 +337,7 @@ impl DirWalker {
 
             if reg_exp.is_match(&name)
                 && (self.exts.len() > 0 && self.exts.contains(&item_ext)
-                    || path.is_file() && self.exts.len() == 0)
+                    || path.is_file() && self.exts.len() == 0 || is_quick_search)
             {
                 callback(DirWalkerEntry {
                     name,
