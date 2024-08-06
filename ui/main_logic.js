@@ -694,6 +694,7 @@ document
 
 // Main function to handle directory visualization
 async function showItems(items, dualPaneSide = "", millerCol = 1) {
+	await cancelSearch();
 	await getCurrentDir();
 	IsShowDisks = false;
 	// Check which tab is currently active and write CurrentDir to TabOnePath and so on
@@ -3503,6 +3504,7 @@ async function saveConfig(isToReload = true) {
 	if (isToReload == true) {
 		checkAppConfig();
 	}
+	showToast("Settings", "Settings have been saved", "success");
 }
 
 async function addFavorites(item) {

@@ -602,8 +602,13 @@ async fn search_for(
 ) {
     unsafe {
         IS_SEARCHING = true;
+        COUNT_CALLED_BACK = 0;
     }
     let _ = app_window.eval("$('.file-searching-file-count').css('display', 'block')");
+    let _ = app_window.eval(&format!(
+        "$('.file-searching-file-count').html('{} items found')",
+        unsafe { COUNT_CALLED_BACK }
+    ));
     dbg_log(format!(
         "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}",
         &file_name,
@@ -626,9 +631,6 @@ async fn search_for(
     let sw = Stopwatch::start_new();
 
     if file_ext != ".".to_string().to_owned() + &file_name {
-        unsafe {
-            COUNT_CALLED_BACK = 0;
-        }
         let _ = DirWalker::new()
             .set_ext(vec![file_ext.to_lowercase()])
             .search(
