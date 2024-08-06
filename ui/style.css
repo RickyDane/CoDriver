@@ -1193,6 +1193,9 @@ label {
 .file-searching-done {
     font-size: var(--fontSize);
 }
+.file-searching-file-count {
+    font-size: var(--fontSize);
+}
 
 .context-menu {
     width: 150px;
@@ -1625,7 +1628,7 @@ label {
     flex-flow: row;
     overflow: hidden;
     background-color: var(--primaryColor);
-    border: 1px solid var(--tertiaryColor);
+    border: 2px solid var(--tertiaryColor);
     backdrop-filter: blur(10px);
     /* -webkit-backdrop-filter: blur(10px); */
 }
@@ -1644,7 +1647,8 @@ label {
 }
 
 .toast-info {
-    background-color: var(--transparentColor);
+    background-color: var(--primaryColor);
+	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
 }
 
 .toast-error {
@@ -1719,6 +1723,9 @@ label {
     padding: 5px;
     margin: auto;
     color: var(--textColor2);
+	font-size: var(--fontSize);
+	font-weight: bolder !important;
+	text-shadow: 0px 0px 15px black;
 }
 
 .progress-bar-text-2 {
@@ -1732,6 +1739,7 @@ label {
     width: 100%;
     padding: 10px;
     text-align: right;
+	text-shadow: 0px 0px 15px black;
 }
 
 .progress-bar-2 {

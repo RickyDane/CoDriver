@@ -119,7 +119,8 @@ fn main() {
             get_thumbnail,
             install_dep,
             get_dir_size,
-            get_themes
+            get_themes,
+            stop_searching
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -580,6 +581,16 @@ async fn go_home() -> Vec<FDir> {
     return list_dirs().await;
 }
 
+#[tauri::command]
+async fn stop_searching() {
+    println!("Stopped searching: {}", unsafe { IS_SEARCHING });
+    unsafe {
+        IS_SEARCHING = false;
+        COUNT_CALLED_BACK = 0;
+    }
+}
+
+static mut IS_SEARCHING: bool = false;
 static mut COUNT_CALLED_BACK: i32 = 0;
 #[tauri::command]
 async fn search_for(
@@ -589,6 +600,10 @@ async fn search_for(
     file_content: String,
     app_window: Window,
 ) {
+    unsafe {
+        IS_SEARCHING = true;
+    }
+    let _ = app_window.eval("$('.file-searching-file-count').css('display', 'block')");
     dbg_log(format!(
         "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}",
         &file_name,
@@ -624,13 +639,19 @@ async fn search_for(
                 file_name,
                 max_items,
                 &|item: DirWalkerEntry| {
-                    let _ = app_window.emit_all(
-                        "addSingleItem",
-                        serde_json::to_string(&item).unwrap().to_string(),
-                    );
+                    let _ = app_window
+                        .emit_all(
+                            "addSingleItem",
+                            serde_json::to_string(&item).unwrap().to_string(),
+                        )
+                        .expect("Failed to emit");
                     unsafe {
                         COUNT_CALLED_BACK += 1;
                     }
+                    let _ = app_window.eval(&format!(
+                        "$('.file-searching-file-count').html('{} items found')",
+                        unsafe { COUNT_CALLED_BACK }
+                    ));
                 },
             );
     } else {
@@ -643,24 +664,36 @@ async fn search_for(
             file_name,
             max_items,
             &|item| {
-                let _ = app_window.emit_all(
-                    "addSingleItem",
-                    serde_json::to_string(&item).unwrap().to_string(),
-                );
+                let _ = app_window
+                    .emit_all(
+                        "addSingleItem",
+                        serde_json::to_string(&item).unwrap().to_string(),
+                    )
+                    .expect("Failed to emit");
                 unsafe {
                     COUNT_CALLED_BACK += 1;
                 }
+                let _ = app_window.eval(&format!(
+                    "$('.file-searching-file-count').html('{} items found')",
+                    unsafe { COUNT_CALLED_BACK }
+                ));
             },
         );
     }
-    let _ = app_window.eval("$('.is-file-searching').css('display', 'none')");
+    unsafe {
+        IS_SEARCHING = false;
+    }
     let _ = app_window.eval("$('.file-searching-done').css('display', 'block')");
+    let _ = app_window.eval("$('.is-file-searching').css('display', 'none')");
     let _ = app_window.eval(&format!(
         "$('.file-searching-done').html('Searching done in: {:.2} sec.!')",
         sw.elapsed().as_millis() as f64 / 1000.0
     ));
     let _ =
         app_window.eval("setTimeout(() => $('.file-searching-done').css('display', 'none'), 1500)");
+    let _ = app_window.eval("setTimeout(() => $('.file-searching-done').html(''), 1500)");
+    let _ = app_window
+        .eval("setTimeout(() => $('.file-searching-file-count').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
 
     // let mut dir_list: Vec<FDir> = Vec::new();
