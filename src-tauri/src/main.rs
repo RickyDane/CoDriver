@@ -599,6 +599,7 @@ async fn search_for(
     search_depth: i32,
     file_content: String,
     app_window: Window,
+    is_quick_search: bool,
 ) {
     unsafe {
         IS_SEARCHING = true;
@@ -638,6 +639,7 @@ async fn search_for(
                 search_depth as u32,
                 file_name,
                 max_items,
+                is_quick_search,
                 &|item: DirWalkerEntry| {
                     let _ = app_window
                         .emit_all(
@@ -663,6 +665,7 @@ async fn search_for(
             search_depth as u32,
             file_name,
             max_items,
+            is_quick_search,
             &|item| {
                 let _ = app_window
                     .emit_all(

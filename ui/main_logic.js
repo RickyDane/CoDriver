@@ -2635,10 +2635,7 @@ async function listDisks() {
 }
 
 async function listDirectories(fromDualPaneCopy = false) {
-	let lsItems = [];
-	await invoke("list_dirs").then(async (items) => {
-		lsItems = items;
-	});
+	let lsItems = await invoke("list_dirs");
 	if (IsDualPaneEnabled == true) {
 		if (fromDualPaneCopy == true) {
 			if (SelectedItemPaneSide == "left") {
@@ -3174,7 +3171,8 @@ async function searchFor(
 			maxItems,
 			searchDepth,
 			fileContent,
-			appWindow
+			appWindow,
+			isQuickSearch
 		});
 	} else {
 		alert("Type in a minimum of 2 characters");
@@ -3264,9 +3262,9 @@ async function switchView() {
 			document
 				.querySelectorAll(".disk-item-button-button")
 				.forEach((item) => (item.style.display = "none"));
-			document
-				.querySelectorAll(".item-button-list")
-				.forEach((item) => (item.children[1].style.display = "flex"));
+			// document
+			// 	.querySelectorAll(".item-button-list")
+			// 	.forEach((item) => (item.children[1].style.display = "flex"));
 			document.querySelectorAll(".explorer-container").forEach((item) => {
 				item.style.height = "calc(100vh - 115px)";
 				item.style.marginTop = "30px";
