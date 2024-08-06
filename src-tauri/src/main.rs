@@ -346,7 +346,7 @@ async fn list_disks() -> Vec<DisksInfo> {
         let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
         for mount in ls_sshfs_mounts {
             let mount = mount.unwrap();
-            println!("{:?} || {:?}", mount.file_name(), mount.path());
+            dbg_log(format!("{:?} || {:?}", mount.file_name(), mount.path()));
             ls_disks.push(DisksInfo {
                 name: format!("{:?}", mount.file_name())
                     .split("/")
@@ -472,7 +472,7 @@ async fn open_dir(path: String) -> Vec<FDir> {
     let _ = set_current_dir(&path);
     unsafe {
         PATH_HISTORY.push(path);
-        println!("Path history: {:?}", PATH_HISTORY);
+        dbg_log(format!("Path history: {:?}", PATH_HISTORY));
     }
     return list_dirs().await;
 }
@@ -482,7 +482,7 @@ async fn go_back() -> Vec<FDir> {
     unsafe {
         if PATH_HISTORY.len() > 1 {
             let last_path = &PATH_HISTORY[PATH_HISTORY.len() - 2];
-            println!("Went back to: {}", last_path);
+            dbg_log(format!("Went back to: {}", last_path));
             let _ = set_current_dir(last_path);
             PATH_HISTORY.pop();
         } else {
@@ -542,7 +542,7 @@ async fn mount_sshfs(
         .expect("Failed to start sshfs process");
 
     // Write the password to stdin of the sshfs process
-    println!("Connecting to {}", remote_address);
+    dbg_log(format!("Connecting to {}", remote_address));
     let stdin = child.stdin.as_mut().expect("Failed to open stdin");
     stdin
         .write_all(password.as_bytes())
@@ -553,7 +553,7 @@ async fn mount_sshfs(
         .expect("Failed to read sshfs output");
 
     if output.status.success() {
-        println!("Mounted {} to {}", remote_address, mount_point);
+        dbg_log(format!("Mounted {} to {}", remote_address, mount_point));
     } else {
         wng_log(format!(
             "Failed to mount: {}",
@@ -583,7 +583,7 @@ async fn go_home() -> Vec<FDir> {
 
 #[tauri::command]
 async fn stop_searching() {
-    println!("Stopped searching: {}", unsafe { IS_SEARCHING });
+    dbg_log(format!("Stopped searching: {}", unsafe { IS_SEARCHING }));
     unsafe {
         IS_SEARCHING = false;
         COUNT_CALLED_BACK = 0;
@@ -622,8 +622,6 @@ async fn search_for(
             .split(".")
             .nth(file_name.split(".").count() - 1)
             .unwrap_or("");
-
-    println!("");
 
     let sw = Stopwatch::start_new();
 
@@ -695,101 +693,6 @@ async fn search_for(
     let _ = app_window
         .eval("setTimeout(() => $('.file-searching-file-count').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
-
-    // let mut dir_list: Vec<FDir> = Vec::new();
-    // for item in search {
-    //     file_ext = ".".to_string().to_owned()
-    //         + item
-    //             .split(".")
-    //             .nth(item.split(".").count() - 1)
-    //             .unwrap_or("");
-    //     let item = item.replace("\\", "/");
-    //     let temp_item = &item.split("/").collect::<Vec<&str>>();
-    //     let name = &temp_item[*&temp_item.len() - 1];
-    //     let path = &item.replace("\\", "/");
-    //     let temp_file = fs::metadata(&item);
-    //     let file_size: String;
-    //     let file_date: DateTime<Utc>;
-
-    //     if &temp_file.is_ok() == &true {
-    //         file_size = String::from(fs::metadata(&item).unwrap().len().to_string());
-    //         file_date = fs::metadata(&item)
-    //             .unwrap()
-    //             .modified()
-    //             .unwrap()
-    //             .clone()
-    //             .into();
-    //     } else {
-    //         continue;
-    //     }
-
-    //     // Check if the item is a directory
-    //     let is_dir_int;
-    //     if &temp_file.is_ok() == &true && *&temp_file.unwrap().is_dir() {
-    //         is_dir_int = 1;
-    //     } else {
-    //         is_dir_int = 0;
-    //     }
-
-    //     // Don't include the directory searched in
-    //     if path == current_dir().unwrap().to_str().unwrap() {
-    //         continue;
-    //     }
-
-    //     // Search for file contents
-    //     if *&file_content.as_str() != "" {
-    //         let check_file = fs::File::open(&path);
-    //         let mut file: File;
-    //         if &check_file.is_ok() == &true {
-    //             file = check_file.unwrap();
-    //         } else {
-    //             err_log("Couldn't access file. Probably due to insufficient permissions".into());
-    //             continue;
-    //         }
-    //         let mut buffer = String::from("");
-    //         // dbg_log(format!("Checking {}", &path));
-
-    //         if &file.metadata().unwrap().is_dir() == &false {
-    //             file.read_to_string(&mut buffer).unwrap_or_else(|x| {
-    //                 err_log(format!("Error reading: {}", x));
-    //                 0 as usize
-    //             });
-    //             for (_idx, line) in buffer.lines().enumerate() {
-    //                 if line.contains(&file_content) {
-    //                     dir_list.push(FDir {
-    //                         name: name.to_string(),
-    //                         is_dir: is_dir_int,
-    //                         path: path.to_string(),
-    //                         extension: String::from(&file_ext),
-    //                         size: file_size.clone(),
-    //                         last_modified: String::from(
-    //                             file_date.to_string().split(".").nth(0).unwrap(),
-    //                         ),
-    //                     });
-    //                     break;
-    //                 } else {
-    //                     continue;
-    //                 }
-    //             }
-    //         }
-    //     } else {
-    //         dir_list.push(FDir {
-    //             name: name.to_string(),
-    //             is_dir: is_dir_int,
-    //             path: path.to_string(),
-    //             extension: String::from(&file_ext),
-    //             size: file_size,
-    //             last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-    //         });
-    //     }
-    // }
-    // if dir_list.len() == 0 {
-    //     wng_log("No item found ".into());
-    // }
-    // dbg_log(format!("Search took: {:?}", sw.elapsed()));
-    // dbg_log(format!("{} items found", dir_list.len()));
-    // dir_list.sort_by_key(|a| a.name.to_lowercase());
-    // return dir_list;
 }
 
 #[tauri::command]
@@ -1433,7 +1336,7 @@ async fn get_df_dir(number: u8) -> String {
 
 #[tauri::command]
 async fn download_yt_video(app_window: Window, url: String, quality: String) {
-    println!("Downloading {} as {}", url, quality);
+    dbg_log(format!("Downloading {} as {}", url, quality));
     let chosen_quality = match quality.as_str() {
         "lowestvideo" => VideoQuality::LowestVideo,
         "lowestaudio" => VideoQuality::LowestAudio,
@@ -1442,7 +1345,7 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
         _ => VideoQuality::HighestVideo,
     };
 
-    println!("Chosen quality: {:?}", chosen_quality);
+    dbg_log(format!("Chosen quality: {:?}", chosen_quality));
 
     let video_options = VideoOptions {
         quality: chosen_quality,
@@ -1793,7 +1696,7 @@ async fn get_app_icns(path: String) -> String {
                 let file = file.unwrap();
                 BufWriter::new(&file);
                 image.write_png(file).unwrap();
-                println!("Writing image to: {}", new_img_path);
+                dbg_log(format!("Writing image to: {}", new_img_path));
             }
 
             return new_img_path;
@@ -1808,10 +1711,10 @@ async fn get_thumbnail(image_path: String) -> String {
     let item = image::open(&image_path);
 
     if item.is_err() {
-        println!(
+        dbg_log(format!(
             "Couldn't load image for thumbnail: {}",
             &image_path.split("/").last().unwrap()
-        );
+        ));
         return image_path;
     }
     let item = item.unwrap();
@@ -1828,14 +1731,14 @@ async fn get_thumbnail(image_path: String) -> String {
     let new_thumbnail_path = thumbnails_dir.join(image_path.clone().split("/").last().unwrap());
 
     if PathBuf::from(&new_thumbnail_path).exists() {
-        println!("Getting thumbnail for: {}", image_path);
+        dbg_log(format!("Getting thumbnail for: {}", image_path));
         return new_thumbnail_path.to_string_lossy().to_string();
     }
 
-    println!(
+    dbg_log(format!(
         "Saving thumbnail for: {}",
         image_path.split("/").last().unwrap()
-    );
+    ));
 
     let _ = thumbnail
         .save_with_format(
@@ -1853,16 +1756,20 @@ async fn install_dep(dep_name: String) {
     let package = Package::new(&dep_name);
     if package.is_err() {
         let err = package.err();
-        println!(
+        dbg_log(format!(
             "Installation of dependency not possible: {:?}",
             err.unwrap()
-        );
+        ));
         return;
     }
     let package = package.unwrap();
     if !package.is_installed() {
         let package_result = package.install(&brew::Options::new().head().force().env_std());
-        println!("{} = {}", dep_name, package_result.unwrap().is_installed());
+        dbg_log(format!(
+            "{} = {}",
+            dep_name,
+            package_result.unwrap().is_installed()
+        ));
     }
 }
 

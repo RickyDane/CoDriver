@@ -1,10 +1,8 @@
 use chrono::prelude::*;
 use color_print::cprintln;
-use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use regex::Regex;
 use serde::Serialize;
 use std::{
-    env::current_dir,
     ffi::OsStr,
     fmt::Debug,
     fs::{self, File},
@@ -13,7 +11,6 @@ use std::{
 use stopwatch::Stopwatch;
 use tar::Archive as TarArchive;
 use tauri::Window;
-const FUZZY_SEARCH: &str = r".*";
 
 #[allow(unused_imports)]
 use crate::ISCANCELED;
@@ -306,7 +303,7 @@ impl DirWalker {
         {
             unsafe {
                 if IS_SEARCHING == false && COUNT_CALLED_BACK < max_items {
-                    println!("Interrupted searching");
+                    dbg_log("Interrupted searching".into());
                     return;
                 }
                 if COUNT_CALLED_BACK >= max_items || IS_SEARCHING == false {
@@ -416,29 +413,4 @@ pub fn unpack_tar(file: File) {
         let mut file = file.unwrap();
         let _ = file.unpack_in("Unpacked_Archive").unwrap_or_default();
     }
-}
-
-pub fn build_regex_search_input(
-    search_input: Option<&str>,
-    file_ext: Option<&str>,
-    strict: bool,
-    ignore_case: bool,
-) -> Regex {
-    let file_type = file_ext.unwrap_or("*");
-    let search_input = search_input.unwrap_or(r"\w+");
-
-    let mut formatted_search_input = if strict {
-        format!(r#"{search_input}\.{file_type}$"#)
-    } else {
-        format!(r#"{search_input}{FUZZY_SEARCH}\.{file_type}$"#)
-    };
-
-    if ignore_case {
-        formatted_search_input = set_case_insensitive(&formatted_search_input);
-    }
-    Regex::new(&formatted_search_input).unwrap()
-}
-
-fn set_case_insensitive(formatted_search_input: &str) -> String {
-    "(?i)".to_owned() + formatted_search_input
 }
