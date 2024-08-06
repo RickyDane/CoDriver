@@ -15,7 +15,7 @@
 
 <br/><br/>
 
-The performance is provided by ["rust_search"](https://crates.io/crates/rust_search) and ["Tauri"](https://tauri.app/).
+The performance is provided by ["jwalk"](https://crates.io/crates/jwalk/versions) and ["Tauri"](https://tauri.app/).
 <br/><br/>
 rdpFX does not use path caching to access files and folders, so the performance is achieved by Rust, the speed of the disk and the power of the cpu.
 
