@@ -1,19 +1,20 @@
 use chrono::prelude::*;
 use color_print::cprintln;
-use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use regex::Regex;
 use serde::Serialize;
 use std::{
-    env::current_dir, ffi::OsStr, fmt::Debug, fs::{self, File}, io::{BufReader, BufWriter, Read, Write}
+    ffi::OsStr,
+    fmt::Debug,
+    fs::{self, File},
+    io::{BufReader, BufWriter, Read, Write},
 };
 use stopwatch::Stopwatch;
 use tar::Archive as TarArchive;
 use tauri::Window;
-const FUZZY_SEARCH: &str = r".*";
 
-use crate::COUNT_CALLED_BACK;
 #[allow(unused_imports)]
 use crate::ISCANCELED;
+use crate::{COUNT_CALLED_BACK, IS_SEARCHING};
 
 pub static mut COPY_COUNTER: f32 = 0.0;
 pub static mut TO_COPY_COUNTER: f32 = 0.0;
@@ -249,7 +250,11 @@ impl DirWalker {
                     depth: depth,
                     is_dir: true,
                     is_file: false,
-                    extension: path.extension().unwrap_or(&OsStr::new("")).to_string_lossy().to_string(),
+                    extension: path
+                        .extension()
+                        .unwrap_or(&OsStr::new(""))
+                        .to_string_lossy()
+                        .to_string(),
                     last_modified: format!("{:?}", item.metadata().unwrap().modified().unwrap()),
                     size: 0,
                 });
@@ -261,7 +266,11 @@ impl DirWalker {
                     depth: depth,
                     is_dir: false,
                     is_file: true,
-                    extension: path.extension().unwrap_or(&OsStr::new("")).to_string_lossy().to_string(),
+                    extension: path
+                        .extension()
+                        .unwrap_or(&OsStr::new(""))
+                        .to_string_lossy()
+                        .to_string(),
                     last_modified: format!("{:?}", item.metadata().unwrap().modified().unwrap()),
                     size: fs::metadata(&path).unwrap().len(),
                 });
@@ -277,73 +286,70 @@ impl DirWalker {
         max_items: i32,
         callback: &impl Fn(DirWalkerEntry),
     ) {
-        let dir_depth = path
-            .split(current_dir().unwrap().to_str().unwrap())
-            .last()
-            .unwrap()
-            .split("/")
-            .count()
-            - 1;
-
         let reg_exp: Regex;
 
         if !self.exts.is_empty() {
             reg_exp = Regex::new(format!("(?i){}", file_name).as_str()).unwrap();
-        }
-        else {
+        } else {
             reg_exp = Regex::new(format!("(?i){}.*", file_name).as_str()).unwrap();
         }
 
-        let matcher = SkimMatcherV2::default();
-        let search_pattern = file_name.to_lowercase();
-
-        jwalk::WalkDir::new(path)
-            .parallelism(jwalk::Parallelism::RayonNewPool(num_cpus::get()-1))
+        for entry in jwalk::WalkDir::new(path)
+            .parallelism(jwalk::Parallelism::RayonNewPool(num_cpus::get() - 2))
             .sort(true)
             .min_depth(1)
             .max_depth(depth as usize)
             .follow_links(true)
-            .into_iter()
-            .filter_map(Result::ok)
-            .for_each(|entry| {
-                unsafe {
-                    if dir_depth >= depth as usize || COUNT_CALLED_BACK >= max_items {
-                        return;
-                    }
-                }
-
-                let name = entry.file_name().to_str().unwrap().to_string();
-                let path = entry.path();
-                let item_path = entry.file_name().to_str().unwrap().to_lowercase();
-                let item_ext = ".".to_owned()
-                    + &item_path
-                        .split(".")
-                        .last()
-                        .unwrap()
-                        .to_string()
-                        .to_lowercase();
-
-                let file_metadata = fs::metadata(&path);
-                if file_metadata.is_err() {
+        {
+            unsafe {
+                if IS_SEARCHING == false && COUNT_CALLED_BACK < max_items {
+                    dbg_log("Interrupted searching".into());
                     return;
                 }
-
-                let last_mod: DateTime<Utc> = file_metadata.unwrap().modified().unwrap().clone().into();
-
-                if reg_exp.is_match(&name) && (self.exts.len() > 0 && self.exts.contains(&item_ext) || self.exts.len() == 0) {
-                    println!("Calling the callback for: {:?} | Matching score: {}, item path: {:?}, search pattern: {:?}, is dir: {}, is file: {}", path, 0, &item_path, &search_pattern, path.is_dir(), path.is_file());
-                    callback(DirWalkerEntry {
-                        name:  name.clone(),
-                        path: path.to_string_lossy().to_string(),
-                        depth: depth,
-                        is_dir: path.is_dir(),
-                        is_file: path.is_file(),
-                        extension: item_ext,
-                        last_modified: format!("{:?}", last_mod),
-                        size: fs::metadata(&path).unwrap().len(),
-                    });
+                if COUNT_CALLED_BACK >= max_items || IS_SEARCHING == false {
+                    return;
                 }
-            });
+            }
+
+            if entry.is_err() {
+                continue;
+            }
+            let entry = entry.unwrap();
+
+            let name = entry.file_name().to_str().unwrap().to_string();
+            let path = entry.path();
+            let item_path = entry.file_name().to_str().unwrap().to_lowercase();
+            let item_ext = ".".to_owned()
+                + &item_path
+                    .split(".")
+                    .last()
+                    .unwrap()
+                    .to_string()
+                    .to_lowercase();
+
+            let file_metadata = fs::metadata(&path);
+            if file_metadata.is_err() {
+                return;
+            }
+
+            let last_mod: DateTime<Utc> = file_metadata.unwrap().modified().unwrap().into();
+
+            if reg_exp.is_match(&name)
+                && (self.exts.len() > 0 && self.exts.contains(&item_ext)
+                    || path.is_file() && self.exts.len() == 0)
+            {
+                callback(DirWalkerEntry {
+                    name,
+                    path: path.to_string_lossy().to_string(),
+                    depth,
+                    is_dir: path.is_dir(),
+                    is_file: path.is_file(),
+                    extension: item_ext,
+                    last_modified: format!("{:?}", last_mod),
+                    size: fs::metadata(&path).unwrap().len(),
+                });
+            }
+        }
     }
 
     pub fn depth(&mut self, depth: u32) -> &mut Self {
@@ -407,29 +413,4 @@ pub fn unpack_tar(file: File) {
         let mut file = file.unwrap();
         let _ = file.unpack_in("Unpacked_Archive").unwrap_or_default();
     }
-}
-
-pub fn build_regex_search_input(
-    search_input: Option<&str>,
-    file_ext: Option<&str>,
-    strict: bool,
-    ignore_case: bool,
-) -> Regex {
-    let file_type = file_ext.unwrap_or("*");
-    let search_input = search_input.unwrap_or(r"\w+");
-
-    let mut formatted_search_input = if strict {
-        format!(r#"{search_input}\.{file_type}$"#)
-    } else {
-        format!(r#"{search_input}{FUZZY_SEARCH}\.{file_type}$"#)
-    };
-
-    if ignore_case {
-        formatted_search_input = set_case_insensitive(&formatted_search_input);
-    }
-    Regex::new(&formatted_search_input).unwrap()
-}
-
-fn set_case_insensitive(formatted_search_input: &str) -> String {
-    "(?i)".to_owned() + formatted_search_input
 }

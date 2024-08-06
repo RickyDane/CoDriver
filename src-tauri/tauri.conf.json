@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "rdpFX",
-    "version": "0.4.525"
+    "version": "0.4.55"
   },
   "tauri": {
     "bundle": {
