@@ -1754,3 +1754,9 @@ label {
     width: 0px;
     transition: none;
 }
+
+.ds-selector {
+    border-radius: 10px;
+    background: var(--transparentColor) !important;
+    border: 1px solid var(--tertiaryColor) !important;
+}
