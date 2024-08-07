@@ -3,7 +3,7 @@
 <a href='https://ko-fi.com/F1F8OL456' target='_blank'><p align="center"><img height='36px' style='border: 0px; height: 36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></p></a>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-blue" />
-  <img src="https://img.shields.io/badge/macOS-white" />
+  <img src="https://img.shields.io/badge/ macOS-white" />
   <img src="https://img.shields.io/badge/Linux-red" />
 </p>
 <a href="https://github.com/RickyDane/rdpFX/actions/workflows/main.yml"><p align="center"><img src="https://github.com/RickyDane/rdpFX/actions/workflows/main.yml/badge.svg?branch=master"></p></a>
