@@ -120,7 +120,8 @@ fn main() {
             install_dep,
             get_dir_size,
             get_themes,
-            stop_searching
+            stop_searching,
+            get_file_content
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -982,7 +983,7 @@ async fn compress_item(from_path: String, compression_level: i32) {
         source = PathBuf::from("__compressed_dir");
     }
     let options = FileOptions::default()
-        .compression_method(zip::CompressionMethod::Zstd)
+        .compression_method(zip::CompressionMethod::Deflated)
         .compression_level(Option::from(compression_level));
     let _ = zip_create_from_directory_with_options(&archive, &source, options);
     let _ = remove_dir_all("__compressed_dir");
@@ -1826,4 +1827,16 @@ fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
         }
     }
     size
+}
+
+#[tauri::command]
+async fn get_file_content(path: String) -> String {
+    let content = fs::read_to_string(&path).unwrap();
+    if path.ends_with(".json") {
+        let json: Value = serde_json::from_str(&content).unwrap();
+        let json_string_pretty = serde_json::to_string_pretty(&json).unwrap();
+        println!("JSON: {}", json_string_pretty);
+        return json_string_pretty;
+    }
+    content
 }
