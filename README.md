@@ -128,3 +128,6 @@ https://github.com/user-attachments/assets/169da3d0-06ac-4775-a631-5c5708ae4766
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=rickydane/rdpfx&type=Date" />
  </picture>
 </a>
+
+#### Other third party software
+- DragSelect (https://github.com/ThibaultJanBeyer/DragSelect)
