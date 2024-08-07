@@ -1074,12 +1074,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", async (e) => {
 			e.preventDefault();
-			if (ArrSelectedItems.length <= 1) {
-				unSelectAllItems();
-				selectItem(item);
-			} else {
-				selectItem(item);
-			}
+			selectItem(item);
 			if (IsPopUpOpen == false) {
 				let appsCMenu = document.querySelector(".context-open-item-with");
 				appsCMenu.innerHTML = "";
@@ -1136,11 +1131,8 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				ContextMenu.children[11].replaceWith(
 					ContextMenu.children[11].cloneNode(true),
 				);
-				document
-					.querySelector(".c-item-ytdownload")
-					.replaceWith(
-						document.querySelector(".c-item-ytdownload").cloneNode(true),
-					);
+				document.querySelector(".c-item-ytdownload").replaceWith(
+					document.querySelector(".c-item-ytdownload").cloneNode(true));
 
 				ContextMenu.children[0].removeAttribute("disabled");
 				ContextMenu.children[0].classList.remove("c-item-disabled");
@@ -2052,8 +2044,8 @@ async function showCompressPopup(item) {
 			<div class="popup-body">
 			<div class="popup-body-row-section">
 			<div class="popup-body-col-section" style="width: 100%;">
-			<p class="text-2">Level (-7 - 22)</p>
-			<input class="text-input compression-popup-level-input" type="number" value="3" placeholder="-7-22" />
+			<p class="text-2">Level (0 - 9)</p>
+			<input class="text-input compression-popup-level-input" type="number" value="6" placeholder="0 - 9" />
 			</div>
 			</div>
 			</div>
@@ -2764,7 +2756,7 @@ function selectItem(element, dualPaneSide = "") {
 		unSelectAllItems();
 	}
 	// Reset colored selection
-	if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false) {
+	if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false && ArrSelectedItems.length <= 1) {
 		ArrSelectedItems.forEach((item) => {
 			if (IsDualPaneEnabled) {
 				item.children[0].classList.remove("selected-item");
@@ -2887,7 +2879,7 @@ async function goHome() {
 		if (IsDualPaneEnabled == true) {
 			await showItems(items, SelectedItemPaneSide);
 		} else {
-			await showItems(items);
+			await showItems(items, "", 1);
 		}
 		if (IsDualPaneEnabled == true) {
 			goUp(false, true);
@@ -3308,17 +3300,10 @@ async function switchView() {
 			});
 			document.querySelector(".miller-container").style.display = "none";
 			document.querySelector(".explorer-container").style.display = "block";
-			document.querySelector(".switch-view-button").innerHTML =
-				`<i class="fa-solid fa-list"></i>`;
-			document
-				.querySelectorAll(".item-button")
-				.forEach((item) => (item.style.display = "flex"));
-			document
-				.querySelectorAll(".item-button-list")
-				.forEach((item) => (item.style.display = "none"));
-			document
-				.querySelectorAll(".disk-item-button-button")
-				.forEach((item) => (item.style.display = "flex"));
+			document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
+			document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "flex"));
+			document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "none"));
+			document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
 			document.querySelector(".list-column-header").style.display = "none";
 			document.querySelectorAll(".explorer-container").forEach((item) => {
 				item.style.height = "calc(100vh - 85px)";
@@ -3327,7 +3312,7 @@ async function switchView() {
 					item.style.padding = "10px";
 				}
 				else {
-					item.style.padding = "10px 20px";
+					item.style.padding = "20px";
 				}
 			});
 			ViewMode = "wrap";
@@ -3671,8 +3656,7 @@ function closeInfoProperties() {
 async function showItemPreview(item, isOverride = false) {
 	let fadeTime = 200;
 	if (isOverride) {
-		$(".item-preview-popup").fadeOut(50);
-		fadeTime = 50;
+		$(".item-preview-popup").fadeOut(fadeTime);
 	}
 	let name = item.getAttribute("itemname");
 	let ext = item.getAttribute("itemext");
@@ -3698,19 +3682,57 @@ async function showItemPreview(item, isOverride = false) {
 		case ".pdf":
 			module = `<iframe src="${convertFileSrc(path)}" />`;
 			break;
+		case ".txt":
+		case ".json":
+		case ".sh":
+		case ".py":
+		case ".html":
+		case ".css":
+		case ".js":
+		case ".ts":
+		case ".sql":
+		case ".mts":
+		case ".jsx":
+		case ".tsx":
+		case ".mjs":
+		case ".php":
+		case ".c":
+		case ".cpp":
+		case ".cs":
+		case ".java":
+		case ".md":
+		case ".xml":
+		case ".yaml":
+		case ".yml":
+		case ".toml":
+		case ".lock":
+		case ".ini":
+		case ".cfg":
+		case ".log":
+		case ".env":
+		case ".gitignore":
+			popup.style.maxWidth = "50%";
+			module = `
+				<pre style="padding: 20px;">
+					${await invoke("get_file_content", { path })}
+				</pre>
+			`;
+			break;
 		default:
 			module = `
-				<div>
-				<p><b>Name:</b> ${name}</p>
-				<p><b>Path:</b> ${path}</p>
-				<p style="display: flex; gap: 5px;"><b>Size:</b><span class="current-item-preview-size"></span></p>
-				<p><b>Last modified:</b> ${modified}</p>
+				<div class="current-item-preview">
+					<p><b>Path:</b> ${path}</p>
+					<p style="display: flex; gap: 5px;"><b>Size:</b><span class="current-item-preview-size"></span></p>
+					<p><b>Last modified:</b> ${modified}</p>
 				</div>
 				`;
 			break;
 	}
 	popup.innerHTML = `
-	${module}
+		<div class="popup-header">
+			<p><b>Name:</b> ${name}</p>
+		</div>
+		${module}
 	`;
 	document.querySelector("body").append(popup);
 	IsPopUpOpen = true;

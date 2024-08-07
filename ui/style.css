@@ -58,7 +58,7 @@ body {
     border-radius: 0px;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    will-change: transform;
+    /* will-change: transform; */
 }
 
 * {
@@ -467,6 +467,7 @@ body {
 .settings-ui-button {
     background-color: var(--transparentColor) !important;
     padding: 7.5px 12.5px !important;
+    border: 1px solid var(--tertiaryColor) !important;
 }
 
 .settings-ui-button:hover {
@@ -1429,13 +1430,16 @@ label {
     max-height: 90vh;
     max-width: 90vw;
     border-radius: 10px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: auto;
     z-index: 999;
     display: none;
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     background-color: var(--primaryColor);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    /* backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); */
+    /* word-break: break-all; */
+    line-height: 1.5;
 }
 
 .item-preview-popup > img {
