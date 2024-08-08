@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "rdpFX",
-    "version": "0.4.65"
+    "version": "0.4.7"
   },
   "tauri": {
     "bundle": {
@@ -145,10 +145,10 @@
         "decorations": true,
         "fullscreen": false,
         "transparent": false,
-        "height": 650,
+        "height": 750,
         "resizable": true,
         "title": "rdpFX",
-        "width": 1050,
+        "width": 1350,
         "hiddenTitle": true,
         "titleBarStyle": "Overlay"
       }
@@ -157,6 +157,7 @@
       "args": [
         {
           "name": "source",
+          "short": "s",
           "index": 1,
           "takesValue": true
         }

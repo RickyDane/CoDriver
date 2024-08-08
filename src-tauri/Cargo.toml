@@ -1,7 +1,7 @@
 # cargo-features = ["profile-rustflags"]
 [package]
 name = "rdpfx"
-version = "0.4.65"
+version = "0.4.7"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "none"

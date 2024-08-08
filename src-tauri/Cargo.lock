@@ -4716,7 +4716,7 @@ dependencies = [
 
 [[package]]
 name = "rdpfx"
-version = "0.4.65"
+version = "0.4.7"
 dependencies = [
  "archiver-rs",
  "async-std",
