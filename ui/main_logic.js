@@ -2550,6 +2550,7 @@ async function applyPlatformFeatures() {
 		let headerNav = document.querySelector(".header-nav");
 		// headerNav.style.borderBottom = "none";
 		headerNav.style.boxShadow = "none";
+		$(".site-nav-bar").css("padding-top", "55px");
 	} else {
 		// $(".titlebar-buttons").css("display", "flex");
 		// $(".titlebar-buttons-macos").remove();

@@ -166,7 +166,6 @@ body {
     flex-flow: column;
     align-items: center;
     padding: 10px;
-    padding-top: 55px;
     z-index: 2;
     gap: 2px;
     border-right: 1px solid var(--tertiaryColor);
@@ -187,10 +186,10 @@ body {
     gap: 8px;
     font-size: small;
     transition: 0.1s ease;
-    color: white !important;
+    color: var(--textColor);
 }
 .site-nav-bar-button > svg {
-    color: white !important;
+    color: var(--textColor);
 }
 
 .site-nav-bar-button:hover {
