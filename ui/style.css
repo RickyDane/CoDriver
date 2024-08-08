@@ -2,7 +2,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    color: var(--textColor);
+    /* color: var(--textColor); */
     font-family: system-ui, "Inter";
     font-weight: 500;
     outline: none;
@@ -39,6 +39,7 @@
     --fontSize2: 16px;
     --successColor: rgb(15, 199, 15);
     --errorColor: #bb0000;
+    --siteBarColor: rgb(59, 59, 70);
 }
 
 html {
@@ -66,10 +67,9 @@ body {
 }
 
 .explorer-container {
-    margin: 0 0 0 calc(150px);
     padding: 10px 20px;
     width: 100%;
-    height: calc(100vh - 95px);
+    height: 100%;
     max-width: 100%;
     overflow: auto;
     position: relative;
@@ -79,6 +79,7 @@ body {
 .miller-container {
     display: none;
     width: 100%;
+    height: 100%;
     flex-flow: row;
     gap: 1px;
     justify-content: flex-start;
@@ -90,8 +91,9 @@ body {
     justify-content: flex-start;
     width: 250px;
     min-width: 250px;
-    margin-right: -150px;
+    /* margin-right: -150px; */
     border-right: 2px solid var(--primaryColor);
+    height: 100%;
 }
 
 .dual-pane-container {
@@ -132,9 +134,9 @@ body {
 }
 
 .main-container {
-    margin-top: 55px;
+    height: 100%;
     display: flex;
-    flex-flow: row;
+    flex-flow: column;
     overflow: hidden;
     border-radius: 0px;
 }
@@ -145,8 +147,8 @@ body {
     justify-content: space-between;
     align-items: center;
     gap: 5px;
-    position: fixed;
-    top: 0px;
+    /* position: fixed; */
+    /* top: 0px; */
     width: 100%;
     height: 55px;
     padding: 5px 10px;
@@ -158,16 +160,13 @@ body {
 }
 
 .site-nav-bar {
-    background-color: var(--primaryColor);
-    position: fixed;
-    top: 55px;
-    left: 0;
-    bottom: 0;
+    background-color: var(--siteBarColor);
     width: 150px;
     display: flex;
     flex-flow: column;
     align-items: center;
     padding: 10px;
+    padding-top: 55px;
     z-index: 2;
     gap: 2px;
     border-right: 1px solid var(--tertiaryColor);
@@ -188,7 +187,10 @@ body {
     gap: 8px;
     font-size: small;
     transition: 0.1s ease;
-    color: var(--textColor3);
+    color: white !important;
+}
+.site-nav-bar-button > svg {
+    color: white !important;
 }
 
 .site-nav-bar-button:hover {
@@ -295,9 +297,9 @@ body {
     flex-flow: row;
     justify-content: space-between;
     align-items: center;
-    position: fixed;
-    left: 150px;
-    width: calc(100% - 150px);
+    width: 100%;
+    /* left: 150px; */
+    /* width: calc(100% - 150px); */
     color: var(--textColor);
     padding: 5px;
     background-color: var(--secondaryColor);
@@ -315,6 +317,7 @@ body {
     padding: 5px;
     border-radius: 5px;
     text-align: center;
+    color: var(--textColor);
 }
 
 .list-column-header-button:hover {
@@ -418,6 +421,7 @@ body {
     z-index: 4;
     border-bottom: 1px solid var(--tertiaryColor);
     margin-bottom: 1px;
+    color: var(--textColor);
 }
 
 .settings-ui-body {
@@ -429,6 +433,10 @@ body {
     z-index: 3;
 }
 
+.settings-ui-body{
+    color: var(--textColor);
+}
+
 .settings-ui-controls {
     display: flex;
     flex-flow: row;
@@ -438,6 +446,7 @@ body {
     background-color: var(--secondaryColor);
     z-index: 3;
     border-top: 1px solid var(--tertiaryColor);
+    color: var(--textColor);
 }
 
 .settings-ui > button {
@@ -453,6 +462,7 @@ body {
     border-radius: 5px;
     border: 1px solid rgba(0, 0, 0, 0.25);
     z-index: 3;
+    color: var(--textColor);
 }
 
 .settings-ui-checkbox {
@@ -468,6 +478,7 @@ body {
     background-color: var(--transparentColor) !important;
     padding: 7.5px 12.5px !important;
     border: 1px solid var(--tertiaryColor) !important;
+    color: var(--textColor);
 }
 
 .settings-ui-button:hover {
@@ -517,6 +528,11 @@ label {
 }
 
 /* Custom controls*/
+
+button > svg {
+    color: var(--textColor);
+}
+
 .select {
     position: relative;
     appearance: none;
@@ -527,6 +543,7 @@ label {
     border: 1px solid var(--transparentColor);
     border-radius: 5px;
     cursor: pointer;
+    color: var(--textColor);
 }
 
 .select::after {
@@ -686,7 +703,7 @@ label {
     gap: 5px;
     align-items: center;
     cursor: pointer;
-    padding: 5px;
+    padding: 10px;
     max-height: 40px;
     font-size: small;
     width: 100%;
@@ -743,6 +760,7 @@ label {
     width: 100%;
     max-width: 100%;
     border-radius: 5px;
+    color: var(--textColor);
 }
 
 .item-link {
@@ -845,6 +863,7 @@ label {
     gap: 15px;
     padding-right: 15px;
     border: 1px solid var(--tertiaryColor);
+    color: var(--textColor);
 }
 
 .icon-button:hover {
@@ -898,6 +917,7 @@ label {
     padding: 10px 12.5px;
     cursor: pointer;
     transition: 0.1s ease;
+    color: var(--textColor);
 }
 
 .header-nav-button:hover {
@@ -917,6 +937,10 @@ label {
     height: 1px;
     background-color: var(--tertiaryColor);
     margin: 2px 0px;
+}
+
+.nav-seperator-1 {
+    color: var(--textColor);
 }
 
 .file-searchbar {
@@ -1071,9 +1095,6 @@ label {
 }
 
 .current-path {
-    position: absolute;
-    left: 150px;
-    bottom: 0px;
     display: flex;
     flex-flow: row;
     text-align: center;
@@ -1084,7 +1105,7 @@ label {
     font-family: var(--textColor2);
     overflow-x: auto;
     overflow-y: hidden;
-    width: calc(100% - 150px);
+    width: 100%;
     height: 30px;
     margin: auto;
     padding: 5px;
@@ -1107,6 +1128,7 @@ label {
     background-color: var(--transparentColor);
     cursor: pointer;
     border: none;
+    color: var(--textColor);
 }
 
 .path-item:hover {
@@ -1634,11 +1656,13 @@ label {
     background-color: var(--primaryColor);
     border: 2px solid var(--tertiaryColor);
     backdrop-filter: blur(10px);
+    color: var(--textColor);
     /* -webkit-backdrop-filter: blur(10px); */
 }
 
 .toast-content {
     border-radius: 0px 10px 10px 0px;
+    color: var(--textColor);
     /* border: 1px solid var(--secondaryColor); */
 }
 
@@ -1648,19 +1672,24 @@ label {
     align-items: center;
     font-size: 1em;
     padding: 5px;
+    color: var(--textColor);
+
 }
 
 .toast-info {
     background-color: var(--primaryColor);
 	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+    color: var(--textColor);
 }
 
 .toast-error {
     background-color: var(--transparentColor);
+    color: var(--textColor);
 }
 
 .toast-success {
     background-color: var(--transparentColor);
+    color: var(--textColor);
 }
 
 .toast > .toast-content > h5 {
@@ -1669,11 +1698,13 @@ label {
     justify-content: space-between;
     align-items: center;
     padding: 2px 5px 0px 5px;
+    color: var(--textColor);
 }
 
 .toast > .toast-content > p {
     padding: 5px;
     font-size: var(--fontSize);
+    color: var(--textColor);
 }
 
 /* Text styles */

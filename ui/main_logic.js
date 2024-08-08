@@ -2424,6 +2424,8 @@ async function showAppInfo() {
 }
 
 async function checkAppConfig() {
+	await applyPlatformFeatures();
+
 	await invoke("check_app_config").then(async (appConfig) => {
 		let viewMode = appConfig.view_mode.replaceAll('"', "");
 		switch (viewMode) {
@@ -2485,7 +2487,8 @@ async function checkAppConfig() {
 					"text_color2": "rgba(255, 255, 255, 0.6)",
 					"text_color3": "rgb(255, 255, 255)",
 					"transparent_color": "rgba(0, 0, 0, 0.15)",
-					"transparent_color_active": "rgba(0, 0, 0, 0.25)"
+					"transparent_color_active": "rgba(0, 0, 0, 0.25)",
+					"site_bar_color": "rgb(69, 69, 70)"
 				}
 			];
 		}
@@ -2533,7 +2536,6 @@ async function checkAppConfig() {
 	// DefaultFileIcon = await resolveResource("resources/file-icon.png");
 	// DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
 
-	await applyPlatformFeatures();
 	IsFirstRun = false;
 }
 
@@ -2546,7 +2548,6 @@ async function applyPlatformFeatures() {
 		// $(".titlebar-buttons-macos").css("display", "flex");
 		// document.querySelectorAll(".titlebar-button").forEach(item => item.style.display = "none");
 		let headerNav = document.querySelector(".header-nav");
-		headerNav.style.paddingLeft = "85px";
 		// headerNav.style.borderBottom = "none";
 		headerNav.style.boxShadow = "none";
 	} else {
@@ -3292,7 +3293,6 @@ async function cancelSearch() {
 async function switchView() {
 	if (IsDualPaneEnabled == false) {
 		if (ViewMode == "wrap") {
-			document.querySelector(".explorer-container").style.width = "100%";
 			document.querySelectorAll(".directory-list").forEach((list) => {
 				// list.style.flexFlow = "column";
 				list.style.gridTemplateColumns = "unset";
@@ -3314,12 +3314,7 @@ async function switchView() {
 			document
 				.querySelectorAll(".disk-item-button-button")
 				.forEach((item) => (item.style.display = "none"));
-			// document
-			// 	.querySelectorAll(".item-button-list")
-			// 	.forEach((item) => (item.children[1].style.display = "flex"));
 			document.querySelectorAll(".explorer-container").forEach((item) => {
-				item.style.height = "calc(100vh - 115px)";
-				item.style.marginTop = "30px";
 				item.style.padding = "10px";
 			});
 			document.querySelector(".list-column-header").style.display = "flex";
@@ -3331,13 +3326,7 @@ async function switchView() {
 			document.querySelector(".miller-container").style.display = "flex";
 			document.querySelector(".miller-column").style.display = "flex";
 			document.querySelector(".non-dual-pane-container").style.display = "none";
-			// document.querySelectorAll(".item-button-list").forEach((item) => {
-			//   item.children[0].style.textOverflow = "ellipsis";
-			//   item.children[1].style.display = "none";
-			// });
 			document.querySelectorAll(".explorer-container").forEach((item) => {
-				item.style.height = "calc(100vh - 85px)";
-				item.style.marginTop = "0";
 				item.style.padding = "5px 10px";
 			});
 			document.querySelectorAll(".directory-list").forEach((list) => {
@@ -3366,7 +3355,7 @@ async function switchView() {
 			document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
 			document.querySelector(".list-column-header").style.display = "none";
 			document.querySelectorAll(".explorer-container").forEach((item) => {
-				item.style.height = "calc(100vh - 85px)";
+				// item.style.height = "calc(100vh - 85px)";
 				item.style.marginTop = "0";
 				if (IsShowDisks == true) {
 					item.style.padding = "10px";
@@ -3394,6 +3383,10 @@ async function switchToDualPane() {
 			`<i class="fa-solid fa-grip"></i>`;
 		document.querySelector(".miller-container").style.display = "none";
 		document.querySelector(".site-nav-bar").style.display = "none";
+		console.log(Platform);
+		if (Platform == "darwin") {
+			$(".header-nav").css("padding-left", "85px");
+		}
 		document.querySelector(".file-searchbar").style.display = "none";
 		document
 			.querySelectorAll(".item-button")
@@ -3406,8 +3399,6 @@ async function switchToDualPane() {
 		document.querySelector(".switch-dualpane-view-button").innerHTML =
 			`<i class="fa-regular fa-rectangle-xmark"></i>`;
 		document.querySelector(".switch-view-button").style.display = "none";
-		document.querySelector(".current-path").style.left = "0";
-		document.querySelector(".current-path").style.width = "100%";
 		await invoke("list_dirs").then(async (items) => {
 			await showItems(items, "left");
 			await showItems(items, "right");
@@ -3430,11 +3421,12 @@ async function switchToDualPane() {
 		document.querySelector(".dual-pane-container").style.display = "none";
 		document.querySelector(".switch-dualpane-view-button").innerHTML =
 			`<i class="fa-solid fa-table-columns"></i>`;
+		if (Platform == "darwin") {
+			$(".header-nav").css("padding-left", "0");
+		}
 		// document.querySelector(".go-back-button").style.display = "block";
 		// document.querySelector(".nav-seperator-1").style.display = "block";
 		document.querySelector(".switch-view-button").style.display = "block";
-		document.querySelector(".current-path").style.left = "150px";
-		document.querySelector(".current-path").style.width = "calc(100% - 150px)";
 
 		switch (OrgViewMode) {
 			case "wrap":
@@ -3579,10 +3571,10 @@ function createTab(tabCount, isInitial) {
 		explorerContainer.className =
 			"explorer-container tab-container-" + tabCount;
 		if (ViewMode == "wrap") {
-			explorerContainer.style.height = "calc(100vh - 100px)";
+			// explorerContainer.style.height = "calc(100vh - 100px)";
 		} else {
-			explorerContainer.style.marginTop = "35px";
-			explorerContainer.style.height = "calc(100vh - 135px)";
+			// explorerContainer.style.marginTop = "35px";
+			// explorerContainer.style.height = "calc(100vh - 135px)";
 		}
 		document.querySelector(".main-container").append(explorerContainer);
 	}
@@ -4068,6 +4060,7 @@ function getFDirObjectListFromDirectoryList(arrElements) {
 function checkColorMode(appConfig) {
 	var r = document.querySelector(":root");
 	let themeId = parseInt(CurrentTheme);
+	console.log(appConfig.themes[themeId]);
 	r.style.setProperty(
 		"--primaryColor",
 		appConfig.themes[themeId].primary_color,
@@ -4094,6 +4087,8 @@ function checkColorMode(appConfig) {
 		"--textColor3",
 		appConfig.themes[themeId].text_color3.replace('"', "").replace('"', ""),
 	);
+	console.log(appConfig.themes[themeId].site_bar_color);
+	r.style.setProperty("--siteBarColor", appConfig.themes[themeId].site_bar_color);
 }
 
 async function open_with(filePath, appPath) {
@@ -4384,7 +4379,7 @@ async function insertSiteNavButtons() {
 	for (let i = 0; i < siteNavButtons.length; i++) {
 		let button = document.createElement("button");
 		button.className = "site-nav-bar-button";
-		button.innerHTML = `<i color="blue" class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
+		button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
 		button.setAttribute("itempath", siteNavButtons[i][1]);
 		button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
 		button.ondragover = (e) => {
