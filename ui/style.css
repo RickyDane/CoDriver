@@ -69,9 +69,7 @@ body {
 
 .explorer-container {
     padding: 10px 20px;
-    width: calc(100vw - 150px);
     height: 100%;
-    max-width: calc(100vw - 150px);
     overflow: auto;
     position: relative;
     user-select: none;
