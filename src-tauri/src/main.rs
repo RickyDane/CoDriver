@@ -149,7 +149,8 @@ struct Theme {
     text_color3: String,
     transparent_color: String,
     transparent_color_active: String,
-    site_bar_color: String
+    site_bar_color: String,
+    nav_bar_color: String,
 }
 
 #[derive(serde::Serialize)]
@@ -306,6 +307,7 @@ async fn get_themes() -> Vec<Theme> {
                 .to_string()
                 .replace('"', ""),
             site_bar_color: app_config["site_bar_color"].to_string().replace('"', ""),
+            nav_bar_color: app_config["nav_bar_color"].to_string().replace('"', ""),
         })
     }
     vec_themes

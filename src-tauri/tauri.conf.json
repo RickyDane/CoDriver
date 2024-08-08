@@ -157,6 +157,7 @@
       "args": [
         {
           "name": "source",
+          "short": "s",
           "index": 1,
           "takesValue": true
         }

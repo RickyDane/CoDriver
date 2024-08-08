@@ -17,8 +17,8 @@
 <body>
     <div class="toast-container"></div>
     <div style="display: flex; width: 100%; height: 100vh;">
-        <div class="site-nav-bar"></div>
-        <div style="display: flex; flex-flow: column; width: 100%;">
+        <div data-tauri-drag-region class="site-nav-bar"></div>
+        <div style="display: flex; flex-flow: column; position: relative;" class="main-window-container">
             <div data-tauri-drag-region class="header-nav">
                 <div data-tauri-drag-region
                     style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 65%;">
@@ -26,8 +26,6 @@
                     <p class="nav-seperator-1">|</p>
                     <button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
                     <p class="nav-seperator-1">|</p>
-                    <button onclick="switchView()" class="header-nav-button switch-view-button"><i
-                            class="fa-solid fa-list"></i></button>
                     <button onclick="switchHiddenFiles()" class="header-nav-button switch-hidden-files-button"><i
                             class="fa-solid fa-eye-slash"></i></button>
                     <button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i
@@ -39,12 +37,15 @@
                     <div class="file-searching-file-count"></div>
                     <div class="file-searching-done"></div>
                 </div>
-                <div class="file-searchbar">
-                    <input class="search-bar-input text-input" type="text" placeholder="Cmd / Ctrl + K" />
-                    <button class="search-button" onclick="searchFor()"><i
-                            class="fa-solid fa-magnifying-glass"></i></button>
-                    <button class="cancel-search-button" onclick="cancelSearch()"><i
-                            class="fa-solid fa-xmark"></i></button>
+                <div data-tauri-drag-region class="header-nav-right-container" style="display: flex; flex-flow: row; gap: 10px; justify-content: flex-end; align-items: center; width: 100%;">
+                    <button onclick="switchView()" class="header-nav-button switch-view-button">
+                        <i class="fa-solid fa-list"></i>
+                    </button>
+                    <div class="file-searchbar">
+                        <input class="search-bar-input text-input" type="text" placeholder="Cmd / Ctrl + K" />
+                        <button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
+                        <button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
                 </div>
             </div>
             <div class="main-container">
@@ -117,8 +118,14 @@
                             class="fa-solid fa-info"></i></button>
                 </div>
                 <div class="settings-ui-body">
-                    <h3>Shortcuts</h3>
-                    <hr />
+                    <div class="popup-body-col-section" style="width: 100px;">
+                        <p>Theme</p>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select class="select theme-select" onchange="saveConfig(true)"></select>
+                            <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig()"></i>
+                        </div>
+                    </div>
+                    <h3 class="settings-ui-headline">Shortcuts</h3>
                     <p>Configure up to 3 paths to switch to in an instant (Alt + 1, 2, 3)</p>
                     <input type="text" class="settings-ui-input text-input configured-path-one-input"
                         placeholder="/home/user" />
@@ -127,8 +134,7 @@
                     <input type="text" class="settings-ui-input text-input configured-path-three-input"
                         placeholder="/home/user/folder2" />
                     <br />
-                    <h3>Search settings</h3>
-                    <hr />
+                    <h3 class="settings-ui-headline">Search settings</h3>
                     <p>Search depth (higher = slower) | Standard: 10</p>
                     <input style="width: 100px;" type="number" class="settings-ui-input number-input search-depth-input"
                         placeholder="0 = off" />
@@ -138,19 +144,7 @@
                     <p>Path to launch at start</p>
                     <input type="text" class="settings-ui-input text-input launch-path-input" placeholder="/home" />
                     <br />
-                    <h3>Extra options</h3>
-                    <hr />
-                    <!--<span style="display: flex; gap: 10px; margin-top: 5px;">
-					<input id="open-in-terminal-checkbox" type="checkbox" class="settings-ui-checkbox openin-terminal-checkbox" />
-					<label for="open-in-terminal-checkbox">Enable "Open in terminal" (Experimental)</p>
-				</span>-->
-                    <div class="popup-body-col-section" style="width: 100px;">
-                        <p>Theme</p>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <select class="select theme-select" onchange="saveConfig(true)"></select>
-                            <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig()"></i>
-                        </div>
-                    </div>
+                    <h3 class="settings-ui-headline">Extra options</h3>
                     <span style="display: flex; gap: 10px; margin-top: 5px;">
                         <input id="choose-interaction-mode" type="checkbox"
                             class="settings-ui-checkbox choose-interaction-mode-checkbox" />
@@ -232,10 +226,10 @@
             </div>
             <div class="ftp-connect-container uni-popup">
                 <div class="popup-header">
-                    <span style="display: flex; gap: 20px; align-items: center;">
+                    <div style="display: flex; gap: 20px; align-items: center;">
                         <i class="fa-solid fa-gears"></i>
-                        <p>FTP - Connection</p>
-                    </span>
+                        <p style="font-weight: bolder;">FTP - Connection</p>
+                    </div>
                 </div>
                 <div class="popup-body">
                     <div class="popup-body-row-section">
