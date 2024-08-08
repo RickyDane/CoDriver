@@ -200,7 +200,7 @@ function closeAllPopups() {
 }
 
 // Close context menu or new folder input dialog when click elsewhere
-document.addEventListener("mouseup", (e) => {
+document.addEventListener("mousedown", (e) => {
 	if (
 		!e.target.classList.contains("context-item-icon") &&
 		!e.target.classList.contains("context-item") &&
@@ -1309,19 +1309,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 	ds.subscribe('DS:select', async (payload) => {
 		if (payload.item == SelectedElement || IsShiftDown === true || IsCtrlDown === true || IsMetaDown === true) return;
 		selectItem(payload.item, "", true);
-		// await unSelectAllItems();
-		// arrSelected.items.forEach((item) => {
-		// 	if (ArrSelectedItems.includes(item)) return;
-		// 	selectItem(item, "", true);
-		// })
 	});
 	ds.subscribe('DS:unselect', async (payload) => {
 		deSelectitem(payload.item);
-		// await unSelectAllItems();
-		// arrSelected.items.forEach((item) => {
-		// 	if (ArrSelectedItems.includes(item)) return;
-		// 	selectItem(item, "", true);
-		// })
 	});
 }
 
