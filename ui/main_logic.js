@@ -2529,7 +2529,6 @@ async function checkAppConfig() {
 				await showItems(items);
 			});
 		}
-
 		checkColorMode(appConfig);
 	});
 
@@ -3382,8 +3381,6 @@ async function switchToDualPane() {
 		document.querySelector(".switch-view-button").innerHTML =
 			`<i class="fa-solid fa-grip"></i>`;
 		document.querySelector(".miller-container").style.display = "none";
-		document.querySelector(".site-nav-bar").style.width = "0px";
-		document.querySelector(".site-nav-bar").style.padding = "55px 0 0 0";
 		console.log(Platform);
 		if (Platform == "darwin") {
 			$(".header-nav").css("padding-left", "85px");
@@ -3403,11 +3400,15 @@ async function switchToDualPane() {
 			await showItems(items, "right");
 			goUp(false, true);
 		});
+		document.querySelector(".site-nav-bar").style.width = "0px";
+		document.querySelector(".site-nav-bar").style.minWidth = "0";
+		document.querySelector(".site-nav-bar").style.padding = "55px 0 0 0";
 		$(".list-column-header").css("opacity", "0");
 		$(".list-column-header").css("height", "0");
 		$(".list-column-header").css("padding", "0");
 		$(".dual-pane-container").css("opacity", "1");
 		$(".dual-pane-container").css("height", "100%");
+		$(".non-dual-pane-container").css("width", "0");
 		$(".non-dual-pane-container").css("opacity", "0");
 		$(".non-dual-pane-container").css("height", "0px");
 		$(".non-dual-pane-container").css("padding", "0");
@@ -3420,13 +3421,15 @@ async function switchToDualPane() {
 		// IsTabsEnabled = true;
 		IsDualPaneEnabled = false;
 		document.querySelector(".site-nav-bar").style.width = "150px";
-		document.querySelector(".site-nav-bar").style.padding = "10px";
+		document.querySelector(".site-nav-bar").style.minWidth = "150px";
+		document.querySelector(".site-nav-bar").style.padding = "55px 10px 10px 10px";
 		applyPlatformFeatures();
 		$(".list-column-header").css("opacity", "1");
 		$(".list-column-header").css("height", "35px");
 		$(".list-column-header").css("padding", "5px");
 		$(".dual-pane-container").css("opacity", "0");
 		$(".dual-pane-container").css("height", "0");
+		$(".non-dual-pane-container").css("width", "calc(100vw - 150px)");
 		$(".non-dual-pane-container").css("opacity", "1");
 		$(".non-dual-pane-container").css("height", "100%");
 		$(".non-dual-pane-container").css("padding", "10px 20px");
