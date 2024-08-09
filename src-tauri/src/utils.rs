@@ -300,7 +300,7 @@ impl DirWalker {
             .sort(true)
             .min_depth(1)
             .max_depth(depth as usize)
-            .follow_links(true)
+            .follow_links(false)
         {
             unsafe {
                 if IS_SEARCHING == false && COUNT_CALLED_BACK < max_items {
@@ -315,11 +315,15 @@ impl DirWalker {
             if entry.is_err() {
                 continue;
             }
+
             let entry = entry.unwrap();
 
             let name = entry.file_name().to_str().unwrap().to_string();
             let path = entry.path();
             let item_path = entry.file_name().to_str().unwrap().to_lowercase();
+            if item_path.contains("onedrive") {
+                continue;
+            }
             let item_ext = ".".to_owned()
                 + &item_path
                     .split(".")

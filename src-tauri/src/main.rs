@@ -484,9 +484,9 @@ async fn open_dir(path: String) -> Vec<FDir> {
 }
 
 #[tauri::command]
-async fn go_back() -> Vec<FDir> {
+async fn go_back(is_dual_pane: bool) -> Vec<FDir> {
     unsafe {
-        if PATH_HISTORY.len() > 1 {
+        if PATH_HISTORY.len() > 1 && !is_dual_pane {
             let last_path = &PATH_HISTORY[PATH_HISTORY.len() - 2];
             dbg_log(format!("Went back to: {}", last_path));
             let _ = set_current_dir(last_path);

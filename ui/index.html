@@ -42,7 +42,7 @@
                         <i class="fa-solid fa-list"></i>
                     </button>
                     <div class="file-searchbar">
-                        <input class="search-bar-input text-input" type="text" placeholder="Cmd / Ctrl + K" />
+                        <input class="search-bar-input text-input" type="text" placeholder="Cmd / Ctrl + S" />
                         <button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
                         <button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
                     </div>
@@ -121,8 +121,8 @@
                     <div class="popup-body-col-section">
                         <h3 class="settings-ui-headline">Theme</h3>
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig()"></i>
-                            <select style="min-width: 0 !important;" class="select theme-select" onchange="saveConfig(true)"></select>
+                            <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig(true)"></i>
+                            <select style="min-width: 0 !important;" class="select theme-select" onchange="saveConfig(true, true)"></select>
                             <button class="icon-button" onclick="invoke('open_config_location')">
                                 <span class="button-icon"><i class="fa-solid fa-folder"></i></span>
                                 Open config location
@@ -173,7 +173,7 @@
                 </div>
                 <div class="popup-controls">
                     <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i
-                                class="fa-solid fa-ban"></i></span>Cancel</button>
+                                class="fa-solid fa-ban"></i></span>Close</button>
                     <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i
                                 class="fa-solid fa-floppy-disk"></span></i>Save</button>
                 </div>
