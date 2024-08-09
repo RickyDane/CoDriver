@@ -121,7 +121,8 @@ fn main() {
             get_dir_size,
             get_themes,
             stop_searching,
-            get_file_content
+            get_file_content,
+            open_config_location
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -1842,4 +1843,9 @@ async fn get_file_content(path: String) -> String {
         return json_string_pretty;
     }
     content
+}
+
+#[tauri::command]
+async fn open_config_location() {
+    let _ = open::that(config_dir().unwrap().join("com.rdpFX.dev"));
 }
