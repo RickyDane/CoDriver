@@ -1090,7 +1090,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", async (e) => {
 			e.preventDefault();
-			selectItem(item);
+			selectItem(item, "", true);
 			if (IsPopUpOpen == false) {
 				let appsCMenu = document.querySelector(".context-open-item-with");
 				appsCMenu.innerHTML = "";
@@ -2796,11 +2796,11 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 function selectItem(element, dualPaneSide = "", isNotReset = false) {
 	let path = element?.getAttribute("itempath");
 	let index = element?.getAttribute("itemindex");
-	if (ViewMode == "miller") {
-		unSelectAllItems();
-	}
+	// if (ViewMode == "miller") {
+	// 	unSelectAllItems();
+	// }
 	// Reset colored selection
-	if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false && IsShiftDown == false && isNotReset === false) {
+	if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false && IsShiftDown == false && (isNotReset === false)) {
 		ArrSelectedItems.forEach((item) => {
 			if (IsDualPaneEnabled) {
 				item.children[0].classList.remove("selected-item");
@@ -2893,7 +2893,7 @@ async function unSelectAllItems() {
 				ArrSelectedItems[i].children[0].children[0].classList.remove(
 					"selected-item",
 				);
-			} else if (ViewMode == "column") {
+			} else if (ViewMode == "column" || ViewMode == "miller") {
 				ArrSelectedItems[i].children[0].children[0].classList.remove(
 					"selected-item",
 				);
@@ -3386,7 +3386,12 @@ async function switchToDualPane() {
 		});
 		document.querySelector(".site-nav-bar").style.width = "0px";
 		document.querySelector(".site-nav-bar").style.minWidth = "0";
-		document.querySelector(".site-nav-bar").style.padding = "55px 0 0 0";
+		if (Platform == "darwin") {
+			$(".site-nav-bar").css("padding","55px 0 0 0");
+		}
+		else {
+			$(".site-nav-bar").css("padding","0");
+		}
 		// $(".list-column-header").css("opacity", "0");
 		$(".list-column-header").css("height", "0");
 		$(".list-column-header").css("padding", "0");
@@ -3420,12 +3425,12 @@ async function switchToDualPane() {
 		$(".dual-pane-container").css("height", "0");
 		$(".dual-pane-container").css("padding-top", "0");
 		$(".header-nav-right-container").css("opacity", "1");
+		if (Platform == "darwin") {
+			$(".header-nav").css("padding-left", "10px");
+		}
 		applyPlatformFeatures();
 		document.querySelector(".switch-dualpane-view-button").innerHTML =
 			`<i class="fa-solid fa-table-columns"></i>`;
-		if (Platform == "darwin") {
-			$(".header-nav").css("padding-left", "5px");
-		}
 		// document.querySelector(".go-back-button").style.display = "block";
 		// document.querySelector(".nav-seperator-1").style.display = "block";
 
@@ -3675,34 +3680,38 @@ async function switchToTab(tabNo) {
 	*/
 
 async function showProperties(item) {
-	let name = item.getAttribute("itemname");
-	let path = item.getAttribute("itempath");
-	let size = item.getAttribute("itemsize");
-	let modifiedAt = item.getAttribute("itemmodified");
-	ContextMenu.style.display = "none";
-	let popup = document.createElement("div");
-	popup.className = "uni-popup item-properties-popup";
-	popup.innerHTML = `
-			<div class="popup-header">${name}</div>
-			<div class="popup-body">
-			<p>Path: ${path}</p>
-			<br/>
-			<p>Modified: ${modifiedAt}</p>
-			<br/>
-			<div style="display: flex; gap: 5px;">
-			<div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
-			</div>
-			</div>
-			<div class="popup-controls">
-			<button class="icon-button" onclick="closeInfoProperties()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Close</button>
-			</div>
-			`;
-	document.querySelector("body").append(popup);
-	await dirSize(path, ".properties-item-size");
+	if (IsPopUpOpen === false) {
+		let name = item.getAttribute("itemname");
+		let path = item.getAttribute("itempath");
+		let size = item.getAttribute("itemsize");
+		let modifiedAt = item.getAttribute("itemmodified");
+		ContextMenu.style.display = "none";
+		let popup = document.createElement("div");
+		popup.className = "uni-popup item-properties-popup";
+		popup.innerHTML = `
+		<div class="popup-header">${name}</div>
+		<div class="popup-body">
+		<p>Path: ${path}</p>
+		<br/>
+		<p>Modified: ${modifiedAt}</p>
+		<br/>
+		<div style="display: flex; gap: 5px;">
+		<div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
+		</div>
+		</div>
+		<div class="popup-controls">
+		<button class="icon-button" onclick="closeInfoProperties()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Close</button>
+		</div>
+		`;
+		document.querySelector("body").append(popup);
+		IsPopUpOpen = true;
+		await dirSize(path, ".properties-item-size");
+	}
 }
 
 function closeInfoProperties() {
 	$(".item-properties-popup")?.remove();
+	IsPopUpOpen = false;
 }
 
 async function showItemPreview(item, isOverride = false) {
@@ -3765,7 +3774,7 @@ async function showItemPreview(item, isOverride = false) {
 		case ".gitignore":
 			popup.style.maxWidth = "50%";
 			module = `
-				<pre style="padding: 20px;">
+				<pre style=": 20px;">
 					${await invoke("get_file_content", { path })}
 				</pre>
 			`;
@@ -3781,7 +3790,7 @@ async function showItemPreview(item, isOverride = false) {
 			break;
 	}
 	popup.innerHTML = `
-		<div class="popup-header">
+		<div class="popup-header" style="font-weight: bolder !important;">
 			<p><b>Name:</b> ${name}</p>
 		</div>
 		${module}

@@ -1,12 +1,12 @@
 # cargo-features = ["profile-rustflags"]
 [package]
-name = "rdpfx"
+name = "CoDriver"
 version = "0.4.7"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "none"
-repository = "https://github.com/RickyDane/rdpfx"
-default-run = "rdpfx"
+repository = "https://github.com/RickyDane/CoDriver"
+default-run = "CoDriver"
 edition = "2021"
 rust-version = "1.73"
 

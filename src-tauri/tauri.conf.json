@@ -7,7 +7,7 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "rdpFX",
+    "productName": "CoDriver",
     "version": "0.4.7"
   },
   "tauri": {
@@ -147,7 +147,7 @@
         "transparent": false,
         "height": 750,
         "resizable": true,
-        "title": "rdpFX",
+        "title": "CoDriver",
         "width": 1350,
         "hiddenTitle": true,
         "titleBarStyle": "Overlay"

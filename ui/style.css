@@ -166,7 +166,7 @@ body {
     left: 0;
     right: 0;
     height: 55px;
-    padding: 5px 10px 5px 5px;
+    padding: 5px 10px 5px 10px;
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
     z-index: 3;
     border-bottom: 1px solid var(--tertiaryColor);
@@ -1424,6 +1424,7 @@ button > svg {
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     padding-bottom: 10px;
     z-index: 999 !important;
+    color: var(--textColor);
 }
 
 .loading-popup > h4 {
@@ -1489,6 +1490,7 @@ button > svg {
     width: fit-content;
     height: fit-content;
     overflow: hidden;
+    color: var(--textColor);
 }
 
 .item-preview-popup {
@@ -1614,17 +1616,20 @@ button > svg {
     width: 50%;
     height: fit-content;
     z-index: 100;
+    color: var(--textColor);
 }
 
 .duplicates-list {
     height: 50vh !important;
     will-change: transform;
+    color: var(--textColor);
 }
 
 .duplicate-item {
     display: flex;
     flex-flow: column;
     gap: 5px;
+    color: var(--textColor);
 }
 
 .duplicate-item > div > div > h4 {
@@ -1632,6 +1637,7 @@ button > svg {
     text-overflow: ellipsis;
     word-break: break-all;
     overflow: hidden;
+    color: var(--textColor);
 }
 
 /*  Yt-downloader */

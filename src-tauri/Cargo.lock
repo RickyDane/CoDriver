@@ -3,6 +3,54 @@
 version = 3
 
 [[package]]
+name = "CoDriver"
+version = "0.4.7"
+dependencies = [
+ "archiver-rs",
+ "async-std",
+ "base64 0.21.7",
+ "brew",
+ "chrono",
+ "cocoa 0.25.0",
+ "color-print",
+ "copy_dir",
+ "dateparser",
+ "dialog",
+ "flate2",
+ "fs_extra",
+ "fuzzy-matcher",
+ "icns",
+ "image 0.25.1",
+ "jwalk",
+ "libc",
+ "num_cpus",
+ "objc",
+ "open",
+ "rand 0.8.5",
+ "rar",
+ "rayon",
+ "regex",
+ "rusty_ytdl",
+ "serde",
+ "serde_json",
+ "sevenz-rust",
+ "stopwatch",
+ "substring",
+ "sysinfo",
+ "tar",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-drag",
+ "unrar",
+ "walkdir",
+ "widestring",
+ "windows 0.56.0",
+ "winreg 0.52.0",
+ "zip 0.6.6",
+ "zip-extensions",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4712,54 +4760,6 @@ checksum = "1465873a3dfdaa8ae7cb14b4383657caab0b3e8a0aa9ae8e04b044854c8dfce2"
 dependencies = [
  "crossbeam-deque",
  "crossbeam-utils",
-]
-
-[[package]]
-name = "rdpfx"
-version = "0.4.7"
-dependencies = [
- "archiver-rs",
- "async-std",
- "base64 0.21.7",
- "brew",
- "chrono",
- "cocoa 0.25.0",
- "color-print",
- "copy_dir",
- "dateparser",
- "dialog",
- "flate2",
- "fs_extra",
- "fuzzy-matcher",
- "icns",
- "image 0.25.1",
- "jwalk",
- "libc",
- "num_cpus",
- "objc",
- "open",
- "rand 0.8.5",
- "rar",
- "rayon",
- "regex",
- "rusty_ytdl",
- "serde",
- "serde_json",
- "sevenz-rust",
- "stopwatch",
- "substring",
- "sysinfo",
- "tar",
- "tauri",
- "tauri-build",
- "tauri-plugin-drag",
- "unrar",
- "walkdir",
- "widestring",
- "windows 0.56.0",
- "winreg 0.52.0",
- "zip 0.6.6",
- "zip-extensions",
 ]
 
 [[package]]
