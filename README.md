@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/ macOS-white" />
   <img src="https://img.shields.io/badge/Linux-red" />
 </p>
-<a href="https://github.com/RickyDane/rdpFX/actions/workflows/main.yml"><p align="center"><img src="https://github.com/RickyDane/rdpFX/actions/workflows/main.yml/badge.svg?branch=master"></p></a>
+<a href="https://github.com/RickyDane/CoDriver/actions/workflows/main.yml"><p align="center"><img src="https://github.com/RickyDane/CoDriver/actions/workflows/main.yml/badge.svg?branch=master"></p></a>
 <p align="center">
   A simple file explorer that was born because I wanted to learn the Rust language.
   <br>
@@ -17,7 +17,7 @@
 
 The performance is provided by ["jwalk"](https://crates.io/crates/jwalk/versions) and ["Tauri"](https://tauri.app/).
 <br/><br/>
-rdpFX does not use path caching to access files and folders, so the performance is achieved by Rust, the speed of the disk and the power of the cpu.
+CoDriver does not use path caching to access files and folders, so the performance is achieved by Rust, the speed of the disk and the power of the cpu.
 
 ⁉️ Keep in mind that this software is still work in progress and will contain bugs!
 <br/><br/>
@@ -110,22 +110,22 @@ rdpFX does not use path caching to access files and folders, so the performance 
 
 ## Speed comparison
 Windows File Explorer: _39.83 sec._<br/>
-rdpFX: **_0.81 sec._**
+CoDriver: **_0.81 sec._**
 
 https://github.com/user-attachments/assets/17116fa5-8f43-4339-a4ff-2525e7c94ae0
 
 Windows File Explorer: _44.91 sec._<br/>
-rdpFX: **_< 0.5 sec._**
+CoDriver: **_< 0.5 sec._**
 
 https://github.com/user-attachments/assets/169da3d0-06ac-4775-a631-5c5708ae4766
 
 ## Star History
 
-<a href="https://star-history.com/#rickydane/rdpfx&Date">
+<a href="https://star-history.com/#rickydane/CoDriver&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=rickydane/rdpfx&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=rickydane/rdpfx&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=rickydane/rdpfx&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=rickydane/CoDriver&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=rickydane/CoDriver&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=rickydane/CoDriver&type=Date" />
  </picture>
 </a>
 
