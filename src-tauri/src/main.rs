@@ -179,7 +179,7 @@ async fn check_app_config() -> AppConfig {
     create_folder(
         config_dir()
             .unwrap()
-            .join("com.rdpFX.dev")
+            .join("com.codriver.dev")
             .to_str()
             .unwrap()
             .to_string(),
@@ -189,7 +189,7 @@ async fn check_app_config() -> AppConfig {
     create_folder(
         config_dir()
             .unwrap()
-            .join("com.rdpFX.dev")
+            .join("com.codriver.dev")
             .join("App-Thumbnails")
             .to_str()
             .unwrap()
@@ -200,7 +200,7 @@ async fn check_app_config() -> AppConfig {
     create_folder(
         config_dir()
             .unwrap()
-            .join("com.rdpFX.dev")
+            .join("com.codriver.dev")
             .join("Themes")
             .to_str()
             .unwrap()
@@ -209,8 +209,8 @@ async fn check_app_config() -> AppConfig {
     .await;
 
     // If config doesn't exist, create it
-    if fs::metadata(config_dir().unwrap().join("com.rdpFX.dev/app_config.json")).is_err() {
-        let _ = File::create(config_dir().unwrap().join("com.rdpFX.dev/app_config.json"));
+    if fs::metadata(config_dir().unwrap().join("com.codriver.dev/app_config.json")).is_err() {
+        let _ = File::create(config_dir().unwrap().join("com.codriver.dev/app_config.json"));
         let app_config_json = AppConfig {
             view_mode: "".to_string(),
             last_modified: chrono::offset::Local::now().to_string(),
@@ -232,7 +232,7 @@ async fn check_app_config() -> AppConfig {
             File::create(
                 config_dir()
                     .unwrap()
-                    .join("com.rdpFX.dev/app_config.json")
+                    .join("com.codriver.dev/app_config.json")
                     .to_str()
                     .unwrap()
                     .to_string(),
@@ -243,7 +243,7 @@ async fn check_app_config() -> AppConfig {
     }
 
     let app_config_file =
-        File::open(config_dir().unwrap().join("com.rdpFX.dev/app_config.json")).unwrap();
+        File::open(config_dir().unwrap().join("com.codriver.dev/app_config.json")).unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
 
@@ -290,7 +290,7 @@ async fn check_app_config() -> AppConfig {
 #[tauri::command]
 async fn get_themes() -> Vec<Theme> {
     let mut vec_themes: Vec<Theme> = vec![];
-    let themes = read_dir(config_dir().unwrap().join("com.rdpFX.dev").join("Themes"));
+    let themes = read_dir(config_dir().unwrap().join("com.codriver.dev").join("Themes"));
     for theme_entry in themes.unwrap() {
         let app_config_file = File::open(theme_entry.unwrap().path()).unwrap();
         let app_config_reader = BufReader::new(app_config_file);
@@ -347,7 +347,7 @@ async fn list_disks() -> Vec<DisksInfo> {
         });
     }
 
-    let ls_sshfs_mounts = fs::read_dir("/tmp/rdpFX-sshfs-mount");
+    let ls_sshfs_mounts = fs::read_dir("/tmp/codriver-sshfs-mount");
     if ls_sshfs_mounts.is_ok() {
         let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
         for mount in ls_sshfs_mounts {
@@ -382,7 +382,7 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
     let app_config_file = File::open(
         app_config_dir(&Config::default())
             .unwrap()
-            .join("com.rdpFX.dev/app_config.json"),
+            .join("com.codriver.dev/app_config.json"),
     )
     .unwrap();
     let app_config_reader = BufReader::new(app_config_file);
@@ -392,7 +392,7 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         File::create(
             app_config_dir(&Config::default())
                 .unwrap()
-                .join("com.rdpFX.dev/app_config.json")
+                .join("com.codriver.dev/app_config.json")
                 .to_str()
                 .unwrap()
                 .to_string(),
@@ -532,7 +532,7 @@ async fn mount_sshfs(
 ) -> Vec<FDir> {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
-    let mount_point = "/tmp/rdpFX-sshfs-mount/".to_owned() + &hostname;
+    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &hostname;
 
     // Ensure the local mount point exists
     std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
@@ -1059,7 +1059,7 @@ async fn save_config(
     let app_config_file = File::open(
         app_config_dir(&Config::default())
             .unwrap()
-            .join("com.rdpFX.dev/app_config.json"),
+            .join("com.codriver.dev/app_config.json"),
     )
     .unwrap();
     let app_config_reader = BufReader::new(app_config_file);
@@ -1083,7 +1083,7 @@ async fn save_config(
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
-        .join("com.rdpFX.dev/app_config.json")
+        .join("com.codriver.dev/app_config.json")
         .to_str()
         .unwrap()
         .to_string();
@@ -1125,7 +1125,7 @@ async fn add_favorite(arr_favorites: Vec<String>) {
     let app_config_file = File::open(
         app_config_dir(&Config::default())
             .unwrap()
-            .join("com.rdpFX.dev/app_config.json"),
+            .join("com.codriver.dev/app_config.json"),
     )
     .unwrap();
     let app_config_reader = BufReader::new(app_config_file);
@@ -1139,7 +1139,7 @@ async fn add_favorite(arr_favorites: Vec<String>) {
         File::create(
             app_config_dir(&Config::default())
                 .unwrap()
-                .join("com.rdpFX.dev/app_config.json")
+                .join("com.codriver.dev/app_config.json")
                 .to_str()
                 .unwrap()
                 .to_string(),
@@ -1401,7 +1401,7 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
 //     let model_architecture = ModelArchitecture::GptNeoX;
 //     let model_path = config_dir()
 //         .unwrap()
-//         .join("com.rdpFX.dev")
+//         .join("com.codriver.dev")
 //         .join("models")
 //         .join("ggml-model.bin");
 //     let prompt = format!("{}\n", prompt);
@@ -1597,7 +1597,7 @@ async fn get_app_icns(path: String) -> String {
 
             let icns_path = config_dir()
                 .unwrap()
-                .join("com.rdpFX.dev")
+                .join("com.codriver.dev")
                 .join("App-Thumbnails");
             let new_img_path = icns_path.to_string_lossy().to_string()
                 + "/"
@@ -1697,7 +1697,7 @@ async fn get_app_icns(path: String) -> String {
                 }
             }
 
-            // Save additional icon to read from rdpFX
+            // Save additional icon to read from codriver
             let image = image.unwrap();
             if !PathBuf::from(&new_img_path).exists() {
                 let file = File::create(&new_img_path);
@@ -1731,7 +1731,7 @@ async fn get_thumbnail(image_path: String) -> String {
     let item = item.unwrap();
     let thumbnails_dir = config_dir()
         .unwrap()
-        .join("com.rdpFX.dev")
+        .join("com.codriver.dev")
         .join("Thumbnails");
 
     if !PathBuf::from(&thumbnails_dir).exists() {
@@ -1847,5 +1847,5 @@ async fn get_file_content(path: String) -> String {
 
 #[tauri::command]
 async fn open_config_location() {
-    let _ = open::that(config_dir().unwrap().join("com.rdpFX.dev"));
+    let _ = open::that(config_dir().unwrap().join("com.codriver.dev"));
 }
