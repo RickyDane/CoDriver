@@ -1876,7 +1876,9 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
 async function getCurrentDir() {
 	await invoke("get_current_dir").then((path) => {
 		setCurrentDir(path);
+		return path;
 	});
+	return "/";
 }
 
 async function setCurrentDir(currentDir = "", dualPaneSide = "") {
@@ -1912,17 +1914,14 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
 			currentDirContainer.appendChild(divider);
 		});
 		currentDirContainer.removeChild(currentDirContainer.lastChild);
-		// document.querySelector(".current-path").textContent = CurrentDir;
 	});
 
 	if (dualPaneSide == "left") {
-		document.querySelector(".dual-pane-left").style.boxShadow =
-			"inset 0px 0px 30px 3px var(--transparentColorActive)";
-		document.querySelector(".dual-pane-right").style.boxShadow = "none";
+		$(".dual-pane-left").css("box-shadow", "inset 0px 0px 30px 3px var(--transparentColorActive)");
+		$(".dual-pane-right").css("box-shadow", "none");
 	} else if (dualPaneSide == "right") {
-		document.querySelector(".dual-pane-left").style.boxShadow = "none";
-		document.querySelector(".dual-pane-right").style.boxShadow =
-			"inset 0px 0px 30px 3px var(--transparentColorActive)";
+		$(".dual-pane-right").css("box-shadow", "inset 0px 0px 30px 3px var(--transparentColorActive)");
+		$(".dual-pane-left").css("box-shadow", "none");
 	}
 }
 
@@ -2407,7 +2406,6 @@ async function showAppInfo() {
 
 async function checkAppConfig() {
 	await applyPlatformFeatures();
-
 	await invoke("check_app_config").then(async (appConfig) => {
 		let viewMode = appConfig.view_mode.replaceAll('"', "");
 		switch (viewMode) {
@@ -2470,7 +2468,7 @@ async function checkAppConfig() {
 					"text_color3": "rgb(255, 255, 255)",
 					"transparent_color": "rgba(0, 0, 0, 0.15)",
 					"transparent_color_active": "rgba(0, 0, 0, 0.25)",
-					"site_bar_color": "rgb(69, 69, 70)",
+					"site_bar_color": "rgb(45, 47, 57)",
 					"nav_bar_color": "rgba(30, 30, 40, 0.5)"
 				}
 			];
@@ -2505,18 +2503,27 @@ async function checkAppConfig() {
 		if (appConfig.is_dual_pane_active.includes("1")) {
 			if (IsDualPaneEnabled == false) {
 				await switchToDualPane();
+				if (appConfig.launch_path.length >= 1) {
+					let path = appConfig.launch_path;
+					await invoke("open_dir", { path }).then(async (items) => {
+						await showItems(items, "left");
+						await showItems(items, "right");
+					});
+				}
+				else {
+					await goHome();
+				}
 			}
 		} else if (appConfig.launch_path.length >= 1 && IsFirstRun == true) {
 			let path = appConfig.launch_path;
 			await invoke("open_dir", { path }).then(async (items) => {
 				await showItems(items);
 			});
+		} else {
+			await goHome();
 		}
 		checkColorMode(appConfig);
 	});
-
-	// DefaultFileIcon = await resolveResource("resources/file-icon.png");
-	// DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
 
 	IsFirstRun = false;
 }
@@ -3368,7 +3375,6 @@ async function switchToDualPane() {
 		IsDualPaneEnabled = true;
 		ViewMode = "column";
 		document.querySelector(".miller-container").style.display = "none";
-		console.log(Platform);
 		if (Platform == "darwin") {
 			$(".header-nav").css("padding-left", "85px");
 		}
@@ -3413,29 +3419,29 @@ async function switchToDualPane() {
 		// re - enables tab functionality and show shows just one directory container
 		// IsTabsEnabled = true;
 		IsDualPaneEnabled = false;
-		$(".non-dual-pane-container").css("width", "calc(100vw - 150px)");
-		$(".non-dual-pane-container").css("opacity", "1");
-		$(".non-dual-pane-container").css("height", "100%");
-		$(".non-dual-pane-container").css("padding", "10px 20px");
-		$(".site-nav-bar").css("width", "150px");
-		$(".site-nav-bar").css("min-width", "150px");
+		$(".non-dual-pane-container")?.css("width", "calc(100vw - 150px)");
+		$(".non-dual-pane-container")?.css("opacity", "1");
+		$(".non-dual-pane-container")?.css("height", "100%");
+		$(".non-dual-pane-container")?.css("padding", "10px 20px");
+		$(".site-nav-bar")?.css("width", "150px");
+		$(".site-nav-bar")?.css("min-width", "150px");
 		if (Platform == "darwin") {
-			$(".site-nav-bar").css("padding", "55px 10px 10px 10px");
+			$(".site-nav-bar")?.css("padding", "55px 10px 10px 10px");
 		}
 		else {
-			$(".site-nav-bar").css("padding", "10px");
+			$(".site-nav-bar")?.css("padding", "10px");
 		}
-		$(".list-column-header").css("height", "35px");
-		$(".list-column-header").css("padding", "5px");
-		$(".list-column-header").css("border-bottom", "1px solid var(--tertiaryColor)");
-		$(".dual-pane-container").css("opacity", "0");
-		$(".dual-pane-container").css("height", "0");
-		$(".dual-pane-container").css("padding-top", "0");
-		$(".header-nav-right-container").css("opacity", "1");
+		$(".list-column-header")?.css("height", "35px");
+		$(".list-column-header")?.css("padding", "5px");
+		$(".list-column-header")?.css("border-bottom", "1px solid var(--tertiaryColor)");
+		$(".dual-pane-container")?.css("opacity", "0");
+		$(".dual-pane-container")?.css("height", "0");
+		$(".dual-pane-container")?.css("padding-top", "0");
+		$(".header-nav-right-container")?.css("opacity", "1");
 		if (Platform == "darwin") {
-			$(".header-nav").css("padding-left", "10px");
+			$(".header-nav")?.css("padding-left", "10px");
 		}
-		applyPlatformFeatures();
+		await applyPlatformFeatures();
 		document.querySelector(".switch-dualpane-view-button").innerHTML =
 			`<i class="fa-solid fa-table-columns"></i>`;
 		// document.querySelector(".go-back-button").style.display = "block";

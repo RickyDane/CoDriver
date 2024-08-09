@@ -29,7 +29,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.rdpFX.dev",
+      "identifier": "com.codriver.dev",
       "longDescription": "A simple file explorer with nice ui and good features.",
       "macOS": {
         "entitlements": null,
