@@ -2470,7 +2470,8 @@ async function checkAppConfig() {
 					"text_color3": "rgb(255, 255, 255)",
 					"transparent_color": "rgba(0, 0, 0, 0.15)",
 					"transparent_color_active": "rgba(0, 0, 0, 0.25)",
-					"site_bar_color": "rgb(69, 69, 70)"
+					"site_bar_color": "rgb(69, 69, 70)",
+					"nav_bar_color": "rgba(30, 30, 40, 0.5)"
 				}
 			];
 		}
