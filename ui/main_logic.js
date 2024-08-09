@@ -514,8 +514,8 @@ document.onkeydown = async (e) => {
 		return;
 		// alert("Current dir path copied!");
 	}
-	// Check if cmd / ctrl + k is pressed
-	if (e.key == "k" && (e.ctrlKey || e.metaKey)) {
+	// Check if cmd / ctrl + s is pressed
+	if (e.key == "s" && (e.ctrlKey || e.metaKey)) {
 		$(".search-bar-input").focus();
 		IsInputFocused = true;
 	}
@@ -2506,11 +2506,17 @@ async function checkAppConfig() {
 				if (appConfig.launch_path.length >= 1) {
 					let path = appConfig.launch_path;
 					await invoke("open_dir", { path }).then(async (items) => {
+						SelectedItemIndex = 0;
+						SelectedItemPaneSide = "left";
+						IsDualPaneActive = true;
 						await showItems(items, "left");
 						await showItems(items, "right");
+						goUp(false, true);
 					});
 				}
 				else {
+					SelectedItemIndex = 0;
+					SelectedItemPaneSide = "left";
 					await goHome();
 				}
 			}
@@ -2520,6 +2526,8 @@ async function checkAppConfig() {
 				await showItems(items);
 			});
 		} else {
+			SelectedItemIndex = 0;
+			SelectedItemPaneSide = "left"
 			await goHome();
 		}
 		checkColorMode(appConfig);
@@ -2931,15 +2939,12 @@ async function goHome() {
 		} else {
 			await showItems(items, "", 1);
 		}
-		if (IsDualPaneEnabled == true) {
-			goUp(false, true);
-		}
 	});
 }
 
 async function goBack() {
 	if (IsMetaDown == false) {
-		await invoke("go_back").then(async (items) => {
+		await invoke("go_back", { isDualPane: IsDualPaneEnabled }).then(async (items) => {
 			if (IsDualPaneEnabled == true) {
 				await showItems(items, SelectedItemPaneSide);
 				goUp(false, true);
@@ -2996,14 +3001,16 @@ function goUp(isSwitched = false, toFirst = false) {
 			}
 			SelectedElement.style.backgroundColor = "transparent";
 		} else {
-			if (SelectedItemPaneSide == "left") {
-				selectedItemIndex = 0;
-				element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
-				LeftPaneItemIndex = selectedItemIndex;
-			} else if (SelectedItemPaneSide == "right") {
-				selectedItemIndex = 0;
+			SelectedItemPaneSide = "left";
+			if (SelectedItemPaneSide == "right") {
+				RightPaneItemIndex = 0;
 				element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
-				RightPaneItemIndex = selectedItemIndex;
+			} else {
+				LeftPaneItemIndex = 0;
+				element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+			}
+			if (element != null && element != SelectedElement) {
+				element.onclick();
 			}
 		}
 		if (
@@ -3369,6 +3376,8 @@ async function switchView() {
 
 async function switchToDualPane() {
 	if (IsDualPaneEnabled == false) {
+		SelectedItemIndex = 0;
+		SelectedItemPaneSide = "left";
 		OrgViewMode = ViewMode;
 		// disable tab functionality and show two panels side by side
 		IsTabsEnabled = false;
