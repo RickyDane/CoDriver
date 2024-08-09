@@ -1,5 +1,5 @@
-<h1 align="center">rdpFX</h1>
-<p align="center"><img width="200x" height="auto" src="https://github.com/RickyDane/rdpFX/assets/82893522/880b33d3-d749-49e8-906f-fee2abc053d9" /></p>
+<p align="center"><img width="700" src="https://github.com/user-attachments/assets/3afb8fcc-1886-42cf-bc8e-544ddcaf62b5"/></p>
+
 <a href='https://ko-fi.com/F1F8OL456' target='_blank'><p align="center"><img height='36px' style='border: 0px; height: 36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></p></a>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-blue" />
