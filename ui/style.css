@@ -108,11 +108,11 @@ body {
     overflow: hidden;
     background-color: var(--secondaryColor);
     opacity: 0;
-    transition: opacity 0.5s ease;
+    transition: opacity 0.5s ease, padding 0.5s ease;
 }
 
 .non-dual-pane-container {
-    transition: opacity 0.5s ease;
+    transition: opacity 0.5s ease, padding 0.5s ease;
 }
 
 .dual-pane-left,
@@ -329,7 +329,7 @@ body {
     border-bottom: 1px solid var(--tertiaryColor);
     box-shadow: 0px 0px 5px 0px var(--transparentColorActive);
     opacity: 1;
-    transition: opacity 0.3s ease-out, height 0.3s ease-out;
+    transition: opacity 0.3s ease, height 0.3s ease;
     overflow: hidden;
 }
 
@@ -583,6 +583,10 @@ button > svg {
     /* Unicode for down chevron */
     font-size: 12px;
     margin-left: 8px;
+}
+
+.theme-select {
+    width: 100px;
 }
 
 .button {

@@ -3395,6 +3395,7 @@ async function switchToDualPane() {
 		// $(".list-column-header").css("opacity", "0");
 		$(".list-column-header").css("height", "0");
 		$(".list-column-header").css("padding", "0");
+		$(".list-column-header").css("border", "none");
 		$(".dual-pane-container").css("opacity", "1");
 		$(".dual-pane-container").css("height", "100%");
 		$(".dual-pane-container").css("padding-top", "50px");
@@ -3418,9 +3419,9 @@ async function switchToDualPane() {
 		$(".site-nav-bar").css("width", "150px");
 		$(".site-nav-bar").css("min-width", "150px");
 		$(".site-nav-bar").css("padding", "55px 10px 10px 10px");
-		$(".list-column-header").css("opacity", "1");
 		$(".list-column-header").css("height", "35px");
 		$(".list-column-header").css("padding", "5px");
+		$(".list-column-header").css("border-bottom", "1px solid var(--tertiaryColor)");
 		$(".dual-pane-container").css("opacity", "0");
 		$(".dual-pane-container").css("height", "0");
 		$(".dual-pane-container").css("padding-top", "0");
@@ -3712,20 +3713,23 @@ async function showProperties(item) {
 function closeInfoProperties() {
 	$(".item-properties-popup")?.remove();
 	IsPopUpOpen = false;
+	IsItemPreviewOpen = false;
 }
 
 async function showItemPreview(item, isOverride = false) {
 	let fadeTime = 200;
 	if (isOverride) {
-		$(".item-preview-popup").fadeOut(fadeTime);
+		$(".item-preview-popup")?.fadeOut(fadeTime);
+		$(".item-properties-popup").remove();
+		IsPopUpOpen = false;
 	}
 	let name = item.getAttribute("itemname");
 	let ext = item.getAttribute("itemext");
 	let path = item.getAttribute("itempath");
-	let size = item.getAttribute("itemsize");
 	let modified = item.getAttribute("itemmodified");
 	let popup = document.createElement("div");
 	popup.className = "item-preview-popup";
+	IsItemPreviewOpen = true;
 	let module = "";
 	switch (ext.toLowerCase()) {
 		case ".png":
@@ -3780,6 +3784,8 @@ async function showItemPreview(item, isOverride = false) {
 			`;
 			break;
 		default:
+			showProperties(item);
+			return;
 			module = `
 				<div class="current-item-preview">
 					<p><b>Path:</b> ${path}</p>
@@ -3795,10 +3801,9 @@ async function showItemPreview(item, isOverride = false) {
 		</div>
 		${module}
 	`;
-	document.querySelector("body").append(popup);
 	IsPopUpOpen = true;
+	document.querySelector("body").append(popup);
 	$(popup).fadeIn(fadeTime);
-	IsItemPreviewOpen = true;
 	await dirSize(path, ".current-item-preview-size");
 }
 
@@ -3935,9 +3940,10 @@ function closeMultiRenamePopup() {
 async function closeItemPreview() {
 	$(".item-preview-popup").fadeOut(200, () => {
 		$(".item-preview-popup")?.remove();
-		IsPopUpOpen = false;
-		IsItemPreviewOpen = false;
 	});
+	$(".item-properties-popup")?.remove();
+	IsPopUpOpen = false;
+	IsItemPreviewOpen = false;
 }
 
 function evalCurrentLoad(available, total) {
