@@ -121,8 +121,8 @@
                     <div class="popup-body-col-section">
                         <h3 class="settings-ui-headline">Theme</h3>
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig()"></i>
-                            <select style="min-width: 0 !important;" class="select theme-select" onchange="saveConfig(true)"></select>
+                            <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig(true)"></i>
+                            <select style="min-width: 0 !important;" class="select theme-select" onchange="saveConfig(true, true)"></select>
                             <button class="icon-button" onclick="invoke('open_config_location')">
                                 <span class="button-icon"><i class="fa-solid fa-folder"></i></span>
                                 Open config location

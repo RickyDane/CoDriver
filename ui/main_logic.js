@@ -1324,7 +1324,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 listen("addSingleItem", async (item) => {
 	item = JSON.parse(item.payload);
 	setTimeout(async () => {
-		await addSingleItem(item, SelectedItemPaneSide);
+		if (IsDualPaneEnabled == true) {
+			await addSingleItem(item, SelectedItemPaneSide);
+		} else {
+			await addSingleItem(item);
+		}
 	}, 10);
 });
 
@@ -2404,7 +2408,7 @@ async function showAppInfo() {
 		`);
 }
 
-async function checkAppConfig() {
+async function checkAppConfig(isReload = false) {
 	await applyPlatformFeatures();
 	await invoke("check_app_config").then(async (appConfig) => {
 		let viewMode = appConfig.view_mode.replaceAll('"', "");
@@ -2419,15 +2423,11 @@ async function checkAppConfig() {
 				ViewMode = "column";
 				break;
 		}
-		await switchView();
-		// if (appConfig.is_open_in_terminal.includes("1")) {
-		// 	document.querySelector(".openin-terminal-checkbox").checked = true;
-		// 	document.querySelector(".context-open-in-terminal").style.display = "flex";
-		// }
-		// else {
-		// document.querySelector(".openin-terminal-checkbox").checked = false;
+		if (isReload == false) {
+			await switchView();
+		}
+		
 		document.querySelector(".context-open-in-terminal").style.display = "none";
-		// }
 
 		if (appConfig.is_dual_pane_enabled.includes("1")) {
 			document.querySelector(".show-dual-pane-checkbox").checked = true;
@@ -3564,7 +3564,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 		arrFavorites: ArrFavorites,
 	});
 	if (isToReload == true) {
-		checkAppConfig();
+		checkAppConfig(true);
 	}
 	if (isVerbose === true) {
 		showToast("Settings", "Settings have been saved", "success");
