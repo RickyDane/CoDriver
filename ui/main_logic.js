@@ -3419,7 +3419,12 @@ async function switchToDualPane() {
 		$(".non-dual-pane-container").css("padding", "10px 20px");
 		$(".site-nav-bar").css("width", "150px");
 		$(".site-nav-bar").css("min-width", "150px");
-		$(".site-nav-bar").css("padding", "55px 10px 10px 10px");
+		if (Platform == "darwin") {
+			$(".site-nav-bar").css("padding", "55px 10px 10px 10px");
+		}
+		else {
+			$(".site-nav-bar").css("padding", "10px");
+		}
 		$(".list-column-header").css("height", "35px");
 		$(".list-column-header").css("padding", "5px");
 		$(".list-column-header").css("border-bottom", "1px solid var(--tertiaryColor)");
