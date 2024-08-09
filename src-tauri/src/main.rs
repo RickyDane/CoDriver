@@ -1839,7 +1839,6 @@ async fn get_file_content(path: String) -> String {
     if path.ends_with(".json") {
         let json: Value = serde_json::from_str(&content).unwrap();
         let json_string_pretty = serde_json::to_string_pretty(&json).unwrap();
-        println!("JSON: {}", json_string_pretty);
         return json_string_pretty;
     }
     content

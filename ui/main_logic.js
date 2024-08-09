@@ -2796,9 +2796,9 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 function selectItem(element, dualPaneSide = "", isNotReset = false) {
 	let path = element?.getAttribute("itempath");
 	let index = element?.getAttribute("itemindex");
-	if (ViewMode == "miller") {
-		unSelectAllItems();
-	}
+	// if (ViewMode == "miller") {
+	// 	unSelectAllItems();
+	// }
 	// Reset colored selection
 	if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false && IsShiftDown == false && (isNotReset === false)) {
 		ArrSelectedItems.forEach((item) => {
@@ -2893,7 +2893,7 @@ async function unSelectAllItems() {
 				ArrSelectedItems[i].children[0].children[0].classList.remove(
 					"selected-item",
 				);
-			} else if (ViewMode == "column") {
+			} else if (ViewMode == "column" || ViewMode == "miller") {
 				ArrSelectedItems[i].children[0].children[0].classList.remove(
 					"selected-item",
 				);
@@ -3774,7 +3774,7 @@ async function showItemPreview(item, isOverride = false) {
 		case ".gitignore":
 			popup.style.maxWidth = "50%";
 			module = `
-				<pre style="padding: 20px;">
+				<pre style=": 20px;">
 					${await invoke("get_file_content", { path })}
 				</pre>
 			`;
