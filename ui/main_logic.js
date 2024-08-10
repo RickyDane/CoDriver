@@ -2571,9 +2571,10 @@ async function applyPlatformFeatures() {
 		let headerNav = document.querySelector(".header-nav");
 		// headerNav.style.borderBottom = "none";
 		headerNav.style.boxShadow = "none";
-		$(".site-nav-bar").css("padding-top", "55px");
+		$(".site-nav-bar").css("padding-top", "50px");
 		$(".search-bar-input").attr("placeholder", "Cmd + F");
 	} else {
+		appWindow.setDecorations(false);
 		$(".windows-linux-titlebar-buttons").css("display", "flex");
 		$('.minimize-button').on('click', () => appWindow.minimize())
 		$('.maximize-button').on('click', () => appWindow.toggleMaximize())
