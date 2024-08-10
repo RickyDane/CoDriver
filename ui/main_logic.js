@@ -417,7 +417,7 @@ document.onkeydown = async (e) => {
 		IsPopUpOpen == false
 	) {
 		// check if return is pressed
-		if (!e.altKey && e.keyCode == 13 && Platform != "darwin") {
+		if (!e.altKey && e.keyCode == 13) {
 			openSelectedItem();
 			e.preventDefault();
 			e.stopPropagation();
