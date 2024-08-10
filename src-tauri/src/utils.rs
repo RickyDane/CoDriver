@@ -300,7 +300,7 @@ impl DirWalker {
             .sort(true)
             .min_depth(1)
             .max_depth(depth as usize)
-            .follow_links(false)
+            .follow_links(true)
         {
             unsafe {
                 if IS_SEARCHING == false && COUNT_CALLED_BACK < max_items {

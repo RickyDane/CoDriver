@@ -141,7 +141,7 @@ document.querySelector(".search-bar-input").addEventListener("focusout", (e) => 
 });
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 	if (e.keyCode === 13) {
-		let fileName = document.querySelector(".search-bar-input").value;
+		let fileName = $(".search-bar-input").val();
 		searchFor(fileName);
 	} else if (e.keyCode === 27) {
 		cancelSearch();
@@ -514,8 +514,8 @@ document.onkeydown = async (e) => {
 		return;
 		// alert("Current dir path copied!");
 	}
-	// Check if cmd / ctrl + s is pressed
-	if (e.key == "s" && (e.ctrlKey || e.metaKey)) {
+	// Check if cmd / ctrl + f is pressed
+	if (e.key == "f" && (e.ctrlKey || e.metaKey)) {
 		$(".search-bar-input").focus();
 		IsInputFocused = true;
 	}
@@ -633,10 +633,10 @@ document.onkeydown = async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 		}
-		// check if ctrl / cmd + f is pressed
+		// check if ctrl / cmd + s is pressed
 		if (
 			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-			e.keyCode == 70 &&
+			e.key === "s" &&
 			IsShowDisks == false
 		) {
 			openSearchBar();
@@ -644,7 +644,7 @@ document.onkeydown = async (e) => {
 			e.stopPropagation();
 		}
 
-		// check if ctrl / cmd + m is pressed
+		// check if ctrl / cmd + shift + m is pressed
 		if (
 			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
 			e.shiftKey &&
@@ -656,6 +656,35 @@ document.onkeydown = async (e) => {
 			e.stopPropagation();
 		}
 
+		if (IsDualPaneEnabled === false) {
+			if (ViewMode == "wrap") {
+				// check if arrow up is pressed
+				if (e.keyCode == 38) {
+					goGridUp();
+					e.preventDefault();
+					e.stopPropagation();
+				}
+				// check if arrow down is pressed
+				if (e.keyCode == 40) {
+					goGridDown();
+					e.preventDefault();
+					e.stopPropagation();
+				}
+			}
+			// check if arrow left is pressed
+			if (e.keyCode == 37 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)) {
+				goLeft();
+				e.preventDefault();
+				e.stopPropagation();
+			}
+			// check if arrow right is pressed
+			if (e.keyCode == 39 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)) {
+				goRight();
+				e.preventDefault();
+				e.stopPropagation();
+			}
+		}
+			
 		// Check if ctrl / cmd + p is pressed
 		// if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.shiftKey && (e.key == "P" || e.key == "p")) {
 		//   showPromptInput();
@@ -3149,6 +3178,73 @@ async function goToOtherPane() {
 	goUp(true);
 }
 
+function goLeft(isToFirst = false, index = null) {
+	console.log("go left");
+	if (index == null) {
+		if (SelectedElement == null) {
+			index = 0;	
+		}
+		else {
+			index = parseInt(SelectedElement?.getAttribute("itemindex")) - 1 ?? 0;
+		}
+	}
+	if (index < 0) {
+		index = 0;
+	}
+	SelectedElement = DirectoryList.children[index];
+	selectItem(SelectedElement);
+}
+
+function goRight(isToFirst = false, index = null) {
+	if (index == null) {
+		if (SelectedElement == null) {
+			index = 0;	
+		}
+		else {
+			index = parseInt(SelectedElement?.getAttribute("itemindex")) + 1 ?? 0;
+		}
+	}
+	if (index > DirectoryList.children.length - 1) {
+		index = DirectoryList.children.length - 1;
+	}
+	SelectedElement = DirectoryList.children[index];
+	selectItem(SelectedElement);
+}
+
+function goGridUp() {
+	var rowlen = Array.prototype.reduce.call(DirectoryList.children, function (prev, next) {
+		if (!prev[2]) {
+			var ret = next.getBoundingClientRect().left
+			// if increasing, increment counter
+			if (!(prev[0] > -1 && ret < prev[1])) { prev[0]++ }
+			else { prev[2] = 1 } // else stop counting
+		}
+		return [prev[0], ret, prev[2]] // [counter, elem, stop-counting]
+	}, [0, null, 0])[0];
+	let index = 0;
+	if (SelectedElement != null) {
+		index = parseInt(SelectedElement?.getAttribute("itemindex")) - rowlen;
+	}
+	goLeft(false, index);	
+}
+
+function goGridDown() {
+	var rowlen = Array.prototype.reduce.call(DirectoryList.children, function (prev, next) {
+		if (!prev[2]) {
+			var ret = next.getBoundingClientRect().left
+			// if increasing, increment counter
+			if (!(prev[0] > -1 && ret < prev[1])) { prev[0]++ }
+			else { prev[2] = 1 } // else stop counting
+		}
+		return [prev[0], ret, prev[2]] // [counter, elem, stop-counting]
+	}, [0, null, 0])[0];
+	let index = 0;
+	if (SelectedElement != null) {
+		index = parseInt(SelectedElement?.getAttribute("itemindex")) + rowlen;
+	}
+	goRight(false, index);	
+}
+
 function openSelectedItem() {
 	if (SelectedElement != null) {
 		openItem(SelectedElement, SelectedItemPaneSide);
@@ -3476,11 +3572,11 @@ function switchHiddenFiles() {
 	if (IsShowHiddenFiles) {
 		IsShowHiddenFiles = false;
 		document.querySelector(".switch-hidden-files-button").innerHTML =
-			`<i class="fa-solid fa-eye-slash"></i>`;
+			`<i class="fa-solid fa-eye"></i>`;
 	} else {
 		IsShowHiddenFiles = true;
 		document.querySelector(".switch-hidden-files-button").innerHTML =
-			`<i class="fa-solid fa-eye"></i>`;
+			`<i class="fa-solid fa-eye-slash"></i>`;
 	}
 	listDirectories();
 }

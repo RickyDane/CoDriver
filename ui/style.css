@@ -1596,8 +1596,7 @@ button > svg {
     justify-content: flex-end;
     gap: 5px;
     padding: 5px;
-    /* border-top: 1px solid var(--tertiaryColor); */
-    /* background-color: var(--secondaryColor); */
+    border-top: 1px solid var(--tertiaryColor);
 }
 
 .popup-body-col-section {
