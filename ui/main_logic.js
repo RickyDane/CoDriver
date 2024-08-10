@@ -3439,6 +3439,8 @@ async function switchView() {
 			document.querySelector(".miller-column").style.display = "flex";
 			document.querySelector(".non-dual-pane-container").style.display = "none";
 			$(".explorer-container").css("padding", "10px 10px 0 10px");
+			$(".file-searchbar").css("opacity", "0");
+			$(".file-searchbar").css("pointer-events", "none");
 			ViewMode = "miller";
 		} else if (ViewMode == "miller" || IsShowDisks == true) {
 			document.querySelector(".explorer-container").style.width = "100%";
@@ -3459,6 +3461,8 @@ async function switchView() {
 			document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
 			document.querySelector(".list-column-header").style.display = "none";
 			$(".explorer-container")?.css("padding", "85px 20px 20px 20px");
+			$(".file-searchbar").css("opacity", "1");
+			$(".file-searchbar").css("pointer-events", "all");
 			ViewMode = "wrap";
 		}
 		await invoke("switch_view", { viewMode: ViewMode });
