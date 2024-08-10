@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - pre-master
 
 jobs:
   publish-tauri:
