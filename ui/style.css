@@ -76,6 +76,7 @@ body {
     margin: 5px;
     font-weight: bolder !important;
     background-color: var(--primaryColor);
+	border: 1px solid var(--tertiaryColor);
     line-height: 21px;
     color: var(--textColor);
 }
@@ -83,7 +84,6 @@ body {
 .explorer-container {
     padding: 10px 20px;
     height: 100%;
-    overflow: auto;
     position: relative;
     user-select: none;
     opacity: 1;
@@ -92,11 +92,11 @@ body {
 .miller-container {
     display: none;
     width: 100%;
-    height: 100%;
+    height: 100vh;
     flex-flow: row;
     gap: 1px;
-    justify-content: flex-start;
     overflow-x: auto;
+    justify-content: flex-start;
 }
 
 .miller-column {
@@ -104,8 +104,10 @@ body {
     justify-content: flex-start;
     width: 250px;
     min-width: 250px;
-    height: fit-content;
+    min-height: 100%;
     border-right: 2px solid var(--primaryColor);
+    overflow-y: auto !important;
+	padding-top: 65px !important;
 }
 
 .dual-pane-container {
@@ -160,6 +162,7 @@ body {
     overflow: hidden;
     border-radius: 0px;
     background-color: var(--secondaryColor);
+	pointer-events: all;
 }
 
 .main-window-container {

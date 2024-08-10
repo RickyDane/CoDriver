@@ -72,16 +72,7 @@ let IsQuickSearchOpen = false;
 let ConfiguredPathOne = "";
 let ConfiguredPathTwo = "";
 let ConfiguredPathThree = "";
-let IsTabs = false;
-let TabCount = 0;
-let CurrentActiveTab = 1;
-let CurrentMillerCol = 0;
-let TabOnePath;
-let TabTwoPath;
-let TabThreePath;
-let TabFourPath;
-let TabFivePath;
-let IsTabsEnabled = false;
+let CurrentMillerCol = 1;
 let IsDualPaneEnabled = false;
 let LeftDualPanePath = "";
 let RightDualPanePath = "";
@@ -372,344 +363,6 @@ document.onkeydown = async (e) => {
 		}
 		openItem(null, SelectedItemPaneSide, ConfiguredPathThree);
 	}
-
-	if (false) {
-		//IsTabsEnabled == true) {
-		// Check if ctrl + t or is pressed to open new tab
-		if ((e.ctrlKey || e.keyCode == 91) && e.keyCode == 84) {
-			if (TabCount < 5) {
-				let tabCounter = 1;
-				if (IsTabs == false) {
-					IsTabs = true;
-					document.querySelector(".tab-header").style.display = "flex";
-					document.querySelectorAll(".explorer-container").forEach((item) => {
-						if (ViewMode == "column") {
-							item.style.marginTop = "35px";
-							item.style.height = "calc(100vh - 135px)";
-							item.style.paddingBottom = "10px";
-						} else {
-							item.style.height = "calc(100vh - 100px)";
-							item.style.paddingBottom = "20px";
-						}
-					});
-					createTab(1, true);
-					TabCount++;
-				}
-				let checkTab = document.querySelector(".fx-tab-" + tabCounter);
-				while (checkTab != null) {
-					tabCounter++;
-					checkTab = document.querySelector(".fx-tab-" + tabCounter);
-				}
-				createTab(tabCounter, false);
-				TabCount++;
-			}
-		}
-
-		// Remove current active tab when pressing ctrl + w
-		if (e.ctrlKey && e.keyCode == 87) {
-			closeTab();
-		}
-	}
-
-	if (
-		IsDualPaneEnabled == true &&
-		IsDisableShortcuts == false &&
-		IsPopUpOpen == false
-	) {
-		// check if return is pressed
-		if (!e.altKey && e.keyCode == 13 && Platform != "darwin") {
-			openSelectedItem();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if backspace is pressed
-		if (e.keyCode == 8 && IsPopUpOpen == false) {
-			goBack();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if lshift + f5 is pressed
-		if (e.shiftKey && e.key == "F5") {
-			e.preventDefault();
-			e.stopPropagation();
-			let isToMove = await confirm("Current selection will be moved over");
-			if (isToMove == true) {
-				moveTo(true);
-			}
-		}
-		// check if f5 is pressed
-		else if (e.key == "F5" && IsTabsEnabled == false) {
-			e.preventDefault();
-			e.stopPropagation();
-			let isToCopy = await confirm("Current selection will be copied over");
-			if (isToCopy == true) {
-				pasteItem();
-			}
-		}
-		// check if arrow up is pressed
-		if (e.keyCode == 38) {
-			if (SelectedElement == null) {
-				goUp(false, true);
-			} else {
-				goUp();
-			}
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if arrow down is pressed
-		if (e.keyCode == 40) {
-			if (SelectedElement == null) {
-				goUp(false, true);
-			} else {
-				goDown();
-			}
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if tab is pressed
-		if (e.keyCode == 9) {
-			goToOtherPane();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		if (IsPopUpOpen == false) {
-			// check if f8 is pressed
-			if (e.keyCode == 119) {
-				openFullSearchContainer();
-				e.preventDefault();
-				e.stopPropagation();
-			}
-		}
-		if (e.key == "PageUp") {
-			goUp();
-			goUp();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		if (e.key == "PageDown") {
-			goDown();
-			goDown();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-	} else if (IsItemPreviewOpen == true) {
-		// check if arrow up is pressed
-		if (e.keyCode == 38) {
-			goUp();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if arrow down is pressed
-		if (e.keyCode == 40) {
-			goDown(e);
-			e.preventDefault();
-			e.stopPropagation();
-		}
-	}
-
-	// Check if cmd / ctrl + shift + c is pressed
-	if (
-		((Platform != "darwin" && IsCtrlDown && e.altKey) ||
-			(Platform == "darwin" && e.shiftKey)) &&
-		e.key == "c"
-	) {
-		await writeText(CurrentDir);
-		showToast("Info", "Current dir path copied", "success");
-		return;
-		// alert("Current dir path copied!");
-	}
-	// Check if cmd / ctrl + f is pressed
-	if (e.key == "f" && (e.ctrlKey || e.metaKey)) {
-		$(".search-bar-input").focus();
-		IsInputFocused = true;
-		e.preventDefault();
-		e.stopPropagation();
-	}
-	// Check if space is pressed on selected item
-	if (e.key == " " && SelectedElement != null) {
-		if (IsPopUpOpen == false || IsItemPreviewOpen == true) {
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		if (IsPopUpOpen == false && IsItemPreviewOpen == false) {
-			showItemPreview(SelectedElement);
-		} else {
-			closeItemPreview();
-		}
-	}
-
-	if (IsPopUpOpen == false) {
-		// check if del is pressed
-		if (IsInputFocused == false && (e.keyCode == 46 || (e.metaKey && e.keyCode == 8))) {
-			await deleteItems();
-			closeLoadingPopup();
-			listDirectories();
-			goUp();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// Check if cmd / ctrl + a is pressed
-		if (
-			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-			e.key == "a" &&
-			IsInputFocused == false
-		) {
-			if (IsDualPaneEnabled) {
-				if (SelectedItemPaneSide == "left") {
-					await unSelectAllItems();
-					for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
-						selectItem(LeftPaneItemCollection.children[i]);
-					}
-				} else {
-					await unSelectAllItems();
-					for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
-						selectItem(RightPaneItemCollection.children[i]);
-					}
-				}
-			} else {
-				await unSelectAllItems();
-				for (let i = 0; i < DirectoryList.children.length; i++) {
-					selectItem(DirectoryList.children[i]);
-				}
-			}
-		}
-		if (
-			(e.altKey && e.key == "Enter") ||
-			e.key == "F2" ||
-			(Platform == "darwin" &&
-				e.key == "Enter" &&
-				IsDualPaneEnabled == false &&
-				IsInputFocused == false)
-		) {
-			// check if alt + enter is pressed
-			renameElementInputPrompt(SelectedElement);
-		}
-		// check if cmd / ctrl + r is pressed
-		if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "r") {
-			await unSelectAllItems();
-			refreshView();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if cmd / ctrl + c is pressed
-		if (
-			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-			e.key == "c" &&
-			IsInputFocused == false
-		) {
-			copyItem(SelectedElement);
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if cmd / ctrl + x is pressed
-		if (
-			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-			e.key == "x" &&
-			IsInputFocused == false
-		) {
-			copyItem(SelectedElement, true);
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if cmd / ctrl + v is pressed
-		if (
-			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-			e.key == "v" &&
-			IsInputFocused == false
-		) {
-			pasteItem();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if cmd / ctrl + g is pressed | Path input
-		if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
-			showInputPopup("Input path to jump to");
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// New folder input prompt when f7 is pressed
-		if (e.key == "F7") {
-			createFolderInputPrompt();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// New file input prompt when f6 is pressed
-		if (e.keyCode == 117) {
-			createFileInputPrompt();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if ctrl / cmd + s is pressed
-		if (
-			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-			e.key === "s" &&
-			IsShowDisks == false
-		) {
-			openSearchBar();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-
-		// check if ctrl / cmd + shift + m is pressed
-		if (
-			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-			e.shiftKey &&
-			(e.key == "M" || e.key == "m") &&
-			ArrSelectedItems.length >= 1
-		) {
-			showMultiRenamePopup();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-
-		if (IsDualPaneEnabled === false) {
-			// check if return is pressed
-			if (!e.altKey && e.keyCode == 13 && Platform != "darwin") {
-				openSelectedItem();
-				e.preventDefault();
-				e.stopPropagation();
-			}
-			// check if backspace is pressed
-			if (e.keyCode == 8 && IsPopUpOpen == false) {
-				goBack();
-				e.preventDefault();
-				e.stopPropagation();
-			}
-			if (ViewMode == "wrap") {
-				// check if arrow up is pressed
-				if (e.keyCode == 38) {
-					goGridUp();
-					e.preventDefault();
-					e.stopPropagation();
-				}
-				// check if arrow down is pressed
-				if (e.keyCode == 40) {
-					goGridDown();
-					e.preventDefault();
-					e.stopPropagation();
-				}
-			}
-			// check if arrow left is pressed
-			if (e.keyCode == 37 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)) {
-				goLeft();
-				e.preventDefault();
-				e.stopPropagation();
-			}
-			// check if arrow right is pressed
-			if (e.keyCode == 39 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)) {
-				goRight();
-				e.preventDefault();
-				e.stopPropagation();
-			}
-		}
-			
-		// Check if ctrl / cmd + p is pressed
-		// if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.shiftKey && (e.key == "P" || e.key == "p")) {
-		//   showPromptInput();
-		//   e.preventDefault();
-		//   e.stopPropagation();
-		// }
-	}
 };
 
 // Reset key toggle
@@ -761,28 +414,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 	await cancelSearch();
 	await getCurrentDir();
 	IsShowDisks = false;
-	// Check which tab is currently active and write CurrentDir to TabOnePath and so on
-	// Todo: Make more "dynamic friendly"
-	// switch (CurrentActiveTab) {
-	//   case 1:
-	//     TabOnePath = CurrentDir;
-	//     break;
-	//   case 2:
-	//     TabTwoPath = CurrentDir;
-	//     break;
-	//   case 3:
-	//     TabThreePath = CurrentDir;
-	//     break;
-	//   case 4:
-	//     TabFourPath = CurrentDir;
-	//     break;
-	//   case 5:
-	//     TabFivePath = CurrentDir;
-	//     break;
-	// }
-	// if (IsTabsEnabled == true) {
-	//   document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = "";
-	// }
 	// Reset position when navigating in another directory
 	window.scrollTo(0, 0);
 	if (IsDualPaneEnabled == true) {
@@ -803,21 +434,12 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 	document.querySelector(".normal-list-column-header").style.display = "block";
 	document.querySelector(".disk-list-column-header").style.display = "none";
 
-	// Disabled:
-	// let currentTab = document.querySelector(".fx-tab-" + CurrentActiveTab);
-	// if (currentTab != null) {
-	//   currentTab.children[0].innerHTML = CurrentDir.split("/")[CurrentDir.split("/").length - 1];
-	// }
-	// delete currentTab;
 	DirectoryList = document.createElement("div");
 	if (IsDualPaneEnabled == true) {
 		DirectoryList.className = "directory-list-dual-pane";
 	} else {
 		DirectoryList.className = "directory-list";
 	}
-	// let hiddenItemsLength = items.filter((str) =>
-	//   str.name.startsWith("."),
-	// ).length;
 	if (IsShowHiddenFiles === false) {
 		items = items.filter((str) => !str.name.startsWith(".") && !str.name.toLowerCase().includes("desktop.ini"));
 	}
@@ -1337,9 +959,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			}
 		});
 	});
-	// if (IsTabsEnabled == true) {
-	//   document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
-	// }
 	if (IsDualPaneEnabled == true) {
 		if (dualPaneSide == "left") {
 			document.querySelector(".dual-pane-left").append(DirectoryList);
@@ -1358,9 +977,10 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			LeftDualPanePath = RightDualPanePath = CurrentDir;
 		}
 	} else if (ViewMode == "miller") {
-		$(".miller-col-" + millerCol)?.html("");
-		$(".miller-col-" + millerCol)?.append(DirectoryList);
-		$(".miller-col-" + millerCol)?.attr("miller-col-path", CurrentDir);
+		console.log("miller col", millerCol);
+		$(".miller-col-" + millerCol).html("");
+		$(".miller-col-" + millerCol).append(DirectoryList);
+		$(".miller-col-" + millerCol).attr("miller-col-path", CurrentDir);
 		CurrentMillerCol = millerCol;
 	} else {
 		document.querySelector(".explorer-container").innerHTML = "";
@@ -2706,8 +2326,8 @@ async function listDisks() {
 
 async function listDirectories(fromDualPaneCopy = false) {
 	let lsItems = await invoke("list_dirs");
-	if (IsDualPaneEnabled == true) {
-		if (fromDualPaneCopy == true) {
+	if (IsDualPaneEnabled === true) {
+		if (fromDualPaneCopy === true) {
 			if (SelectedItemPaneSide == "left") {
 				await showItems(lsItems, "right");
 			} else if (SelectedItemPaneSide == "right") {
@@ -2855,7 +2475,19 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 			// Open directory
 			let isSwitched = await invoke("open_dir", { path });
 			if (isSwitched === true) {
-				await listDirectories();
+				if (IsDualPaneEnabled === false) {
+					if (ViewMode == "miller") {
+						await removeExcessMillerCols(parseInt(millerCol));
+						await addMillerCol(millerCol);
+						await setMillerColActive(null, millerCol);
+						await listDirectories();
+					} 
+					else {
+						await listDirectories();
+					}
+				} else {
+					await listDirectories();
+				}
 			} else {
 				alert("Could not open directory due to insufficient permissions");
 			}
@@ -2933,16 +2565,6 @@ function selectItem(element, dualPaneSide = "", isNotReset = false) {
 		showItemPreview(SelectedElement, true);
 	}
 	ArrSelectedItems.push(SelectedElement);
-	// if (IsDualPaneEnabled == true) {
-	// 	switch (SelectedItemPaneSide) {
-	// 		case "left":
-	// 			setCurrentDir(LeftDualPanePath, "left");
-	// 			break;
-	// 		case "right":
-	// 			setCurrentDir(RightDualPanePath, "right");
-	// 			break;
-	// 	}
-	// }
 }
 
 function deSelectitem(item) {
@@ -3486,6 +3108,8 @@ async function switchView() {
 				list.style.gridTemplateColumns = "unset";
 				list.style.rowGap = "2px";
 			});
+			$(".file-searchbar").css("opacity", "0");
+			$(".file-searchbar").css("pointer-events", "none");
 			ViewMode = "miller";
 		} else if (ViewMode == "miller" || IsShowDisks == true) {
 			document.querySelector(".explorer-container").style.width = "100%";
@@ -3515,6 +3139,8 @@ async function switchView() {
 				}
 			});
 			$(".explorer-container")?.css("padding-top", "85px");
+			$(".file-searchbar").css("opacity", "1");
+			$(".file-searchbar").css("pointer-events", "all");
 			ViewMode = "wrap";
 		}
 		await invoke("switch_view", { viewMode: ViewMode });
@@ -3724,125 +3350,6 @@ function closeSettings() {
 	IsDisableShortcuts = false;
 	IsPopUpOpen = false;
 }
-
-function createTab(tabCount, isInitial) {
-	let tab = document.createElement("div");
-	tab.className = "fx-tab fx-tab-" + tabCount;
-	if (isInitial) {
-		var tabName =
-			CurrentDir.split("/")[CurrentDir.split("/").length - 1] ?? "Home";
-	} else {
-		var tabName = "New tab";
-	}
-	tab.innerHTML = `
-		<a class="tab-link" onclick="switchToTab(${tabCount})"><p>${tabName}</p></a>
-		<button class="close-tab-button" onclick="closeTab()"><i class="fa-solid fa-xmark"></i></button>
-		`;
-	if (tabCount != 1 || document.querySelector(".tab-container-1") == null) {
-		let explorerContainer = document.createElement("div");
-		explorerContainer.className =
-			"explorer-container tab-container-" + tabCount;
-		if (ViewMode == "wrap") {
-			// explorerContainer.style.height = "calc(100vh - 100px)";
-		} else {
-			// explorerContainer.style.marginTop = "35px";
-			// explorerContainer.style.height = "calc(100vh - 135px)";
-		}
-		document.querySelector(".main-container").append(explorerContainer);
-	}
-	document.querySelector(".tab-header").append(tab);
-	CurrentActiveTab = tabCount;
-	switchToTab(tabCount);
-	listDirectories();
-}
-
-// Currently not used
-/*
-	function closeTab() {
-		if (IsTabs == true) {
-			if (TabCount == 2) {
-				IsTabs = false;
-				document.querySelector(".tab-header").style.display = "none";
-				document
-					.querySelectorAll(".tab-container-" + CurrentActiveTab)
-					.forEach((item) => item.remove());
-				document.querySelectorAll(".fx-tab").forEach((item) => item.remove());
-				document.querySelectorAll(".explorer-container").forEach((item) => {
-					if (ViewMode == "wrap") {
-						item.style.height = "calc(100vh - 100px)";
-						item.style.paddingBottom = "20px";
-					} else {
-						item.style.marginTop = "35px";
-						item.style.height = "calc(100vh - 137px)";
-						item.style.paddingBottom = "10px";
-					}
-				});
-				let tabCounter = 1;
-				let checkTab = document.querySelector(".tab-container-" + tabCounter);
-				while (checkTab == null) {
-					tabCounter++;
-					checkTab = document.querySelector(".tab-container-" + tabCounter);
-				}
-				switchToTab(tabCounter);
-				TabCount = 0;
-			} else {
-				document
-					.querySelectorAll(".tab-container-" + CurrentActiveTab)
-					.forEach((item) => item.remove());
-				document
-					.querySelectorAll(".fx-tab-" + CurrentActiveTab)
-					.forEach((item) => item.remove());
-				let switchTabNo = document.querySelectorAll(".fx-tab").length;
-				switchToTab(switchTabNo);
-				TabCount--;
-			}
-		}
-	}
-
-async function switchToTab(tabNo) {
-	if (IsDualPaneEnabled == false) {
-		CurrentActiveTab = tabNo;
-		document.querySelectorAll(".explorer-container").forEach((container) => {
-			container.style.display = "none";
-		});
-		document.querySelectorAll(".fx-tab").forEach((tab) => {
-			tab.classList.remove("active-tab");
-		});
-		let currentTabContainer = document.querySelector(".tab-container-" + tabNo);
-		if (currentTabContainer != null) {
-			let currentTab = document.querySelector(".fx-tab-" + tabNo);
-			currentTab?.classList.add("active-tab");
-			currentTabContainer.style.display = "block";
-		}
-		switch (CurrentActiveTab) {
-			case 1:
-				CurrentDir = TabOnePath;
-				break;
-			case 2:
-				CurrentDir = TabTwoPath;
-				break;
-			case 3:
-				CurrentDir = TabThreePath;
-				break;
-			case 4:
-				CurrentDir = TabFourPath;
-				break;
-			case 5:
-				CurrentDir = TabFivePath;
-				break;
-		}
-		let currentDir = CurrentDir?.toString();
-		if (currentDir != null) {
-			await invoke("switch_to_directory", { currentDir });
-		}
-		document.querySelector(".current-path").textContent = CurrentDir;
-
-		if (IsDualPaneEnabled == true) {
-			switchToDual)Pane();
-		}
-	}
-}
-	*/
 
 async function showProperties(item) {
 	if (IsPopUpOpen === false) {
@@ -4462,6 +3969,7 @@ async function showExtraContextMenu(e, item) {
 }
 
 async function addMillerCol(millerCol) {
+	CurrentMillerCol = millerCol;
 	if (document.querySelector(".miller-col-" + millerCol) != null) return;
 	let prevMillerCol = document.querySelector(
 		".miller-col-" + (parseInt(millerCol) - 1),
@@ -4493,15 +4001,15 @@ async function setMillerColActive(millerColElement, millerCol = 1) {
 		.querySelectorAll(".miller-column")
 		.forEach((item) => (item.style.boxShadow = "none"));
 	if (millerColElement == null) {
-		setCurrentDir(
+		/*setCurrentDir(
 			document
 				.querySelector(".miller-col-" + millerCol)
 				.getAttribute("miller-col-path"),
-		);
+		);*/
 		document.querySelector(".miller-col-" + millerCol).style.boxShadow =
 			"inset 0px 0px 30px 1px var(--transparentColor)";
 	} else {
-		setCurrentDir(millerColElement.getAttribute("miller-col-path"));
+		//setCurrentDir(millerColElement.getAttribute("miller-col-path"));
 		millerColElement.style.boxShadow =
 			"inset 0px 0px 30px 1px var(--transparentColor)";
 	}
