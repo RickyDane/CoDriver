@@ -8,7 +8,7 @@ license = "none"
 repository = "https://github.com/RickyDane/CoDriver"
 default-run = "CoDriver"
 edition = "2021"
-rust-version = "1.73"
+rust-version = "1.80.1"
 
 [build-dependencies]
 tauri-build = { version = "1.5.2", features = [] }

@@ -6,8 +6,6 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 #[cfg(target_os = "windows")]
 use std::process::Command;
-#[cfg(target_os = "windows")]
-use std::thread::sleep;
 #[allow(unused)]
 use std::{borrow::Cow, error::Error};
 #[allow(unused)]
@@ -277,10 +275,8 @@ pub fn open_file_with(file_path: String, app_path: String) {
 #[cfg(target_os = "windows")]
 use widestring::{U16CString, U16Str};
 #[cfg(target_os = "windows")]
-use windows::{
-    core::{PCWSTR, PWSTR},
-    Win32::UI::Shell::{AssocQueryStringW, ASSOCF_NONE, ASSOCSTR_EXECUTABLE},
-};
+use windows::core::PCWSTR;
+
 #[cfg(target_os = "windows")]
 const BATCH_SIZE: usize = 4;
 #[cfg(target_os = "windows")]
@@ -358,7 +354,7 @@ pub fn open_file_with(file_path: String, app_path: String) {
             .output()
             .expect("");
         return;
-    } else if (app_path.contains("Fotoanzeige")) {
+    } else if app_path.contains("Fotoanzeige") {
         Command::new("powershell")
             .args([
                 "-Command",

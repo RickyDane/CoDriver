@@ -635,6 +635,7 @@ async fn search_for(
         COUNT_CALLED_BACK = 0;
     }
     let _ = app_window.eval("$('.file-searching-file-count').css('display', 'block')");
+    let _ = app_window.eval("$('.searching-info-container').css('display', 'block')");
     let _ = app_window.eval(&format!(
         "$('.file-searching-file-count').html('{} items found')",
         unsafe { COUNT_CALLED_BACK }
@@ -726,6 +727,7 @@ async fn search_for(
     let _ = app_window.eval("setTimeout(() => $('.file-searching-done').html(''), 1500)");
     let _ = app_window
         .eval("setTimeout(() => $('.file-searching-file-count').css('display', 'none'), 1500)");
+    let _ = app_window.eval("setTimeout(() => $('searching-info-container').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
 }
 
@@ -1186,7 +1188,7 @@ async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
 #[tauri::command]
 async fn open_with(_file_path: String, _app_path: String) {
     #[cfg(not(target_os = "linux"))]
-    open_file_with(file_path, app_path);
+    open_file_with(_file_path, _app_path);
 }
 
 #[tauri::command]

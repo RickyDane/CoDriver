@@ -50,16 +50,16 @@ html {
     background-color: transparent;
     border: none;
     overflow: hidden;
-    border-radius: 0px;
+    border-radius: 10px;
 }
 
 body {
     height: 100vh;
-    background-color: var(--secondaryColor);
+    /* background-color: var(--secondaryColor); */
     overflow: hidden;
     outline: none;
     border: none;
-    border-radius: 0px;
+    border-radius: 10px;
     transition: 0.3s ease-out;
     /* will-change: transform; */
 }
@@ -148,6 +148,7 @@ body {
     flex-flow: column;
     overflow: hidden;
     border-radius: 0px;
+    background-color: var(--secondaryColor);
 }
 
 .main-window-container {
@@ -167,12 +168,12 @@ body {
     right: 0;
     height: 55px;
     padding: 5px 10px 5px 10px;
-    box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
+    /* box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15); */
     z-index: 3;
     border-bottom: 1px solid var(--tertiaryColor);
     color: #3d404f;
     background-color: var(--navBarColor);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(5px);
 	-webkit-backdrop-filter: blur(10px);
     transition: 0.3s ease-out;
 }
@@ -264,15 +265,15 @@ body {
 	display: none;
 	flex-flow: row;
 	gap: 5px;
-	margin-right: -5px;
+    margin-right: -3px;
 }
 
 .windows-linux-titlebar-buttons > button {
-	width: 40px;
+	width: 45px;
 	height: 40px;
 	border: none;
 	background-color: transparent;
-	border-radius: 5px;
+	border-radius: 10px;
 	color: var(--textColor);
 	cursor: pointer;
 }
@@ -923,8 +924,9 @@ button > svg {
     cursor: pointer;
     transition: 0.1s ease-out;
     overflow: hidden;
-    gap: 10px;
-    padding-right: 15px;
+    gap: 5px;
+    padding-right: 20px;
+    padding-left: 5px;
     border: 1px solid var(--tertiaryColor);
     color: var(--textColor);
 }
@@ -943,6 +945,7 @@ button > svg {
     align-items: center;
     height: 32px;
     width: 32px;
+    margin-top: 2px;
     transition: 0.1s ease-out;
     /* background-color: var(--transparentColor); */
     border-radius: 10px 0px 0px 5px;
@@ -1017,10 +1020,12 @@ button > svg {
     flex-flow: row;
     align-items: center;
     border: 1px solid var(--secondaryColor);
-    width: 30%;
+    width: 200px;
     height: 80%;
     border-radius: 10px;
     overflow: hidden;
+    margin: 0 auto;
+    transition: 0.2s ease-in-out;
 }
 
 .file-searchbar > input {
@@ -1124,6 +1129,7 @@ button > svg {
     box-shadow: 0px 0px 10px 1px var(--transparentColor);
     border: 1px solid var(--tertiaryColor);
     overflow: hidden;
+    color: var(--textColor);
 }
 
 .search-full-container-header {
@@ -1788,6 +1794,11 @@ button > svg {
     padding: 5px;
     font-size: var(--fontSize);
     color: var(--textColor);
+}
+
+.searching-info-container {
+    display: none;
+    padding: 10px;
 }
 
 /* Text styles */

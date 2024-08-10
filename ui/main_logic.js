@@ -134,9 +134,11 @@ let CurrentTheme = "0";
 /* Upper right search bar logic */
 
 document.querySelector(".search-bar-input").addEventListener("focusin", (e) => {
+	$(".file-searchbar").css("width", "250px");
 	IsInputFocused = true;
 });
 document.querySelector(".search-bar-input").addEventListener("focusout", (e) => {
+	$(".file-searchbar").css("width", "200px");
 	IsInputFocused = false;
 });
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
@@ -506,6 +508,8 @@ document.onkeydown = async (e) => {
 	if (e.key == "f" && (e.ctrlKey || e.metaKey)) {
 		$(".search-bar-input").focus();
 		IsInputFocused = true;
+		e.preventDefault();
+		e.stopPropagation();
 	}
 	// Check if space is pressed on selected item
 	if (e.key == " " && SelectedElement != null) {
@@ -775,8 +779,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			document.querySelector(".dual-pane-right").innerHTML = "";
 			document.querySelector(".dual-pane-right").scrollTop = 0;
 		} else {
+			SelectedItemPaneSide = "left";
 			document.querySelector(".dual-pane-left").innerHTML = "";
+			document.querySelector(".dual-pane-left").scrollTop = 0;
 			document.querySelector(".dual-pane-right").innerHTML = "";
+			document.querySelector(".dual-pane-right").scrollTop = 0;
 		}
 	}
 	document.querySelector(".normal-list-column-header").style.display = "block";
@@ -797,9 +804,10 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 	// let hiddenItemsLength = items.filter((str) =>
 	//   str.name.startsWith("."),
 	// ).length;
-	if (!IsShowHiddenFiles) {
-		items = items.filter((str) => !str.name.startsWith("."));
+	if (IsShowHiddenFiles === false) {
+		items = items.filter((str) => !str.name.startsWith(".") && !str.name.toLowerCase().includes("desktop.ini"));
 	}
+	items = items.filter((str) => !str.name.toLowerCase().includes("ntuser"));
 	let counter = 0;
 	items.forEach(async (item) => {
 		let itemLink = document.createElement("button");
@@ -1328,6 +1336,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			RightDualPanePath = CurrentDir;
 			RightPaneItemCollection = DirectoryList;
 		} else {
+			SelectedItemPaneSide = "left";
 			document.querySelector(".dual-pane-left").append(DirectoryList);
 			document
 				.querySelector(".dual-pane-right")
@@ -1363,9 +1372,12 @@ listen("addSingleItem", async (item) => {
 
 async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
 	if (IsShowHiddenFiles === false) {
-		if (item.path.startsWith(".") == true) {
+		if (item.name.startsWith(".") == true || item.name.toLowerCase().includes("desktop.ini")) {
 			return;
 		}
+	}
+	if (item.name.toLowerCase().includes("ntuser")) {
+		return;
 	}
 	IsShowDisks = false;
 	// Reset position when navigating in another directory
@@ -2578,11 +2590,13 @@ async function applyPlatformFeatures() {
 		// headerNav.style.borderBottom = "none";
 		headerNav.style.boxShadow = "none";
 		$(".site-nav-bar").css("padding-top", "55px");
+		$(".search-bar-input").attr("placeholder", "Cmd + F");
 	} else {
 		$(".windows-linux-titlebar-buttons").css("display", "flex");
-			$('.minimize-button').on('click', () => appWindow.minimize())
-			$('.maximize-button').on('click', () => appWindow.toggleMaximize())
-			$('.close-button').on('click', () => appWindow.close())
+		$('.minimize-button').on('click', () => appWindow.minimize())
+		$('.maximize-button').on('click', () => appWindow.toggleMaximize())
+		$('.close-button').on('click', () => appWindow.close())
+		$(".search-bar-input").attr("placeholder", "Ctrl + F");
 	}
 	DefaultFileIcon = await resolveResource("resources/file-icon.png");
 	DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
@@ -2689,6 +2703,7 @@ async function listDirectories(fromDualPaneCopy = false) {
 }
 
 async function refreshView() {
+	console.log(IsDualPaneEnabled, SelectedItemPaneSide);
 	await listDirectories();
 }
 
@@ -2751,7 +2766,7 @@ async function interactWithItem(
 			}
 			else {
 				if (dualPaneSide == "left") {
-					let firstIndex = parseInt(SelectedElement.getAttribute("itemindex"));
+					let firstIndex = parseInt(SelectedElement.getAttribute("itemindex")) ?? 0;
 					let lastIndex = parseInt(element.getAttribute("itemindex"));
 					unSelectAllItems();
 					if (firstIndex < lastIndex) {
@@ -3485,8 +3500,6 @@ async function switchToDualPane() {
 		SelectedItemIndex = 0;
 		SelectedItemPaneSide = "left";
 		OrgViewMode = ViewMode;
-		// disable tab functionality and show two panels side by side
-		IsTabsEnabled = false;
 		IsDualPaneEnabled = true;
 		ViewMode = "column";
 		document.querySelector(".miller-container").style.display = "none";
@@ -3531,8 +3544,6 @@ async function switchToDualPane() {
 			item.children[1].style.display = "block";
 		});
 	} else {
-		// re - enables tab functionality and show shows just one directory container
-		// IsTabsEnabled = true;
 		IsDualPaneEnabled = false;
 		$(".non-dual-pane-container")?.css("width", "calc(100vw - 150px)");
 		$(".non-dual-pane-container")?.css("opacity", "1");
@@ -3669,7 +3680,6 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 		currentTheme,
 		arrFavorites: ArrFavorites,
 	});
-	checkAppConfig(false);
 	if (isVerbose === true) {
 		showToast("Settings", "Settings have been saved", "success");
 	}
@@ -3799,7 +3809,7 @@ async function switchToTab(tabNo) {
 		document.querySelector(".current-path").textContent = CurrentDir;
 
 		if (IsDualPaneEnabled == true) {
-			switchToDualPane();
+			switchToDual)Pane();
 		}
 	}
 }
@@ -4515,10 +4525,11 @@ async function insertSiteNavButtons() {
 			"fa-solid fa-music",
 			async () => await goToDir(5),
 		],
-		["FTP", "", "fa-solid fa-network-wired", showFtpConfig],
+		!Platform.includes("win") ? ["FTP", "", "fa-solid fa-network-wired", showFtpConfig] : [],
 	];
 
 	for (let i = 0; i < siteNavButtons.length; i++) {
+		if (siteNavButtons[i].length == 0) continue;
 		let button = document.createElement("button");
 		button.className = "site-nav-bar-button";
 		button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
