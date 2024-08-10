@@ -586,10 +586,10 @@ document.onkeydown = async (e) => {
 		}
 		// check if cmd / ctrl + r is pressed
 		if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "r") {
-			await unSelectAllItems();
-			refreshView();
 			e.preventDefault();
 			e.stopPropagation();
+			await unSelectAllItems();
+			refreshView();
 		}
 		// check if cmd / ctrl + c is pressed
 		if (

@@ -119,7 +119,7 @@ body {
     overflow: hidden;
     background-color: var(--secondaryColor);
     opacity: 0;
-    transition: opacity 0.5s ease, padding 0.5s ease;
+    transition: opacity 0.5s ease; 
 }
 
 .non-dual-pane-container {
