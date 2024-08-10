@@ -430,18 +430,6 @@ document.onkeydown = async (e) => {
 				pasteItem();
 			}
 		}
-		// check if backspace is pressed
-		if (e.keyCode == 8 && IsPopUpOpen == false) {
-			goBack();
-			e.preventDefault();
-			e.stopPropagation();
-		}
-		// check if return is pressed
-		if (!e.altKey && e.keyCode == 13) {
-			openSelectedItem();
-			e.preventDefault();
-			e.stopPropagation();
-		}
 		// check if arrow up is pressed
 		if (e.keyCode == 38) {
 			if (SelectedElement == null) {
@@ -657,6 +645,18 @@ document.onkeydown = async (e) => {
 		}
 
 		if (IsDualPaneEnabled === false) {
+			// check if return is pressed
+			if (!e.altKey && e.keyCode == 13 && Platform != "darwin") {
+				openSelectedItem();
+				e.preventDefault();
+				e.stopPropagation();
+			}
+			// check if backspace is pressed
+			if (e.keyCode == 8 && IsPopUpOpen == false) {
+				goBack();
+				e.preventDefault();
+				e.stopPropagation();
+			}
 			if (ViewMode == "wrap") {
 				// check if arrow up is pressed
 				if (e.keyCode == 38) {
@@ -1362,6 +1362,11 @@ listen("addSingleItem", async (item) => {
 });
 
 async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
+	if (IsShowHiddenFiles === false) {
+		if (item.path.startsWith(".") == true) {
+			return;
+		}
+	}
 	IsShowDisks = false;
 	// Reset position when navigating in another directory
 	window.scrollTo(0, 0);
@@ -2569,17 +2574,15 @@ async function applyPlatformFeatures() {
 	Platform = await platform();
 	// Check for macOS and position titlebar buttons on the left
 	if (Platform == "darwin") {
-		// $(".titlebar").css("flex-flow", "row-reverse");
-		// $(".titlebar-buttons").remove();
-		// $(".titlebar-buttons-macos").css("display", "flex");
-		// document.querySelectorAll(".titlebar-button").forEach(item => item.style.display = "none");
 		let headerNav = document.querySelector(".header-nav");
 		// headerNav.style.borderBottom = "none";
 		headerNav.style.boxShadow = "none";
 		$(".site-nav-bar").css("padding-top", "55px");
 	} else {
-		// $(".titlebar-buttons").css("display", "flex");
-		// $(".titlebar-buttons-macos").remove();
+		$(".windows-linux-titlebar-buttons").css("display", "flex");
+			$('.minimize-button').on('click', () => appWindow.minimize())
+			$('.maximize-button').on('click', () => appWindow.toggleMaximize())
+			$('.close-button').on('click', () => appWindow.close())
 	}
 	DefaultFileIcon = await resolveResource("resources/file-icon.png");
 	DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
@@ -3246,8 +3249,15 @@ function goGridDown() {
 }
 
 function openSelectedItem() {
-	if (SelectedElement != null) {
-		openItem(SelectedElement, SelectedItemPaneSide);
+	if (IsDualPaneEnabled === true) {
+		if (SelectedElement != null) {
+			openItem(SelectedElement, SelectedItemPaneSide);
+		}
+	}
+	else {
+		if (SelectedElement != null) {
+			openItem(SelectedElement);
+		}
 	}
 }
 
@@ -3659,9 +3669,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 		currentTheme,
 		arrFavorites: ArrFavorites,
 	});
-	if (isToReload == true) {
-		checkAppConfig(true);
-	}
+	checkAppConfig(false);
 	if (isVerbose === true) {
 		showToast("Settings", "Settings have been saved", "success");
 	}

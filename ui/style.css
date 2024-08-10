@@ -173,6 +173,7 @@ body {
     color: #3d404f;
     background-color: var(--navBarColor);
     backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
     transition: 0.3s ease-out;
 }
 
@@ -257,6 +258,27 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.windows-linux-titlebar-buttons {
+	display: none;
+	flex-flow: row;
+	gap: 5px;
+	margin-right: -5px;
+}
+
+.windows-linux-titlebar-buttons > button {
+	width: 40px;
+	height: 40px;
+	border: none;
+	background-color: transparent;
+	border-radius: 5px;
+	color: var(--textColor);
+	cursor: pointer;
+}
+
+.windows-linux-titlebar-buttons > button:hover {
+	background-color: var(--transparentColorActive);
 }
 
 .macos-red-button:hover {

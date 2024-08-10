@@ -300,6 +300,7 @@ impl DirWalker {
             .sort(true)
             .min_depth(1)
             .max_depth(depth as usize)
+            .skip_hidden(false)
             .follow_links(true)
         {
             unsafe {
@@ -341,7 +342,8 @@ impl DirWalker {
 
             if reg_exp.is_match(&name)
                 && (self.exts.len() > 0 && self.exts.contains(&item_ext)
-                    || path.is_file() && self.exts.len() == 0 || is_quick_search)
+                    || path.is_file() && self.exts.len() == 0
+                    || is_quick_search)
             {
                 callback(DirWalkerEntry {
                     name,

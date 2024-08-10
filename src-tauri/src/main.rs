@@ -5,11 +5,13 @@ use brew::Package;
 use chrono::prelude::{DateTime, Utc};
 use dialog::DialogBox;
 use flate2::read::GzDecoder;
+#[cfg(target_os = "macos")]
 use icns::{IconFamily, IconType};
 // use rust_search::{similarity_sort, SearchBuilder};
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
 use std::fs::{self, read_dir, ReadDir};
+#[allow(unused)]
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::{
@@ -25,6 +27,7 @@ use tauri::{
     },
     Config,
 };
+#[allow(unused)]
 use tauri::{Manager, Window, WindowEvent};
 use unrar::Archive;
 use zip::write::FileOptions;
@@ -42,6 +45,7 @@ mod window_tauri_ext;
 #[cfg(target_os = "macos")]
 use window_tauri_ext::WindowExt;
 mod applications;
+#[allow(unused)]
 use applications::{get_apps, open_file_with};
 use archiver_rs::Compressed;
 mod rdpfs;
@@ -63,7 +67,7 @@ const ASSET_LOCATION: &str = "asset://localhost/";
 
 fn main() {
     tauri::Builder::default()
-        .setup(|app| {
+        .setup(|_app| {
             #[cfg(target_os = "macos")]
             let win = app.get_window("main").unwrap();
             #[cfg(target_os = "macos")]
@@ -72,7 +76,7 @@ fn main() {
             win.position_traffic_lights(20.0, 25.0);
             Ok(())
         })
-        .on_window_event(|e| {
+        .on_window_event(|_e| {
             #[cfg(target_os = "macos")]
             if let WindowEvent::Resized(..) = e.event() {
                 let win = e.window();
@@ -209,8 +213,18 @@ async fn check_app_config() -> AppConfig {
     .await;
 
     // If config doesn't exist, create it
-    if fs::metadata(config_dir().unwrap().join("com.codriver.dev/app_config.json")).is_err() {
-        let _ = File::create(config_dir().unwrap().join("com.codriver.dev/app_config.json"));
+    if fs::metadata(
+        config_dir()
+            .unwrap()
+            .join("com.codriver.dev/app_config.json"),
+    )
+    .is_err()
+    {
+        let _ = File::create(
+            config_dir()
+                .unwrap()
+                .join("com.codriver.dev/app_config.json"),
+        );
         let app_config_json = AppConfig {
             view_mode: "".to_string(),
             last_modified: chrono::offset::Local::now().to_string(),
@@ -242,8 +256,12 @@ async fn check_app_config() -> AppConfig {
         );
     }
 
-    let app_config_file =
-        File::open(config_dir().unwrap().join("com.codriver.dev/app_config.json")).unwrap();
+    let app_config_file = File::open(
+        config_dir()
+            .unwrap()
+            .join("com.codriver.dev/app_config.json"),
+    )
+    .unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
 
@@ -290,7 +308,12 @@ async fn check_app_config() -> AppConfig {
 #[tauri::command]
 async fn get_themes() -> Vec<Theme> {
     let mut vec_themes: Vec<Theme> = vec![];
-    let themes = read_dir(config_dir().unwrap().join("com.codriver.dev").join("Themes"));
+    let themes = read_dir(
+        config_dir()
+            .unwrap()
+            .join("com.codriver.dev")
+            .join("Themes"),
+    );
     for theme_entry in themes.unwrap() {
         let app_config_file = File::open(theme_entry.unwrap().path()).unwrap();
         let app_config_reader = BufReader::new(app_config_file);
@@ -1161,7 +1184,7 @@ async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
 }
 
 #[tauri::command]
-async fn open_with(file_path: String, app_path: String) {
+async fn open_with(_file_path: String, _app_path: String) {
     #[cfg(not(target_os = "linux"))]
     open_file_with(file_path, app_path);
 }
@@ -1582,7 +1605,7 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
 // }
 
 #[tauri::command]
-async fn get_app_icns(path: String) -> String {
+async fn get_app_icns(_path: String) -> String {
     #[cfg(target_os = "linux")]
     return "".into();
 

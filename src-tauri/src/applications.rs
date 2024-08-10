@@ -38,9 +38,10 @@ pub struct App {
 
 // Linux
 
+#[allow(unused)]
 #[cfg(target_os = "linux")]
-pub fn parse_desktop_file(desktop_file_path: String) -> App {
-    let mut app = App::default();
+pub fn parse_desktop_file(_desktop_file_path: String) -> App {
+    let app = App::default();
     // app.app_desktop_path = desktop_file_path.clone();
     // let desktop_file_path_str = desktop_file_path.to_str().unwrap();
     // let map = ini!(desktop_file_path_str);
@@ -64,7 +65,7 @@ pub fn parse_desktop_file(desktop_file_path: String) -> App {
 }
 
 #[cfg(target_os = "linux")]
-pub fn get_apps(extention: String) -> Vec<App> {
+pub fn get_apps(_extention: String) -> Vec<App> {
     // // read XDG_DATA_DIRS env var
     // let xdg_data_dirs = std::env::var("XDG_DATA_DIRS").unwrap_or("/usr/share".to_string());
     // let xdg_data_dirs: Vec<&str> = xdg_data_dirs.split(':').collect();
@@ -79,7 +80,7 @@ pub fn get_apps(extention: String) -> Vec<App> {
     // search_dirs.insert("/usr/share/xsessions");
     // search_dirs.insert("/etc/xdg/autostart");
     // for each dir, search for .desktop files
-    let mut apps: Vec<App> = Vec::new();
+    let apps: Vec<App> = Vec::new();
     // for dir in search_dirs {
     //     let dir = PathBuf::from(dir);
     //     if !dir.exists() {
@@ -104,6 +105,7 @@ pub fn get_apps(extention: String) -> Vec<App> {
     apps
 }
 
+#[allow(unused)]
 #[cfg(target_os = "linux")]
 pub fn open_file_with(file_path: String, exec_path: String) {
     // let exec_path_str = exec_path.to_str().unwrap();
