@@ -1946,10 +1946,12 @@ async function getCurrentDir() {
 }
 
 async function setCurrentDir(currentDir = "", dualPaneSide = "") {
+	if (currentDir == "") return;
+	
 	if (dualPaneSide != "") {
 		SelectedItemPaneSide = dualPaneSide;
 	}
-	
+
 	await invoke("set_dir", { currentDir }).then((isSuccess) => {
 		if (isSuccess === false) {
 			alert("Switching directory failed. Probably no permissions.");
@@ -2784,7 +2786,7 @@ async function interactWithItem(
 			}
 			else {
 				if (dualPaneSide == "left") {
-					let firstIndex = parseInt(SelectedElement.getAttribute("itemindex") ?? 0);
+					let firstIndex = parseInt(SelectedElement?.getAttribute("itemindex") ?? 0);
 					let lastIndex = parseInt(element.getAttribute("itemindex"));
 					unSelectAllItems();
 					if (firstIndex < lastIndex) {
@@ -2799,7 +2801,7 @@ async function interactWithItem(
 					}
 				}
 				else {
-					let firstIndex = parseInt(SelectedElement.getAttribute("itemindex"));
+					let firstIndex = parseInt(SelectedElement?.getAttribute("itemindex") ?? ß);
 					let lastIndex = parseInt(element.getAttribute("itemindex"));
 					unSelectAllItems();
 					if (firstIndex < lastIndex) {
@@ -3438,6 +3440,7 @@ async function cancelSearch() {
 }
 
 async function switchView() {
+	console.log(ViewMode, OrgViewMode);
 	if (IsDualPaneEnabled == false) {
 		if (ViewMode == "wrap") {
 			document.querySelectorAll(".directory-list").forEach((list) => {
@@ -3467,12 +3470,14 @@ async function switchView() {
 			document.querySelector(".list-column-header").style.display = "flex";
 			$(".explorer-container")?.css("padding-top", "100px");
 			ViewMode = "column";
-		} else if (ViewMode == "column" && IsShowDisks == false) {
+		} else if (ViewMode == "column") {
 			document.querySelector(".list-column-header").style.display = "none";
 			document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
 			document.querySelector(".miller-container").style.display = "flex";
 			document.querySelector(".miller-column").style.display = "flex";
 			document.querySelector(".non-dual-pane-container").style.display = "none";
+			$(".miller-column")?.css("padding-top", "65px");
+			$(".explorer-container")?.css("padding-top", "65px");
 			document.querySelectorAll(".explorer-container").forEach((item) => {
 				item.style.padding = "5px 10px";
 			});
@@ -3482,7 +3487,6 @@ async function switchView() {
 				list.style.rowGap = "2px";
 			});
 			ViewMode = "miller";
-			$(".explorer-container")?.css("padding-top", "65px");
 		} else if (ViewMode == "miller" || IsShowDisks == true) {
 			document.querySelector(".explorer-container").style.width = "100%";
 			document.querySelectorAll(".directory-list").forEach((list) => {
@@ -3502,7 +3506,6 @@ async function switchView() {
 			document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
 			document.querySelector(".list-column-header").style.display = "none";
 			document.querySelectorAll(".explorer-container").forEach((item) => {
-				// item.style.height = "calc(100vh - 85px)";
 				item.style.marginTop = "0";
 				if (IsShowDisks == true) {
 					item.style.padding = "10px";
@@ -3566,7 +3569,6 @@ async function switchToDualPane() {
 		$(".header-nav-right-container").css("pointer-events", "none");
 		document.querySelectorAll(".item-button-list").forEach((item) => {
 			item.children[0].style.textOverflow = "none";
-			item.children[1].style.display = "block";
 		});
 	} else {
 		IsDualPaneEnabled = false;
@@ -3612,7 +3614,7 @@ async function switchToDualPane() {
 		}
 		await switchView();
 	}
-	await saveConfig(false, false);
+	await saveConfig(true, false);
 }
 
 function switchHiddenFiles() {
@@ -3709,6 +3711,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 	if (isVerbose === true) {
 		showToast("Settings", "Settings have been saved", "success");
 	}
+	checkAppConfig(IsDualPaneEnabled);
 }
 
 async function addFavorites(item) {
@@ -4238,7 +4241,6 @@ function getFDirObjectListFromDirectoryList(arrElements) {
 function checkColorMode(appConfig) {
 	var r = document.querySelector(":root");
 	let themeId = parseInt(CurrentTheme);
-	console.log(appConfig.themes[themeId]);
 	r.style.setProperty(
 		"--primaryColor",
 		appConfig.themes[themeId].primary_color,

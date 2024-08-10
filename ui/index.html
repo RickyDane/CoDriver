@@ -22,7 +22,9 @@
         </div>
     </div>
     <div style="display: flex; width: 100%; height: 100vh;">
-        <div data-tauri-drag-region class="site-nav-bar"></div>
+        <div data-tauri-drag-region class="site-nav-bar">
+            <div class="codriver-name">CoDriver</div>
+        </div>
         <div style="display: flex; flex-flow: column; position: relative;" class="main-window-container">
             <div data-tauri-drag-region class="header-nav">
                 <div data-tauri-drag-region
@@ -46,9 +48,7 @@
                         <button class="search-button" onclick="searchFor($('.search-bar-input').val())"><i class="fa-solid fa-magnifying-glass"></i></button>
                         <button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
                     </div>
-                    <button onclick="switchView()" class="header-nav-button switch-view-button">
-                        <i class="fa-solid fa-list"></i>
-                    </button>
+                    <button onclick="switchView()" class="header-nav-button switch-view-button"></button>
 					<div class="windows-linux-titlebar-buttons">
                         <button class="minimize-button"><i class="fa-regular fa-window-minimize"></i></button>
 						<button class="maximize-button"><i class="fa-regular fa-window-maximize"></i></button>
