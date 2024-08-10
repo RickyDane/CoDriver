@@ -60,7 +60,7 @@ let ArrDirectoryItems = [];
 let ContextMenu = document.querySelector(".context-menu");
 let CopyFileName = "";
 let CopyFilePath = "";
-let CurrentDir = "/Home";
+let CurrentDir = "/";
 let IsShowDisks = false;
 let IsShowHiddenFiles = false;
 
@@ -94,6 +94,8 @@ let RightPaneItemCollection = [];
 let IsDisableShortcuts = false;
 let LeftPaneItemIndex = 0;
 let RightPaneItemIndex = 0;
+let LastLeftPaneIndex = 0;
+let LastRightPaneIndex = 0;
 let IsPopUpOpen = false;
 let SettingsSearchDepth = 10;
 let SettingsMaxItems = 1000;
@@ -414,6 +416,18 @@ document.onkeydown = async (e) => {
 		IsDisableShortcuts == false &&
 		IsPopUpOpen == false
 	) {
+		// check if return is pressed
+		if (!e.altKey && e.keyCode == 13 && Platform != "darwin") {
+			openSelectedItem();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// check if backspace is pressed
+		if (e.keyCode == 8 && IsPopUpOpen == false) {
+			goBack();
+			e.preventDefault();
+			e.stopPropagation();
+		}
 		// check if lshift + f5 is pressed
 		if (e.shiftKey && e.key == "F5") {
 			e.preventDefault();
@@ -1932,12 +1946,16 @@ async function getCurrentDir() {
 }
 
 async function setCurrentDir(currentDir = "", dualPaneSide = "") {
-	CurrentDir = currentDir;
 	if (dualPaneSide != "") {
 		SelectedItemPaneSide = dualPaneSide;
 	}
-
-	await invoke("set_dir", { currentDir }).then(() => {
+	
+	await invoke("set_dir", { currentDir }).then((isSuccess) => {
+		if (isSuccess === false) {
+			alert("Switching directory failed. Probably no permissions.");
+			return;
+		}
+		CurrentDir = currentDir;
 		let currentDirContainer = document.querySelector(".current-path");
 		currentDirContainer.innerHTML = "";
 		let currentPathTracker = "/";
@@ -2191,18 +2209,15 @@ function showInputPopup(msg) {
 	let body = document.querySelector("body");
 	let popup = document.createElement("div");
 	popup.innerHTML = `
-		<h4>${msg}</h4>
+		<h4 style="color: var(--textColor);">${msg}</h4>
 		<input class="text-input" placeholder="/path/to/dir" autofocus/>
 		`;
 	popup.className = "input-popup";
 	popup.children[1].addEventListener("keyup", async (e) => {
 		if (e.keyCode == 13) {
-			await invoke("open_dir", { path: popup.children[1].value }).then(
-				async (items) => {
-					await showItems(items, SelectedItemPaneSide);
-					closeInputPopup();
-				},
-			);
+			await invoke("open_dir", { path: popup.children[1].value });
+			await listDirectories();
+			closeInputPopup();
 		}
 	});
 	body.append(popup);
@@ -2568,9 +2583,12 @@ async function checkAppConfig(isReload = false) {
 			}
 		} else if (appConfig.launch_path.length >= 1 && IsFirstRun == true) {
 			let path = appConfig.launch_path;
-			await invoke("open_dir", { path }).then(async (items) => {
-				await showItems(items);
-			});
+			let isSwitched = await invoke("open_dir", { path });
+			if (isSwitched === true) {
+				await listDirectories();
+			} else {
+				alert("No directory found or unable to open due to missing permissions");
+			}
 		} else {
 			SelectedItemIndex = 0;
 			SelectedItemPaneSide = "left"
@@ -2766,7 +2784,7 @@ async function interactWithItem(
 			}
 			else {
 				if (dualPaneSide == "left") {
-					let firstIndex = parseInt(SelectedElement.getAttribute("itemindex")) ?? 0;
+					let firstIndex = parseInt(SelectedElement.getAttribute("itemindex") ?? 0);
 					let lastIndex = parseInt(element.getAttribute("itemindex"));
 					unSelectAllItems();
 					if (firstIndex < lastIndex) {
@@ -2833,23 +2851,12 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 			path.split(".")[path.split(".").length - 1] != "app"
 		) {
 			// Open directory
-			await invoke("open_dir", { path }).then(async (items) => {
-				if (IsDualPaneEnabled === false) {
-					if (ViewMode == "miller") {
-						await removeExcessMillerCols(parseInt(millerCol));
-						await addMillerCol(millerCol);
-						await setMillerColActive(null, millerCol);
-						await setCurrentDir(element.getAttribute("itempath"));
-					} 
-				}
-				await showItems(items, dualPaneSide, millerCol);
-				if (IsDualPaneEnabled == true && dualPaneSide != "") {
-					// document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = ""; // Disabled tab functionality
-					goUp(false, true);
-				}
-			});
-			document.querySelector(".fullsearch-loader").style.display = "none";
-			DirectoryList.classList.remove("dir-preloader-container");
+			let isSwitched = await invoke("open_dir", { path });
+			if (isSwitched === true) {
+				await listDirectories();
+			} else {
+				alert("Could not open directory due to insufficient permissions");
+			}
 		} else if (IsItemPreviewOpen == false) {
 			await invoke("open_item", { path });
 		}
@@ -2990,11 +2997,22 @@ async function goHome() {
 }
 
 async function goBack() {
+	if (IsDualPaneEnabled === true) {
+		if (SelectedItemPaneSide == "left") {
+			LeftPaneItemIndex = LastLeftPaneIndex ?? 0;
+		} else {
+			RightPaneItemIndex = LastRightPaneIndex ?? 0;
+		}
+	}
 	if (IsMetaDown == false) {
 		await invoke("go_back", { isDualPane: IsDualPaneEnabled }).then(async (items) => {
 			if (IsDualPaneEnabled == true) {
 				await showItems(items, SelectedItemPaneSide);
-				goUp(false, true);
+				if (SelectedItemPaneSide == "left") {
+					selectItem(LeftPaneItemCollection.children[LeftPaneItemIndex]);
+				} else if (SelectedItemPaneSide == "right") {
+					selectItem(RightPaneItemCollection.children[RightPaneItemIndex]);
+				}
 			} else {
 				await showItems(items);
 			}
@@ -3265,6 +3283,12 @@ function goGridDown() {
 
 function openSelectedItem() {
 	if (IsDualPaneEnabled === true) {
+		if (SelectedItemPaneSide == "left") {
+			LastLeftPaneIndex = LeftPaneItemIndex;
+		}
+		else {
+			LastRightPaneIndex = RightPaneItemIndex;
+		}
 		if (SelectedElement != null) {
 			openItem(SelectedElement, SelectedItemPaneSide);
 		}
@@ -3299,9 +3323,9 @@ async function openFTP(
 		password,
 		remotePath,
 		mountPoint,
-	}).then(async (items) => {
-		await showItems(items);
 	});
+	await setCurrentDir(mountPoint);
+	await listDirectories();
 	closeFtpConfig();
 }
 
@@ -3539,6 +3563,7 @@ async function switchToDualPane() {
 		$(".non-dual-pane-container").css("height", "0px");
 		$(".explorer-container").css("padding", "0");
 		$(".header-nav-right-container").css("opacity", "0");
+		$(".header-nav-right-container").css("pointer-events", "none");
 		document.querySelectorAll(".item-button-list").forEach((item) => {
 			item.children[0].style.textOverflow = "none";
 			item.children[1].style.display = "block";
@@ -3564,6 +3589,7 @@ async function switchToDualPane() {
 		$(".dual-pane-container")?.css("height", "0");
 		$(".dual-pane-container")?.css("padding-top", "0");
 		$(".header-nav-right-container")?.css("opacity", "1");
+		$(".header-nav-right-container").css("pointer-events", "all");
 		if (Platform == "darwin") {
 			$(".header-nav")?.css("padding-left", "10px");
 		}

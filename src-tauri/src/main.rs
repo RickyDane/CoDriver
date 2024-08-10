@@ -398,7 +398,7 @@ async fn list_disks() -> Vec<DisksInfo> {
 #[tauri::command]
 async fn switch_to_directory(current_dir: String) {
     dbg_log(format!("Switching to directory: {}", &current_dir));
-    set_current_dir(current_dir).unwrap();
+    let _ = set_dir(current_dir.into()).await;
 }
 #[tauri::command]
 async fn switch_view(view_mode: String) -> Vec<FDir> {
@@ -439,9 +439,14 @@ async fn get_current_dir() -> String {
 }
 
 #[tauri::command]
-async fn set_dir(current_dir: String) {
+async fn set_dir(current_dir: String) -> bool {
     dbg_log(format!("Current dir: {}", &current_dir));
+    let md = fs::metadata(&current_dir);
+    if md.is_err() {
+        return false;
+    }
     let _ = set_current_dir(current_dir);
+    return true;
 }
 
 #[tauri::command]
@@ -497,13 +502,18 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 }
 
 #[tauri::command]
-async fn open_dir(path: String) -> Vec<FDir> {
-    let _ = set_current_dir(&path);
+async fn open_dir(path: String) -> bool {
+    let last_dir = current_dir().unwrap();
+    let md = fs::read_dir(&path);
+    if md.is_err() {
+        return false;
+    }
+    let _ = set_dir(path.clone().into()).await;
     unsafe {
         PATH_HISTORY.push(path);
         dbg_log(format!("Path history: {:?}", PATH_HISTORY));
     }
-    return list_dirs().await;
+    return true;
 }
 
 #[tauri::command]
@@ -512,10 +522,10 @@ async fn go_back(is_dual_pane: bool) -> Vec<FDir> {
         if PATH_HISTORY.len() > 1 && !is_dual_pane {
             let last_path = &PATH_HISTORY[PATH_HISTORY.len() - 2];
             dbg_log(format!("Went back to: {}", last_path));
-            let _ = set_current_dir(last_path);
+            let _ = set_dir(last_path.into()).await;
             PATH_HISTORY.pop();
         } else {
-            let _ = set_current_dir("./../");
+            let _ = set_dir("./../".into()).await;
         }
     }
     return list_dirs().await;
@@ -524,15 +534,15 @@ async fn go_back(is_dual_pane: bool) -> Vec<FDir> {
 #[tauri::command]
 async fn go_to_dir(directory: u8) -> Vec<FDir> {
     let wanted_directory = match directory {
-        0 => set_current_dir(desktop_dir().unwrap_or_default()),
-        1 => set_current_dir(download_dir().unwrap_or_default()),
-        2 => set_current_dir(document_dir().unwrap_or_default()),
-        3 => set_current_dir(picture_dir().unwrap_or_default()),
-        4 => set_current_dir(video_dir().unwrap_or_default()),
-        5 => set_current_dir(audio_dir().unwrap_or_default()),
-        _ => set_current_dir(current_dir().unwrap()),
+        0 => set_dir(desktop_dir().unwrap_or_default().to_str().unwrap().into()).await,
+        1 => set_dir(download_dir().unwrap_or_default().to_str().unwrap().into()).await,
+        2 => set_dir(document_dir().unwrap_or_default().to_str().unwrap().into()).await,
+        3 => set_dir(picture_dir().unwrap_or_default().to_str().unwrap().into()).await,
+        4 => set_dir(video_dir().unwrap_or_default().to_str().unwrap().into()).await,
+        5 => set_dir(audio_dir().unwrap_or_default().to_str().unwrap().into()).await,
+        _ => set_dir(current_dir().unwrap().to_str().unwrap().into()).await,
     };
-    if wanted_directory.is_err() {
+    if !wanted_directory {
         err_log("Not a valid directory".into());
         dialog::Message::new("Not a valid directory")
             .show()
@@ -552,7 +562,7 @@ async fn mount_sshfs(
     username: String,
     password: String,
     remote_path: String,
-) -> Vec<FDir> {
+) {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
     let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &hostname;
@@ -589,8 +599,6 @@ async fn mount_sshfs(
             String::from_utf8_lossy(&output.stderr),
         ));
     }
-
-    return open_dir(mount_point).await;
 }
 
 #[tauri::command]
@@ -603,7 +611,7 @@ async fn open_in_terminal() {
 
 #[tauri::command]
 async fn go_home() -> Vec<FDir> {
-    let _ = set_current_dir(home_dir().unwrap());
+    let _ = set_dir(home_dir().unwrap().to_str().unwrap().into()).await;
     unsafe {
         PATH_HISTORY.push(home_dir().unwrap().to_string_lossy().to_string());
     }
@@ -722,12 +730,8 @@ async fn search_for(
         "$('.file-searching-done').html('Searching done in: {:.2} sec.!')",
         sw.elapsed().as_millis() as f64 / 1000.0
     ));
-    let _ =
-        app_window.eval("setTimeout(() => $('.file-searching-done').css('display', 'none'), 1500)");
     let _ = app_window.eval("setTimeout(() => $('.file-searching-done').html(''), 1500)");
-    let _ = app_window
-        .eval("setTimeout(() => $('.file-searching-file-count').css('display', 'none'), 1500)");
-    let _ = app_window.eval("setTimeout(() => $('searching-info-container').css('display', 'none'), 1500)");
+    let _ = app_window.eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
 }
 
