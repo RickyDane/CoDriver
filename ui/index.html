@@ -15,37 +15,45 @@
 </head>
 
 <body>
-    <div class="toast-container"></div>
+    <div class="toast-container">
+        <div class="searching-info-container">
+            <div class="file-searching-file-count"></div>
+            <div class="file-searching-done"></div>
+        </div>
+    </div>
     <div style="display: flex; width: 100%; height: 100vh;">
-        <div data-tauri-drag-region class="site-nav-bar"></div>
+        <div data-tauri-drag-region class="site-nav-bar">
+            <div class="codriver-name">CoDriver</div>
+        </div>
         <div style="display: flex; flex-flow: column; position: relative;" class="main-window-container">
             <div data-tauri-drag-region class="header-nav">
                 <div data-tauri-drag-region
-                    style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: 65%;">
+                    style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: auto;">
                     <button class="go-back-button" onclick="goBack()"><i class="fa-solid fa-caret-left"></i></button>
                     <p class="nav-seperator-1">|</p>
                     <button onclick="goHome()" class="header-nav-button"><i class="fa-solid fa-house"></i></button>
                     <p class="nav-seperator-1">|</p>
                     <button onclick="switchHiddenFiles()" class="header-nav-button switch-hidden-files-button"><i
-                            class="fa-solid fa-eye-slash"></i></button>
+                            class="fa-solid fa-eye"></i></button>
                     <button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i
                             class="fa-solid fa-table-columns"></i></button>
                     <button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
                     <!-- <p>|</p> -->
                     <!-- <h5 class="directory-entries-count"></h5> -->
                     <div class="preloader-small-invert is-file-searching"></div>
-                    <div class="file-searching-file-count"></div>
-                    <div class="file-searching-done"></div>
                 </div>
                 <div data-tauri-drag-region class="header-nav-right-container" style="display: flex; flex-flow: row; gap: 10px; justify-content: flex-end; align-items: center; width: 100%;">
-                    <button onclick="switchView()" class="header-nav-button switch-view-button">
-                        <i class="fa-solid fa-list"></i>
-                    </button>
                     <div class="file-searchbar">
-                        <input class="search-bar-input text-input" type="text" placeholder="Cmd / Ctrl + S" />
-                        <button class="search-button" onclick="searchFor()"><i class="fa-solid fa-magnifying-glass"></i></button>
+                        <input class="search-bar-input text-input" type="text" placeholder="Cmd / Ctrl + F" />
+                        <button class="search-button" onclick="searchFor($('.search-bar-input').val())"><i class="fa-solid fa-magnifying-glass"></i></button>
                         <button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
                     </div>
+                    <button onclick="switchView()" class="header-nav-button switch-view-button"></button>
+					<div class="windows-linux-titlebar-buttons">
+                        <button class="minimize-button"><i class="fa-solid fa-minus"></i></button>
+						<button class="maximize-button"><i class="fa-regular fa-window-maximize"></i></button>
+						<button class="close-button"><i class="fa-solid fa-xmark"></i></button>
+					</div>
                 </div>
             </div>
             <div class="main-container">
@@ -173,7 +181,7 @@
                 </div>
                 <div class="popup-controls">
                     <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i
-                                class="fa-solid fa-ban"></i></span>Close</button>
+                                class="fa-solid fa-xmark"></i></span>Close</button>
                     <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i
                                 class="fa-solid fa-floppy-disk"></span></i>Save</button>
                 </div>
@@ -189,8 +197,8 @@
                         <i class="fa-solid fa-magnifying-glass"></i>
                         <p>Search</p>
                     </span>
-                    <button class="popup-close-button" onclick="closeFullSearch()"><i
-                            class="fa-solid fa-times"></i></button>
+                    <!-- <button class="popup-close-button" onclick="closeFullSearch()"><i
+                            class="fa-solid fa-times"></i></button> -->
                 </div>
                 <div class="popup-body">
                     <div class="popup-body-col-section">
@@ -202,7 +210,7 @@
                         <p class="text-2">File content (Currently disabled)</p>
                         <input disabled
                             class="full-dualpane-search-file-content-input trigger-for-full-search text-input"
-                            type="text" placeholder="example.txt" />
+                            type="text" placeholder="A long time ago in a galaxy far, far away ..." />
                     </div>
                     <div class="popup-body-col-section">
                         <p class="text-2">Max count of search results (0 = off)</p>

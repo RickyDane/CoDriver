@@ -142,9 +142,9 @@
     },
     "windows": [
       {
-        "decorations": true,
+        "decorations": false,
         "fullscreen": false,
-        "transparent": false,
+        "transparent": true,
         "height": 750,
         "resizable": true,
         "title": "CoDriver",
