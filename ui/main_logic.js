@@ -1306,9 +1306,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			}
 		});
 	});
-	// if (IsTabsEnabled == true) {
-	//   document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
-	// }
 	if (IsDualPaneEnabled == true) {
 		if (dualPaneSide == "left") {
 			document.querySelector(".dual-pane-left").append(DirectoryList);
@@ -1327,9 +1324,10 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			LeftDualPanePath = RightDualPanePath = CurrentDir;
 		}
 	} else if (ViewMode == "miller") {
-		$(".miller-col-" + millerCol)?.html("");
-		$(".miller-col-" + millerCol)?.append(DirectoryList);
-		$(".miller-col-" + millerCol)?.attr("miller-col-path", CurrentDir);
+		console.log("miller col", millerCol);
+		$(".miller-col-" + millerCol).html("");
+		$(".miller-col-" + millerCol).append(DirectoryList);
+		$(".miller-col-" + millerCol).attr("miller-col-path", CurrentDir);
 		CurrentMillerCol = millerCol;
 	} else {
 		document.querySelector(".explorer-container").innerHTML = "";
@@ -2910,16 +2908,6 @@ function selectItem(element, dualPaneSide = "", isNotReset = false) {
 		showItemPreview(SelectedElement, true);
 	}
 	ArrSelectedItems.push(SelectedElement);
-	// if (IsDualPaneEnabled == true) {
-	// 	switch (SelectedItemPaneSide) {
-	// 		case "left":
-	// 			setCurrentDir(LeftDualPanePath, "left");
-	// 			break;
-	// 		case "right":
-	// 			setCurrentDir(RightDualPanePath, "right");
-	// 			break;
-	// 	}
-	// }
 }
 
 function deSelectitem(item) {
@@ -3681,125 +3669,6 @@ function closeSettings() {
 	IsDisableShortcuts = false;
 	IsPopUpOpen = false;
 }
-
-function createTab(tabCount, isInitial) {
-	let tab = document.createElement("div");
-	tab.className = "fx-tab fx-tab-" + tabCount;
-	if (isInitial) {
-		var tabName =
-			CurrentDir.split("/")[CurrentDir.split("/").length - 1] ?? "Home";
-	} else {
-		var tabName = "New tab";
-	}
-	tab.innerHTML = `
-		<a class="tab-link" onclick="switchToTab(${tabCount})"><p>${tabName}</p></a>
-		<button class="close-tab-button" onclick="closeTab()"><i class="fa-solid fa-xmark"></i></button>
-		`;
-	if (tabCount != 1 || document.querySelector(".tab-container-1") == null) {
-		let explorerContainer = document.createElement("div");
-		explorerContainer.className =
-			"explorer-container tab-container-" + tabCount;
-		if (ViewMode == "wrap") {
-			// explorerContainer.style.height = "calc(100vh - 100px)";
-		} else {
-			// explorerContainer.style.marginTop = "35px";
-			// explorerContainer.style.height = "calc(100vh - 135px)";
-		}
-		document.querySelector(".main-container").append(explorerContainer);
-	}
-	document.querySelector(".tab-header").append(tab);
-	CurrentActiveTab = tabCount;
-	switchToTab(tabCount);
-	listDirectories();
-}
-
-// Currently not used
-/*
-	function closeTab() {
-		if (IsTabs == true) {
-			if (TabCount == 2) {
-				IsTabs = false;
-				document.querySelector(".tab-header").style.display = "none";
-				document
-					.querySelectorAll(".tab-container-" + CurrentActiveTab)
-					.forEach((item) => item.remove());
-				document.querySelectorAll(".fx-tab").forEach((item) => item.remove());
-				document.querySelectorAll(".explorer-container").forEach((item) => {
-					if (ViewMode == "wrap") {
-						item.style.height = "calc(100vh - 100px)";
-						item.style.paddingBottom = "20px";
-					} else {
-						item.style.marginTop = "35px";
-						item.style.height = "calc(100vh - 137px)";
-						item.style.paddingBottom = "10px";
-					}
-				});
-				let tabCounter = 1;
-				let checkTab = document.querySelector(".tab-container-" + tabCounter);
-				while (checkTab == null) {
-					tabCounter++;
-					checkTab = document.querySelector(".tab-container-" + tabCounter);
-				}
-				switchToTab(tabCounter);
-				TabCount = 0;
-			} else {
-				document
-					.querySelectorAll(".tab-container-" + CurrentActiveTab)
-					.forEach((item) => item.remove());
-				document
-					.querySelectorAll(".fx-tab-" + CurrentActiveTab)
-					.forEach((item) => item.remove());
-				let switchTabNo = document.querySelectorAll(".fx-tab").length;
-				switchToTab(switchTabNo);
-				TabCount--;
-			}
-		}
-	}
-
-async function switchToTab(tabNo) {
-	if (IsDualPaneEnabled == false) {
-		CurrentActiveTab = tabNo;
-		document.querySelectorAll(".explorer-container").forEach((container) => {
-			container.style.display = "none";
-		});
-		document.querySelectorAll(".fx-tab").forEach((tab) => {
-			tab.classList.remove("active-tab");
-		});
-		let currentTabContainer = document.querySelector(".tab-container-" + tabNo);
-		if (currentTabContainer != null) {
-			let currentTab = document.querySelector(".fx-tab-" + tabNo);
-			currentTab?.classList.add("active-tab");
-			currentTabContainer.style.display = "block";
-		}
-		switch (CurrentActiveTab) {
-			case 1:
-				CurrentDir = TabOnePath;
-				break;
-			case 2:
-				CurrentDir = TabTwoPath;
-				break;
-			case 3:
-				CurrentDir = TabThreePath;
-				break;
-			case 4:
-				CurrentDir = TabFourPath;
-				break;
-			case 5:
-				CurrentDir = TabFivePath;
-				break;
-		}
-		let currentDir = CurrentDir?.toString();
-		if (currentDir != null) {
-			await invoke("switch_to_directory", { currentDir });
-		}
-		document.querySelector(".current-path").textContent = CurrentDir;
-
-		if (IsDualPaneEnabled == true) {
-			switchToDual)Pane();
-		}
-	}
-}
-	*/
 
 async function showProperties(item) {
 	if (IsPopUpOpen === false) {

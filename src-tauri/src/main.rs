@@ -504,13 +504,13 @@ fn alert_not_found_dir(_x: std::io::Error) -> ReadDir {
 #[tauri::command]
 async fn open_dir(path: String) -> bool {
     let md = fs::read_dir(&path);
+    dbg_log(format!("Opening dir: {}", &path));
     if md.is_err() {
         return false;
     }
     let _ = set_dir(path.clone().into()).await;
     unsafe {
         PATH_HISTORY.push(path);
-        dbg_log(format!("Path history: {:?}", PATH_HISTORY));
     }
     return true;
 }
@@ -556,12 +556,7 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
 
 // :ftp
 #[tauri::command]
-async fn mount_sshfs(
-    hostname: String,
-    username: String,
-    password: String,
-    remote_path: String,
-) {
+async fn mount_sshfs(hostname: String, username: String, password: String, remote_path: String) {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
     let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &hostname;
@@ -730,7 +725,8 @@ async fn search_for(
         sw.elapsed().as_millis() as f64 / 1000.0
     ));
     let _ = app_window.eval("setTimeout(() => $('.file-searching-done').html(''), 1500)");
-    let _ = app_window.eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
+    let _ = app_window
+        .eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
 }
 

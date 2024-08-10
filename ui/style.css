@@ -77,6 +77,7 @@ body {
     margin: 5px;
     font-weight: bolder !important;
     background-color: var(--primaryColor);
+	border: 1px solid var(--tertiaryColor);
     line-height: 21px;
     color: var(--textColor);
 }
@@ -84,7 +85,6 @@ body {
 .explorer-container {
     padding: 10px 20px;
     height: 100%;
-    overflow: auto;
     position: relative;
     user-select: none;
     opacity: 1;
@@ -93,10 +93,9 @@ body {
 .miller-container {
     display: none;
     width: 100%;
-    height: 100%;
+    height: 100vh;
     flex-flow: row;
     gap: 1px;
-    justify-content: flex-start;
     overflow-x: auto;
     overflow-y: hidden;
 }
@@ -168,6 +167,7 @@ body {
     overflow: hidden;
     border-radius: 0px;
     background-color: var(--secondaryColor);
+	pointer-events: all;
 }
 
 .main-window-container {
