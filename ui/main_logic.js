@@ -2575,6 +2575,7 @@ async function applyPlatformFeatures() {
 		$(".search-bar-input").attr("placeholder", "Cmd + F");
 	} else {
 		appWindow.setDecorations(false);
+		appWindow.transparent = true;
 		$(".windows-linux-titlebar-buttons").css("display", "flex");
 		$('.minimize-button').on('click', () => appWindow.minimize())
 		$('.maximize-button').on('click', () => appWindow.toggleMaximize())
