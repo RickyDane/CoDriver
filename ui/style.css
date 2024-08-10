@@ -12,6 +12,7 @@
 }
 
 ::-webkit-scrollbar {
+    margin-top: 55px !important;
     width: 5px;
     height: 5px;
     background-color: var(--transparentColor);
@@ -97,6 +98,7 @@ body {
     gap: 1px;
     justify-content: flex-start;
     overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .miller-column {
@@ -108,8 +110,8 @@ body {
 	max-width: 250px;
 	overflow-x: hidden;
 	padding: 10px;
-	padding-top: 65px !important;
-    height: 100%;
+	margin-top: 55px !important;
+    height: calc(100% - 55px);
     border-right: 2px solid var(--primaryColor);
 	overflow-y: auto;
 }
