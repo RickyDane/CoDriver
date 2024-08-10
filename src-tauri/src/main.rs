@@ -67,7 +67,7 @@ const ASSET_LOCATION: &str = "asset://localhost/";
 
 fn main() {
     tauri::Builder::default()
-        .setup(|_app| {
+        .setup(|app| {
             #[cfg(target_os = "macos")]
             let win = app.get_window("main").unwrap();
             #[cfg(target_os = "macos")]
@@ -76,7 +76,7 @@ fn main() {
             win.position_traffic_lights(20.0, 25.0);
             Ok(())
         })
-        .on_window_event(|_e| {
+        .on_window_event(|e| {
             #[cfg(target_os = "macos")]
             if let WindowEvent::Resized(..) = e.event() {
                 let win = e.window();
@@ -1615,7 +1615,7 @@ async fn get_app_icns(_path: String) -> String {
 
     #[cfg(target_os = "macos")]
     {
-        let icns = applications::find_app_icns(path.clone().into());
+        let icns = applications::find_app_icns(_path.clone().into());
         if icns.is_some() {
             let icns = icns.unwrap();
 
@@ -1625,7 +1625,7 @@ async fn get_app_icns(_path: String) -> String {
                 .join("App-Thumbnails");
             let new_img_path = icns_path.to_string_lossy().to_string()
                 + "/"
-                + path.split("/").last().unwrap()
+                + _path.split("/").last().unwrap()
                 + icns.file_name().unwrap().to_str().unwrap()
                 + ".png";
 

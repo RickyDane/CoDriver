@@ -72,7 +72,16 @@ let IsQuickSearchOpen = false;
 let ConfiguredPathOne = "";
 let ConfiguredPathTwo = "";
 let ConfiguredPathThree = "";
+let IsTabs = false;
+let TabCount = 0;
+let CurrentActiveTab = 1;
 let CurrentMillerCol = 1;
+let TabOnePath;
+let TabTwoPath;
+let TabThreePath;
+let TabFourPath;
+let TabFivePath;
+let IsTabsEnabled = false;
 let IsDualPaneEnabled = false;
 let LeftDualPanePath = "";
 let RightDualPanePath = "";
@@ -362,6 +371,344 @@ document.onkeydown = async (e) => {
 			return;
 		}
 		openItem(null, SelectedItemPaneSide, ConfiguredPathThree);
+	}
+
+	if (false) {
+		//IsTabsEnabled == true) {
+		// Check if ctrl + t or is pressed to open new tab
+		if ((e.ctrlKey || e.keyCode == 91) && e.keyCode == 84) {
+			if (TabCount < 5) {
+				let tabCounter = 1;
+				if (IsTabs == false) {
+					IsTabs = true;
+					document.querySelector(".tab-header").style.display = "flex";
+					document.querySelectorAll(".explorer-container").forEach((item) => {
+						if (ViewMode == "column") {
+							item.style.marginTop = "35px";
+							item.style.height = "calc(100vh - 135px)";
+							item.style.paddingBottom = "10px";
+						} else {
+							item.style.height = "calc(100vh - 100px)";
+							item.style.paddingBottom = "20px";
+						}
+					});
+					createTab(1, true);
+					TabCount++;
+				}
+				let checkTab = document.querySelector(".fx-tab-" + tabCounter);
+				while (checkTab != null) {
+					tabCounter++;
+					checkTab = document.querySelector(".fx-tab-" + tabCounter);
+				}
+				createTab(tabCounter, false);
+				TabCount++;
+			}
+		}
+
+		// Remove current active tab when pressing ctrl + w
+		if (e.ctrlKey && e.keyCode == 87) {
+			closeTab();
+		}
+	}
+
+	if (
+		IsDualPaneEnabled == true &&
+		IsDisableShortcuts == false &&
+		IsPopUpOpen == false
+	) {
+		// check if return is pressed
+		if (!e.altKey && e.keyCode == 13 && Platform != "darwin") {
+			openSelectedItem();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// check if backspace is pressed
+		if (e.keyCode == 8 && IsPopUpOpen == false) {
+			goBack();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// check if lshift + f5 is pressed
+		if (e.shiftKey && e.key == "F5") {
+			e.preventDefault();
+			e.stopPropagation();
+			let isToMove = await confirm("Current selection will be moved over");
+			if (isToMove == true) {
+				moveTo(true);
+			}
+		}
+		// check if f5 is pressed
+		else if (e.key == "F5" && IsTabsEnabled == false) {
+			e.preventDefault();
+			e.stopPropagation();
+			let isToCopy = await confirm("Current selection will be copied over");
+			if (isToCopy == true) {
+				pasteItem();
+			}
+		}
+		// check if arrow up is pressed
+		if (e.keyCode == 38) {
+			if (SelectedElement == null) {
+				goUp(false, true);
+			} else {
+				goUp();
+			}
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// check if arrow down is pressed
+		if (e.keyCode == 40) {
+			if (SelectedElement == null) {
+				goUp(false, true);
+			} else {
+				goDown();
+			}
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// check if tab is pressed
+		if (e.keyCode == 9) {
+			goToOtherPane();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		if (IsPopUpOpen == false) {
+			// check if f8 is pressed
+			if (e.keyCode == 119) {
+				openFullSearchContainer();
+				e.preventDefault();
+				e.stopPropagation();
+			}
+		}
+		if (e.key == "PageUp") {
+			goUp();
+			goUp();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		if (e.key == "PageDown") {
+			goDown();
+			goDown();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+	} else if (IsItemPreviewOpen == true) {
+		// check if arrow up is pressed
+		if (e.keyCode == 38) {
+			goUp();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// check if arrow down is pressed
+		if (e.keyCode == 40) {
+			goDown(e);
+			e.preventDefault();
+			e.stopPropagation();
+		}
+	}
+
+	// Check if cmd / ctrl + shift + c is pressed
+	if (
+		((Platform != "darwin" && IsCtrlDown && e.altKey) ||
+			(Platform == "darwin" && e.shiftKey)) &&
+		e.key == "c"
+	) {
+		await writeText(CurrentDir);
+		showToast("Info", "Current dir path copied", "success");
+		return;
+		// alert("Current dir path copied!");
+	}
+	// Check if cmd / ctrl + f is pressed
+	if (e.key == "f" && (e.ctrlKey || e.metaKey)) {
+		$(".search-bar-input").focus();
+		IsInputFocused = true;
+		e.preventDefault();
+		e.stopPropagation();
+	}
+	// Check if space is pressed on selected item
+	if (e.key == " " && SelectedElement != null) {
+		if (IsPopUpOpen == false || IsItemPreviewOpen == true) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		if (IsPopUpOpen == false && IsItemPreviewOpen == false) {
+			showItemPreview(SelectedElement);
+		} else {
+			closeItemPreview();
+		}
+	}
+
+	if (IsPopUpOpen == false) {
+		// check if del is pressed
+		if (IsInputFocused == false && (e.keyCode == 46 || (e.metaKey && e.keyCode == 8))) {
+			await deleteItems();
+			closeLoadingPopup();
+			listDirectories();
+			goUp();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// Check if cmd / ctrl + a is pressed
+		if (
+			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
+			e.key == "a" &&
+			IsInputFocused == false
+		) {
+			if (IsDualPaneEnabled) {
+				if (SelectedItemPaneSide == "left") {
+					await unSelectAllItems();
+					for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
+						selectItem(LeftPaneItemCollection.children[i]);
+					}
+				} else {
+					await unSelectAllItems();
+					for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
+						selectItem(RightPaneItemCollection.children[i]);
+					}
+				}
+			} else {
+				await unSelectAllItems();
+				for (let i = 0; i < DirectoryList.children.length; i++) {
+					selectItem(DirectoryList.children[i]);
+				}
+			}
+		}
+		if (
+			(e.altKey && e.key == "Enter") ||
+			e.key == "F2" ||
+			(Platform == "darwin" &&
+				e.key == "Enter" &&
+				IsDualPaneEnabled == false &&
+				IsInputFocused == false)
+		) {
+			// check if alt + enter is pressed
+			renameElementInputPrompt(SelectedElement);
+		}
+		// check if cmd / ctrl + r is pressed
+		if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "r") {
+			e.preventDefault();
+			e.stopPropagation();
+			await unSelectAllItems();
+			refreshView();
+		}
+		// check if cmd / ctrl + c is pressed
+		if (
+			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
+			e.key == "c" &&
+			IsInputFocused == false
+		) {
+			copyItem(SelectedElement);
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// check if cmd / ctrl + x is pressed
+		if (
+			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
+			e.key == "x" &&
+			IsInputFocused == false
+		) {
+			copyItem(SelectedElement, true);
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// check if cmd / ctrl + v is pressed
+		if (
+			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
+			e.key == "v" &&
+			IsInputFocused == false
+		) {
+			pasteItem();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// check if cmd / ctrl + g is pressed | Path input
+		if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
+			showInputPopup("Input path to jump to");
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// New folder input prompt when f7 is pressed
+		if (e.key == "F7") {
+			createFolderInputPrompt();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// New file input prompt when f6 is pressed
+		if (e.keyCode == 117) {
+			createFileInputPrompt();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		// check if ctrl / cmd + s is pressed
+		if (
+			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
+			e.key === "s" &&
+			IsShowDisks == false
+		) {
+			openSearchBar();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+
+		// check if ctrl / cmd + shift + m is pressed
+		if (
+			((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
+			e.shiftKey &&
+			(e.key == "M" || e.key == "m") &&
+			ArrSelectedItems.length >= 1
+		) {
+			showMultiRenamePopup();
+			e.preventDefault();
+			e.stopPropagation();
+		}
+
+		if (IsDualPaneEnabled === false) {
+			// check if return is pressed
+			if (!e.altKey && e.keyCode == 13 && Platform != "darwin") {
+				openSelectedItem();
+				e.preventDefault();
+				e.stopPropagation();
+			}
+			// check if backspace is pressed
+			if (e.keyCode == 8 && IsPopUpOpen == false) {
+				goBack();
+				e.preventDefault();
+				e.stopPropagation();
+			}
+			if (ViewMode == "wrap") {
+				// check if arrow up is pressed
+				if (e.keyCode == 38) {
+					goGridUp();
+					e.preventDefault();
+					e.stopPropagation();
+				}
+				// check if arrow down is pressed
+				if (e.keyCode == 40) {
+					goGridDown();
+					e.preventDefault();
+					e.stopPropagation();
+				}
+			}
+			// check if arrow left is pressed
+			if (e.keyCode == 37 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)) {
+				goLeft();
+				e.preventDefault();
+				e.stopPropagation();
+			}
+			// check if arrow right is pressed
+			if (e.keyCode == 39 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)) {
+				goRight();
+				e.preventDefault();
+				e.stopPropagation();
+			}
+		}
+			
+		// Check if ctrl / cmd + p is pressed
+		// if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.shiftKey && (e.key == "P" || e.key == "p")) {
+		//   showPromptInput();
+		//   e.preventDefault();
+		//   e.stopPropagation();
+		// }
 	}
 };
 
@@ -695,7 +1042,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		else if (ViewMode == "miller") {
 			var itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
-				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
+				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
 				<img decoding="async" loading="lazy" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
 				<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
@@ -2091,7 +2438,7 @@ async function showAppInfo() {
 		`);
 }
 
-async function checkAppConfig(isReload = false) {
+async function checkAppConfig() {
 	await applyPlatformFeatures();
 	await invoke("check_app_config").then(async (appConfig) => {
 		let viewMode = appConfig.view_mode.replaceAll('"', "");
@@ -2106,9 +2453,8 @@ async function checkAppConfig(isReload = false) {
 				ViewMode = "column";
 				break;
 		}
-		if (isReload == false) {
-			await switchView();
-		}
+
+		switchView();
 		
 		document.querySelector(".context-open-in-terminal").style.display = "none";
 
@@ -2188,18 +2534,12 @@ async function checkAppConfig(isReload = false) {
 				await switchToDualPane();
 				if (appConfig.launch_path.length >= 1) {
 					let path = appConfig.launch_path;
-					await invoke("open_dir", { path }).then(async (items) => {
-						SelectedItemIndex = 0;
-						SelectedItemPaneSide = "left";
-						IsDualPaneActive = true;
-						await showItems(items, "left");
-						await showItems(items, "right");
-						goUp(false, true);
-					});
+					let isSwitched = await invoke("open_dir", { path });
+					if (isSwitched === true) {
+						await listDirectories();
+					}
 				}
 				else {
-					SelectedItemIndex = 0;
-					SelectedItemPaneSide = "left";
 					await goHome();
 				}
 			}
@@ -2229,9 +2569,11 @@ async function applyPlatformFeatures() {
 		let headerNav = document.querySelector(".header-nav");
 		// headerNav.style.borderBottom = "none";
 		headerNav.style.boxShadow = "none";
-		$(".site-nav-bar").css("padding-top", "55px");
+		$(".site-nav-bar").css("padding-top", "50px");
 		$(".search-bar-input").attr("placeholder", "Cmd + F");
 	} else {
+		appWindow.setDecorations(false);
+		appWindow.transparent = true;
 		$(".windows-linux-titlebar-buttons").css("display", "flex");
 		$('.minimize-button').on('click', () => appWindow.minimize())
 		$('.maximize-button').on('click', () => appWindow.toggleMaximize())
@@ -2326,12 +2668,13 @@ async function listDisks() {
 
 async function listDirectories(fromDualPaneCopy = false) {
 	let lsItems = await invoke("list_dirs");
-	if (IsDualPaneEnabled === true) {
-		if (fromDualPaneCopy === true) {
+	if (IsDualPaneEnabled == true) {
+		ViewMode = "column";
+		if (fromDualPaneCopy == true) {
 			if (SelectedItemPaneSide == "left") {
-				await showItems(lsItems, "right");
-			} else if (SelectedItemPaneSide == "right") {
 				await showItems(lsItems, "left");
+			} else if (SelectedItemPaneSide == "right") {
+				await showItems(lsItems, "right");
 			}
 		} else {
 			await showItems(lsItems, SelectedItemPaneSide);
@@ -2474,7 +2817,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 		) {
 			// Open directory
 			let isSwitched = await invoke("open_dir", { path });
-			if (isSwitched === true) {
+			if (isSwitched == true) {
 				if (IsDualPaneEnabled === false) {
 					if (ViewMode == "miller") {
 						await removeExcessMillerCols(parseInt(millerCol));
@@ -2489,7 +2832,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 					await listDirectories();
 				}
 			} else {
-				alert("Could not open directory due to insufficient permissions");
+				alert("Could not open directory");
 			}
 		} else if (IsItemPreviewOpen == false) {
 			await invoke("open_item", { path });
@@ -3086,11 +3429,8 @@ async function switchView() {
 			document
 				.querySelectorAll(".disk-item-button-button")
 				.forEach((item) => (item.style.display = "none"));
-			document.querySelectorAll(".explorer-container").forEach((item) => {
-				item.style.padding = "10px";
-			});
 			document.querySelector(".list-column-header").style.display = "flex";
-			$(".explorer-container")?.css("padding-top", "100px");
+			$(".explorer-container")?.css("padding", "100px 10px 10px 10px");
 			ViewMode = "column";
 		} else if (ViewMode == "column") {
 			document.querySelector(".list-column-header").style.display = "none";
@@ -3098,18 +3438,7 @@ async function switchView() {
 			document.querySelector(".miller-container").style.display = "flex";
 			document.querySelector(".miller-column").style.display = "flex";
 			document.querySelector(".non-dual-pane-container").style.display = "none";
-			$(".miller-column")?.css("padding-top", "65px");
-			$(".explorer-container")?.css("padding-top", "65px");
-			document.querySelectorAll(".explorer-container").forEach((item) => {
-				item.style.padding = "5px 10px";
-			});
-			document.querySelectorAll(".directory-list").forEach((list) => {
-				list.style.flexFlow = "column";
-				list.style.gridTemplateColumns = "unset";
-				list.style.rowGap = "2px";
-			});
-			$(".file-searchbar").css("opacity", "0");
-			$(".file-searchbar").css("pointer-events", "none");
+			$(".explorer-container").css("padding", "10px 10px 0 10px");
 			ViewMode = "miller";
 		} else if (ViewMode == "miller" || IsShowDisks == true) {
 			document.querySelector(".explorer-container").style.width = "100%";
@@ -3129,18 +3458,7 @@ async function switchView() {
 			document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "none"));
 			document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
 			document.querySelector(".list-column-header").style.display = "none";
-			document.querySelectorAll(".explorer-container").forEach((item) => {
-				item.style.marginTop = "0";
-				if (IsShowDisks == true) {
-					item.style.padding = "10px";
-				}
-				else {
-					item.style.padding = "20px";
-				}
-			});
-			$(".explorer-container")?.css("padding-top", "85px");
-			$(".file-searchbar").css("opacity", "1");
-			$(".file-searchbar").css("pointer-events", "all");
+			$(".explorer-container")?.css("padding", "85px 20px 20px 20px");
 			ViewMode = "wrap";
 		}
 		await invoke("switch_view", { viewMode: ViewMode });
@@ -3150,8 +3468,6 @@ async function switchView() {
 
 async function switchToDualPane() {
 	if (IsDualPaneEnabled == false) {
-		SelectedItemIndex = 0;
-		SelectedItemPaneSide = "left";
 		OrgViewMode = ViewMode;
 		IsDualPaneEnabled = true;
 		ViewMode = "column";
@@ -3159,14 +3475,9 @@ async function switchToDualPane() {
 		if (Platform == "darwin") {
 			$(".header-nav").css("padding-left", "85px");
 		}
-		document
-			.querySelectorAll(".item-button")
-			.forEach((item) => (item.style.display = "none"));
-		document
-			.querySelectorAll(".item-button-list")
-			.forEach((item) => (item.style.display = "flex"));
-		document.querySelector(".switch-dualpane-view-button").innerHTML =
-			`<i class="fa-regular fa-rectangle-xmark"></i>`;
+		document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
+		document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "flex"));
+		document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
 		await invoke("list_dirs").then(async (items) => {
 			await showItems(items, "left");
 			await showItems(items, "right");
@@ -3175,24 +3486,26 @@ async function switchToDualPane() {
 		document.querySelector(".site-nav-bar").style.width = "0px";
 		document.querySelector(".site-nav-bar").style.minWidth = "0";
 		if (Platform == "darwin") {
-			$(".site-nav-bar").css("padding","55px 0 0 0");
+			$(".site-nav-bar").css("padding", "55px 0 0 0");
 		}
 		else {
-			$(".site-nav-bar").css("padding","0");
+			$(".site-nav-bar").css("padding", "0");
 		}
-		// $(".list-column-header").css("opacity", "0");
 		$(".list-column-header").css("height", "0");
 		$(".list-column-header").css("padding", "0");
 		$(".list-column-header").css("border", "none");
 		$(".dual-pane-container").css("opacity", "1");
 		$(".dual-pane-container").css("height", "100%");
-		$(".dual-pane-container").css("padding-top", "50px");
+		$(".dual-pane-container").css("padding-top", "55px");
 		$(".non-dual-pane-container").css("width", "0");
 		$(".non-dual-pane-container").css("opacity", "0");
 		$(".non-dual-pane-container").css("height", "0px");
+		$(".non-dual-pane-container").css("overflow", "hidden");
 		$(".explorer-container").css("padding", "0");
-		$(".header-nav-right-container").css("opacity", "0");
-		$(".header-nav-right-container").css("pointer-events", "none");
+		$(".file-searchbar").css("opacity", "0");
+		$(".file-searchbar").css("pointer-events", "none");
+		$(".switch-view-button").css("opacity", "0");
+		$(".switch-view-button").css("pointer-events", "none");
 		document.querySelectorAll(".item-button-list").forEach((item) => {
 			item.children[0].style.textOverflow = "none";
 		});
@@ -3202,6 +3515,7 @@ async function switchToDualPane() {
 		$(".non-dual-pane-container")?.css("opacity", "1");
 		$(".non-dual-pane-container")?.css("height", "100%");
 		$(".non-dual-pane-container")?.css("padding", "10px 20px");
+		$(".non-dual-pane-container").css("overflow-y", "auto");
 		$(".site-nav-bar")?.css("width", "150px");
 		$(".site-nav-bar")?.css("min-width", "150px");
 		if (Platform == "darwin") {
@@ -3210,6 +3524,7 @@ async function switchToDualPane() {
 		else {
 			$(".site-nav-bar")?.css("padding", "10px");
 		}
+		$(".explorer-container").css("padding", "10px");
 		$(".list-column-header")?.css("height", "35px");
 		$(".list-column-header")?.css("padding", "5px");
 		$(".list-column-header")?.css("border-bottom", "1px solid var(--tertiaryColor)");
@@ -3218,15 +3533,17 @@ async function switchToDualPane() {
 		$(".dual-pane-container")?.css("padding-top", "0");
 		$(".header-nav-right-container")?.css("opacity", "1");
 		$(".header-nav-right-container").css("pointer-events", "all");
+		$(".file-searchbar").css("opacity", "1");
+		$(".file-searchbar").css("pointer-events", "all");
+		$(".switch-view-button").css("opacity", "1");
+		$(".switch-view-button").css("pointer-events", "all");
 		if (Platform == "darwin") {
 			$(".header-nav")?.css("padding-left", "10px");
 		}
 		await applyPlatformFeatures();
 		document.querySelector(".switch-dualpane-view-button").innerHTML =
 			`<i class="fa-solid fa-table-columns"></i>`;
-		// document.querySelector(".go-back-button").style.display = "block";
-		// document.querySelector(".nav-seperator-1").style.display = "block";
-
+		// Reset to view before the 
 		switch (OrgViewMode) {
 			case "wrap":
 				ViewMode = "miller";
@@ -3240,7 +3557,7 @@ async function switchToDualPane() {
 		}
 		await switchView();
 	}
-	await saveConfig(true, false);
+	await saveConfig(false, false);
 }
 
 function switchHiddenFiles() {
@@ -3337,7 +3654,9 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 	if (isVerbose === true) {
 		showToast("Settings", "Settings have been saved", "success");
 	}
-	checkAppConfig(IsDualPaneEnabled);
+	if (isToReload == true) {
+		checkAppConfig();
+	}
 }
 
 async function addFavorites(item) {
@@ -4001,15 +4320,9 @@ async function setMillerColActive(millerColElement, millerCol = 1) {
 		.querySelectorAll(".miller-column")
 		.forEach((item) => (item.style.boxShadow = "none"));
 	if (millerColElement == null) {
-		/*setCurrentDir(
-			document
-				.querySelector(".miller-col-" + millerCol)
-				.getAttribute("miller-col-path"),
-		);*/
 		document.querySelector(".miller-col-" + millerCol).style.boxShadow =
 			"inset 0px 0px 30px 1px var(--transparentColor)";
 	} else {
-		//setCurrentDir(millerColElement.getAttribute("miller-col-path"));
 		millerColElement.style.boxShadow =
 			"inset 0px 0px 30px 1px var(--transparentColor)";
 	}
