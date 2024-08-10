@@ -3438,7 +3438,7 @@ async function switchView() {
 			document.querySelector(".miller-container").style.display = "flex";
 			document.querySelector(".miller-column").style.display = "flex";
 			document.querySelector(".non-dual-pane-container").style.display = "none";
-			$(".explorer-container").css("padding", "0 10px 0 10px");
+			$(".explorer-container").css("padding", "10px 10px 0 10px");
 			ViewMode = "miller";
 		} else if (ViewMode == "miller" || IsShowDisks == true) {
 			document.querySelector(".explorer-container").style.width = "100%";
