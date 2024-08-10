@@ -75,7 +75,7 @@ let ConfiguredPathThree = "";
 let IsTabs = false;
 let TabCount = 0;
 let CurrentActiveTab = 1;
-let CurrentMillerCol = 0;
+let CurrentMillerCol = 1;
 let TabOnePath;
 let TabTwoPath;
 let TabThreePath;
@@ -761,28 +761,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 	await cancelSearch();
 	await getCurrentDir();
 	IsShowDisks = false;
-	// Check which tab is currently active and write CurrentDir to TabOnePath and so on
-	// Todo: Make more "dynamic friendly"
-	// switch (CurrentActiveTab) {
-	//   case 1:
-	//     TabOnePath = CurrentDir;
-	//     break;
-	//   case 2:
-	//     TabTwoPath = CurrentDir;
-	//     break;
-	//   case 3:
-	//     TabThreePath = CurrentDir;
-	//     break;
-	//   case 4:
-	//     TabFourPath = CurrentDir;
-	//     break;
-	//   case 5:
-	//     TabFivePath = CurrentDir;
-	//     break;
-	// }
-	// if (IsTabsEnabled == true) {
-	//   document.querySelector(".tab-container-" + CurrentActiveTab).innerHTML = "";
-	// }
 	// Reset position when navigating in another directory
 	window.scrollTo(0, 0);
 	if (IsDualPaneEnabled == true) {
@@ -803,21 +781,12 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 	document.querySelector(".normal-list-column-header").style.display = "block";
 	document.querySelector(".disk-list-column-header").style.display = "none";
 
-	// Disabled:
-	// let currentTab = document.querySelector(".fx-tab-" + CurrentActiveTab);
-	// if (currentTab != null) {
-	//   currentTab.children[0].innerHTML = CurrentDir.split("/")[CurrentDir.split("/").length - 1];
-	// }
-	// delete currentTab;
 	DirectoryList = document.createElement("div");
 	if (IsDualPaneEnabled == true) {
 		DirectoryList.className = "directory-list-dual-pane";
 	} else {
 		DirectoryList.className = "directory-list";
 	}
-	// let hiddenItemsLength = items.filter((str) =>
-	//   str.name.startsWith("."),
-	// ).length;
 	if (IsShowHiddenFiles === false) {
 		items = items.filter((str) => !str.name.startsWith(".") && !str.name.toLowerCase().includes("desktop.ini"));
 	}
@@ -1073,7 +1042,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		else if (ViewMode == "miller") {
 			var itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
-				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
+				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
 				<img decoding="async" loading="lazy" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
 				<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
@@ -2471,7 +2440,7 @@ async function showAppInfo() {
 		`);
 }
 
-async function checkAppConfig(isReload = false) {
+async function checkAppConfig() {
 	await applyPlatformFeatures();
 	await invoke("check_app_config").then(async (appConfig) => {
 		let viewMode = appConfig.view_mode.replaceAll('"', "");
@@ -2486,9 +2455,8 @@ async function checkAppConfig(isReload = false) {
 				ViewMode = "column";
 				break;
 		}
-		if (isReload == false) {
-			await switchView();
-		}
+
+		switchView();
 		
 		document.querySelector(".context-open-in-terminal").style.display = "none";
 
@@ -2568,18 +2536,12 @@ async function checkAppConfig(isReload = false) {
 				await switchToDualPane();
 				if (appConfig.launch_path.length >= 1) {
 					let path = appConfig.launch_path;
-					await invoke("open_dir", { path }).then(async (items) => {
-						SelectedItemIndex = 0;
-						SelectedItemPaneSide = "left";
-						IsDualPaneActive = true;
-						await showItems(items, "left");
-						await showItems(items, "right");
-						goUp(false, true);
-					});
+					let isSwitched = await invoke("open_dir", { path });
+					if (isSwitched === true) {
+						await listDirectories();
+					}
 				}
 				else {
-					SelectedItemIndex = 0;
-					SelectedItemPaneSide = "left";
 					await goHome();
 				}
 			}
@@ -2707,11 +2669,12 @@ async function listDisks() {
 async function listDirectories(fromDualPaneCopy = false) {
 	let lsItems = await invoke("list_dirs");
 	if (IsDualPaneEnabled == true) {
+		ViewMode = "column";
 		if (fromDualPaneCopy == true) {
 			if (SelectedItemPaneSide == "left") {
-				await showItems(lsItems, "right");
-			} else if (SelectedItemPaneSide == "right") {
 				await showItems(lsItems, "left");
+			} else if (SelectedItemPaneSide == "right") {
+				await showItems(lsItems, "right");
 			}
 		} else {
 			await showItems(lsItems, SelectedItemPaneSide);
@@ -2854,10 +2817,22 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 		) {
 			// Open directory
 			let isSwitched = await invoke("open_dir", { path });
-			if (isSwitched === true) {
-				await listDirectories();
+			if (isSwitched == true) {
+				if (IsDualPaneEnabled === false) {
+					if (ViewMode == "miller") {
+						await removeExcessMillerCols(parseInt(millerCol));
+						await addMillerCol(millerCol);
+						await setMillerColActive(null, millerCol);
+						await listDirectories();
+					} 
+					else {
+						await listDirectories();
+					}
+				} else {
+					await listDirectories();
+				}
 			} else {
-				alert("Could not open directory due to insufficient permissions");
+				alert("Could not open directory");
 			}
 		} else if (IsItemPreviewOpen == false) {
 			await invoke("open_item", { path });
@@ -3464,11 +3439,8 @@ async function switchView() {
 			document
 				.querySelectorAll(".disk-item-button-button")
 				.forEach((item) => (item.style.display = "none"));
-			document.querySelectorAll(".explorer-container").forEach((item) => {
-				item.style.padding = "10px";
-			});
 			document.querySelector(".list-column-header").style.display = "flex";
-			$(".explorer-container")?.css("padding-top", "100px");
+			$(".explorer-container")?.css("padding", "100px 10px 10px 10px");
 			ViewMode = "column";
 		} else if (ViewMode == "column") {
 			document.querySelector(".list-column-header").style.display = "none";
@@ -3476,16 +3448,7 @@ async function switchView() {
 			document.querySelector(".miller-container").style.display = "flex";
 			document.querySelector(".miller-column").style.display = "flex";
 			document.querySelector(".non-dual-pane-container").style.display = "none";
-			$(".miller-column")?.css("padding-top", "65px");
-			$(".explorer-container")?.css("padding-top", "65px");
-			document.querySelectorAll(".explorer-container").forEach((item) => {
-				item.style.padding = "5px 10px";
-			});
-			document.querySelectorAll(".directory-list").forEach((list) => {
-				list.style.flexFlow = "column";
-				list.style.gridTemplateColumns = "unset";
-				list.style.rowGap = "2px";
-			});
+			$(".explorer-container").css("padding", "0 10px 0 10px");
 			ViewMode = "miller";
 		} else if (ViewMode == "miller" || IsShowDisks == true) {
 			document.querySelector(".explorer-container").style.width = "100%";
@@ -3505,16 +3468,7 @@ async function switchView() {
 			document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "none"));
 			document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
 			document.querySelector(".list-column-header").style.display = "none";
-			document.querySelectorAll(".explorer-container").forEach((item) => {
-				item.style.marginTop = "0";
-				if (IsShowDisks == true) {
-					item.style.padding = "10px";
-				}
-				else {
-					item.style.padding = "20px";
-				}
-			});
-			$(".explorer-container")?.css("padding-top", "85px");
+			$(".explorer-container")?.css("padding", "85px 20px 20px 20px");
 			ViewMode = "wrap";
 		}
 		await invoke("switch_view", { viewMode: ViewMode });
@@ -3524,8 +3478,6 @@ async function switchView() {
 
 async function switchToDualPane() {
 	if (IsDualPaneEnabled == false) {
-		SelectedItemIndex = 0;
-		SelectedItemPaneSide = "left";
 		OrgViewMode = ViewMode;
 		IsDualPaneEnabled = true;
 		ViewMode = "column";
@@ -3533,14 +3485,9 @@ async function switchToDualPane() {
 		if (Platform == "darwin") {
 			$(".header-nav").css("padding-left", "85px");
 		}
-		document
-			.querySelectorAll(".item-button")
-			.forEach((item) => (item.style.display = "none"));
-		document
-			.querySelectorAll(".item-button-list")
-			.forEach((item) => (item.style.display = "flex"));
-		document.querySelector(".switch-dualpane-view-button").innerHTML =
-			`<i class="fa-regular fa-rectangle-xmark"></i>`;
+		document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
+		document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "flex"));
+		document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
 		await invoke("list_dirs").then(async (items) => {
 			await showItems(items, "left");
 			await showItems(items, "right");
@@ -3549,24 +3496,26 @@ async function switchToDualPane() {
 		document.querySelector(".site-nav-bar").style.width = "0px";
 		document.querySelector(".site-nav-bar").style.minWidth = "0";
 		if (Platform == "darwin") {
-			$(".site-nav-bar").css("padding","55px 0 0 0");
+			$(".site-nav-bar").css("padding", "55px 0 0 0");
 		}
 		else {
-			$(".site-nav-bar").css("padding","0");
+			$(".site-nav-bar").css("padding", "0");
 		}
-		// $(".list-column-header").css("opacity", "0");
 		$(".list-column-header").css("height", "0");
 		$(".list-column-header").css("padding", "0");
 		$(".list-column-header").css("border", "none");
 		$(".dual-pane-container").css("opacity", "1");
 		$(".dual-pane-container").css("height", "100%");
-		$(".dual-pane-container").css("padding-top", "50px");
+		$(".dual-pane-container").css("padding-top", "55px");
 		$(".non-dual-pane-container").css("width", "0");
 		$(".non-dual-pane-container").css("opacity", "0");
 		$(".non-dual-pane-container").css("height", "0px");
+		$(".non-dual-pane-container").css("overflow", "hidden");
 		$(".explorer-container").css("padding", "0");
-		$(".header-nav-right-container").css("opacity", "0");
-		$(".header-nav-right-container").css("pointer-events", "none");
+		$(".file-searchbar").css("opacity", "0");
+		$(".file-searchbar").css("pointer-events", "none");
+		$(".switch-view-button").css("opacity", "0");
+		$(".switch-view-button").css("pointer-events", "none");
 		document.querySelectorAll(".item-button-list").forEach((item) => {
 			item.children[0].style.textOverflow = "none";
 		});
@@ -3576,6 +3525,7 @@ async function switchToDualPane() {
 		$(".non-dual-pane-container")?.css("opacity", "1");
 		$(".non-dual-pane-container")?.css("height", "100%");
 		$(".non-dual-pane-container")?.css("padding", "10px 20px");
+		$(".non-dual-pane-container").css("overflow-y", "auto");
 		$(".site-nav-bar")?.css("width", "150px");
 		$(".site-nav-bar")?.css("min-width", "150px");
 		if (Platform == "darwin") {
@@ -3584,6 +3534,7 @@ async function switchToDualPane() {
 		else {
 			$(".site-nav-bar")?.css("padding", "10px");
 		}
+		$(".explorer-container").css("padding", "10px");
 		$(".list-column-header")?.css("height", "35px");
 		$(".list-column-header")?.css("padding", "5px");
 		$(".list-column-header")?.css("border-bottom", "1px solid var(--tertiaryColor)");
@@ -3592,15 +3543,17 @@ async function switchToDualPane() {
 		$(".dual-pane-container")?.css("padding-top", "0");
 		$(".header-nav-right-container")?.css("opacity", "1");
 		$(".header-nav-right-container").css("pointer-events", "all");
+		$(".file-searchbar").css("opacity", "1");
+		$(".file-searchbar").css("pointer-events", "all");
+		$(".switch-view-button").css("opacity", "1");
+		$(".switch-view-button").css("pointer-events", "all");
 		if (Platform == "darwin") {
 			$(".header-nav")?.css("padding-left", "10px");
 		}
 		await applyPlatformFeatures();
 		document.querySelector(".switch-dualpane-view-button").innerHTML =
 			`<i class="fa-solid fa-table-columns"></i>`;
-		// document.querySelector(".go-back-button").style.display = "block";
-		// document.querySelector(".nav-seperator-1").style.display = "block";
-
+		// Reset to view before the 
 		switch (OrgViewMode) {
 			case "wrap":
 				ViewMode = "miller";
@@ -3614,7 +3567,7 @@ async function switchToDualPane() {
 		}
 		await switchView();
 	}
-	await saveConfig(true, false);
+	await saveConfig(false, false);
 }
 
 function switchHiddenFiles() {
@@ -3711,7 +3664,9 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 	if (isVerbose === true) {
 		showToast("Settings", "Settings have been saved", "success");
 	}
-	checkAppConfig(IsDualPaneEnabled);
+	if (isToReload == true) {
+		checkAppConfig();
+	}
 }
 
 async function addFavorites(item) {
@@ -4462,6 +4417,7 @@ async function showExtraContextMenu(e, item) {
 }
 
 async function addMillerCol(millerCol) {
+	CurrentMillerCol = millerCol;
 	if (document.querySelector(".miller-col-" + millerCol) != null) return;
 	let prevMillerCol = document.querySelector(
 		".miller-col-" + (parseInt(millerCol) - 1),
@@ -4493,15 +4449,9 @@ async function setMillerColActive(millerColElement, millerCol = 1) {
 		.querySelectorAll(".miller-column")
 		.forEach((item) => (item.style.boxShadow = "none"));
 	if (millerColElement == null) {
-		setCurrentDir(
-			document
-				.querySelector(".miller-col-" + millerCol)
-				.getAttribute("miller-col-path"),
-		);
 		document.querySelector(".miller-col-" + millerCol).style.boxShadow =
 			"inset 0px 0px 30px 1px var(--transparentColor)";
 	} else {
-		setCurrentDir(millerColElement.getAttribute("miller-col-path"));
 		millerColElement.style.boxShadow =
 			"inset 0px 0px 30px 1px var(--transparentColor)";
 	}
