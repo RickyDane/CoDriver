@@ -1503,7 +1503,6 @@ button > svg {
     width: fit-content;
     height: fit-content;
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
-    z-index: 10;
 }
 
 .uni-popup {
@@ -1519,7 +1518,7 @@ button > svg {
     border-top: none;
     border-radius: 10px;
     overflow: hidden;
-    z-index: 98;
+    z-index: 98 !important;
 }
 
 .multi-rename-popup {
