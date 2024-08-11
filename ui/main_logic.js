@@ -2841,6 +2841,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 					SelectedItemPaneSide = dualPaneSide;
 					await listDirectories();
 				}
+				await setCurrentDir(path, SelectedItemPaneSide);
 			} else {
 				alert("Could not open directory");
 				return;
@@ -2849,7 +2850,6 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 			await invoke("open_item", { path });
 		}
 	}
-	await setCurrentDir(path, SelectedItemPaneSide);
 }
 
 function selectItem(element, dualPaneSide = "", isNotReset = false) {
