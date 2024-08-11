@@ -56,6 +56,38 @@ CoDriver does not use path caching to access files and folders, so the performan
   - All other items will show a small tile with some information about it. (path, size, last modified)
 <br/>
 
+## Dependencies
+
+### Linux
+
+#### Debian / Ubuntu
+```
+sudo apt update
+sudo apt install libwebkit2gtk-4.0-dev \
+    build-essential \
+    curl \
+    wget \
+    file \
+    libssl-dev \
+    libgtk-3-dev \
+    libayatana-appindicator3-dev \
+    librsvg2-dev
+```
+
+#### Arch
+```
+sudo apt update
+sudo apt install libwebkit2gtk-4.0-dev \
+    build-essential \
+    curl \
+    wget \
+    file \
+    libssl-dev \
+    libgtk-3-dev \
+    libayatana-appindicator3-dev \
+    librsvg2-dev
+```
+
 ## 🖥️ FTP integration (sshfs)
   Dependencies (Need to be installed additionally):
 

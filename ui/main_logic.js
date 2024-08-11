@@ -210,6 +210,7 @@ function closeAllPopups() {
 	closeYtDownloadPopup();
 	closeInfoProperties();
 	resetProgressBar();
+	closeInputDialogs();
 	unSelectAllItems();
 	IsPopUpOpen = false;
 	IsInputFocused = false;
@@ -2330,6 +2331,7 @@ function closeInputDialogs() {
 }
 
 function renameElementInputPrompt(item) {
+	unSelectAllItems();
 	let tempFilePath = item.getAttribute("itempath");
 	let tempRenameFilePath = item.getAttribute("itempath").split("/");
 	let tempFileName = tempRenameFilePath[tempRenameFilePath.length - 1].replace(
