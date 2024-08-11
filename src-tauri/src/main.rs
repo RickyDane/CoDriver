@@ -8,6 +8,7 @@ use icns::{IconFamily, IconType};
 // use rust_search::{similarity_sort, SearchBuilder};
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
+use tauri::api::dialog;
 use std::fs::{self, read_dir};
 #[allow(unused)]
 use std::io::{BufReader, BufWriter, Read, Write};
@@ -1039,12 +1040,18 @@ async fn create_file(file_name: String) {
 }
 
 #[tauri::command]
-async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
-    let _ = fs::rename(
+async fn rename_element(path: String, new_name: String, app_window: Window) -> Vec<FDir> {
+    let renamed = fs::rename(
         current_dir().unwrap().join(&path.replace("\\", "/")),
         current_dir().unwrap().join(&new_name.replace("\\", "/")),
     );
-    dbg_log(format!("Renamed from {} to {}", path, new_name));
+    if renamed.is_err() {
+        err_log("Failed to rename element".into());
+        app_window.eval("alert('Failed to rename element')").unwrap();
+    }
+    else {
+        dbg_log(format!("Renamed from {} to {}", path, new_name));
+    }
     return list_dirs().await;
 }
 

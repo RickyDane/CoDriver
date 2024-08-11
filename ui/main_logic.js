@@ -2242,6 +2242,7 @@ async function pasteItem(copyToPath = "") {
 		if (IsDualPaneEnabled === true) {
 			refreshBothViews(SelectedItemPaneSide);
 		}
+		await listDirectories();
 	}
 	else {
 		await unSelectAllItems();
@@ -2381,7 +2382,7 @@ async function createFile(fileName) {
 }
 
 async function renameElement(path, newName) {
-	await invoke("rename_element", { path, newName });
+	await invoke("rename_element", { path, newName, appWindow });
 	IsInputFocused = false;
 	await listDirectories();
 }
