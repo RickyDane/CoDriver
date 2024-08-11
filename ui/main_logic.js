@@ -2998,6 +2998,7 @@ async function goBack() {
 			}
 		});
 	}
+	await getCurrentDir();
 }
 
 function goUp(isSwitched = false, toFirst = false) {
@@ -3286,6 +3287,7 @@ async function goToDir(directory) {
 			await showItems(items);
 		}
 	});
+	await getCurrentDir();
 }
 
 async function openFTP(
