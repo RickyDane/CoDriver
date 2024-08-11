@@ -2,41 +2,43 @@ const { listen } = window.__TAURI__.event;
 
 /* Drag and drop files into file explorer */
 listen("tauri://file-drop", async (event) => {
-  ArrSelectedItems = [];
-  ArrCopyItems = [];
-  event.payload.forEach(async (item) => {
-    CopyFilePath = item;
-    CopyFileName = CopyFilePath.split("/")[
-      CopyFilePath.split("/").length - 1
-    ].replace("'", "");
-    let element = document.createElement("button");
-    element.setAttribute("itemname", CopyFileName);
-    element.setAttribute("itempath", CopyFilePath);
-    ArrCopyItems.push(element);
-  });
-  if (IsFileOpIntern == false) {
-    await pasteItem();
-    CopyFileName = "";
-    CopyFilePath = "";
-    ArrCopyItems = [];
+  try {
     ArrSelectedItems = [];
-  } else if (DraggedOverElement != null) {
-    let operation = await fileOperationContextMenu();
-    if (operation == "copy") {
-      await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
-      await listDirectories();
-    } else if (operation == "move") {
-      IsCopyToCut = true;
-      await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
-      IsCopyToCut = false;
-      await listDirectories();
+    ArrCopyItems = [];
+    event.payload.forEach((item) => {
+      CopyFilePath = item;
+      CopyFileName = CopyFilePath.split("/")[CopyFilePath.split("/").length - 1].replace("'", "");
+      let element = document.createElement("button");
+      element.setAttribute("itemname", CopyFileName);
+      element.setAttribute("itempath", CopyFilePath);
+      ArrCopyItems.push(element);
+    });
+    if (IsFileOpIntern == false) {
+      await pasteItem();
+      CopyFileName = "";
+      CopyFilePath = "";
+      ArrCopyItems = [];
+      ArrSelectedItems = [];
+    } else if (DraggedOverElement != null) {
+      let operation = await fileOperationContextMenu();
+      if (operation == "copy") {
+        await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
+        await listDirectories();
+      } else if (operation == "move") {
+        IsCopyToCut = true;
+        await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
+        IsCopyToCut = false;
+        await listDirectories();
+      }
+      CopyFileName = "";
+      CopyFilePath = "";
+      ArrCopyItems = [];
+      ArrSelectedItems = [];
+      DraggedOverElement.style.opacity = "1";
+      DraggedOverElement = null;
     }
-    CopyFileName = "";
-    CopyFilePath = "";
-    ArrCopyItems = [];
-    ArrSelectedItems = [];
-    DraggedOverElement.style.opacity = "1";
-    DraggedOverElement = null;
+  } catch (error) {
+    alert(error);
   }
   resetProgressBar();
   document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
