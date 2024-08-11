@@ -821,7 +821,7 @@ async fn arr_copy_paste(
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
     app_window.eval("resetProgressBar()").unwrap();
-    app_window.eval("listDirectories(true)").unwrap();
+    // app_window.eval("listDirectories(true)").unwrap();
 }
 
 #[tauri::command]
