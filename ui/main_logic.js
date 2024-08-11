@@ -209,6 +209,7 @@ function closeAllPopups() {
 	closeCompressPopup();
 	closeYtDownloadPopup();
 	closeInfoProperties();
+	resetProgressBar();
 	unSelectAllItems();
 	IsPopUpOpen = false;
 	IsInputFocused = false;
