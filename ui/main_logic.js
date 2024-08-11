@@ -2973,6 +2973,7 @@ async function goHome() {
 			await showItems(items, "", 1);
 		}
 	});
+	await getCurrentDir();
 }
 
 async function goBack() {
