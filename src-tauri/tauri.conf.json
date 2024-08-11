@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "CoDriver",
-    "version": "0.4.75"
+    "version": "0.4.76"
   },
   "tauri": {
     "bundle": {
