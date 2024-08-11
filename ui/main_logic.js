@@ -2536,6 +2536,7 @@ async function checkAppConfig() {
 					let path = appConfig.launch_path;
 					let isSwitched = await invoke("open_dir", { path });
 					if (isSwitched === true) {
+						setCurrentDir(path, "left");
 						await listDirectories();
 					}
 				}
@@ -2547,6 +2548,7 @@ async function checkAppConfig() {
 			let path = appConfig.launch_path;
 			let isSwitched = await invoke("open_dir", { path });
 			if (isSwitched === true) {
+				setCurrentDir(path, "left");
 				await listDirectories();
 			} else {
 				alert("No directory found or unable to open due to missing permissions");
