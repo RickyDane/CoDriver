@@ -1,6 +1,10 @@
 <p align="center"><img width="700" src="https://github.com/user-attachments/assets/44295a1a-c904-407d-97af-bc1aa74baa86"/></p>
 
-<a href='https://ko-fi.com/F1F8OL456'><p align="center"><img height='36px' style='border: 0px; height: 36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></p></a>
+<a href='https://ko-fi.com/rickydane'>
+  <p align="center">
+    <img height='36px' style='border: 0px; height: 36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+  </p>
+</a>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-blue" />
   <img src="https://img.shields.io/badge/ macOS-white" />
