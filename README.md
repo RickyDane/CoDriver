@@ -87,6 +87,7 @@ sudo apt install libwebkit2gtk-4.0-dev \
     libayatana-appindicator3-dev \
     librsvg2-dev
 ```
+<br/>
 
 ## 🖥️ FTP integration (sshfs)
   Dependencies (Need to be installed additionally):
