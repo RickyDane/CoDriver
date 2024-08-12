@@ -57,6 +57,7 @@ let OrgViewMode = "wrap";
 let DirectoryList;
 let Applications = [];
 let ArrDirectoryItems = [];
+let ArrActiveActions = [];
 let ContextMenu = document.querySelector(".context-menu");
 let CopyFileName = "";
 let CopyFilePath = "";
@@ -100,6 +101,7 @@ let IsPopUpOpen = false;
 let SettingsSearchDepth = 10;
 let SettingsMaxItems = 1000;
 let IsFullSearching = false;
+let IsSearching = false;
 
 let ArrSelectedItems = [];
 let ArrCopyItems = [];
@@ -214,6 +216,10 @@ function closeAllPopups() {
 	unSelectAllItems();
 	IsPopUpOpen = false;
 	IsInputFocused = false;
+	IsDisableShortcuts = false;
+	if (ArrCopyItems.length == 0) {
+		IsCopyToCut = false;
+	}
 }
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
@@ -504,7 +510,7 @@ document.onkeydown = async (e) => {
 			if (IsInputFocused == false && (e.keyCode == 46 || (e.metaKey && e.keyCode == 8))) {
 				await deleteItems();
 				closeLoadingPopup();
-				listDirectories();
+				await listDirectories();
 				goUp();
 				e.preventDefault();
 				e.stopPropagation();
@@ -1065,7 +1071,12 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", async (e) => {
 			e.preventDefault();
-			selectItem(item, "", true);
+			if (ArrSelectedItems.length == 1 && (IsCtrlDown === false && Platform != "darwin" || Platform == "darwin" && IsMetaDown === false)) {
+				await unSelectAllItems();
+			}
+			if (!ArrSelectedItems.includes(item)) {
+				selectItem(item, "", true);
+			}
 			if (IsPopUpOpen == false) {
 				let appsCMenu = document.querySelector(".context-open-item-with");
 				appsCMenu.innerHTML = "";
@@ -1860,7 +1871,6 @@ async function getCurrentDir() {
 }
 
 async function setCurrentDir(currentDir = "", dualPaneSide = "") {
-	console.log(currentDir);
 	if (currentDir == "") return;
 	
 	if (dualPaneSide != "") {
@@ -1898,6 +1908,12 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
 			currentDirContainer.appendChild(pathItem);
 			currentDirContainer.appendChild(divider);
 		});
+		try {
+			currentDirContainer?.removeChild(currentDirContainer?.lastElementChild);
+		}
+		catch (err) {
+			console.log("INFO: Not enough children to remove last current dir tracker element");
+		}
 	});
 
 	if (dualPaneSide == "left") {
@@ -1964,33 +1980,21 @@ async function copyItem(item, toCut = false, fromInternal = false) {
 
 async function extractItem(item) {
 	let compressFilePath = item.getAttribute("itempath");
-	let compressFileName = compressFilePath
-		.split("/")
-	[compressFilePath.split("/").length - 1].replace("'", "");
+	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
 	let isExtracting = await confirm(
 		"Do you want to extract " + compressFileName + "?",
 	);
 	if (isExtracting == true) {
-		showLoadingPopup("Extracting item");
 		ContextMenu.style.display = "none";
 		let extractFilePath = item.getAttribute("itempath");
 		let extractFileName = item.getAttribute("itemname");
 		if (extractFileName != "") {
 			let fromPath = extractFilePath.toString();
-			await invoke("extract_item", { fromPath }).then(async (items) => {
-				if (SelectedItemPaneSide != null && SelectedItemPaneSide != "") {
-					await showItems(
-						items.filter((str) => !str.name.startsWith(".")),
-						SelectedItemPaneSide,
-					);
-				} else {
-					await showItems(items.filter((str) => !str.name.startsWith(".")));
-				}
-				showToast("Extraction", "Extraction done", "success");
-			});
+			await invoke("extract_item", { fromPath, appWindow });
+			showToast("Extraction", "Extraction done", "success");
+			await listDirectories();
 		}
 	}
-	closeLoadingPopup();
 }
 
 async function showCompressPopup(item) {
@@ -2034,7 +2038,7 @@ async function showCompressPopup(item) {
 			<div class="popup-controls">
 			<button class="icon-button" onclick="closeCompressPopup()">
 			<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-			Cancel
+			Close	
 			</button>
 			<button class="icon-button compress-item-button">
 			<div class="button-icon"><i class="fa-solid fa-minimize"></i></div>
@@ -2072,14 +2076,14 @@ async function showCompressPopup(item) {
 }
 
 async function compressItem(arrItems, compressionLevel = 3) {
+	closeCompressPopup();
 	if (arrItems.length > 1) {
-		showLoadingPopup("File is being compressed");
 		ContextMenu.style.display = "none";
 		await invoke("arr_compress_items", {
 			arrItems: arrItems.map((item) => item.getAttribute("itempath")),
 			compressionLevel: parseInt(compressionLevel),
+			appWindow
 		});
-		closeLoadingPopup();
 		await listDirectories();
 		showToast("Compression", "Compressing done", "success");
 	} else {
@@ -2088,14 +2092,14 @@ async function compressItem(arrItems, compressionLevel = 3) {
 		let compressFileName = item.getAttribute("itemname");
 		if (compressFileName != "") {
 			// open compressing... popup
-			showLoadingPopup("File is being compressed");
 			ContextMenu.style.display = "none";
 			SelectedItemPaneSide = item.getAttribute("itempaneside");
 			await invoke("compress_item", {
 				fromPath: compressFilePath,
 				compressionLevel: parseInt(compressionLevel),
+				pathToZip: compressFilePath,
+				appWindow
 			});
-			closeLoadingPopup();
 			await listDirectories();
 			showToast("Compression", "Compressing done", "success");
 		}
@@ -2243,6 +2247,7 @@ async function pasteItem(copyToPath = "") {
 			refreshBothViews(SelectedItemPaneSide);
 		}
 		await listDirectories();
+		IsCopyToCut = false;
 	}
 	else {
 		await unSelectAllItems();
@@ -2647,6 +2652,11 @@ async function listDirectories(fromDualPaneCopy = false) {
 	} else {
 		await showItems(lsItems, "", CurrentMillerCol);
 	}
+	setTimeout(() => {
+		ds.setSettings({
+			selectables: document.querySelectorAll(".item-link"),
+		});
+	}, 500);
 }
 
 async function refreshView() {
@@ -3282,14 +3292,10 @@ async function searchFor(
 	isQuickSearch = false,
 	fileContent = "",
 ) {
-	// document.querySelector(".fullsearch-loader").style.display = "block";
+	if (IsSearching === true) return;
 	if (fileName.length > 1 || isQuickSearch == true) {
 		$(".is-file-searching").css("display", "block");
 		document.querySelector(".cancel-search-button").style.display = "block";
-		// if (IsDualPaneEnabled == false) {
-		//   DirectoryList.innerHTML = `<div class="preloader"></div><p>Loading ...</p>`;
-		//   DirectoryList.classList.add("dir-preloader-container");
-		// }
 		if (IsDualPaneEnabled === true) {
 			if (SelectedItemPaneSide === "left") {
 				$(".dual-pane-left").html("");
@@ -3301,9 +3307,7 @@ async function searchFor(
 		else {
 			$(".directory-list").html("");
 		}
-		ds.setSettings({
-			selectables: ArrDirectoryItems,
-		});
+		IsSearching = true;
 		await invoke("search_for", {
 			fileName,
 			maxItems,
@@ -3312,15 +3316,16 @@ async function searchFor(
 			appWindow,
 			isQuickSearch
 		});
-		ds.setSettings({
-			selectables: ArrDirectoryItems,
-		});
+		setTimeout(() => {
+			ds.setSettings({
+				selectables: ArrDirectoryItems,
+			});
+		}, 500);
 	} else {
 		alert("Type in a minimum of 2 characters");
 	}
+	IsSearching = false;
 	IsFullSearching = false;
-	// document.querySelector(".fullsearch-loader").style.display = "none";
-	// DirectoryList.classList.remove("dir-preloader-container");
 }
 
 function openFullSearchContainer() {
@@ -3355,12 +3360,10 @@ function openSearchBar() {
 	IsDisableShortcuts = true;
 	IsQuickSearchOpen = true;
 	IsPopUpOpen = true;
-	document
-		.querySelector(".dualpane-search-input")
-		.addEventListener("focusout", () => {
-			closeAllPopups();
-			IsInputFocused = false;
-		});
+	document.querySelector(".dualpane-search-input").addEventListener("focusout", () => {
+		closeAllPopups();
+		IsInputFocused = false;
+	});
 }
 
 function closeSearchBar() {
@@ -3893,9 +3896,9 @@ async function renameItemsWithFormat(
 		stepBy,
 		nDigits,
 		ext,
-	}).then(() => {
+	}).then(async () => {
 		closeMultiRenamePopup();
-		listDirectories();
+		await listDirectories();
 	});
 }
 
@@ -4221,9 +4224,9 @@ async function startYtDownload(
 	quality = "highvideo",
 ) {
 	closeYtDownloadPopup();
-	showLoadingPopup("Downloading ...");
 	await invoke("download_yt_video", { appWindow, url, quality });
-	closeLoadingPopup();
+	resetProgressBar();
+	await listDirectories();
 }
 
 async function closeYtDownloadPopup() {
@@ -4491,6 +4494,27 @@ async function get_llm_response(prompt) {
 async function stopSearching() {
 	await invoke("stop_searching");
 }
+
+function createNewAction(actionId, actionName, actionDescription, path) {
+	let newAction = new ActiveAction(actionName, actionDescription, actionId, path);
+	ArrActiveActions.push(newAction);
+	$(".active-actions-container").append(newAction.getHTMLElement());
+}
+
+function removeAction(actionId) {
+	ArrActiveActions = ArrActiveActions.filter((action) => action.id !== actionId);
+	$(`.active-action-${actionId}`).css("opacity", "0");
+	setTimeout(() => {
+		$(`.active-action-${actionId}`).remove();
+	}, 300);
+}
+
+async function openDirAndSwitch(path) {
+	await invoke("open_dir", { path });
+	await setCurrentDir(path);
+	await listDirectories();
+}
+
 
 insertSiteNavButtons();
 checkAppConfig();
