@@ -126,7 +126,6 @@ sudo apt install libwebkit2gtk-4.0-dev \
 ## 📝 Todos:
 - Multiple languages
 - Favorites
-- Drag to select
 - Access online storage services (Google drive, etc.)
 <br/>
 
