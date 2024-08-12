@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "CoDriver"
-version = "0.4.77"
+version = "0.4.78"
 dependencies = [
  "archiver-rs",
  "chrono",
@@ -33,6 +33,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-drag",
  "unrar",
+ "uuid",
  "walkdir",
  "widestring",
  "windows 0.56.0",

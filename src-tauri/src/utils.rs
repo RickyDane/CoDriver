@@ -421,3 +421,13 @@ pub fn unpack_tar(file: File) {
         let _ = file.unpack_in("Unpacked_Archive").unwrap_or_default();
     }
 }
+
+pub fn create_new_action(app_window: &Window, action_name: String, action_desc: String, path: &String) -> String {
+    let id = uuid::Uuid::new_v4().to_string();
+    let _ = app_window.eval(format!("createNewAction('{}', '{}', '{}', '{}')", id, action_name, action_desc, path).as_str());
+    return id;
+}
+
+pub fn remove_action(app_window: Window, action_id: String) {
+    let _ = app_window.eval(format!("removeAction('{}')", action_id).as_str());
+}
