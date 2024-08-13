@@ -1,4 +1,6 @@
+<br/>
 <p align="center"><img width="700" src="https://github.com/user-attachments/assets/44295a1a-c904-407d-97af-bc1aa74baa86"/></p>
+<br>
 
 <a href='https://ko-fi.com/rickydane'>
   <p align="center">
@@ -136,13 +138,17 @@ sudo apt install libwebkit2gtk-4.0-dev \
 ## User interface
 
 ### List style
-![Screenshot 2024-08-05 at 22 14 26](https://github.com/user-attachments/assets/88c12d18-bfce-4b0e-ab6a-1a1d06a358b1)
+![Screenshot 2024-08-13 at 19 08 02](https://github.com/user-attachments/assets/d643c7f9-44e8-4f94-a23c-69759b600c82)
+
 ### Grid style
-![Screenshot 2024-08-05 at 22 15 49](https://github.com/user-attachments/assets/62c35ae9-f548-4f81-ab34-f70bfc5a7ba5)
-### Dual pane view
-![Screenshot 2024-08-05 at 22 16 21](https://github.com/user-attachments/assets/5004af5f-9755-4fec-af88-677812ff3246)
+![Screenshot 2024-08-13 at 19 08 00](https://github.com/user-attachments/assets/b28b346a-58f3-4f7c-a23d-b19f0695bf23)
+
 ### Miller column view
-![Screenshot 2024-08-05 at 22 15 44](https://github.com/user-attachments/assets/b8da7a2a-8a5e-432e-8e07-196177ee0363)
+![Screenshot 2024-08-13 at 19 08 07](https://github.com/user-attachments/assets/95ab9426-837f-492d-8139-9bf7f1f0c51e)
+
+### Dual pane view
+![Screenshot 2024-08-13 at 19 08 25](https://github.com/user-attachments/assets/a3f9a511-5e8f-44ed-95d3-1a59e2cba05b)
+
 
 ## Speed comparison
 Windows File Explorer: _39.83 sec._<br/>
