@@ -212,6 +212,7 @@ body {
     border-radius: 0px;
     transition: 0.3s ease-out;
     overflow: hidden;
+    position: relative;
 }
 
 .site-nav-bar-button {
@@ -236,6 +237,69 @@ body {
 
 .site-nav-bar-button:hover {
     background-color: var(--transparentColorActive);
+}
+
+.active-actions-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-flow: column;
+    width: calc(150px - 12px);
+}
+.active-action {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    border-radius: 10px;
+    background-color: var(--primaryColor);
+    cursor: pointer;
+    transition: 0.3s ease;
+    margin: 0px 5px 5px 5px;
+    padding: 10px;
+    height: 35px;
+    transition: 0.3s ease;
+    overflow: hidden;
+    opacity: 1;
+    transition: 0.3s ease;
+}
+.active-action-header {
+    width: 100%;
+    min-height: 16px;
+    display: flex;
+    flex-flow: row;
+    justify-content: flex-start;
+    gap: 10px;
+    align-items: center;
+}
+.active-action:hover {
+    height: auto;
+}
+.active-action > div {
+    overflow: hidden;
+}
+.active-action:hover > div > p {
+    white-space: normal;
+}
+.active-action > div > p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--textColor);
+    font-size: var(--fontSize);
+}
+.action-description {
+    text-align: center;
+    width: 100%;
+    color: var(--textColor2) !important;
+    font-size: var(--fontSize) !important;
+    font-weight: bolder !important;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* .titlebar {
@@ -762,11 +826,6 @@ button > svg {
     /* border: 1px solid var(--tertiaryColor); */
 }
 
-.item-button:hover > p {
-    /* background-color: var(--transparentColorActive); */
-    /* border: 1px solid transparent !important; */
-}
-
 .item-button > div {
     position: relative;
     width: 100%;
@@ -1273,7 +1332,9 @@ button > svg {
 
 .preloader {
     width: 38px !important;
+    min-width: 38px !important;
     height: 38px !important;
+    min-height: 38px !important;
     border: 5px solid var(--transparentColor);
     border-top: 5px solid var(--tertiaryColor);
     border-radius: 50%;
@@ -1282,7 +1343,9 @@ button > svg {
 
 .preloader-invert {
     width: 38px !important;
+    min-width: 38px !important;
     height: 38px !important;
+    min-height: 38px !important;
     border: 5px solid var(--transparentColorActive);
     border-top: 5px solid white !important;
     border-radius: 50%;
@@ -1291,7 +1354,9 @@ button > svg {
 
 .preloader-small {
     width: 16px !important;
+    min-width: 16px !important;
     height: 16px !important;
+    min-height: 16px !important;
     border: 2px solid var(--transparentColor);
     border-top: 2px solid var(--tertiaryColor);
     border-radius: 50%;
@@ -1300,7 +1365,9 @@ button > svg {
 
 .preloader-small-invert {
     width: 16px !important;
+    min-width: 16px !important;
     height: 16px !important;
+    min-height: 16px !important;
     border: 2px solid var(--transparentColorActive);
     border-top: 2px solid white !important;
     border-radius: 50%;
@@ -1704,6 +1771,7 @@ button > svg {
 .yt-download-popup {
     width: 50%;
     height: fit-content;
+    color: var(--textColor);
 }
 
 .llm-prompt-input-popup {
@@ -1772,15 +1840,17 @@ button > svg {
     display: flex;
     flex-flow: row;
     overflow: hidden;
-    background-color: var(--primaryColor);
-    border: 2px solid var(--tertiaryColor);
     color: var(--textColor);
+    box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--tertiaryColor);
     /* -webkit-backdrop-filter: blur(10px); */
 }
 
 .toast-content {
     border-radius: 0px 10px 10px 0px;
     color: var(--textColor);
+    background-color: var(--siteBarColor) !important;
+    padding: 5px;
     /* border: 1px solid var(--secondaryColor); */
 }
 
@@ -1794,8 +1864,7 @@ button > svg {
 }
 
 .toast-info {
-    background-color: var(--primaryColor);
-	box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+	box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.2);
     color: var(--textColor);
 }
 

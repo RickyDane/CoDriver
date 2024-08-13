@@ -1,6 +1,5 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 use chrono::prelude::{DateTime, Utc};
 use flate2::read::GzDecoder;
 #[cfg(target_os = "macos")]
@@ -34,9 +33,7 @@ mod utils;
 use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
-    calc_transfer_speed, copy_to, count_entries, dbg_log, err_log, format_bytes, unpack_tar,
-    update_progressbar, update_progressbar_2, wng_log, DirWalker, DirWalkerEntry, COPY_COUNTER,
-    TO_COPY_COUNTER,
+    calc_transfer_speed, copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes, remove_action, unpack_tar, update_progressbar, update_progressbar_2, wng_log, DirWalker, DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER
 };
 #[cfg(target_os = "macos")]
 mod window_tauri_ext;
@@ -441,7 +438,7 @@ async fn set_dir(current_dir: String) -> bool {
     if md.is_err() {
         return false;
     }
-    let _ = set_current_dir(current_dir);
+    let _ = set_current_dir(&current_dir);
     return true;
 }
 
@@ -891,7 +888,8 @@ async fn arr_delete_items(arr_items: Vec<String>) {
 }
 
 #[tauri::command]
-async fn extract_item(from_path: String) -> Vec<FDir> {
+async fn extract_item(from_path: String, app_window: Window) {
+    let action_id = create_new_action(&app_window, "Extracting ...".into(), from_path.clone().split("/").last().unwrap().to_string(), &from_path);
     // Check file extension
     let file_ext = ".".to_string().to_owned()
         + from_path
@@ -945,11 +943,11 @@ async fn extract_item(from_path: String) -> Vec<FDir> {
         let _ = remove_file(&from_path.strip_suffix(&file_ext).unwrap());
     } else {
         err_log("Unsupported file type".into());
-        return vec![];
+        return; 
     }
 
     dbg_log(format!("Unpack time: {:?}", sw.elapsed()));
-    return list_dirs().await;
+    remove_action(app_window, action_id);
 }
 
 #[tauri::command]
@@ -959,71 +957,86 @@ async fn open_item(path: String) {
 }
 
 #[tauri::command]
-async fn compress_item(from_path: String, compression_level: i32) {
+async fn compress_item(from_path: String, compression_level: i32, path_to_zip: String, app_window: Window) {
+    let action_id = create_new_action(&app_window, "Compressing ...".into(), from_path.clone().replace("'", "").split("/").last().unwrap().to_string(), &from_path);
     let sw = Stopwatch::start_new();
-
     dbg_log(format!(
-        "Compression of '{}' started with compression level: {}",
+        "Compression of '{}' started with compression level: {}",
         &from_path.split("/").last().unwrap(),
         &compression_level
     ));
-    let file_ext = ".".to_string().to_owned() + from_path.split(".").last().unwrap_or("");
-    let _ = File::create(
-        from_path
+    let file_ext = ".".to_string().to_owned() + from_path.split("/").last().unwrap_or("").split(".").last().unwrap_or("");
+    let created_file = File::create(
+        path_to_zip
             .strip_suffix(&file_ext)
-            .unwrap_or(&from_path)
+            .unwrap_or(&path_to_zip)
             .to_owned()
             + ".zip",
     )
     .unwrap();
+    dbg_log(format!("Created file: {:?}", created_file));
     let source: PathBuf;
     let archive = PathBuf::from(
-        from_path
+        path_to_zip
+            .split("/")
+            .last()
+            .unwrap_or("")
             .strip_suffix(&file_ext)
-            .unwrap_or(&from_path)
+            .unwrap_or(&path_to_zip)
             .to_owned()
             + ".zip",
     );
+    dbg_log(format!("Archive: {:?}", archive));
     if fs::metadata(&from_path).unwrap().is_dir() {
         source = PathBuf::from(&from_path);
     } else {
-        let file_name = &from_path.split("/").last().unwrap();
-        let _ = create_dir("__compressed_dir");
+        let mut file_name = from_path.clone();
+        file_name = file_name.replace("'", "").clone().split("/").last().unwrap().into();
+        let _ = create_dir(config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir"));
         let _ = copy(
             &from_path,
-            "__compressed_dir/".to_string().to_owned() + file_name,
+            config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir").to_string_lossy().to_string() + "/" + &file_name,
         );
-        source = PathBuf::from("__compressed_dir");
+        source = config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir");
     }
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated)
-        .compression_level(Option::from(compression_level));
+        .compression_level(Some(compression_level));
     let _ = zip_create_from_directory_with_options(&archive, &source, options);
-    let _ = remove_dir_all("__compressed_dir");
+    let _ = remove_dir_all(config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir").as_path().to_string_lossy().to_string());
+    remove_action(app_window, action_id);
     dbg_log(format!("Compression time: {:?}", sw.elapsed()));
 }
 
 #[tauri::command]
-async fn arr_compress_items(arr_items: Vec<String>, compression_level: i32) {
-    let _ = create_dir("compressed_items_archive");
+async fn arr_compress_items(arr_items: Vec<String>, compression_level: i32, app_window: Window) {
+    let path_to_zip = current_dir().unwrap().join("compressed_items_archive").to_string_lossy().to_string();
+    let _ = create_dir(config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive"));
     for item_path in arr_items {
         let file_name = &item_path.split("/").last().unwrap();
-        let _ = copy(
-            &item_path,
-            "compressed_items_archive/".to_string().to_owned() + file_name,
-        );
+        if fs::metadata(&item_path).unwrap().is_dir() {
+            copy_to(&app_window, config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive").to_string_lossy().to_string() + "/" + file_name, item_path.clone());
+        }
+        else {
+            let _ = copy(
+                &item_path,
+                config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive").to_string_lossy().to_string() + "/" + file_name,
+            );
+            app_window.eval("resetProgressBar()").unwrap();
+        }
     }
     compress_item(
-        current_dir()
-            .unwrap()
-            .to_owned()
+        config_dir().unwrap()
+            .join("com.codriver.dev")
             .join("compressed_items_archive")
             .to_string_lossy()
             .to_string(),
         compression_level,
+        path_to_zip,
+        app_window.clone(),
     )
     .await;
-    let _ = remove_dir_all("compressed_items_archive");
+    let _ = remove_dir_all(config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive"));
 }
 
 #[tauri::command]
@@ -1039,12 +1052,18 @@ async fn create_file(file_name: String) {
 }
 
 #[tauri::command]
-async fn rename_element(path: String, new_name: String) -> Vec<FDir> {
-    let _ = fs::rename(
+async fn rename_element(path: String, new_name: String, app_window: Window) -> Vec<FDir> {
+    let renamed = fs::rename(
         current_dir().unwrap().join(&path.replace("\\", "/")),
         current_dir().unwrap().join(&new_name.replace("\\", "/")),
     );
-    dbg_log(format!("Renamed from {} to {}", path, new_name));
+    if renamed.is_err() {
+        err_log("Failed to rename element".into());
+        app_window.eval("alert('Failed to rename element')").unwrap();
+    }
+    else {
+        dbg_log(format!("Renamed from {} to {}", path, new_name));
+    }
     return list_dirs().await;
 }
 
@@ -1355,6 +1374,7 @@ async fn get_df_dir(number: u8) -> String {
 
 #[tauri::command]
 async fn download_yt_video(app_window: Window, url: String, quality: String) {
+    let action_id = create_new_action(&app_window, "Downloading ...".into(), url.clone(), &"".into());
     dbg_log(format!("Downloading {} as {}", url, quality));
     let chosen_quality = match quality.as_str() {
         "lowestvideo" => VideoQuality::LowestVideo,
@@ -1376,8 +1396,8 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
 
     let stream = video.stream().await;
     if stream.is_err() {
-        let _ = &app_window.eval("closeLoadingPopup()");
         let _ = &app_window.eval("alert('Failed to retrieve source')");
+        remove_action(app_window, action_id);
         return;
     }
     let stream = stream.unwrap();
@@ -1399,9 +1419,7 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
             speed,
         );
     }
-
-    app_window.eval("resetProgressBar()").unwrap();
-    app_window.eval("listDirectories(true)").unwrap();
+    remove_action(app_window, action_id);
 }
 
 #[tauri::command]
