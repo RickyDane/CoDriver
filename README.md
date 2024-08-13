@@ -28,6 +28,18 @@ CoDriver does not use path caching to access files and folders, so the performan
 ⁉️ Keep in mind that this software is still work in progress and will contain bugs!
 <br/><br/>
 
+# Links
+- <a href="#basic-features">Basic features</a>
+- <a href="#advanced-features">Advanced features</a>
+- <a href="#dependencies">Dependencies</a>
+- <a href="#%EF%B8%8F-ftp-integration-sshfs">FTP implementation (SSHFS)</a>
+- <a href="#%EF%B8%8F-language-support">Language support</a>
+- <a href="#%EF%B8%8F-known-issues">Known issues</a>
+- <a href="#-todos">Todos</a>
+- <a href="#user-interface">User interface</a>
+- <a href="#speed-comparison">Speed comparison</a>
+<br/>
+
 ## Basic features
 - Navigate through directories as you know it
 - Copy & Paste, delete, create and rename files and folders
