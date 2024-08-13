@@ -637,7 +637,7 @@ document.onkeydown = async (e) => {
 					e.stopPropagation();
 				}
 				// check if backspace is pressed
-				if (e.keyCode == 8 && IsPopUpOpen == false) {
+				if (e.keyCode == 8 && IsPopUpOpen === false && IsInputFocused === false) {
 					goBack();
 					e.preventDefault();
 					e.stopPropagation();

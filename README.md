@@ -1,6 +1,12 @@
+<br/>
 <p align="center"><img width="700" src="https://github.com/user-attachments/assets/44295a1a-c904-407d-97af-bc1aa74baa86"/></p>
+<br>
 
-<a href='https://ko-fi.com/F1F8OL456' target='_blank'><p align="center"><img height='36px' style='border: 0px; height: 36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></p></a>
+<a href='https://ko-fi.com/rickydane'>
+  <p align="center">
+    <img height='36px' style='border: 0px; height: 36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+  </p>
+</a>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-blue" />
   <img src="https://img.shields.io/badge/ macOS-white" />
@@ -22,12 +28,24 @@ CoDriver does not use path caching to access files and folders, so the performan
 ⁉️ Keep in mind that this software is still work in progress and will contain bugs!
 <br/><br/>
 
+# Links
+- <a href="#basic-features">Basic features</a>
+- <a href="#advanced-features">Advanced features</a>
+- <a href="#dependencies-if-not-working-instantly">Dependencies</a>
+- <a href="#%EF%B8%8F-ftp-integration-sshfs">FTP implementation (SSHFS)</a>
+- <a href="#%EF%B8%8F-language-support">Language support</a>
+- <a href="#%EF%B8%8F-known-issues">Known issues</a>
+- <a href="#-todos">Todos</a>
+- <a href="#user-interface">User interface</a>
+- <a href="#speed-comparison">Speed comparison</a>
+<br/>
+
 ## Basic features
 - Navigate through directories as you know it
 - Copy & Paste, delete, create and rename files and folders
 - Switch between "big buttons"-, list and miller columns mode
 - Close popups with esc
-- Ctrl / Cmd + F for a quicksearch in the current directory
+- Ctrl / Cmd + S for a quicksearch in the current directory
 - Jump to a directory with Ctrl / Cmd + G by inputting a path
 - Sort items in list mode by size, name or last modified
 <br/>
@@ -56,7 +74,10 @@ CoDriver does not use path caching to access files and folders, so the performan
   - All other items will show a small tile with some information about it. (path, size, last modified)
 <br/>
 
-## Dependencies
+## Dependencies (If not working instantly)
+
+<details>
+<summary>Expand to show</summary>
 
 ### Linux
 
@@ -87,9 +108,15 @@ sudo apt install libwebkit2gtk-4.0-dev \
     libayatana-appindicator3-dev \
     librsvg2-dev
 ```
+</details>
+<br/>
 
 ## 🖥️ FTP integration (sshfs)
+<details>
+  <summary>Expand to show</summary>
+  <br/>
   Dependencies (Need to be installed additionally):
+  <br/>
 
   | macOS | Linux | Windows |
   | ----- | ----- | ------- |
@@ -111,6 +138,7 @@ sudo apt install libwebkit2gtk-4.0-dev \
 ## 🏴‍☠️ Language Support
 - English
   - Option to choose between languages coming soon ...
+</details>
 <br/>
 
 ## ⚠️ Known issues:
@@ -125,20 +153,23 @@ sudo apt install libwebkit2gtk-4.0-dev \
 ## 📝 Todos:
 - Multiple languages
 - Favorites
-- Drag to select
 - Access online storage services (Google drive, etc.)
 <br/>
 
 ## User interface
 
 ### List style
-![Screenshot 2024-08-05 at 22 14 26](https://github.com/user-attachments/assets/88c12d18-bfce-4b0e-ab6a-1a1d06a358b1)
+![Screenshot 2024-08-13 at 19 08 02](https://github.com/user-attachments/assets/d643c7f9-44e8-4f94-a23c-69759b600c82)
+
 ### Grid style
-![Screenshot 2024-08-05 at 22 15 49](https://github.com/user-attachments/assets/62c35ae9-f548-4f81-ab34-f70bfc5a7ba5)
-### Dual pane view
-![Screenshot 2024-08-05 at 22 16 21](https://github.com/user-attachments/assets/5004af5f-9755-4fec-af88-677812ff3246)
+![Screenshot 2024-08-13 at 19 08 00](https://github.com/user-attachments/assets/b28b346a-58f3-4f7c-a23d-b19f0695bf23)
+
 ### Miller column view
-![Screenshot 2024-08-05 at 22 15 44](https://github.com/user-attachments/assets/b8da7a2a-8a5e-432e-8e07-196177ee0363)
+![Screenshot 2024-08-13 at 19 08 07](https://github.com/user-attachments/assets/95ab9426-837f-492d-8139-9bf7f1f0c51e)
+
+### Dual pane view
+![Screenshot 2024-08-13 at 19 08 25](https://github.com/user-attachments/assets/a3f9a511-5e8f-44ed-95d3-1a59e2cba05b)
+
 
 ## Speed comparison
 Windows File Explorer: _39.83 sec._<br/>
