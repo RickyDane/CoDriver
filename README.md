@@ -31,7 +31,7 @@ CoDriver does not use path caching to access files and folders, so the performan
 # Links
 - <a href="#basic-features">Basic features</a>
 - <a href="#advanced-features">Advanced features</a>
-- <a href="#dependencies">Dependencies</a>
+- <a href="#dependencies-if-not-working-instantly">Dependencies</a>
 - <a href="#%EF%B8%8F-ftp-integration-sshfs">FTP implementation (SSHFS)</a>
 - <a href="#%EF%B8%8F-language-support">Language support</a>
 - <a href="#%EF%B8%8F-known-issues">Known issues</a>
@@ -74,7 +74,10 @@ CoDriver does not use path caching to access files and folders, so the performan
   - All other items will show a small tile with some information about it. (path, size, last modified)
 <br/>
 
-## Dependencies
+## Dependencies (If not working instantly)
+
+<details>
+<summary>Expand to show</summary>
 
 ### Linux
 
@@ -105,10 +108,15 @@ sudo apt install libwebkit2gtk-4.0-dev \
     libayatana-appindicator3-dev \
     librsvg2-dev
 ```
+</details>
 <br/>
 
 ## 🖥️ FTP integration (sshfs)
+<details>
+  <summary>Expand to show</summary>
+  <br/>
   Dependencies (Need to be installed additionally):
+  <br/>
 
   | macOS | Linux | Windows |
   | ----- | ----- | ------- |
@@ -130,6 +138,7 @@ sudo apt install libwebkit2gtk-4.0-dev \
 ## 🏴‍☠️ Language Support
 - English
   - Option to choose between languages coming soon ...
+</details>
 <br/>
 
 ## ⚠️ Known issues:
