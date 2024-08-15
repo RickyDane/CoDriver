@@ -38,7 +38,6 @@ dependencies = [
  "uuid",
  "walkdir",
  "widestring",
- "win32-remove-dir-all",
  "windows 0.56.0",
  "winreg 0.52.0",
  "zip 0.6.6",
@@ -6660,16 +6659,6 @@ name = "widestring"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7219d36b6eac893fa81e84ebe06485e7dcbb616177469b142df14f1f4deb1311"
-
-[[package]]
-name = "win32-remove-dir-all"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "871856798549e68a5816cfd858b4ba2cad27484527ad21e39a775c2dbb3c5015"
-dependencies = [
- "num_enum 0.5.11",
- "winapi",
-]
 
 [[package]]
 name = "winapi"

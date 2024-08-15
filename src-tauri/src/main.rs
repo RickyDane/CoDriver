@@ -885,7 +885,7 @@ async fn delete_item(act_file_name: String) {
 
     let file = File::open(&act_file_name);
     let mut is_dir = false;
-    if !file.is_ok() {
+    if file.is_ok() {
         is_dir = file.unwrap().metadata().unwrap().is_dir();
     }
     if is_dir {
