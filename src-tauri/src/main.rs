@@ -1,19 +1,22 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use chrono::prelude::{DateTime, Utc};
+#[allow(unused)]
+use delete::{delete_file, rapid_delete_dir_all};
 use flate2::read::GzDecoder;
 #[cfg(target_os = "macos")]
 use icns::{IconFamily, IconType};
-// use rust_search::{similarity_sort, SearchBuilder};
+use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
 use std::fs::{self, read_dir};
+use std::io::Error;
 #[allow(unused)]
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::{
     env::{current_dir, set_current_dir},
-    fs::{copy, create_dir, remove_dir_all, remove_file, File},
+    fs::{copy, create_dir, remove_file, File},
     path::PathBuf,
 };
 use stopwatch::Stopwatch;
@@ -63,12 +66,14 @@ const ASSET_LOCATION: &str = "asset://localhost/";
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            #[cfg(target_os = "macos")]
             let win = app.get_window("main").unwrap();
             #[cfg(target_os = "macos")]
             win.set_transparent_titlebar(true);
             #[cfg(target_os = "macos")]
             win.position_traffic_lights(20.0, 25.0);
+            let _ = win.center();
+            #[cfg(not(target_os = "macos"))]
+            let _ = win.set_decorations(false);
             Ok(())
         })
         .on_window_event(|e| {
@@ -119,7 +124,8 @@ fn main() {
             get_themes,
             stop_searching,
             get_file_content,
-            open_config_location
+            open_config_location,
+            log
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -865,18 +871,27 @@ async fn get_final_filename(
 
 #[tauri::command]
 async fn delete_item(act_file_name: String) {
-    let file = File::open(&act_file_name);
-    let is_dir: bool;
-    if file.is_ok() {
-        is_dir = file.unwrap().metadata().unwrap().is_dir();
+    dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
+
+    #[cfg(target_os="windows")]
+    let dir_remove = remove_dir_all(&act_file_name.replace("\\", "/"));
+    #[cfg(target_os="windows")]
+    if dir_remove.is_err() {
+        let _ = delete_file(&act_file_name.replace("\\", "/")).expect("Failed to delete file");
+        return;
     } else {
         return;
     }
-    dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
+
+    let file = File::open(&act_file_name);
+    let mut is_dir = false;
+    if !file.is_ok() {
+        is_dir = file.unwrap().metadata().unwrap().is_dir();
+    }
     if is_dir {
-        let _ = remove_dir_all(act_file_name.replace("\\", "/")).expect("Failed to delete dir");
+        let _ = rapid_delete_dir_all(&act_file_name.replace("\\", "/"), None, None).await.expect("Failed to delete dir");
     } else {
-        let _ = remove_file(act_file_name.replace("\\", "/")).expect("Failed to delete file");
+        let _ = delete_file(&act_file_name.replace("\\", "/")).expect("Failed to delete file");
     }
 }
 
@@ -1666,4 +1681,17 @@ async fn get_file_content(path: String) -> String {
 #[tauri::command]
 async fn open_config_location() {
     let _ = open::that(config_dir().unwrap().join("com.codriver.dev"));
+}
+
+#[tauri::command]
+async fn log(log: String) {
+    let log_file_path = config_dir().unwrap().join("com.codriver.dev").join("log.txt");
+    if !log_file_path.exists() {
+        let _ = fs::File::create(&log_file_path);
+    }
+    let log_file = File::open(&log_file_path).unwrap();
+    let mut log_writer = BufWriter::new(log_file);
+    let _ = log_writer.write_all(log.as_bytes());
+    let _ = log_writer.flush();
+    return;
 }

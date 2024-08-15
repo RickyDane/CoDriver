@@ -1045,14 +1045,17 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				Platform != "darwin" &&
 				(Platform.includes("win") || Platform.includes("linux"))
 			) {
-				await startDrag({ item: arr, icon: "" });
-				unSelectAllItems();
 				IsFileOpIntern = true;
-			} else {
 				await startDrag({ item: arr, icon: icon });
 				unSelectAllItems();
+				refreshView();
+			} else {
 				IsFileOpIntern = true;
+				await startDrag({ item: arr, icon: icon });
+				unSelectAllItems();
+				refreshView();
 			}
+			IsFileOpIntern = false;
 		};
 		// Accept file drop into folders
 		item.addEventListener("dragover", (e) => {
@@ -1912,6 +1915,7 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
 			currentDirContainer?.removeChild(currentDirContainer?.lastElementChild);
 		}
 		catch (err) {
+			invoke("log", { log: err });
 			console.log("INFO: Not enough children to remove last current dir tracker element");
 		}
 	});
@@ -1939,7 +1943,8 @@ async function deleteItems() {
 	}
 	let isConfirm = await confirm(msg);
 	if (isConfirm == true) {
-		showLoadingPopup("Items are being deleted");
+		let actionId = new Date().getMilliseconds();
+		createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
 		for (let i = 0; i < ArrSelectedItems.length; i++) {
 			let actFileName = ArrSelectedItems[i].getAttribute("itempath");
 			await invoke("delete_item", { actFileName });
@@ -1948,10 +1953,10 @@ async function deleteItems() {
 		await listDirectories();
 		ArrSelectedItems = [];
 		showToast("Deletion", "Deletion of items is done", "success");
+		removeAction(actionId);
 	} else {
 		showToast("Deletion", "Deletion of items was canceled", "info");
 	}
-	closeLoadingPopup();
 }
 
 async function copyItem(item, toCut = false, fromInternal = false) {
@@ -4520,3 +4525,6 @@ insertSiteNavButtons();
 checkAppConfig();
 getSetInstalledApplications();
 // showPromptInput();
+
+
+invoke("log", { log: "Das ist ein Test" });
