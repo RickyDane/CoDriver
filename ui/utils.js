@@ -41,10 +41,12 @@ listen("tauri://file-drop", async (event) => {
       DraggedOverElement = null;
     }
   } catch (error) {
-    await invoke("log", { log: error });
+    await invoke("log", { log: JSON.stringify(error) });
+    IsFileOpIntern = false;
     alert(error);
   }
   resetProgressBar();
+  IsFileOpIntern = false;
   document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
     item.style.opacity = "1";
   });
