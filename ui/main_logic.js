@@ -1960,8 +1960,6 @@ async function deleteItems() {
 		ArrSelectedItems = [];
 		showToast("Deletion of items is done", "success");
 		removeAction(actionId);
-	} else {
-		showToast("Deletion of items was canceled", "info");
 	}
 }
 
