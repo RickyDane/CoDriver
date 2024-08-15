@@ -81,6 +81,8 @@ CoDriver does not use path caching to access files and folders, so the performan
 
 ### Linux
 
+- openssl1.1
+
 #### Debian / Ubuntu
 ```
 sudo apt update
@@ -107,6 +109,20 @@ sudo apt install libwebkit2gtk-4.0-dev \
     libgtk-3-dev \
     libayatana-appindicator3-dev \
     librsvg2-dev
+```
+
+#### Fedora
+```
+sudo dnf check-update
+sudo dnf install openssl1.1 \
+    webkit2gtk4.0-devel \
+    openssl-devel \
+    curl \
+    wget \
+    file \
+    libappindicator-gtk3-devel \
+    librsvg2-devel
+sudo dnf group install "C Development Tools and Libraries"
 ```
 </details>
 <br/>
