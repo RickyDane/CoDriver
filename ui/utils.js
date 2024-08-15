@@ -3,6 +3,7 @@ const { listen } = window.__TAURI__.event;
 /* Drag and drop files into file explorer */
 listen("tauri://file-drop", async (event) => {
   try {
+    console.log(event);
     ArrSelectedItems = [];
     ArrCopyItems = [];
     event.payload.forEach((item) => {
@@ -14,12 +15,14 @@ listen("tauri://file-drop", async (event) => {
       ArrCopyItems.push(element);
     });
     if (IsFileOpIntern == false) {
+      console.log("Extern file drop");
       await pasteItem();
       CopyFileName = "";
       CopyFilePath = "";
       ArrCopyItems = [];
       ArrSelectedItems = [];
     } else if (DraggedOverElement != null) {
+      console.log("Intern file operation");
       let operation = await fileOperationContextMenu();
       if (operation == "copy") {
         await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
@@ -38,6 +41,7 @@ listen("tauri://file-drop", async (event) => {
       DraggedOverElement = null;
     }
   } catch (error) {
+    await invoke("log", { log: error });
     alert(error);
   }
   resetProgressBar();

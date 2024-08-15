@@ -1,7 +1,7 @@
 # cargo-features = ["profile-rustflags"]
 [package]
 name = "CoDriver"
-version = "0.4.78"
+version = "0.4.79"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "none"
@@ -55,6 +55,8 @@ regex = "1.10.6"
 jwalk = "0.8.1"
 num_cpus = "1.16.0"
 uuid = "1.10.0"
+delete = "1.0.1"
+remove_dir_all = "0.8.3"
 
 # [profile.dev]
 # rustflags = ["-Z", "threads=7"]
