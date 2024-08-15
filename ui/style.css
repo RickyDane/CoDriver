@@ -98,7 +98,7 @@ body {
     height: 100vh;
     flex-flow: row;
     gap: 1px;
-    overflow-x: auto;
+    overflow-x: scroll !important;
     overflow-y: hidden;
 }
 
@@ -107,6 +107,7 @@ body {
     flex-flow: column;
     justify-content: flex-start;
 	align-items: flex-start;
+    min-width: 250px;
 	width: 250px;
 	max-width: 250px;
 	overflow-x: hidden;
@@ -162,7 +163,6 @@ body {
 }
 
 .main-container {
-    /* padding-top: 55px; */
     height: 100%;
     display: flex;
     flex-flow: column;

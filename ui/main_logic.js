@@ -2796,6 +2796,8 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 			if (isSwitched == true) {
 				if (IsDualPaneEnabled === false) {
 					if (ViewMode == "miller") {
+						$(".selected-item").removeClass("selected-item");
+						element.classList.add("selected-item");
 						await removeExcessMillerCols(parseInt(millerCol));
 						await addMillerCol(millerCol);
 						await setMillerColActive(null, millerCol);
@@ -2826,9 +2828,6 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 function selectItem(element, dualPaneSide = "", isNotReset = false) {
 	let path = element?.getAttribute("itempath");
 	let index = element?.getAttribute("itemindex");
-	// if (ViewMode == "miller") {
-	// 	unSelectAllItems();
-	// }
 	// Reset colored selection
 	if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false && IsShiftDown == false && (isNotReset === false)) {
 		ArrSelectedItems.forEach((item) => {
@@ -3414,7 +3413,7 @@ async function switchView() {
 			document.querySelector(".list-column-header").style.display = "none";
 			document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
 			document.querySelector(".miller-container").style.display = "flex";
-			document.querySelector(".miller-column").style.display = "flex";
+			document.querySelector(".miller-column").style.display = "inline";
 			document.querySelector(".non-dual-pane-container").style.display = "none";
 			$(".explorer-container").css("padding", "10px 10px 0 10px");
 			$(".file-searchbar").css("opacity", "0");
