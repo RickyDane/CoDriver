@@ -5,7 +5,7 @@
   description: |
     CoDriver is a simple and fast file explorer built on top of modern technologies like Rust and Tauri, ensuring a fast and responsive experience.
     With its sleek interface and robust features, CoDriver is the perfect tool for anyone looking to streamline their workflow and stay organized.
-  core: base20
+
   grade: stable # must be 'stable' to release into candidate/stable channels
   confinement: devmode # use 'strict' once you have the right plugs and slots
 
