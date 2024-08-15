@@ -237,7 +237,7 @@ async fn check_app_config() -> AppConfig {
             is_dual_pane_active: "0".to_string(),
             search_depth: 10,
             max_items: 1000,
-            is_image_preview: "0".to_string(),
+            is_image_preview: "1".to_string(),
             is_select_mode: "1".to_string(),
             arr_favorites: vec![],
             current_theme: "0".to_string(),
