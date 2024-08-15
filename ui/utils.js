@@ -51,7 +51,7 @@ listen("tauri://file-drop", async (event) => {
 });
 
 /* Toasts */
-function showToast(title, message, type = "info") {
+function showToast(message, type = "info") {
   let toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
   let colorClass = "";
