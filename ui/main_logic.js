@@ -486,7 +486,7 @@ document.onkeydown = async (e) => {
 			e.key == "c"
 		) {
 			await writeText(CurrentDir);
-			showToast("Info", "Current dir path copied", "success");
+			showToast("Current dir path copied", "success");
 			return;
 		}
 		// Check if cmd / ctrl + f is pressed
@@ -1952,10 +1952,10 @@ async function deleteItems() {
 		IsCopyToCut = false;
 		await listDirectories();
 		ArrSelectedItems = [];
-		showToast("Deletion", "Deletion of items is done", "success");
+		showToast("Deletion of items is done", "success");
 		removeAction(actionId);
 	} else {
-		showToast("Deletion", "Deletion of items was canceled", "info");
+		showToast("Deletion of items was canceled", "info");
 	}
 }
 
@@ -1996,7 +1996,7 @@ async function extractItem(item) {
 		if (extractFileName != "") {
 			let fromPath = extractFilePath.toString();
 			await invoke("extract_item", { fromPath, appWindow });
-			showToast("Extraction", "Extraction done", "success");
+			showToast("Extraction done", "success");
 			await listDirectories();
 		}
 	}
@@ -2106,7 +2106,7 @@ async function compressItem(arrItems, compressionLevel = 3) {
 				appWindow
 			});
 			await listDirectories();
-			showToast("Compression", "Compressing done", "success");
+			showToast("Compressing done", "success");
 		}
 	}
 }
@@ -2139,7 +2139,7 @@ function showInputPopup(msg) {
 		<h4 style="color: var(--textColor);">${msg}</h4>
 		<input class="text-input" placeholder="/path/to/dir" autofocus/>
 		`;
-	popup.className = "input-popup";
+	popup.className = "input-popup input-dialog";
 	popup.children[1].addEventListener("keyup", async (e) => {
 		if (e.keyCode == 13) {
 			await invoke("open_dir", { path: popup.children[1].value });
@@ -2333,10 +2333,7 @@ function createFileInputPrompt(e) {
 }
 
 function closeInputDialogs() {
-	let newFolderInput = document.querySelector(".input-dialog");
-	if (newFolderInput != null) {
-		newFolderInput.remove();
-	}
+	$(".input-dialog").remove();
 	IsDisableShortcuts = false;
 	IsPopUpOpen = false;
 }
@@ -3560,7 +3557,11 @@ function switchHiddenFiles() {
 
 function openSettings() {
 	if (IsPopUpOpen == false) {
-		document.querySelector(".settings-ui").style.display = "flex";
+		$(".settings-ui").css("display", "flex");
+		// Workaround for opacity transition
+		setTimeout(() => {
+			$(".settings-ui").css("opacity", "1");
+		});
 		IsDisableShortcuts = true;
 		IsPopUpOpen = true;
 	}
@@ -3637,7 +3638,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 		arrFavorites: ArrFavorites,
 	});
 	if (isVerbose === true) {
-		showToast("Settings", "Settings have been saved", "success");
+		showToast("Settings have been saved", "success");
 	}
 	if (isToReload == true) {
 		checkAppConfig();
@@ -3650,7 +3651,10 @@ async function addFavorites(item) {
 }
 
 function closeSettings() {
-	document.querySelector(".settings-ui").style.display = "none";
+	$(".settings-ui").css("opacity", "0");
+	setTimeout(() => {
+		$(".settings-ui").css("display", "none");
+	}, 300)
 	IsDisableShortcuts = false;
 	IsPopUpOpen = false;
 }
@@ -4518,6 +4522,12 @@ async function openDirAndSwitch(path) {
 	await invoke("open_dir", { path });
 	await setCurrentDir(path);
 	await listDirectories();
+}
+
+async function openConfigLocation() {
+	let dir = await invoke("get_config_location");
+	await openDirAndSwitch(dir);
+	closeAllPopups();
 }
 
 
