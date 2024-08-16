@@ -98,7 +98,7 @@ body {
     height: 100vh;
     flex-flow: row;
     gap: 1px;
-    overflow-x: auto;
+    overflow-x: scroll !important;
     overflow-y: hidden;
 }
 
@@ -107,6 +107,7 @@ body {
     flex-flow: column;
     justify-content: flex-start;
 	align-items: flex-start;
+    min-width: 250px;
 	width: 250px;
 	max-width: 250px;
 	overflow-x: hidden;
@@ -162,7 +163,6 @@ body {
 }
 
 .main-container {
-    /* padding-top: 55px; */
     height: 100%;
     display: flex;
     flex-flow: column;
@@ -189,7 +189,6 @@ body {
     right: 0;
     height: 55px;
     padding: 5px 10px 5px 10px;
-    /* box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15); */
     z-index: 3;
     border-bottom: 1px solid var(--tertiaryColor);
     color: var(--textColor);
@@ -433,6 +432,7 @@ body {
     padding: 5px;
     background-color: var(--transparentColor);
     backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     z-index: 1;
     border-bottom: 1px solid var(--tertiaryColor);
     box-shadow: 0px 0px 5px 0px var(--transparentColorActive);
@@ -522,9 +522,8 @@ body {
     display: none;
     flex-flow: column;
     position: fixed;
-    width: 70%;
-    height: fit-content;
-    max-height: 80vh;
+    width: 100%;
+    height: 100vh;
     top: 0;
     left: 0;
     right: 0;
@@ -536,6 +535,8 @@ body {
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     border: 1px solid var(--tertiaryColor);
     overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
 .settings-ui-header {
@@ -543,9 +544,9 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    background-color: var(--secondaryColor);
+    background-color: var(--navBarColor);
     width: 100%;
-    padding: 5px 5px 5px 15px;
+    padding: 5px 10px 5px 100px;
     font-size: large;
     font-weight: bolder !important;
     display: flex;
@@ -556,6 +557,7 @@ body {
     border-bottom: 1px solid var(--tertiaryColor);
     margin-bottom: 1px;
     color: var(--textColor);
+    height: 65px;
 }
 
 .settings-ui-body {
@@ -565,14 +567,14 @@ body {
     padding: 20px;
     overflow-y: auto;
     z-index: 3;
+    color: var(--textColor);
+}
+.settings-ui-body::-webkit-scrollbar-thumb {
+    background-color: var(--navBarColor);
 }
 
 .settings-ui-headline {
     font-weight: bolder !important;
-}
-
-.settings-ui-body{
-    color: var(--textColor);
 }
 
 .settings-ui-controls {
@@ -594,7 +596,7 @@ body {
 }
 
 .settings-ui-input {
-    width: 100%;
+    width: 50% !important;
     padding: 10px 15px;
     background-color: var(--secondaryColor);
     border-radius: 10px;
@@ -663,6 +665,7 @@ label {
     bottom: 0;
     background-color: var(--transparentColor);
     backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
     z-index: 99;
 }
 
@@ -813,7 +816,6 @@ button > svg {
     width: fit-content;
     max-width: 100%;
     top: calc(48px + 10px);
-    /* background-color: var(--primaryColor); */
     font-size: var(--fontSize);
     padding: 2px 7px;
     line-height: 16px;
@@ -823,7 +825,6 @@ button > svg {
     text-align: center !important;
     text-overflow: ellipsis;
     margin-top: 5px;
-    /* border: 1px solid var(--tertiaryColor); */
 }
 
 .item-button > div {
@@ -1009,6 +1010,8 @@ button > svg {
     padding-left: 5px;
     border: 1px solid var(--tertiaryColor);
     color: var(--textColor);
+    font-size: var(--fontSize);
+    font-weight: bolder !important;
 }
 
 .icon-button:hover {
@@ -1105,7 +1108,7 @@ button > svg {
     border-radius: 10px;
     overflow: hidden;
     margin: 0 auto;
-    transition: 0.2s ease-in-out;
+    transition: 0.2s ease;
 }
 
 .file-searchbar > input {
@@ -1705,12 +1708,21 @@ button > svg {
     align-items: center;
     padding: 10px 10px 10px 15px;
     border-top: 1px solid var(--tertiaryColor);
+    color: var(--textColor);
+}
+
+.popup-header > h3 {
+    font-weight: bolder !important;
+}
+
+.popup-header > div > h3 {
     font-weight: bolder !important;
 }
 
 .popup-body {
     padding: 10px;
     border-top: 1px solid var(--tertiaryColor);
+    color: var(--textColor);
 }
 
 .popup-controls {
@@ -1720,6 +1732,8 @@ button > svg {
     gap: 5px;
     padding: 5px;
     border-top: 1px solid var(--tertiaryColor);
+    box-shadow: 0px 0px 10px 1px var(--transparentColor);
+    color: var(--textColor);
 }
 
 .popup-body-col-section {
@@ -1824,8 +1838,8 @@ button > svg {
 
 .toast-container {
     position: fixed;
-    bottom: 20px;
-    right: 10px;
+    bottom: 55px;
+    right: 35px;
     display: flex;
     flex-flow: column;
     gap: 10px;
@@ -1986,4 +2000,29 @@ button > svg {
     border-radius: 10px;
     background: var(--transparentColor) !important;
     border: 1px solid var(--tertiaryColor) !important;
+}
+
+.confirm-popup {
+    min-width: 30%;
+    width: fit-content;
+    height: fit-content;
+}
+.confirm-popup > .popup-body {
+    padding: 20px;
+    max-height: 30vh;
+    overflow-y: auto;
+}
+.confirm-popup-item {
+    font-weight: bold !important;
+}
+
+.delete-button {
+    color: white;
+    background-color: red !important;
+}
+.delete-button:hover {
+    background-color: rgb(200, 0, 0) !important;
+}
+.delete-button:focus {
+    outline: 2px dotted var(--selectColor2) !important;
 }

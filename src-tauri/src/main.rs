@@ -131,7 +131,8 @@ fn main() {
             stop_searching,
             get_file_content,
             open_config_location,
-            log
+            log,
+            get_config_location
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -242,7 +243,7 @@ async fn check_app_config() -> AppConfig {
             is_dual_pane_active: "0".to_string(),
             search_depth: 10,
             max_items: 1000,
-            is_image_preview: "0".to_string(),
+            is_image_preview: "1".to_string(),
             is_select_mode: "1".to_string(),
             arr_favorites: vec![],
             current_theme: "0".to_string(),
@@ -926,7 +927,13 @@ async fn extract_item(from_path: String, app_window: Window) {
         let file = PathBuf::from(&from_path);
         let _ = create_dir(&from_path.strip_suffix(&file_ext).unwrap());
         let new_dir = PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap());
-        zip_extract(&file, &new_dir).unwrap();
+        let extract = zip_extract(&file, &new_dir);
+        if extract.is_err() {
+            let _ = app_window.eval("showToast('Archive couldnt be extracted')");
+            remove_action(app_window, action_id);
+            err_log(extract.unwrap_err().to_string());
+            return;
+        }
     } else if file_ext == ".rar" {
         let mut archive = Archive::new(&from_path).open_for_processing().unwrap();
         while let Some(header) = archive.read_header().unwrap() {
@@ -1687,6 +1694,11 @@ async fn get_file_content(path: String) -> String {
 #[tauri::command]
 async fn open_config_location() {
     let _ = open::that(config_dir().unwrap().join("com.codriver.dev"));
+}
+
+#[tauri::command]
+async fn get_config_location() -> String {
+    config_dir().unwrap().join("com.codriver.dev").to_str().unwrap().to_string()
 }
 
 #[tauri::command]

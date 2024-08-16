@@ -214,6 +214,7 @@ function closeAllPopups() {
 	resetProgressBar();
 	closeInputDialogs();
 	unSelectAllItems();
+	closeConfirmPopup();
 	IsPopUpOpen = false;
 	IsInputFocused = false;
 	IsDisableShortcuts = false;
@@ -228,6 +229,10 @@ document.addEventListener("mousedown", (e) => {
 		!e.target.classList.contains("context-item") &&
 		!e.target.classList.contains("open-with-item") &&
 		!e.target.classList.contains("input-dialog") &&
+		!e.target.classList.contains("confirm-popup") &&
+		!e.target.classList.contains("uni-popup") &&
+		!e.target.classList.contains("popup-body") &&
+		!e.target.classList.contains("popup-body-content") &&
 		!e.target.classList.contains("directory-item-entry") &&
 		!e.target.classList.contains("directory-entry") &&
 		!e.target.classList.contains("disk-item") &&
@@ -486,7 +491,7 @@ document.onkeydown = async (e) => {
 			e.key == "c"
 		) {
 			await writeText(CurrentDir);
-			showToast("Info", "Current dir path copied", "success");
+			showToast("Current dir path copied", "success");
 			return;
 		}
 		// Check if cmd / ctrl + f is pressed
@@ -1933,29 +1938,28 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
 
 async function deleteItems() {
 	ContextMenu.style.display = "none";
-	let msg = "Do you really want to delete: ";
+	let msg = "Do you really want to delete:<br/><br/>";
 	for (let i = 0; i < ArrSelectedItems.length; i++) {
 		if (i == 0) {
-			msg += ArrSelectedItems[i].getAttribute("itemname");
+			msg += "<span class='confirm-popup-item'>" + ArrSelectedItems[i].getAttribute("itemname") + "</span>";
 		} else {
-			msg += ", " + ArrSelectedItems[i].getAttribute("itemname");
+			msg += "<br/><span class='confirm-popup-item'>" + ArrSelectedItems[i].getAttribute("itemname") + "</span>";
 		}
 	}
-	let isConfirm = await confirm(msg);
+	let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
+	let isConfirm = await confirmPopup(msg, "delete"); 
 	if (isConfirm == true) {
 		let actionId = new Date().getMilliseconds();
 		createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
-		for (let i = 0; i < ArrSelectedItems.length; i++) {
-			let actFileName = ArrSelectedItems[i].getAttribute("itempath");
+		for (let i = 0; i < arr.length; i++) {
+			let actFileName = arr[i];
 			await invoke("delete_item", { actFileName });
 		}
 		IsCopyToCut = false;
 		await listDirectories();
 		ArrSelectedItems = [];
-		showToast("Deletion", "Deletion of items is done", "success");
+		showToast("Deletion of items is done", "success");
 		removeAction(actionId);
-	} else {
-		showToast("Deletion", "Deletion of items was canceled", "info");
 	}
 }
 
@@ -1986,9 +1990,8 @@ async function copyItem(item, toCut = false, fromInternal = false) {
 async function extractItem(item) {
 	let compressFilePath = item.getAttribute("itempath");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
-	let isExtracting = await confirm(
-		"Do you want to extract " + compressFileName + "?",
-	);
+	ContextMenu.style.display = "none";
+	let isExtracting = await confirmPopup("Do you want to extract " + compressFileName + "?", "extract");
 	if (isExtracting == true) {
 		ContextMenu.style.display = "none";
 		let extractFilePath = item.getAttribute("itempath");
@@ -1996,7 +1999,7 @@ async function extractItem(item) {
 		if (extractFileName != "") {
 			let fromPath = extractFilePath.toString();
 			await invoke("extract_item", { fromPath, appWindow });
-			showToast("Extraction", "Extraction done", "success");
+			showToast("Extraction done", "success");
 			await listDirectories();
 		}
 	}
@@ -2022,12 +2025,10 @@ async function showCompressPopup(item) {
 	if (compressFileName != "") {
 		let popup = document.createElement("div");
 		popup.innerHTML = `
-			<h4 class="popup-header">
-			<div style="display: flex; gap: 10px; align-items: center;">
+			<div class="popup-header">
 			<i class="fa-solid fa-compress"></i>
-			Compression options
+			<h3>Compression options</h3>
 			</div>
-			</h4>
 			<div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
 			<p class="text-2">Selected item</p>
 			<h5>${compressFileName}</h5>
@@ -2090,7 +2091,7 @@ async function compressItem(arrItems, compressionLevel = 3) {
 			appWindow
 		});
 		await listDirectories();
-		showToast("Compression", "Compressing done", "success");
+		showToast("Compressing done", "success");
 	} else {
 		let item = arrItems[0];
 		let compressFilePath = item.getAttribute("itempath");
@@ -2106,7 +2107,7 @@ async function compressItem(arrItems, compressionLevel = 3) {
 				appWindow
 			});
 			await listDirectories();
-			showToast("Compression", "Compressing done", "success");
+			showToast("Compressing done", "success");
 		}
 	}
 }
@@ -2139,7 +2140,7 @@ function showInputPopup(msg) {
 		<h4 style="color: var(--textColor);">${msg}</h4>
 		<input class="text-input" placeholder="/path/to/dir" autofocus/>
 		`;
-	popup.className = "input-popup";
+	popup.className = "input-popup input-dialog";
 	popup.children[1].addEventListener("keyup", async (e) => {
 		if (e.keyCode == 13) {
 			await invoke("open_dir", { path: popup.children[1].value });
@@ -2259,7 +2260,7 @@ async function pasteItem(copyToPath = "") {
 		await listDirectories(true);
 	}
 	if (arr.length >= 1) {
-		showToast("Copy", "Done copying some files", "success");
+		showToast("Done copying some files", "success");
 	}
 }
 
@@ -2333,10 +2334,7 @@ function createFileInputPrompt(e) {
 }
 
 function closeInputDialogs() {
-	let newFolderInput = document.querySelector(".input-dialog");
-	if (newFolderInput != null) {
-		newFolderInput.remove();
-	}
+	$(".input-dialog").remove();
 	IsDisableShortcuts = false;
 	IsPopUpOpen = false;
 }
@@ -2798,6 +2796,8 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 			if (isSwitched == true) {
 				if (IsDualPaneEnabled === false) {
 					if (ViewMode == "miller") {
+						$(".selected-item").removeClass("selected-item");
+						element.classList.add("selected-item");
 						await removeExcessMillerCols(parseInt(millerCol));
 						await addMillerCol(millerCol);
 						await setMillerColActive(null, millerCol);
@@ -2815,7 +2815,6 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 					SelectedItemPaneSide = dualPaneSide;
 					await listDirectories();
 				}
-				await setCurrentDir(path, SelectedItemPaneSide);
 			} else {
 				alert("Could not open directory");
 				return;
@@ -2829,9 +2828,6 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 function selectItem(element, dualPaneSide = "", isNotReset = false) {
 	let path = element?.getAttribute("itempath");
 	let index = element?.getAttribute("itemindex");
-	// if (ViewMode == "miller") {
-	// 	unSelectAllItems();
-	// }
 	// Reset colored selection
 	if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false && IsShiftDown == false && (isNotReset === false)) {
 		ArrSelectedItems.forEach((item) => {
@@ -3417,7 +3413,7 @@ async function switchView() {
 			document.querySelector(".list-column-header").style.display = "none";
 			document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
 			document.querySelector(".miller-container").style.display = "flex";
-			document.querySelector(".miller-column").style.display = "flex";
+			document.querySelector(".miller-column").style.display = "inline";
 			document.querySelector(".non-dual-pane-container").style.display = "none";
 			$(".explorer-container").css("padding", "10px 10px 0 10px");
 			$(".file-searchbar").css("opacity", "0");
@@ -3560,7 +3556,11 @@ function switchHiddenFiles() {
 
 function openSettings() {
 	if (IsPopUpOpen == false) {
-		document.querySelector(".settings-ui").style.display = "flex";
+		$(".settings-ui").css("display", "flex");
+		// Workaround for opacity transition
+		setTimeout(() => {
+			$(".settings-ui").css("opacity", "1");
+		});
 		IsDisableShortcuts = true;
 		IsPopUpOpen = true;
 	}
@@ -3637,7 +3637,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 		arrFavorites: ArrFavorites,
 	});
 	if (isVerbose === true) {
-		showToast("Settings", "Settings have been saved", "success");
+		showToast("Settings have been saved", "success");
 	}
 	if (isToReload == true) {
 		checkAppConfig();
@@ -3650,7 +3650,10 @@ async function addFavorites(item) {
 }
 
 function closeSettings() {
-	document.querySelector(".settings-ui").style.display = "none";
+	$(".settings-ui").css("opacity", "0");
+	setTimeout(() => {
+		$(".settings-ui").css("display", "none");
+	}, 300)
 	IsDisableShortcuts = false;
 	IsPopUpOpen = false;
 }
@@ -4528,6 +4531,80 @@ async function openDirAndSwitch(path) {
 	await invoke("open_dir", { path });
 	await setCurrentDir(path);
 	await listDirectories();
+}
+
+async function openConfigLocation() {
+	let dir = await invoke("get_config_location");
+	await openDirAndSwitch(dir);
+	closeAllPopups();
+}
+
+async function confirmPopup(message = "Nothing to see here!", type = "") {
+	let confirmationButton = "";
+	switch (type) {
+		case "confirm":
+			confirmationButton = `
+				<button class="icon-button">
+					<div class="button-icon"><i class="fa-solid fa-check"></i></div>
+					Confirm
+				</button>
+			`;
+			break;
+		case "extract":
+			confirmationButton = `
+				<button class="icon-button">
+					<div class="button-icon"><i class="fa-solid fa-maximize"></i></div>
+					Extract
+				</button>
+			`;
+			break;
+		case "delete":
+			confirmationButton = `
+				<button class="icon-button delete-button">
+					<div class="button-icon"><i class="fa-solid fa-trash"></i></div>
+					Delete
+				</button>
+			`;
+			break;
+	}
+	let popup = document.createElement("div");
+	popup.className = "uni-popup confirm-popup";
+	popup.innerHTML = `
+		<div class="popup-header">
+			<div style="display: flex; gap: 10px; align-items: center;">
+				<i class="fa-solid fa-check"></i>
+				<h3>Confirm</h3>
+			</div>
+		</div>
+		<div class="popup-body">
+			<p class="popup-body-content">${message}</p>
+		</div>
+		<div class="popup-controls">
+			<button class="icon-button">
+				<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+				Cancel
+			</button>
+			${confirmationButton}	
+		</div>
+	`;
+	document.body.appendChild(popup);
+	document.querySelector(".confirm-popup button:last-child").focus();
+	IsPopUpOpen = true;
+	return new Promise((resolve) => {
+		document.querySelector(".confirm-popup button:first-child").onclick = () => {
+			closeConfirmPopup();
+			resolve(false);
+		};
+		document.querySelector(".confirm-popup button:last-child").onclick = () => {
+			closeConfirmPopup();
+			resolve(true);
+		};
+	});
+}
+
+function closeConfirmPopup() {
+	document.querySelector(".confirm-popup")?.remove();
+	IsPopUpOpen = false;
 }
 
 
