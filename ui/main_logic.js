@@ -215,6 +215,7 @@ function closeAllPopups() {
 	closeInputDialogs();
 	unSelectAllItems();
 	closeConfirmPopup();
+	$(".popup-background").css("display", "none");
 	IsPopUpOpen = false;
 	IsInputFocused = false;
 	IsDisableShortcuts = false;
@@ -978,7 +979,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			itemButton.innerHTML = `
 				<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" />
 				<p class="item-button-text" style="text-align: left;">${item.name}</p>
-				`;
+			`;
 			itemButton.className = "item-button directory-entry";
 			newRow.append(itemButton);
 			DirectoryList.style.gridTemplateColumns =
@@ -988,14 +989,14 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			var itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
-				<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
-				<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+					<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+					<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
-				<p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
-				<p class="item-button-list-text" style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+					<p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
+					<p class="item-button-list-text" style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
 				</span>
-				`;
+			`;
 			if (dualPaneSide != null && dualPaneSide != "") {
 				itemButtonList.className = "directory-entry dual-pane-list-item";
 			} else {
@@ -1009,8 +1010,8 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			var itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
-				<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
-				<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+					<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+					<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				`;
 			if (dualPaneSide != null && dualPaneSide != "") {
@@ -1364,7 +1365,7 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1) {
 	let newRow = document.createElement("div");
 	newRow.className = "directory-item-entry";
 	let fileIcon = "resources/file-icon.png"; // Default
-	let iconSize = "48px";
+	let iconSize = "56px";
 	if (item.is_dir == 1) {
 		fileIcon = "resources/folder-icon.png";
 		// Check for dir name to apply custom icons
@@ -2483,17 +2484,12 @@ async function checkAppConfig() {
 		themeSelect.value = CurrentTheme;
 
 		// General configurations
-		document.querySelector(".configured-path-one-input").value =
-			ConfiguredPathOne = appConfig.configured_path_one;
-		document.querySelector(".configured-path-two-input").value =
-			ConfiguredPathTwo = appConfig.configured_path_two;
-		document.querySelector(".configured-path-three-input").value =
-			ConfiguredPathThree = appConfig.configured_path_three;
+		document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
+		document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
+		document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
 		document.querySelector(".launch-path-input").value = appConfig.launch_path;
-		document.querySelector(".search-depth-input").value = SettingsSearchDepth =
-			parseInt(appConfig.search_depth);
-		document.querySelector(".max-items-input").value = SettingsMaxItems =
-			parseInt(appConfig.max_items);
+		document.querySelector(".search-depth-input").value = SettingsSearchDepth = parseInt(appConfig.search_depth);
+		document.querySelector(".max-items-input").value = SettingsMaxItems = parseInt(appConfig.max_items);
 
 		if (appConfig.is_dual_pane_active.includes("1")) {
 			if (IsDualPaneEnabled == false) {
@@ -2794,6 +2790,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 			// Open directory
 			let isSwitched = await invoke("open_dir", { path });
 			if (isSwitched == true) {
+				setCurrentDir(path);
 				if (IsDualPaneEnabled === false) {
 					if (ViewMode == "miller") {
 						$(".selected-item").removeClass("selected-item");
@@ -3317,6 +3314,10 @@ async function searchFor(
 			appWindow,
 			isQuickSearch
 		});
+		if (IsDualPaneEnabled == true) {
+			await unSelectAllItems();
+			goUp(false, true);
+		}
 		setTimeout(() => {
 			ds.setSettings({
 				selectables: ArrDirectoryItems,
@@ -3674,19 +3675,24 @@ async function showProperties(item) {
 		let popup = document.createElement("div");
 		popup.className = "uni-popup item-properties-popup";
 		popup.innerHTML = `
-		<div class="popup-header">${name}</div>
-		<div class="popup-body">
-		<p>Path: ${path}</p>
-		${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ''}
-		<br/>
-		<p>Modified: ${modifiedAt}</p>
-		<br/>
-		<div style="display: flex; gap: 5px;">
-		<div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
+		<div class="popup-header">
+			<h3>${name}</h3>
 		</div>
+		<div class="popup-body">
+			<p>Path: ${path}</p>
+			${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ''}
+			<br/>
+			<p>Modified: ${modifiedAt}</p>
+			<br/>
+			<div style="display: flex; gap: 5px;">
+				<div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
+			</div>
 		</div>
 		<div class="popup-controls">
-		<button class="icon-button" onclick="closeInfoProperties()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Close</button>
+			<button class="icon-button" onclick="closeInfoProperties()">
+				<span class="button-icon"><i class="fa-solid fa-ban"></i></span>
+				Close
+			</button>
 		</div>
 		`;
 		document.querySelector("body").append(popup);
@@ -4587,6 +4593,8 @@ async function confirmPopup(message = "Nothing to see here!", type = "") {
 	document.body.appendChild(popup);
 	document.querySelector(".confirm-popup button:last-child").focus();
 	IsPopUpOpen = true;
+	$(".popup-background").css("display", "block");
+	setTimeout(() => $(".popup-background").css("opacity", "1"));
 	return new Promise((resolve) => {
 		document.querySelector(".confirm-popup button:first-child").onclick = () => {
 			closeConfirmPopup();
@@ -4601,6 +4609,8 @@ async function confirmPopup(message = "Nothing to see here!", type = "") {
 
 function closeConfirmPopup() {
 	document.querySelector(".confirm-popup")?.remove();
+	$(".popup-background").css("display", "none");
+	$(".popup-background").css("opacity", "0");
 	IsPopUpOpen = false;
 }
 

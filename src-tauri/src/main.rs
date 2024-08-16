@@ -10,6 +10,7 @@ use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
 use std::fs::{self, read_dir};
+#[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
 use std::io::{BufReader, BufWriter, Read, Write};
@@ -655,44 +656,23 @@ async fn search_for(
             .nth(file_name.split(".").count() - 1)
             .unwrap_or("");
 
+    let mut v_exts: Vec<String> = vec![];
+    if file_ext != "" {
+        v_exts.push(file_ext.to_lowercase());
+    }
+
     let sw = Stopwatch::start_new();
 
-    if file_ext != ".".to_string().to_owned() + &file_name {
-        let _ = DirWalker::new()
-            .set_ext(vec![file_ext.to_lowercase()])
-            .search(
-                current_dir().unwrap().to_str().unwrap(),
-                search_depth as u32,
-                file_name,
-                max_items,
-                is_quick_search,
-                &|item: DirWalkerEntry| {
-                    let _ = app_window
-                        .emit_all(
-                            "addSingleItem",
-                            serde_json::to_string(&item).unwrap().to_string(),
-                        )
-                        .expect("Failed to emit");
-                    unsafe {
-                        COUNT_CALLED_BACK += 1;
-                    }
-                    let _ = app_window.eval(&format!(
-                        "$('.file-searching-file-count').html('{} items found')",
-                        unsafe { COUNT_CALLED_BACK }
-                    ));
-                },
-            );
-    } else {
-        unsafe {
-            COUNT_CALLED_BACK = 0;
-        }
-        let _ = DirWalker::new().search(
+    let _ = DirWalker::new()
+        .set_ext(v_exts)
+        .search(
             current_dir().unwrap().to_str().unwrap(),
             search_depth as u32,
             file_name,
             max_items,
             is_quick_search,
-            &|item| {
+            file_content,
+            &|item: DirWalkerEntry| {
                 let _ = app_window
                     .emit_all(
                         "addSingleItem",
@@ -708,7 +688,7 @@ async fn search_for(
                 ));
             },
         );
-    }
+    
     unsafe {
         IS_SEARCHING = false;
     }

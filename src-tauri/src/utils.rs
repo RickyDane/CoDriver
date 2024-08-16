@@ -285,7 +285,8 @@ impl DirWalker {
         file_name: String,
         max_items: i32,
         is_quick_search: bool,
-        callback: &impl Fn(DirWalkerEntry),
+        file_content: String,
+        callback: &impl Fn(DirWalkerEntry)
     ) {
         let reg_exp: Regex;
 
@@ -345,6 +346,28 @@ impl DirWalker {
                     || path.is_file() && self.exts.len() == 0
                     || is_quick_search)
             {
+                // Search for file content
+                if !file_content.is_empty() {
+                    let content = fs::read_to_string(&path).unwrap();
+                    // Extend with line number later on
+                    if content.contains(&file_content) {
+                        callback(DirWalkerEntry {
+                            name,
+                            path: path.to_string_lossy().to_string(),
+                            depth,
+                            is_dir: path.is_dir(),
+                            is_file: path.is_file(),
+                            extension: item_ext,
+                            last_modified: format!("{:?}", last_mod),
+                            size: fs::metadata(&path).unwrap().len(),
+                        });
+                        unsafe {
+                            COUNT_CALLED_BACK += 1;
+                        }
+                        return;
+                    }
+                }
+                // Search w/o file content
                 callback(DirWalkerEntry {
                     name,
                     path: path.to_string_lossy().to_string(),
