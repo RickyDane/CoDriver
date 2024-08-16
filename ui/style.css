@@ -751,11 +751,6 @@ button > svg {
     /* border: 1px solid var(--transparentColorActive) !important; */
 }
 
-.selected-item > p {
-    /* background-color: var(--transparentColorActive) !important; */
-    /* border: 1px solid transparent !important; */
-}
-
 .selected-item-min {
     background-color: var(--selectColor2);
     color: white;

@@ -976,7 +976,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		if (ViewMode == "wrap") {
 			var itemButton = document.createElement("div");
 			itemButton.innerHTML = `
-				<img decoding="async" loading="lazy" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" />
+				<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" />
 				<p class="item-button-text" style="text-align: left;">${item.name}</p>
 				`;
 			itemButton.className = "item-button directory-entry";
@@ -988,7 +988,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			var itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
-				<img decoding="async" loading="lazy" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+				<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
 				<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
@@ -1009,7 +1009,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			var itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
-				<img decoding="async" loading="lazy" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+				<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
 				<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				`;
@@ -3659,9 +3659,7 @@ function closeSettings() {
 }
 
 function getExtDescription(file_extension) {
-	file_extension = file_extension.replace(".", "").toUpperCase();
-
-	return fileExtensions[file_extension];
+	return fileExtensions[file_extension.replace(".", "").toUpperCase()];
 }
 
 async function showProperties(item) {
