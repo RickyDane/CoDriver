@@ -10,6 +10,7 @@ use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
 use std::fs::{self, read_dir};
+#[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
 use std::io::{BufReader, BufWriter, Read, Write};
@@ -81,6 +82,12 @@ fn main() {
             if let WindowEvent::Resized(..) = e.event() {
                 let win = e.window();
                 win.position_traffic_lights(20.0, 25.0);
+            }
+            // Fixes sluggish window resizing on Windows
+            // See https://github.com/tauri-apps/tauri/issues/6322#issuecomment-1448141495
+            #[cfg(target_os = "windows")]
+            if let WindowEvent::Resized(..) = e.event() {
+                std::thread::sleep(std::time::Duration::from_nanos(1));
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -592,12 +599,11 @@ async fn open_in_terminal() {
 }
 
 #[tauri::command]
-async fn go_home() -> Vec<FDir> {
+async fn go_home() {
     let _ = set_dir(home_dir().unwrap().to_str().unwrap().into()).await;
     unsafe {
         PATH_HISTORY.push(home_dir().unwrap().to_string_lossy().to_string());
     }
-    return list_dirs().await;
 }
 
 #[tauri::command]
@@ -649,60 +655,37 @@ async fn search_for(
             .nth(file_name.split(".").count() - 1)
             .unwrap_or("");
 
+    let mut v_exts: Vec<String> = vec![];
+    if file_ext != "" {
+        v_exts.push(file_ext.to_lowercase());
+    }
+
     let sw = Stopwatch::start_new();
 
-    if file_ext != ".".to_string().to_owned() + &file_name {
-        let _ = DirWalker::new()
-            .set_ext(vec![file_ext.to_lowercase()])
-            .search(
-                current_dir().unwrap().to_str().unwrap(),
-                search_depth as u32,
-                file_name,
-                max_items,
-                is_quick_search,
-                &|item: DirWalkerEntry| {
-                    let _ = app_window
-                        .emit_all(
-                            "addSingleItem",
-                            serde_json::to_string(&item).unwrap().to_string(),
-                        )
-                        .expect("Failed to emit");
-                    unsafe {
-                        COUNT_CALLED_BACK += 1;
-                    }
-                    let _ = app_window.eval(&format!(
-                        "$('.file-searching-file-count').html('{} items found')",
-                        unsafe { COUNT_CALLED_BACK }
-                    ));
-                },
-            );
-    } else {
-        unsafe {
-            COUNT_CALLED_BACK = 0;
-        }
-        let _ = DirWalker::new().search(
+    let _ = DirWalker::new()
+        .set_ext(v_exts)
+        .search(
             current_dir().unwrap().to_str().unwrap(),
             search_depth as u32,
             file_name,
             max_items,
             is_quick_search,
-            &|item| {
+            file_content,
+            &|item: DirWalkerEntry| {
+                unsafe { COUNT_CALLED_BACK += 1; }
                 let _ = app_window
                     .emit_all(
                         "addSingleItem",
                         serde_json::to_string(&item).unwrap().to_string(),
                     )
                     .expect("Failed to emit");
-                unsafe {
-                    COUNT_CALLED_BACK += 1;
-                }
                 let _ = app_window.eval(&format!(
                     "$('.file-searching-file-count').html('{} items found')",
                     unsafe { COUNT_CALLED_BACK }
                 ));
             },
         );
-    }
+    
     unsafe {
         IS_SEARCHING = false;
     }
@@ -1705,5 +1688,6 @@ async fn log(log: String) {
     let mut log_writer = BufWriter::new(log_file);
     let _ = log_writer.write_all(log.as_bytes());
     let _ = log_writer.flush();
+    dbg_log(format!("Written to: {} Log: {}", log_file_path.to_str().unwrap(), log));
     return;
 }

@@ -6,6 +6,7 @@
     <script src="font-awesome/js/all.min.js" async></script>
     <script src="ds.min.js"></script>
     <script src="utils.js"></script>
+    <script src="file_extensions.js"></script>
     <script src="models.js" async defer></script>
     <script src="main_logic.js" async defer></script>
     <link rel="stylesheet" href="font-awesome/css/all.min.css" />
@@ -20,6 +21,7 @@
             <div class="file-searching-done"></div>
         </div>
     </div>
+    <div class="popup-background"></div>
     <div style="display: flex; width: 100%; height: 100vh;">
         <div data-tauri-drag-region class="site-nav-bar">
             <div class="codriver-name">CoDriver</div>
@@ -111,10 +113,10 @@
                 </div>
                 <button class="context-item c-item-properties">Properties<i
                         class="fa-solid fa-info-circle"></i></button>
-                <button class="context-item c-item-openinterminal context-open-in-terminal"
-                    onclick="openInTerminal()">Open
-                    in
-                    Terminal<i class="fa-solid fa-terminal"></i></button>
+                <button class="context-item c-item-openinterminal context-open-in-terminal" onclick="openInTerminal()">
+                    Open in Terminal
+                    <i class="fa-solid fa-terminal"></i>
+                </button>
             </div>
             <div class="settings-ui">
                 <div class="settings-ui-header">
@@ -122,8 +124,7 @@
                         <i class="fa-solid fa-gears"></i>
                         <p>Settings</p>
                     </span>
-                    <button class="button settings-ui-button" onclick="showAppInfo()"><i
-                            class="fa-solid fa-info"></i></button>
+                    <button class="button" onclick="showAppInfo()"><i class="fa-solid fa-info"></i></button>
                 </div>
                 <div class="settings-ui-body">
                     <div class="popup-body-col-section">
@@ -173,11 +174,6 @@
                             class="settings-ui-checkbox show-dual-pane-checkbox" />
                         <label for="show-dual-pane">Enable "Dual pane" view (Experimental)</p>
                     </span>
-                    <!-- <span style="display: flex; gap: 10px; margin-top: 5px;">
-                <input id="switch-light-dark-mode" type="checkbox"
-                    class="settings-ui-checkbox switch-light-dark-mode-checkbox" />
-                <label for="switch-light-dark-mode">Light-Mode (Experimental)</p>
-            </span> -->
                 </div>
                 <div class="popup-controls">
                     <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i
@@ -241,7 +237,7 @@
                 <div class="popup-header">
                     <div style="display: flex; gap: 20px; align-items: center;">
                         <i class="fa-solid fa-gears"></i>
-                        <p style="font-weight: bolder;">FTP - Connection</p>
+                        <h3>FTP - Connection</h3>
                     </div>
                 </div>
                 <div class="popup-body">
@@ -263,12 +259,6 @@
                             </div>
                         </div>
                         <div class="popup-body-col-section">
-                            <!-- <div class="popup-body-row-section">
-                        <div class="popup-body-col-section">
-                            <p>Mount point</p>
-                            <input type="text" class="text-input ftp-mountpoint-input" placeholder="/" />
-                        </div>
-                    </div> -->
                             <div class="popup-body-row-section">
                                 <div class="popup-body-col-section">
                                     <p>Remote path</p>
