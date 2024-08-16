@@ -10,3 +10,4 @@ worker.js
 .DS_Store
 .vscode
 target/
+.idea

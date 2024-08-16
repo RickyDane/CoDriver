@@ -3655,10 +3655,19 @@ function closeSettings() {
 	IsPopUpOpen = false;
 }
 
+function getExtDescription(file_extension) {
+	file_extension = file_extension.replace(".", "").toUpperCase();
+	let description = fileExtensions[file_extension];
+
+	return description ? description.descriptions[0] : null; // Some extensions have multiple descriptions
+}
+
 async function showProperties(item) {
 	if (IsPopUpOpen === false) {
 		let name = item.getAttribute("itemname");
 		let path = item.getAttribute("itempath");
+		let ext = item.getAttribute("itemext");
+		let extension_description = getExtDescription(ext); // null if it's unknown or a directory
 		let size = item.getAttribute("itemsize");
 		let modifiedAt = item.getAttribute("itemmodified");
 		ContextMenu.style.display = "none";
@@ -3668,6 +3677,7 @@ async function showProperties(item) {
 		<div class="popup-header">${name}</div>
 		<div class="popup-body">
 		<p>Path: ${path}</p>
+		${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ''}
 		<br/>
 		<p>Modified: ${modifiedAt}</p>
 		<br/>
