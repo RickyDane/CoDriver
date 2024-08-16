@@ -216,7 +216,7 @@ body {
 
 .site-nav-bar-button {
     background-color: transparent;
-    border: none;
+    border: 1px solid transparent;
     width: 100%;
     text-align: left;
     border-radius: 10px;
@@ -546,7 +546,7 @@ body {
     right: 0;
     background-color: var(--navBarColor);
     width: 100%;
-    padding: 5px 10px 5px 100px;
+    padding: 5px 10px 5px 20px;
     font-size: large;
     font-weight: bolder !important;
     display: flex;
@@ -751,11 +751,6 @@ button > svg {
     /* border: 1px solid var(--transparentColorActive) !important; */
 }
 
-.selected-item > p {
-    /* background-color: var(--transparentColorActive) !important; */
-    /* border: 1px solid transparent !important; */
-}
-
 .selected-item-min {
     background-color: var(--selectColor2);
     color: white;
@@ -845,7 +840,7 @@ button > svg {
     gap: 5px;
     align-items: center;
     cursor: pointer;
-    padding: 10px;
+    padding: 5px 10px;
     max-height: 40px;
     font-size: small;
     width: 100%;
@@ -907,7 +902,7 @@ button > svg {
 
 .item-link {
     background-color: transparent;
-    border: none;
+    border: 1px solid transparent;
     border-radius: 7.5px;
     transition: 0.1s ease-out;
     width: 100%;
@@ -1707,7 +1702,6 @@ button > svg {
     justify-content: space-between;
     align-items: center;
     padding: 10px 10px 10px 15px;
-    border-top: 1px solid var(--tertiaryColor);
     color: var(--textColor);
 }
 
@@ -2025,4 +2019,19 @@ button > svg {
 }
 .delete-button:focus {
     outline: 2px dotted var(--selectColor2) !important;
+}
+
+.popup-background {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--transparentColor);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 2;
+    opacity: 0;
+    transition: 0.3s ease;
 }
