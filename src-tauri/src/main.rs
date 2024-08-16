@@ -599,12 +599,11 @@ async fn open_in_terminal() {
 }
 
 #[tauri::command]
-async fn go_home() -> Vec<FDir> {
+async fn go_home() {
     let _ = set_dir(home_dir().unwrap().to_str().unwrap().into()).await;
     unsafe {
         PATH_HISTORY.push(home_dir().unwrap().to_string_lossy().to_string());
     }
-    return list_dirs().await;
 }
 
 #[tauri::command]
@@ -673,15 +672,13 @@ async fn search_for(
             is_quick_search,
             file_content,
             &|item: DirWalkerEntry| {
+                unsafe { COUNT_CALLED_BACK += 1; }
                 let _ = app_window
                     .emit_all(
                         "addSingleItem",
                         serde_json::to_string(&item).unwrap().to_string(),
                     )
                     .expect("Failed to emit");
-                unsafe {
-                    COUNT_CALLED_BACK += 1;
-                }
                 let _ = app_window.eval(&format!(
                     "$('.file-searching-file-count').html('{} items found')",
                     unsafe { COUNT_CALLED_BACK }
@@ -1691,5 +1688,6 @@ async fn log(log: String) {
     let mut log_writer = BufWriter::new(log_file);
     let _ = log_writer.write_all(log.as_bytes());
     let _ = log_writer.flush();
+    dbg_log(format!("Written to: {} Log: {}", log_file_path.to_str().unwrap(), log));
     return;
 }

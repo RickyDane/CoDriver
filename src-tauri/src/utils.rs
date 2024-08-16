@@ -361,9 +361,6 @@ impl DirWalker {
                             last_modified: format!("{:?}", last_mod),
                             size: fs::metadata(&path).unwrap().len(),
                         });
-                        unsafe {
-                            COUNT_CALLED_BACK += 1;
-                        }
                         return;
                     }
                 }
