@@ -3660,9 +3660,8 @@ function closeSettings() {
 
 function getExtDescription(file_extension) {
 	file_extension = file_extension.replace(".", "").toUpperCase();
-	let description = fileExtensions[file_extension];
 
-	return description ? description.descriptions[0] : null; // Some extensions have multiple descriptions
+	return fileExtensions[file_extension];
 }
 
 async function showProperties(item) {
@@ -3670,7 +3669,7 @@ async function showProperties(item) {
 		let name = item.getAttribute("itemname");
 		let path = item.getAttribute("itempath");
 		let ext = item.getAttribute("itemext");
-		let extension_description = getExtDescription(ext); // null if it's unknown or a directory
+		let extension_description = getExtDescription(ext); // undefined if it's unknown or a directory
 		let size = item.getAttribute("itemsize");
 		let modifiedAt = item.getAttribute("itemmodified");
 		ContextMenu.style.display = "none";
