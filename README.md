@@ -7,6 +7,7 @@
     <img height='36px' style='border: 0px; height: 36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' />
   </p>
 </a>
+<p align="center"><a target="_blank" href="https://discord.gg/XPakYank"><img src="https://dcbadge.limes.pink/api/server/XPakYank" alt="" /></a></p>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-blue" />
   <img src="https://img.shields.io/badge/ macOS-white" />
