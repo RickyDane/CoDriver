@@ -1992,15 +1992,21 @@ async function copyItem(item, toCut = false, fromInternal = false) {
 	}
 	if (ArrSelectedItems.length > 0) {
 		for (let i = 0; i < ArrSelectedItems.length; i++) {
+			ArrSelectedItems[i].style.opacity = "0.5";
+			ArrSelectedItems[i].style.filter = "blur(2px)";
 			ArrCopyItems.push(ArrSelectedItems[i]);
 		}
 	} else {
 		ArrCopyItems.push(item);
+		item.style.opacity = "0.5";
+		item.style.filter = "blur(2px)";
 	}
 	ContextMenu.style.display = "none";
 	await writeText(CopyFilePath);
 	if (toCut == true) {
 		IsCopyToCut = true;
+	} else {
+		IsCopyToCut = false;
 	}
 }
 
