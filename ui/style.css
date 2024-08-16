@@ -216,7 +216,7 @@ body {
 
 .site-nav-bar-button {
     background-color: transparent;
-    border: none;
+    border: 1px solid transparent;
     width: 100%;
     text-align: left;
     border-radius: 10px;
@@ -546,7 +546,7 @@ body {
     right: 0;
     background-color: var(--navBarColor);
     width: 100%;
-    padding: 5px 10px 5px 10px;
+    padding: 5px 10px 5px 20px;
     font-size: large;
     font-weight: bolder !important;
     display: flex;
@@ -902,7 +902,7 @@ button > svg {
 
 .item-link {
     background-color: transparent;
-    border: none;
+    border: 1px solid transparent;
     border-radius: 7.5px;
     transition: 0.1s ease-out;
     width: 100%;

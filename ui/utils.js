@@ -1,9 +1,9 @@
 const { listen } = window.__TAURI__.event;
 
 /* Drag and drop files into file explorer */
+// TODO: Make it simpler and not so shitty
 listen("tauri://file-drop", async (event) => {
   try {
-    console.log(event);
     ArrSelectedItems = [];
     ArrCopyItems = [];
     event.payload.forEach((item) => {
@@ -16,7 +16,21 @@ listen("tauri://file-drop", async (event) => {
     });
     if (IsFileOpIntern == false) {
       console.log("Extern file drop");
-      await pasteItem();
+      if (DraggedOverElement != null) {
+        let operation = await fileOperationContextMenu();
+        if (operation == "copy") {
+          await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
+          await listDirectories();
+        } else if (operation == "move") {
+          IsCopyToCut = true;
+          await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
+          IsCopyToCut = false;
+          await listDirectories();
+        }
+      }
+      else {
+        await pasteItem();
+      }
       CopyFileName = "";
       CopyFilePath = "";
       ArrCopyItems = [];
@@ -45,6 +59,7 @@ listen("tauri://file-drop", async (event) => {
     IsFileOpIntern = false;
     alert(error);
   }
+  FileOperation = "";
   resetProgressBar();
   IsFileOpIntern = false;
   document.querySelectorAll(".site-nav-bar-button").forEach((item) => {

@@ -227,6 +227,9 @@ function closeAllPopups() {
 		IsCopyToCut = false;
 	}
 	$(".path-item")?.css("opacity", "1");
+	$(".site-nav-bar-button").css("border", "1px solid transparent");
+	$(".item-link").css("border", "1px solid transparent");
+	$(".path-item").css("border", "1px solid transparent");
 }
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
@@ -288,6 +291,9 @@ document.addEventListener("mousedown", (e) => {
 	if (IsPopUpOpen === true && !e.target.classList.contains("input-dialog") && !e.target.classList.contains("input-dialog-headline") && !e.target.classList.contains("text-input")) {
 		closeInputDialogs();
 	}
+	$(".site-nav-bar-button").css("border", "1px solid transparent");
+	$(".item-link").css("border", "1px solid transparent");
+	$(".path-item").css("border", "1px solid transparent");
 });
 
 // Open context menu for pasting for example
@@ -1069,14 +1075,16 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		item.addEventListener("dragover", (e) => {
 			MousePos = [e.clientX, e.clientY];
 			if (item.getAttribute("itemisdir") == "1") {
-				item.style.opacity = "0.5";
 				if (!ArrSelectedItems.includes(item)) {
+					item.style.opacity = "0.5";
+					item.style.border = "1px solid var(--textColor)";
 					DraggedOverElement = item;
 				}
 			}
 		});
 		item.addEventListener("dragleave", () => {
 			item.style.opacity = "1";
+			item.style.border = "1px solid transparent";
 		});
 		// :item_right_click :context_menu
 		// Open context menu when right-clicking on file/folder
@@ -1632,14 +1640,16 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 	itemLink.addEventListener("dragover", (e) => {
 		MousePos = [e.clientX, e.clientY];
 		if (itemLink.getAttribute("itemisdir") == "1") {
-			itemLink.style.opacity = "0.5";
 			if (!ArrSelectedItems.includes(itemLink)) {
+				itemLink.style.opacity = "0.5";
+				itemLink.style.border = "1px solid var(--textColor)";
 				DraggedOverElement = itemLink;
 			}
 		}
 	});
 	itemLink.addEventListener("dragleave", () => {
 		itemLink.style.opacity = "1";
+		itemLink.style.border = "1px solid transparent";
 	});
 	// :item_right_click :context_menu
 	// Open context menu when right-clicking on file/folder
@@ -1906,11 +1916,13 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
 				MousePos = [e.clientX, e.clientY-60];
 				e.preventDefault();
 				pathItem.style.opacity = 0.5;
+				pathItem.style.border = "1px solid var(--textColor)";
 				DraggedOverElement = pathItem;
 			}
 			pathItem.ondragleave = (e) => {
 				e.preventDefault();
 				pathItem.style.opacity = 1;
+				pathItem.style.border = "1px solid transparent";
 			}
 			let divider = document.createElement("i");
 			divider.className = "fa fa-chevron-right";
@@ -2951,18 +2963,8 @@ async function goBack() {
 		}
 	}
 	if (IsMetaDown == false) {
-		await invoke("go_back", { isDualPane: IsDualPaneEnabled }).then(async (items) => {
-			if (IsDualPaneEnabled == true) {
-				await showItems(items, SelectedItemPaneSide);
-				if (SelectedItemPaneSide == "left") {
-					selectItem(LeftPaneItemCollection.children[LeftPaneItemIndex]);
-				} else if (SelectedItemPaneSide == "right") {
-					selectItem(RightPaneItemCollection.children[RightPaneItemIndex]);
-				}
-			} else {
-				await showItems(items);
-			}
-		});
+		await invoke("go_back", { isDualPane: IsDualPaneEnabled });
+		await listDirectories();
 	}
 	await setCurrentDir(await getCurrentDir());
 }
@@ -4400,11 +4402,13 @@ async function insertSiteNavButtons() {
 		button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
 		button.ondragover = (e) => {
 			button.style.opacity = "0.5";
+			button.style.border = "1px solid var(--textColor)";
 			DraggedOverElement = button;
 			MousePos = [e.clientX, e.clientY];
 		};
 		button.ondragleave = () => {
 			button.style.opacity = "1";
+			button.style.border = "1px solid transparent";
 		};
 		document.querySelector(".site-nav-bar").append(button);
 	}
