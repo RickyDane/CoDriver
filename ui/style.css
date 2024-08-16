@@ -840,7 +840,7 @@ button > svg {
     gap: 5px;
     align-items: center;
     cursor: pointer;
-    padding: 10px;
+    padding: 5px 10px;
     max-height: 40px;
     font-size: small;
     width: 100%;

@@ -530,7 +530,8 @@ document.onkeydown = async (e) => {
 			if (
 				((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
 				e.key == "a" &&
-				IsInputFocused == false
+				IsInputFocused === false &&
+				IsPopUpOpen === false
 			) {
 				if (IsDualPaneEnabled) {
 					if (SelectedItemPaneSide == "left") {
@@ -3070,7 +3071,6 @@ function goUp(isSwitched = false, toFirst = false) {
 function goDown() {
 	let element = null;
 	let selectedItemIndex = 0;
-	console.log(SelectedElement, SelectedItemIndex, SelectedItemPaneSide);
 	if (SelectedElement != null) {
 		selectedItemIndex = SelectedElement.getAttribute("itemindex");
 		if (SelectedItemPaneSide == "left") {
