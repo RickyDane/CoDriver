@@ -86,7 +86,7 @@ fn main() {
             // See https://github.com/tauri-apps/tauri/issues/6322#issuecomment-1448141495
             #[cfg(target_os = "windows")]
             if let WindowEvent::Resized(..) = e.event() {
-                std::thread::sleep(std::time::Duration::from_millis(1));
+                std::thread::sleep(std::time::Duration::from_nanos(1));
             }
         })
         .invoke_handler(tauri::generate_handler![
