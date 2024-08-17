@@ -89,7 +89,7 @@ fn main() {
             // See https://github.com/tauri-apps/tauri/issues/6322#issuecomment-1448141495
             #[cfg(target_os = "windows")]
             if let WindowEvent::Resized(..) = e.event() {
-                std::thread::sleep(std::time::Duration::from_nanos(1));
+                std::thread::sleep(std::time::Duration::from_millis(1));
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -592,11 +592,58 @@ async fn mount_sshfs(hostname: String, username: String, password: String, remot
 }
 
 #[tauri::command]
-async fn open_in_terminal() {
-    // TODO: implement
-    // open terminal on macOS
-    // open terminal on linux
-    // open terminal on windows
+async fn open_in_terminal(path: String) {
+    #[cfg(target_os = "windows")]
+    {
+        // Try to open with Windows Terminal first
+        if Command::new("wt")
+            .args(&["-d", &path])
+            .spawn()
+            .is_ok()
+        {
+            return;
+        }
+
+        // Fallback to PowerShell
+        // Have to launch via cmd to get a new terminal window
+        if Command::new("cmd")
+            .args(&["/c", "start", "powershell", "-NoExit", "-Command", &format!("Set-Location '{}'", path)])
+            .spawn()
+            .is_ok()
+        {
+            return;
+        }
+
+        // Fallback to cmd
+        Command::new("cmd")
+            .args(&["/c", "start", "cmd.exe", "/k", "cd", "/d", &path])
+            .spawn()
+            .expect("Failed to open cmd");
+    }
+
+    #[cfg(target_os = "macos")]
+    Command::new("open")
+        .args(&["-na", "Terminal", &path])
+        .spawn()
+        .expect("Failed to open Terminal");
+
+    #[cfg(target_os = "linux")]
+    {
+        // Try to open with gnome-terminal
+        if Command::new("gnome-terminal")
+            .args(&["--working-directory", &path])
+            .spawn()
+            .is_ok()
+        {
+            return;
+        }
+
+        // Fallback to x-terminal-emulator
+        Command::new("x-terminal-emulator")
+            .args(&["--working-directory", &path])
+            .spawn()
+            .expect("Failed to open terminal");
+    }
 }
 
 #[tauri::command]
