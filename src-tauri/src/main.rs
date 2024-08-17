@@ -139,6 +139,7 @@ fn main() {
             get_config_location
         ])
         .plugin(tauri_plugin_drag::init())
+        .plugin(devtools::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
