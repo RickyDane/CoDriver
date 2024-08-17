@@ -702,6 +702,7 @@ async fn search_for(
     let _ = app_window
         .eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
+    return;
 }
 
 #[tauri::command]
