@@ -37,7 +37,9 @@ mod utils;
 use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
-    calc_transfer_speed, copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes, remove_action, unpack_tar, update_progressbar, update_progressbar_2, wng_log, DirWalker, DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER
+    calc_transfer_speed, copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes,
+    remove_action, unpack_tar, update_progressbar, update_progressbar_2, wng_log, DirWalker,
+    DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER,
 };
 #[cfg(target_os = "macos")]
 mod window_tauri_ext;
@@ -661,30 +663,30 @@ async fn search_for(
 
     let sw = Stopwatch::start_new();
 
-    let _ = DirWalker::new()
-        .set_ext(v_exts)
-        .search(
-            current_dir().unwrap().to_str().unwrap(),
-            search_depth as u32,
-            file_name,
-            max_items,
-            is_quick_search,
-            file_content,
-            &|item: DirWalkerEntry| {
-                unsafe { COUNT_CALLED_BACK += 1; }
-                let _ = app_window
-                    .emit_all(
-                        "addSingleItem",
-                        serde_json::to_string(&item).unwrap().to_string(),
-                    )
-                    .expect("Failed to emit");
-                let _ = app_window.eval(&format!(
-                    "$('.file-searching-file-count').html('{} items found')",
-                    unsafe { COUNT_CALLED_BACK }
-                ));
-            },
-        );
-    
+    let _ = DirWalker::new().set_ext(v_exts).search(
+        current_dir().unwrap().to_str().unwrap(),
+        search_depth as u32,
+        file_name,
+        max_items,
+        is_quick_search,
+        file_content,
+        &|item: DirWalkerEntry| {
+            unsafe {
+                COUNT_CALLED_BACK += 1;
+            }
+            let _ = app_window
+                .emit_all(
+                    "addSingleItem",
+                    serde_json::to_string(&item).unwrap().to_string(),
+                )
+                .expect("Failed to emit");
+            let _ = app_window.eval(&format!(
+                "$('.file-searching-file-count').html('{} items found')",
+                unsafe { COUNT_CALLED_BACK }
+            ));
+        },
+    );
+
     unsafe {
         IS_SEARCHING = false;
     }
@@ -737,8 +739,18 @@ async fn copy_paste(
         }
     }
     let sw = Stopwatch::start_new();
+
+    // Windows copy pasting
     // Execute the copy process for either a dir or file
-    copy_to(&app_window, final_filename, from_path);
+    #[cfg(target_os = "windows")]
+    let _ = copy_to(&app_window, final_filename, from_path);
+    #[cfg(not(target_os = "windows"))]
+    copy_to(&app_window, final_filename.clone(), from_path.clone());
+
+    // Non windows copy pasting
+    #[cfg(not(target_os = "windows"))]
+    let _ = copy(from_path, final_filename);
+
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
     app_window.eval("resetProgressBar()").unwrap();
 }
@@ -784,9 +796,14 @@ async fn arr_copy_paste(
         )
         .await;
         // Execute the copy process for either a dir or file
-        // #[cfg(target_os = "macos")]
-        // let _ = copy(item_path, final_filename); // Copying of files is different on macOS
-        // #[cfg(not(target_os = "macos"))]
+        #[cfg(not(target_os = "windows"))]
+        // use copy_to for files larger than 5 gb
+        if item.size.parse::<u64>().unwrap_or(0) > 5000000000 {
+            copy_to(&app_window, final_filename.clone(), item_path.clone());
+        } else {
+            let _ = copy(item_path, final_filename); // Copying of files is different on macOS
+        }
+        #[cfg(target_os = "windows")]
         copy_to(&app_window, final_filename, item_path);
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
@@ -856,9 +873,9 @@ async fn get_final_filename(
 async fn delete_item(act_file_name: String) {
     dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
 
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     let dir_remove = remove_dir_all(&act_file_name.replace("\\", "/"));
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     if dir_remove.is_err() {
         let _ = delete_file(&act_file_name.replace("\\", "/")).expect("Failed to delete file");
         return;
@@ -872,7 +889,9 @@ async fn delete_item(act_file_name: String) {
         is_dir = file.unwrap().metadata().unwrap().is_dir();
     }
     if is_dir {
-        let _ = rapid_delete_dir_all(&act_file_name.replace("\\", "/"), None, None).await.expect("Failed to delete dir");
+        let _ = rapid_delete_dir_all(&act_file_name.replace("\\", "/"), None, None)
+            .await
+            .expect("Failed to delete dir");
     } else {
         let _ = delete_file(&act_file_name.replace("\\", "/")).expect("Failed to delete file");
     }
@@ -887,7 +906,12 @@ async fn arr_delete_items(arr_items: Vec<String>) {
 
 #[tauri::command]
 async fn extract_item(from_path: String, app_window: Window) {
-    let action_id = create_new_action(&app_window, "Extracting ...".into(), from_path.clone().split("/").last().unwrap().to_string(), &from_path);
+    let action_id = create_new_action(
+        &app_window,
+        "Extracting ...".into(),
+        from_path.clone().split("/").last().unwrap().to_string(),
+        &from_path,
+    );
     // Check file extension
     let file_ext = ".".to_string().to_owned()
         + from_path
@@ -947,7 +971,7 @@ async fn extract_item(from_path: String, app_window: Window) {
         let _ = remove_file(&from_path.strip_suffix(&file_ext).unwrap());
     } else {
         err_log("Unsupported file type".into());
-        return; 
+        return;
     }
 
     dbg_log(format!("Unpack time: {:?}", sw.elapsed()));
@@ -961,15 +985,38 @@ async fn open_item(path: String) {
 }
 
 #[tauri::command]
-async fn compress_item(from_path: String, compression_level: i32, path_to_zip: String, app_window: Window) {
-    let action_id = create_new_action(&app_window, "Compressing ...".into(), from_path.clone().replace("'", "").split("/").last().unwrap().to_string(), &from_path);
+async fn compress_item(
+    from_path: String,
+    compression_level: i32,
+    path_to_zip: String,
+    app_window: Window,
+) {
+    let action_id = create_new_action(
+        &app_window,
+        "Compressing ...".into(),
+        from_path
+            .clone()
+            .replace("'", "")
+            .split("/")
+            .last()
+            .unwrap()
+            .to_string(),
+        &from_path,
+    );
     let sw = Stopwatch::start_new();
     dbg_log(format!(
         "Compression of '{}' started with compression level: {}",
         &from_path.split("/").last().unwrap(),
         &compression_level
     ));
-    let file_ext = ".".to_string().to_owned() + from_path.split("/").last().unwrap_or("").split(".").last().unwrap_or("");
+    let file_ext = ".".to_string().to_owned()
+        + from_path
+            .split("/")
+            .last()
+            .unwrap_or("")
+            .split(".")
+            .last()
+            .unwrap_or("");
     let created_file = File::create(
         path_to_zip
             .strip_suffix(&file_ext)
@@ -995,42 +1042,98 @@ async fn compress_item(from_path: String, compression_level: i32, path_to_zip: S
         source = PathBuf::from(&from_path);
     } else {
         let mut file_name = from_path.clone();
-        file_name = file_name.replace("'", "").clone().split("/").last().unwrap().into();
-        let _ = create_dir(config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir"));
+        file_name = file_name
+            .replace("'", "")
+            .clone()
+            .split("/")
+            .last()
+            .unwrap()
+            .into();
+        let _ = create_dir(
+            config_dir()
+                .unwrap()
+                .join("com.codriver.dev")
+                .join("__compressed_dir"),
+        );
         let _ = copy(
             &from_path,
-            config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir").to_string_lossy().to_string() + "/" + &file_name,
+            config_dir()
+                .unwrap()
+                .join("com.codriver.dev")
+                .join("__compressed_dir")
+                .to_string_lossy()
+                .to_string()
+                + "/"
+                + &file_name,
         );
-        source = config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir");
+        source = config_dir()
+            .unwrap()
+            .join("com.codriver.dev")
+            .join("__compressed_dir");
     }
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated)
         .compression_level(Some(compression_level));
     let _ = zip_create_from_directory_with_options(&archive, &source, options);
-    let _ = remove_dir_all(config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir").as_path().to_string_lossy().to_string());
+    let _ = remove_dir_all(
+        config_dir()
+            .unwrap()
+            .join("com.codriver.dev")
+            .join("__compressed_dir")
+            .as_path()
+            .to_string_lossy()
+            .to_string(),
+    );
     remove_action(app_window, action_id);
     dbg_log(format!("Compression time: {:?}", sw.elapsed()));
 }
 
 #[tauri::command]
 async fn arr_compress_items(arr_items: Vec<String>, compression_level: i32, app_window: Window) {
-    let path_to_zip = current_dir().unwrap().join("compressed_items_archive").to_string_lossy().to_string();
-    let _ = create_dir(config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive"));
+    let path_to_zip = current_dir()
+        .unwrap()
+        .join("compressed_items_archive")
+        .to_string_lossy()
+        .to_string();
+    let _ = create_dir(
+        config_dir()
+            .unwrap()
+            .join("com.codriver.dev")
+            .join("compressed_items_archive"),
+    );
     for item_path in arr_items {
         let file_name = &item_path.split("/").last().unwrap();
         if fs::metadata(&item_path).unwrap().is_dir() {
-            copy_to(&app_window, config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive").to_string_lossy().to_string() + "/" + file_name, item_path.clone());
-        }
-        else {
+            copy_to(
+                &app_window,
+                config_dir()
+                    .unwrap()
+                    .join("com.codriver.dev")
+                    .join("compressed_items_archive")
+                    .to_string_lossy()
+                    .to_string()
+                    + "/"
+                    + file_name,
+                item_path.clone(),
+            );
+        } else {
             let _ = copy(
                 &item_path,
-                config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive").to_string_lossy().to_string() + "/" + file_name,
+                config_dir()
+                    .unwrap()
+                    .join("com.codriver.dev")
+                    .join("compressed_items_archive")
+                    .to_string_lossy()
+                    .to_string()
+                    + "/"
+                    + file_name,
             );
             app_window.eval("resetProgressBar()").unwrap();
         }
     }
     compress_item(
-        config_dir().unwrap()
+        config_dir()
+            .unwrap()
             .join("com.codriver.dev")
             .join("compressed_items_archive")
             .to_string_lossy()
@@ -1040,7 +1143,12 @@ async fn arr_compress_items(arr_items: Vec<String>, compression_level: i32, app_
         app_window.clone(),
     )
     .await;
-    let _ = remove_dir_all(config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive"));
+    let _ = remove_dir_all(
+        config_dir()
+            .unwrap()
+            .join("com.codriver.dev")
+            .join("compressed_items_archive"),
+    );
 }
 
 #[tauri::command]
@@ -1063,9 +1171,10 @@ async fn rename_element(path: String, new_name: String, app_window: Window) -> V
     );
     if renamed.is_err() {
         err_log("Failed to rename element".into());
-        app_window.eval("alert('Failed to rename element')").unwrap();
-    }
-    else {
+        app_window
+            .eval("alert('Failed to rename element')")
+            .unwrap();
+    } else {
         dbg_log(format!("Renamed from {} to {}", path, new_name));
     }
     return list_dirs().await;
@@ -1378,7 +1487,12 @@ async fn get_df_dir(number: u8) -> String {
 
 #[tauri::command]
 async fn download_yt_video(app_window: Window, url: String, quality: String) {
-    let action_id = create_new_action(&app_window, "Downloading ...".into(), url.clone(), &"".into());
+    let action_id = create_new_action(
+        &app_window,
+        "Downloading ...".into(),
+        url.clone(),
+        &"".into(),
+    );
     dbg_log(format!("Downloading {} as {}", url, quality));
     let chosen_quality = match quality.as_str() {
         "lowestvideo" => VideoQuality::LowestVideo,
@@ -1674,12 +1788,20 @@ async fn open_config_location() {
 
 #[tauri::command]
 async fn get_config_location() -> String {
-    config_dir().unwrap().join("com.codriver.dev").to_str().unwrap().to_string()
+    config_dir()
+        .unwrap()
+        .join("com.codriver.dev")
+        .to_str()
+        .unwrap()
+        .to_string()
 }
 
 #[tauri::command]
 async fn log(log: String) {
-    let log_file_path = config_dir().unwrap().join("com.codriver.dev").join("log.txt");
+    let log_file_path = config_dir()
+        .unwrap()
+        .join("com.codriver.dev")
+        .join("log.txt");
     if !log_file_path.exists() {
         let _ = fs::File::create(&log_file_path);
     }
@@ -1687,6 +1809,10 @@ async fn log(log: String) {
     let mut log_writer = BufWriter::new(log_file);
     let _ = log_writer.write_all(log.as_bytes());
     let _ = log_writer.flush();
-    dbg_log(format!("Written to: {} Log: {}", log_file_path.to_str().unwrap(), log));
+    dbg_log(format!(
+        "Written to: {} Log: {}",
+        log_file_path.to_str().unwrap(),
+        log
+    ));
     return;
 }
