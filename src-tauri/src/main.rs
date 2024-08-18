@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use chrono::prelude::{DateTime, Utc};
+use copy_dir::copy_dir;
 #[allow(unused)]
 use delete::{delete_file, rapid_delete_dir_all};
 use flate2::read::GzDecoder;
@@ -138,6 +139,7 @@ fn main() {
             get_config_location
         ])
         .plugin(tauri_plugin_drag::init())
+        .plugin(devtools::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -738,6 +740,7 @@ async fn search_for(
     let _ = app_window
         .eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
+    return;
 }
 
 #[tauri::command]
@@ -839,7 +842,11 @@ async fn arr_copy_paste(
         if item.size.parse::<u64>().unwrap_or(0) > 5000000000 {
             copy_to(&app_window, final_filename.clone(), item_path.clone());
         } else {
-            let _ = copy(item_path, final_filename); // Copying of files is different on macOS
+            if item.is_dir == 1 {
+                let _ = copy_dir(item_path, final_filename);
+            } else {
+                let _ = copy(item_path, final_filename); // Copying of files is different on macOS
+            }
         }
         #[cfg(target_os = "windows")]
         copy_to(&app_window, final_filename, item_path);

@@ -1,0 +1,23 @@
+{
+  "version": "v0.4.9",
+  "notes": "See the assets to download this version and install.",
+  "pub_date": "2024-08-16T21:37:10.282Z",
+  "platforms": {
+    "linux-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ3MzcwNjIzMDdCNjM4NTMKUldSVE9MWUhJd1kzUjkrZEk4Z3RrU25nV3ZjeDNuUE4ycVpzNVIreGFvMlc1OFR6MFltYnlSL28K",
+      "url": "https://github.com/RickyDane/CoDriver/releases/download/CoDriver-v0.4.82/co-driver_0.4.82_amd64.AppImage"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ3MzcwNjIzMDdCNjM4NTMKUldSVE9MWUhJd1kzUjkrZEk4Z3RrU25nV3ZjeDNuUE4ycVpzNVIreGFvMlc1OFR6MFltYnlSL28K",
+      "url": "https://github.com/RickyDane/CoDriver/releases/download/CoDriver-v0.4.82/CoDriver_0.4.82_x64_en-US.msi"
+    },
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ3MzcwNjIzMDdCNjM4NTMKUldSVE9MWUhJd1kzUjkrZEk4Z3RrU25nV3ZjeDNuUE4ycVpzNVIreGFvMlc1OFR6MFltYnlSL28K",
+      "url": "https://github.com/RickyDane/CoDriver/releases/download/CoDriver-v0.4.82/CoDriver_0.4.82_universal.dmg"
+    },
+    "darwin-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ3MzcwNjIzMDdCNjM4NTMKUldSVE9MWUhJd1kzUjkrZEk4Z3RrU25nV3ZjeDNuUE4ycVpzNVIreGFvMlc1OFR6MFltYnlSL28K",
+      "url": "https://github.com/RickyDane/CoDriver/releases/download/CoDriver-v0.4.82/CoDriver_0.4.82_universal.dmg"
+    }
+  }
+}

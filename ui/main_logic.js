@@ -1,6 +1,5 @@
 const TAURI = window.__TAURI__;
 const { invoke } = TAURI.tauri;
-// const { listen } = window.__TAURI__.event;
 const { confirm } = TAURI.dialog;
 const { message } = TAURI.dialog;
 const { open } = TAURI.dialog;
@@ -4672,3 +4671,5 @@ insertSiteNavButtons();
 checkAppConfig();
 getSetInstalledApplications();
 // showPromptInput();
+
+checkUpdate();
