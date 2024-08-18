@@ -275,6 +275,7 @@ document.addEventListener("mousedown", (e) => {
 		ContextMenu.children[9].classList.add("c-item-disabled");
 		// ContextMenu.children[10].setAttribute("disabled", "true");
 		// ContextMenu.children[10].classList.add("c-item-disabled");
+		ContextMenu.children[12].style.display = "";
 
 		document
 			.querySelector(".c-item-duplicates")
@@ -1216,7 +1217,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				}
 
 				// Check if the item can be opened in the terminal
-				if (item.getAttribute("itemisdir") == "1" && ArrSelectedItems.length <= 1) {
+				if (item.getAttribute("itemisdir") == "1" && ArrSelectedItems.length == 1) {
 					document
 						.querySelector(".c-item-openinterminal")
 						.style
@@ -1796,9 +1797,8 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 					.classList.add("c-item-disabled");
 			}
 
-
 			// Check if the item can be opened in the terminal
-			if (itemLink.getAttribute("itemisdir") == "1" && ArrSelectedItems.length <= 1) {
+			if (item.getAttribute("itemisdir") == "1" && ArrSelectedItems.length == 1) {
 				document
 					.querySelector(".c-item-openinterminal")
 					.style
