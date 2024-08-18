@@ -255,6 +255,7 @@ pub fn get_apps(_extension: String) -> Vec<App> {
             }
         }
     }
+    apps.sort_by_key(|app| app.name.clone());
     apps
 }
 

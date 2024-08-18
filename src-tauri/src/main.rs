@@ -10,7 +10,7 @@ use icns::{IconFamily, IconType};
 use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
-use std::fs::{self, read_dir};
+use std::fs::{self, read_dir, OpenOptions};
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
@@ -713,7 +713,7 @@ async fn copy_paste(
     is_for_dual_pane: String,
     mut copy_to_path: String,
 ) {
-    if &copy_to_path.len() == &0 {
+    if copy_to_path.clone().len() == 0 {
         wng_log("No destination path provided. Defaulting to current dir".into());
         copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
     }
@@ -1785,7 +1785,7 @@ async fn get_file_content(path: String) -> String {
         let json_string_pretty = serde_json::to_string_pretty(&json).unwrap();
         return json_string_pretty;
     }
-    content
+    return content;
 }
 
 #[tauri::command]
@@ -1805,6 +1805,7 @@ async fn get_config_location() -> String {
 
 #[tauri::command]
 async fn log(log: String) {
+    let log = format!("[{}] {}\n", chrono::Local::now().format("%H:%M:%S"), log);
     let log_file_path = config_dir()
         .unwrap()
         .join("com.codriver.dev")
@@ -1812,10 +1813,15 @@ async fn log(log: String) {
     if !log_file_path.exists() {
         let _ = fs::File::create(&log_file_path);
     }
-    let log_file = File::open(&log_file_path).unwrap();
-    let mut log_writer = BufWriter::new(log_file);
-    let _ = log_writer.write_all(log.as_bytes());
-    let _ = log_writer.flush();
+
+    // Write text to logfile
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(&log_file_path)
+        .unwrap();
+    let _ = file.write_all(log.as_bytes());
+
     dbg_log(format!(
         "Written to: {} Log: {}",
         log_file_path.to_str().unwrap(),

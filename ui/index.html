@@ -40,8 +40,6 @@
                     <button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i
                             class="fa-solid fa-table-columns"></i></button>
                     <button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
-                    <!-- <p>|</p> -->
-                    <!-- <h5 class="directory-entries-count"></h5> -->
                     <div class="preloader-small-invert is-file-searching"></div>
                 </div>
                 <div data-tauri-drag-region class="header-nav-right-container" style="display: flex; flex-flow: row; gap: 10px; justify-content: flex-end; align-items: center; width: 100%;">
@@ -193,8 +191,6 @@
                         <i class="fa-solid fa-magnifying-glass"></i>
                         <p>Search</p>
                     </span>
-                    <!-- <button class="popup-close-button" onclick="closeFullSearch()"><i
-                            class="fa-solid fa-times"></i></button> -->
                 </div>
                 <div class="popup-body">
                     <div class="popup-body-col-section">
@@ -203,8 +199,8 @@
                             placeholder="example.txt" />
                     </div>
                     <div class="popup-body-col-section">
-                        <p class="text-2">File content (Currently disabled)</p>
-                        <input disabled
+                        <p class="text-2">File content</p>
+                        <input 
                             class="full-dualpane-search-file-content-input trigger-for-full-search text-input"
                             type="text" placeholder="A long time ago in a galaxy far, far away ..." />
                     </div>

@@ -1103,15 +1103,17 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 					appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
 				} else if (Applications.length > 0) {
 					Applications.forEach((app) => {
-						let newItem = document.createElement("button");
-						newItem.innerHTML = app[0].split(".")[0];
-						newItem.className = "context-item";
-						newItem.setAttribute("appname", app[0].split(".")[0]);
-						newItem.setAttribute("apppath", app[1]);
-						newItem.addEventListener("click", () =>
-							open_with(item.getAttribute("itempath"), app[1]),
-						);
-						appsCMenu.appendChild(newItem);
+						if (app[0].split(".")[0].length > 0) {
+							let newItem = document.createElement("button");
+							newItem.innerHTML = app[0].split(".")[0];
+							newItem.className = "context-item";
+							newItem.setAttribute("appname", app[0].split(".")[0]);
+							newItem.setAttribute("apppath", app[1]);
+							newItem.addEventListener("click", () =>
+								open_with(item.getAttribute("itempath"), app[1]),
+							);
+							appsCMenu.appendChild(newItem);
+						}
 					});
 				} else {
 					appsCMenu.innerHTML = "<p>No applications found</p>";
@@ -1963,7 +1965,7 @@ async function deleteItems() {
 		}
 	}
 	let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
-	let isConfirm = await confirmPopup(msg, "delete"); 
+	let isConfirm = await confirmPopup(msg, PopupType.DELETE);
 	if (isConfirm == true) {
 		let actionId = new Date().getMilliseconds();
 		createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
@@ -2017,7 +2019,7 @@ async function extractItem(item) {
 	let compressFilePath = item.getAttribute("itempath");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
 	ContextMenu.style.display = "none";
-	let isExtracting = await confirmPopup("Do you want to extract " + compressFileName + "?", "extract");
+	let isExtracting = await confirmPopup("Do you want to extract " + compressFileName + "?", PopupType.EXTRACT);
 	if (isExtracting == true) {
 		ContextMenu.style.display = "none";
 		let extractFilePath = item.getAttribute("itempath");
@@ -2446,7 +2448,7 @@ async function checkAppConfig() {
 				break;
 		}
 
-		switchView();
+		await switchView();
 		
 		document.querySelector(".context-open-in-terminal").style.display = "none";
 
@@ -2477,6 +2479,7 @@ async function checkAppConfig() {
 		// Theme options
 		CurrentTheme = appConfig.current_theme;
 		appConfig.themes = await invoke("get_themes");
+		// Fallback when there's no theme installed
 		if (appConfig.themes.length == 0) {
 			appConfig.themes = [
 				{
@@ -2508,6 +2511,8 @@ async function checkAppConfig() {
 		// Set current theme
 		themeSelect.value = CurrentTheme;
 
+		checkColorMode(appConfig);
+
 		// General configurations
 		document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 		document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
@@ -2526,8 +2531,8 @@ async function checkAppConfig() {
 					await listDirectories();
 				}
 			} else {
-				await goHome();
 				await initDualPane(await getCurrentDir());
+				await goHome();
 			}
 		} else if (appConfig.launch_path.length >= 1 && IsFirstRun == true) {
 			let path = appConfig.launch_path;
@@ -2539,10 +2544,9 @@ async function checkAppConfig() {
 				alert("No directory found or unable to open due to missing permissions");
 			}
 		} else {
-			await goHome();
 			await initDualPane(await getCurrentDir());
+			await goHome();
 		}
-		checkColorMode(appConfig);
 	});
 	await unSelectAllItems();
 	IsFirstRun = false;
@@ -3800,14 +3804,6 @@ async function showItemPreview(item, isOverride = false) {
 			break;
 		default:
 			showProperties(item);
-			return;
-			module = `
-				<div class="current-item-preview">
-					<p><b>Path:</b> ${path}</p>
-					<p style="display: flex; gap: 5px;"><b>Size:</b><span class="current-item-preview-size"></span></p>
-					<p><b>Last modified:</b> ${modified}</p>
-				</div>
-				`;
 			break;
 	}
 	popup.innerHTML = `
@@ -3819,7 +3815,7 @@ async function showItemPreview(item, isOverride = false) {
 	IsPopUpOpen = true;
 	document.querySelector("body").append(popup);
 	$(popup).fadeIn(fadeTime);
-	await dirSize(path, ".current-item-preview-size");
+	await dirSize(path, ".current-item-preview-size"); // TODO: Make more friendly /
 }
 
 function showMultiRenamePopup() {
@@ -4569,10 +4565,10 @@ async function openConfigLocation() {
 	closeAllPopups();
 }
 
-async function confirmPopup(message = "Nothing to see here!", type = "") {
+async function confirmPopup(message = "Nothing to see here!", type = PopupType.CONTINUE) {
 	let confirmationButton = "";
 	switch (type) {
-		case "confirm":
+		case PopupType.CONTINUE:
 			confirmationButton = `
 				<button class="icon-button">
 					<div class="button-icon"><i class="fa-solid fa-check"></i></div>
@@ -4580,7 +4576,7 @@ async function confirmPopup(message = "Nothing to see here!", type = "") {
 				</button>
 			`;
 			break;
-		case "extract":
+		case PopupType.EXTRACT:
 			confirmationButton = `
 				<button class="icon-button">
 					<div class="button-icon"><i class="fa-solid fa-maximize"></i></div>
@@ -4588,7 +4584,7 @@ async function confirmPopup(message = "Nothing to see here!", type = "") {
 				</button>
 			`;
 			break;
-		case "delete":
+		case PopupType.DELETE:
 			confirmationButton = `
 				<button class="icon-button delete-button">
 					<div class="button-icon"><i class="fa-solid fa-trash"></i></div>
@@ -4621,7 +4617,7 @@ async function confirmPopup(message = "Nothing to see here!", type = "") {
 	document.querySelector(".confirm-popup button:last-child").focus();
 	IsPopUpOpen = true;
 	$(".popup-background").css("display", "block");
-	setTimeout(() => $(".popup-background").css("opacity", "1"));
+	setTimeout(() => $(".popup-background").css("opacity", "1")); // Workaround to trigger opacity transition
 	return new Promise((resolve) => {
 		document.querySelector(".confirm-popup button:first-child").onclick = () => {
 			closeConfirmPopup();
@@ -4645,6 +4641,5 @@ function closeConfirmPopup() {
 insertSiteNavButtons();
 checkAppConfig();
 getSetInstalledApplications();
-// showPromptInput();
 
-checkUpdate();
+invoke("log", {log: "Test"});
