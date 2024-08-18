@@ -232,6 +232,7 @@ function closeAllPopups() {
 }
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
+	// Check if your click is outside of important elements
 	if (
 		!e.target.classList.contains("context-item-icon") &&
 		!e.target.classList.contains("context-item") &&
@@ -251,30 +252,16 @@ document.addEventListener("mousedown", (e) => {
 		!e.target.classList.contains("item-button-list-info-span") &&
 		!e.target.classList.contains("disk-item-top") &&
 		!e.target.classList.contains("disk-info") &&
-		!e.target.classList.contains("item-button-text")
+		!e.target.classList.contains("item-button-text") &&
+		!e.target.classList.contains("item-preview-file-content") &&
+		!e.target.classList.contains("popup-header") &&
+		!e.target.classList.contains("item-preview-copy-path-button")
 	) {
 		ContextMenu.style.display = "none";
 		$(".extra-c-menu")?.remove();
 
 		// Reset context menu
-		ContextMenu.children[0].setAttribute("disabled", "true");
-		ContextMenu.children[0].classList.add("c-item-disabled");
-		ContextMenu.children[1].setAttribute("disabled", "true");
-		ContextMenu.children[1].classList.add("c-item-disabled");
-		ContextMenu.children[2].setAttribute("disabled", "true");
-		ContextMenu.children[2].classList.add("c-item-disabled");
-		ContextMenu.children[3].setAttribute("disabled", "true");
-		ContextMenu.children[3].classList.add("c-item-disabled");
-		ContextMenu.children[4].setAttribute("disabled", "true");
-		ContextMenu.children[4].classList.add("c-item-disabled");
-		ContextMenu.children[5].setAttribute("disabled", "true");
-		ContextMenu.children[5].classList.add("c-item-disabled");
-		ContextMenu.children[6].setAttribute("disabled", "true");
-		ContextMenu.children[6].classList.add("c-item-disabled");
-		ContextMenu.children[9].setAttribute("disabled", "true");
-		ContextMenu.children[9].classList.add("c-item-disabled");
-		// ContextMenu.children[10].setAttribute("disabled", "true");
-		// ContextMenu.children[10].classList.add("c-item-disabled");
+		resetContextMenu();
 
 		document
 			.querySelector(".c-item-duplicates")
@@ -286,6 +273,7 @@ document.addEventListener("mousedown", (e) => {
 		if (DraggedOverElement != null) {
 			DraggedOverElement.style.filter = "none";
 		}
+		// closeItemPreview();
 	}
 	if (IsPopUpOpen === true && !e.target.classList.contains("input-dialog") && !e.target.classList.contains("input-dialog-headline") && !e.target.classList.contains("text-input")) {
 		closeInputDialogs();
@@ -346,13 +334,6 @@ function positionContextMenu(e) {
 	} else {
 		ContextMenu.style.left = e.clientX + "px";
 	}
-
-	// if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight && e.clientY - ContextMenu.offsetHeight <= window.innerHeight) {
-	//   ContextMenu.style.transform = "scale(0.5)";
-	// }
-	// else {
-	//   ContextMenu.style.transform = "scale(1)";
-	// }
 
 	// Vertical position
 	if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
@@ -514,6 +495,8 @@ document.onkeydown = async (e) => {
 		}
 		// Check if space is pressed on selected item
 		if (e.key == " " && SelectedElement != null) {
+			e.preventDefault();
+			e.stopPropagation();
 			if (IsPopUpOpen == false && IsInputFocused == false && IsItemPreviewOpen == false) {
 				showItemPreview(SelectedElement);
 			} else {
@@ -924,7 +907,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 					if (IsImagePreview) {
 						fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
 					} else {
-						fileIcon = "resources/img-file.png";
+						fileIcon = "resources/pdf-file.png";
 					}
 					break;
 				case ".txt":
@@ -933,9 +916,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				case ".docx":
 				case ".doc":
 					fileIcon = "resources/word-file.png";
-					break;
-				case ".pdf":
-					fileIcon = "resources/pdf-file.png";
 					break;
 				case ".zip":
 				case ".rar":
@@ -1085,211 +1065,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			item.style.opacity = "1";
 			item.style.border = "1px solid transparent";
 		});
-		// :item_right_click :context_menu
+		// :item_right_click :context_menu | showItems()
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", async (e) => {
 			e.preventDefault();
-			if (ArrSelectedItems.length == 1 && (IsCtrlDown === false && Platform != "darwin" || Platform == "darwin" && IsMetaDown === false)) {
-				await unSelectAllItems();
-			}
-			if (!ArrSelectedItems.includes(item)) {
-				selectItem(item, "", true);
-			}
-			if (IsPopUpOpen == false) {
-				let appsCMenu = document.querySelector(".context-open-item-with");
-				appsCMenu.innerHTML = "";
-				await getSetInstalledApplications(item.getAttribute("itemext"));
-				if (Platform.includes("linux")) {
-					appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
-				} else if (Applications.length > 0) {
-					Applications.forEach((app) => {
-						if (app[0].split(".")[0].length > 0) {
-							let newItem = document.createElement("button");
-							newItem.innerHTML = app[0].split(".")[0];
-							newItem.className = "context-item";
-							newItem.setAttribute("appname", app[0].split(".")[0]);
-							newItem.setAttribute("apppath", app[1]);
-							newItem.addEventListener("click", () =>
-								open_with(item.getAttribute("itempath"), app[1]),
-							);
-							appsCMenu.appendChild(newItem);
-						}
-					});
-				} else {
-					appsCMenu.innerHTML = "<p>No applications found</p>";
-				}
-
-				// Reset so that the commands are not triggered multiple times
-				ContextMenu.children[0].replaceWith(
-					ContextMenu.children[0].cloneNode(true),
-				);
-				ContextMenu.children[2].replaceWith(
-					ContextMenu.children[2].cloneNode(true),
-				);
-				ContextMenu.children[3].replaceWith(
-					ContextMenu.children[3].cloneNode(true),
-				);
-				ContextMenu.children[4].replaceWith(
-					ContextMenu.children[4].cloneNode(true),
-				);
-				ContextMenu.children[5].replaceWith(
-					ContextMenu.children[5].cloneNode(true),
-				);
-				ContextMenu.children[6].replaceWith(
-					ContextMenu.children[6].cloneNode(true),
-				);
-				ContextMenu.children[7].replaceWith(
-					ContextMenu.children[7].cloneNode(true),
-				);
-				ContextMenu.children[8].replaceWith(
-					ContextMenu.children[8].cloneNode(true),
-				);
-				ContextMenu.children[9].replaceWith(
-					ContextMenu.children[9].cloneNode(true),
-				);
-				ContextMenu.children[10].replaceWith(
-					ContextMenu.children[10].cloneNode(true),
-				);
-				ContextMenu.children[11].replaceWith(
-					ContextMenu.children[11].cloneNode(true),
-				);
-				document.querySelector(".c-item-ytdownload").replaceWith(
-					document.querySelector(".c-item-ytdownload").cloneNode(true));
-
-				ContextMenu.children[0].removeAttribute("disabled");
-				ContextMenu.children[0].classList.remove("c-item-disabled");
-				ContextMenu.children[1].removeAttribute("disabled");
-				ContextMenu.children[1].classList.remove("c-item-disabled");
-				ContextMenu.children[3].removeAttribute("disabled");
-				ContextMenu.children[3].classList.remove("c-item-disabled");
-				ContextMenu.children[4].removeAttribute("disabled");
-				ContextMenu.children[4].classList.remove("c-item-disabled");
-				ContextMenu.children[5].removeAttribute("disabled");
-				ContextMenu.children[5].classList.remove("c-item-disabled");
-				ContextMenu.children[6].removeAttribute("disabled");
-				ContextMenu.children[6].classList.remove("c-item-disabled");
-				ContextMenu.children[9].removeAttribute("disabled");
-				ContextMenu.children[9].classList.remove("c-item-disabled");
-				ContextMenu.children[10].removeAttribute("disabled");
-				ContextMenu.children[10].classList.remove("c-item-disabled");
-				ContextMenu.children[11].removeAttribute("disabled");
-				ContextMenu.children[11].classList.remove("c-item-disabled");
-
-				let extension = item.getAttribute("itemext");
-
-				// Check if item is an supported archive
-				if (
-					extension != ".zip" &&
-					extension != ".rar" &&
-					extension != ".7z" &&
-					extension != ".tar" &&
-					extension != ".gz" &&
-					extension != ".br" &&
-					extension != ".bz2"
-				) {
-					document
-						.querySelector(".c-item-extract")
-						.setAttribute("disabled", "true");
-					document
-						.querySelector(".c-item-extract")
-						.classList.add("c-item-disabled");
-				} else {
-					document.querySelector(".c-item-extract").removeAttribute("disabled");
-					document
-						.querySelector(".c-item-extract")
-						.classList.remove("c-item-disabled");
-				}
-
-				// Check if item can be searched through for duplicates
-				if (item.getAttribute("itemisdir") == "1") {
-					document
-						.querySelector(".c-item-duplicates")
-						.removeAttribute("disabled");
-					document
-						.querySelector(".c-item-duplicates")
-						.classList.remove("c-item-disabled");
-				} else {
-					document
-						.querySelector(".c-item-duplicates")
-						.setAttribute("disabled", "true");
-					document
-						.querySelector(".c-item-duplicates")
-						.classList.add("c-item-disabled");
-				}
-
-				document.querySelector(".c-item-delete").addEventListener(
-					"click",
-					async () => {
-						await deleteItems();
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-extract").addEventListener(
-					"click",
-					async () => {
-						await extractItem(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-compress").addEventListener(
-					"click",
-					async () => {
-						await showCompressPopup(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-copy").addEventListener(
-					"click",
-					async () => {
-						await copyItem(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-moveto").addEventListener(
-					"click",
-					async () => {
-						await itemMoveTo(false);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-newfile").addEventListener(
-					"click",
-					() => {
-						createFileInputPrompt(e);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-rename").addEventListener(
-					"click",
-					() => {
-						renameElementInputPrompt(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-properties").addEventListener(
-					"click",
-					() => {
-						showProperties(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-duplicates").addEventListener(
-					"click",
-					() => {
-						showFindDuplicates(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-ytdownload").addEventListener(
-					"click",
-					async () => {
-						await showYtDownload();
-					},
-					{ once: true },
-				);
-
-				positionContextMenu(e);
-			}
+			setupItemContextMenu(item, e);
 		});
 	});
 	if (IsDualPaneEnabled == true) {
@@ -1496,9 +1276,9 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 			case ".avif":
 			case ".icns":
 				if (IsImagePreview) {
-					fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+					fileIcon = convertFileSrc(item.path); 
 					// if (item.size > 20000000) {
-					//   fileIcon = convertFileSrc(await getThumbnail(item.path)); // Beispiel für die Verwendung der Funktion
+					//   fileIcon = convertFileSrc(await getThumbnail(item.path)); 
 					// }
 				} else {
 					fileIcon = "resources/img-file.png";
@@ -1506,9 +1286,9 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 				break;
 			case ".pdf":
 				if (IsImagePreview) {
-					fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+					fileIcon = convertFileSrc(item.path); 
 				} else {
-					fileIcon = "resources/img-file.png";
+					fileIcon = "resources/pdf-file.png";
 				}
 				break;
 			case ".txt":
@@ -1517,9 +1297,6 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 			case ".docx":
 			case ".doc":
 				fileIcon = "resources/word-file.png";
-				break;
-			case ".pdf":
-				fileIcon = "resources/pdf-file.png";
 				break;
 			case ".zip":
 			case ".rar":
@@ -1652,212 +1429,11 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 		itemLink.style.opacity = "1";
 		itemLink.style.border = "1px solid transparent";
 	});
-	// :item_right_click :context_menu
+	// :item_right_click :context_menu | AddSingleItem()
 	// Open context menu when right-clicking on file/folder
 	itemLink.addEventListener("contextmenu", async (e) => {
 		e.preventDefault();
-		if (ArrSelectedItems.length <= 1) {
-			unSelectAllItems();
-			selectItem(itemLink);
-		} else {
-			selectItem(itemLink);
-		}
-		if (IsPopUpOpen == false) {
-			let appsCMenu = document.querySelector(".context-open-item-with");
-			appsCMenu.innerHTML = "";
-			await getSetInstalledApplications(itemLink.getAttribute("itemext"));
-			if (Platform.includes("linux")) {
-				appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
-			} else if (Applications.length > 0) {
-				Applications.forEach((app) => {
-					let newItem = document.createElement("button");
-					newItem.innerHTML = app[0].split(".")[0];
-					newItem.className = "context-item";
-					newItem.setAttribute("appname", app[0].split(".")[0]);
-					newItem.setAttribute("apppath", app[1]);
-					newItem.addEventListener("click", () =>
-						open_with(item.getAttribute("itempath"), app[1]),
-					);
-					appsCMenu.appendChild(newItem);
-				});
-			} else {
-				appsCMenu.innerHTML = "<p>No applications found</p>";
-			}
-
-			// Reset so that the commands are not triggered multiple times
-			ContextMenu.children[0].replaceWith(
-				ContextMenu.children[0].cloneNode(true),
-			);
-			ContextMenu.children[2].replaceWith(
-				ContextMenu.children[2].cloneNode(true),
-			);
-			ContextMenu.children[3].replaceWith(
-				ContextMenu.children[3].cloneNode(true),
-			);
-			ContextMenu.children[4].replaceWith(
-				ContextMenu.children[4].cloneNode(true),
-			);
-			ContextMenu.children[5].replaceWith(
-				ContextMenu.children[5].cloneNode(true),
-			);
-			ContextMenu.children[6].replaceWith(
-				ContextMenu.children[6].cloneNode(true),
-			);
-			ContextMenu.children[7].replaceWith(
-				ContextMenu.children[7].cloneNode(true),
-			);
-			ContextMenu.children[8].replaceWith(
-				ContextMenu.children[8].cloneNode(true),
-			);
-			ContextMenu.children[9].replaceWith(
-				ContextMenu.children[9].cloneNode(true),
-			);
-			ContextMenu.children[10].replaceWith(
-				ContextMenu.children[10].cloneNode(true),
-			);
-			ContextMenu.children[11].replaceWith(
-				ContextMenu.children[11].cloneNode(true),
-			);
-			document
-				.querySelector(".c-item-ytdownload")
-				.replaceWith(
-					document.querySelector(".c-item-ytdownload").cloneNode(true),
-				);
-
-			ContextMenu.children[0].removeAttribute("disabled");
-			ContextMenu.children[0].classList.remove("c-item-disabled");
-			ContextMenu.children[1].removeAttribute("disabled");
-			ContextMenu.children[1].classList.remove("c-item-disabled");
-			ContextMenu.children[3].removeAttribute("disabled");
-			ContextMenu.children[3].classList.remove("c-item-disabled");
-			ContextMenu.children[4].removeAttribute("disabled");
-			ContextMenu.children[4].classList.remove("c-item-disabled");
-			ContextMenu.children[5].removeAttribute("disabled");
-			ContextMenu.children[5].classList.remove("c-item-disabled");
-			ContextMenu.children[6].removeAttribute("disabled");
-			ContextMenu.children[6].classList.remove("c-item-disabled");
-			ContextMenu.children[9].removeAttribute("disabled");
-			ContextMenu.children[9].classList.remove("c-item-disabled");
-			ContextMenu.children[10].removeAttribute("disabled");
-			ContextMenu.children[10].classList.remove("c-item-disabled");
-			ContextMenu.children[11].removeAttribute("disabled");
-			ContextMenu.children[11].classList.remove("c-item-disabled");
-
-			let extension = itemLink.getAttribute("itemext");
-
-			// Check if item is a supported archive
-			if (
-				extension != ".zip" &&
-				extension != ".rar" &&
-				extension != ".7z" &&
-				extension != ".tar" &&
-				extension != ".gz" &&
-				extension != ".br" &&
-				extension != ".bz2"
-			) {
-				document
-					.querySelector(".c-item-extract")
-					.setAttribute("disabled", "true");
-				document
-					.querySelector(".c-item-extract")
-					.classList.add("c-item-disabled");
-			} else {
-				document.querySelector(".c-item-extract").removeAttribute("disabled");
-				document
-					.querySelector(".c-item-extract")
-					.classList.remove("c-item-disabled");
-			}
-
-			// Check if item can be searched through for duplicates
-			if (itemLink.getAttribute("itemisdir") == "1") {
-				document
-					.querySelector(".c-item-duplicates")
-					.removeAttribute("disabled");
-				document
-					.querySelector(".c-item-duplicates")
-					.classList.remove("c-item-disabled");
-			} else {
-				document
-					.querySelector(".c-item-duplicates")
-					.setAttribute("disabled", "true");
-				document
-					.querySelector(".c-item-duplicates")
-					.classList.add("c-item-disabled");
-			}
-
-			document.querySelector(".c-item-delete").addEventListener(
-				"click",
-				async () => {
-					await deleteItems();
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-extract").addEventListener(
-				"click",
-				async () => {
-					await extractItem(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-compress").addEventListener(
-				"click",
-				async () => {
-					await showCompressPopup(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-copy").addEventListener(
-				"click",
-				async () => {
-					await copyItem(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-moveto").addEventListener(
-				"click",
-				async () => {
-					await itemMoveTo(false);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-newfile").addEventListener(
-				"click",
-				() => {
-					createFileInputPrompt(e);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-rename").addEventListener(
-				"click",
-				() => {
-					renameElementInputPrompt(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-properties").addEventListener(
-				"click",
-				() => {
-					showProperties(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-duplicates").addEventListener(
-				"click",
-				() => {
-					showFindDuplicates(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-ytdownload").addEventListener(
-				"click",
-				async () => {
-					await showYtDownload();
-				},
-				{ once: true },
-			);
-
-			positionContextMenu(e);
-		}
+		setupItemContextMenu(itemLink, e);
 	});
 
 	if (IsDualPaneEnabled === true) {
@@ -2450,7 +2026,7 @@ async function checkAppConfig() {
 
 		await switchView();
 		
-		document.querySelector(".context-open-in-terminal").style.display = "none";
+		// document.querySelector(".context-open-in-terminal").style.display = "none";
 
 		if (appConfig.is_dual_pane_enabled.includes("1")) {
 			document.querySelector(".show-dual-pane-checkbox").checked = true;
@@ -3697,7 +3273,6 @@ async function showProperties(item) {
 		let path = item.getAttribute("itempath");
 		let ext = item.getAttribute("itemext");
 		let extension_description = getExtDescription(ext); // undefined if it's unknown or a directory
-		let size = item.getAttribute("itemsize");
 		let modifiedAt = item.getAttribute("itemmodified");
 		ContextMenu.style.display = "none";
 		let popup = document.createElement("div");
@@ -3707,7 +3282,7 @@ async function showProperties(item) {
 			<h3>${name}</h3>
 		</div>
 		<div class="popup-body">
-			<p>Path: ${path}</p>
+			<button class="item-preview-copy-path-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', 'success');">Path: ${path}</button>
 			${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ''}
 			<br/>
 			<p>Modified: ${modifiedAt}</p>
@@ -3745,7 +3320,6 @@ async function showItemPreview(item, isOverride = false) {
 	let name = item.getAttribute("itemname");
 	let ext = item.getAttribute("itemext");
 	let path = item.getAttribute("itempath");
-	let modified = item.getAttribute("itemmodified");
 	let popup = document.createElement("div");
 	popup.className = "item-preview-popup";
 	IsItemPreviewOpen = true;
@@ -3761,16 +3335,41 @@ async function showItemPreview(item, isOverride = false) {
 		case ".ico":
 		case ".jfif":
 		case ".avif":
-			module = `<img decoding="async" src="${convertFileSrc(path)}" alt="${name}" />`;
+			module = `
+				<div class="module-container">
+					<img decoding="async" src="${convertFileSrc(path)}"/>
+				</div>
+			`;
 			break;
 		case ".pdf":
+		case ".html":
 			module = `<iframe src="${convertFileSrc(path)}" />`;
+			break;
+		case ".mp4":
+		case ".mkv":
+		case ".mov":
+		case ".avi":
+		case ".webm":
+		case ".mp3":
+		case ".wav":
+		case ".ogg":
+		case ".flac":
+		case ".aac":
+		case ".m4a":
+		case ".wma":
+		case ".ape":
+		case ".flv":
+		case ".wmv":
+			module = `
+				<div class="module-container">
+					<video src="${convertFileSrc(path)}" autoplay></video>
+				</div>
+			`;
 			break;
 		case ".txt":
 		case ".json":
 		case ".sh":
 		case ".py":
-		case ".html":
 		case ".css":
 		case ".js":
 		case ".ts":
@@ -3797,25 +3396,27 @@ async function showItemPreview(item, isOverride = false) {
 		case ".gitignore":
 			popup.style.maxWidth = "50%";
 			module = `
-				<pre style=": 20px;">
-					${await invoke("get_file_content", { path })}
-				</pre>
+				<div class="module-container"><pre class="item-preview-file-content" style="padding: 20px;">${await invoke("get_file_content", { path })}</pre></div>
 			`;
 			break;
 		default:
 			showProperties(item);
-			break;
+			return;
 	}
 	popup.innerHTML = `
-		<div class="popup-header" style="font-weight: bolder !important;">
-			<p><b>Name:</b> ${name}</p>
+		<div class="popup-header">
+			<h3>Name: ${name}</h3>
 		</div>
 		${module}
 	`;
 	IsPopUpOpen = true;
 	document.querySelector("body").append(popup);
 	$(popup).fadeIn(fadeTime);
-	await dirSize(path, ".current-item-preview-size"); // TODO: Make more friendly /
+	popup.children[0].addEventListener("keydown", (e) => {
+		if (e.key === "Escape") {
+			e.target.blur();
+		}
+	});
 }
 
 function showMultiRenamePopup() {
@@ -4637,9 +4238,179 @@ function closeConfirmPopup() {
 	IsPopUpOpen = false;
 }
 
+function resetContextMenu() {
+	// Disabled access to "open with" context menu
+	$(".c-item-openwith").css("pointer-events", "none");
+	new Set(ContextMenu.children).forEach(children => {
+		if (
+			!(children.classList.contains("context-with-dropdown") && children.children[0].innerHTML === "Extras") &&
+			!children.classList.contains("c-item-newfile") &&
+			!children.classList.contains("c-item-newfolder")
+		)
+		{
+			children.setAttribute("disabled", "true");
+			children.classList.add("c-item-disabled");
+		}
+	});
+}
+
+async function setupItemContextMenu(item, e) {
+	if (ArrSelectedItems.length == 1 && (IsCtrlDown === false && Platform != "darwin" || Platform == "darwin" && IsMetaDown === false)) {
+		await unSelectAllItems();
+	}
+	if (!ArrSelectedItems.includes(item)) {
+		selectItem(item, "", true);
+	}
+	if (IsPopUpOpen == false) {
+		let appsCMenu = document.querySelector(".context-open-item-with");
+		appsCMenu.innerHTML = "";
+		await getSetInstalledApplications(item.getAttribute("itemext"));
+		if (Platform.includes("linux")) {
+			appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
+		} else if (Applications.length > 0) {
+			Applications.forEach((app) => {
+				if (app[0].split(".")[0].length > 0) {
+					let newItem = document.createElement("button");
+					newItem.innerHTML = app[0].split(".")[0];
+					newItem.className = "context-item";
+					newItem.setAttribute("appname", app[0].split(".")[0]);
+					newItem.setAttribute("apppath", app[1]);
+					newItem.addEventListener("click", () =>
+						open_with(item.getAttribute("itempath"), app[1]),
+					);
+					appsCMenu.appendChild(newItem);
+				}
+			});
+		} else {
+			appsCMenu.innerHTML = "<p>No applications found</p>";
+		}
+
+		// Reset so that the commands are not triggered multiple times
+		new Set(ContextMenu.children).forEach(children => {
+			children.replaceWith(children.cloneNode(true));
+		});
+
+		// Enable all items
+		new Set(ContextMenu.children).forEach(children => {
+			if (children.classList.contains("c-item-paste")) {
+				if (ArrCopyItems.length > 0) {
+					children.removeAttribute("disabled");
+					children.classList.remove("c-item-disabled");	
+				}
+			} else {
+				children.removeAttribute("disabled");
+				children.classList.remove("c-item-disabled");
+			}
+		});
+
+		
+		// Check if item is an supported archive
+		let extension = item.getAttribute("itemext");
+		if (
+			extension != ".zip" &&
+			extension != ".rar" &&
+			extension != ".7z" &&
+			extension != ".tar" &&
+			extension != ".gz" &&
+			extension != ".br" &&
+			extension != ".bz2"
+		) {
+			document.querySelector(".c-item-extract").setAttribute("disabled", "true");
+			document.querySelector(".c-item-extract").classList.add("c-item-disabled");
+		} else {
+			document.querySelector(".c-item-extract").removeAttribute("disabled");
+			document.querySelector(".c-item-extract").classList.remove("c-item-disabled");
+			// Disable another compression
+			document.querySelector(".c-item-compress").setAttribute("disabled", "true");
+			document.querySelector(".c-item-compress").classList.add("c-item-disabled");
+		}
+
+		// Check if item can be searched through for duplicates
+		if (item.getAttribute("itemisdir") == "1") {
+			document.querySelector(".c-item-duplicates").removeAttribute("disabled");
+			document.querySelector(".c-item-duplicates").classList.remove("c-item-disabled");
+		} else {
+			document.querySelector(".c-item-duplicates").setAttribute("disabled", "true");
+			document.querySelector(".c-item-duplicates").classList.add("c-item-disabled");
+		}
+
+		document.querySelector(".c-item-delete").addEventListener(
+			"click",
+			async () => {
+				await deleteItems();
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-extract").addEventListener(
+			"click",
+			async () => {
+				await extractItem(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-compress").addEventListener(
+			"click",
+			async () => {
+				await showCompressPopup(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-copy").addEventListener(
+			"click",
+			async () => {
+				await copyItem(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-moveto").addEventListener(
+			"click",
+			async () => {
+				await itemMoveTo(false);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-newfile").addEventListener(
+			"click",
+			() => {
+				createFileInputPrompt(e);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-rename").addEventListener(
+			"click",
+			() => {
+				renameElementInputPrompt(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-properties").addEventListener(
+			"click",
+			() => {
+				showProperties(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-duplicates").addEventListener(
+			"click",
+			() => {
+				showFindDuplicates(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-ytdownload").addEventListener(
+			"click",
+			async () => {
+				await showYtDownload();
+			},
+			{ once: true },
+		);
+
+		$(".context-with-dropdown").css("pointer-events", "all");
+
+		positionContextMenu(e);
+	}
+}
 
 insertSiteNavButtons();
 checkAppConfig();
 getSetInstalledApplications();
-
-invoke("log", {log: "Test"});

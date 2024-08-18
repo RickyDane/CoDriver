@@ -57,7 +57,6 @@ html {
 
 body {
     height: 100vh;
-    /* background-color: var(--secondaryColor); */
     overflow: hidden;
     outline: none;
     border: none;
@@ -528,7 +527,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--primaryColor);
+    background-color: var(--secondaryColor);
     z-index: 3;
     margin: auto;
     border-radius: 10px;
@@ -583,7 +582,7 @@ body {
     gap: 5px;
     justify-content: flex-end;
     padding: 5px;
-    /* background-color: var(--secondaryColor); */
+    background-color: var(--primaryColor);
     z-index: 3;
     border-top: 1px solid var(--tertiaryColor);
     color: var(--textColor);
@@ -598,7 +597,7 @@ body {
 .settings-ui-input {
     width: 50% !important;
     padding: 10px 15px;
-    background-color: var(--secondaryColor);
+    background-color: var(--primaryColor);
     border-radius: 10px;
     border: 1px solid rgba(0, 0, 0, 0.25);
     z-index: 3;
@@ -1435,7 +1434,7 @@ button > svg {
 
 .c-item-disabled {
     font-style: italic;
-    color: rgba(200, 200, 200, 0.3);
+    color: rgba(200, 200, 200, 0.3) !important;
 }
 
 .c-item-disabled > svg {
@@ -1630,17 +1629,13 @@ button > svg {
     max-height: 90vh;
     max-width: 90vw;
     border-radius: 10px;
-    overflow-x: auto;
-    overflow-y: auto;
     z-index: 999;
     display: none;
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     background-color: var(--primaryColor);
-    /* backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px); */
-    /* word-break: break-all; */
     line-height: 1.5;
     color: var(--textColor);
+    overflow: hidden;
 }
 
 .item-preview-popup > img {
@@ -1660,8 +1655,10 @@ button > svg {
 
 .item-preview-popup > div {
     min-height: 0;
+}
+
+.item-preview-popup > pre {
     padding: 10px;
-    text-shadow: 0px 0px 4px var(--transparentColorActive) !important;
 }
 
 .item-properties-popup {
@@ -1672,6 +1669,40 @@ button > svg {
 }
 .item-properties-popup > .popup-body {
     padding: 20px !important;
+}
+
+.module-container {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-width: 100%;
+    display: flex;
+    flex-flow: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.module-container > video {
+    max-width: 100%;
+    max-height: 60vh;
+    border-radius: 10px;
+}
+
+.module-container > img {
+    max-width: 100%;
+    max-height: 60vh;
+    border-radius: 10px;
+}
+
+.item-preview-copy-path-button {
+    cursor: pointer;
+    border: none;
+    background-color: transparent;
+    color: var(--textColor);
+    font-size: var(--fontSize2);
+    padding: 0;
+    padding: 0px 0 15px 0;
+    word-break: break-all;
+    text-align: left;
 }
 
 .popup-close-button {
@@ -1725,7 +1756,7 @@ button > svg {
     justify-content: flex-end;
     gap: 5px;
     padding: 5px;
-    border-top: 1px solid var(--tertiaryColor);
+    /* border-top: 1px solid var(--tertiaryColor); */
     box-shadow: 0px 0px 10px 1px var(--transparentColor);
     color: var(--textColor);
 }

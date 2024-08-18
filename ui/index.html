@@ -28,6 +28,7 @@
             <div class="active-actions-container"></div>
         </div>
         <div style="display: flex; flex-flow: column; position: relative;" class="main-window-container">
+            <!-- :header :nav | Header -->
             <div data-tauri-drag-region class="header-nav">
                 <div data-tauri-drag-region
                     style="display: flex; flex-flow: row; gap: 10px; align-items: center; width: auto;">
@@ -56,6 +57,8 @@
 					</div>
                 </div>
             </div>
+
+            <!-- :explorer | Explorer UI -->
             <div class="main-container">
                 <div class="list-column-header">
                     <button class="list-column-header-button" style="margin-left: 20px;"
@@ -82,9 +85,11 @@
                 </div>
                 <div class="current-path"></div>
             </div>
+
+            <!-- :contextmenu | Context menu -->
             <div class="context-menu" style="display: none;">
                 <button class="context-item c-item-delete">Delete<i class="fa-solid fa-trash"></i></button>
-                <div class="context-item context-with-dropdown">
+                <div class="context-item c-item-openwith context-with-dropdown">
                     Open with
                     <i class="fa-solid fa-up-right-from-square"></i>
                     <div class="context-dropdown context-open-item-with"></div>
@@ -92,32 +97,27 @@
                 <button class="context-item c-item-extract">Extract<i class="fa-solid fa-box-open"></i></button>
                 <button class="context-item c-item-compress">Compress<i class="fa-solid fa-box"></i></button>
                 <button class="context-item c-item-copy">Copy<i class="fa-solid fa-copy"></i></button>
-                <button class="context-item c-item-paste" onclick="pasteItem()">Paste<i
-                        class="fa-solid fa-paste"></i></button>
+                <button class="context-item c-item-paste" onclick="pasteItem()">Paste<i class="fa-solid fa-paste"></i></button>
                 <button class="context-item c-item-moveto">Move to<i class="fa-solid fa-arrow-right"></i></button>
                 <button class="context-item c-item-newfile">New file<i class="fa-solid fa-file"></i></button>
-                <button class="context-item c-item-newfolder" onclick="createFolderInputPrompt()">New folder<i
-                        class="fa-solid fa-folder-plus"></i></button>
+                <button class="context-item c-item-newfolder" onclick="createFolderInputPrompt()">New folder<i class="fa-solid fa-folder-plus"></i></button>
                 <button class="context-item c-item-rename">Rename<i class="fa-solid fa-file-signature"></i></button>
                 <div class="context-item context-with-dropdown">
-                    Extras
+                    <span>Extras</span>
                     <i class="fa-solid fa-chevron-right"></i>
                     <div class="context-dropdown">
-                        <button class="context-item c-item-duplicates">Duplicates<i
-                                class="fa-solid fa-magnifying-glass"></i></button>
-                        <button class="context-item c-item-ytdownload">YT-Download<i
-                                class="fa-solid fa-video"></i></button>
+                        <button class="context-item c-item-duplicates">Duplicates<i class="fa-solid fa-magnifying-glass"></i></button>
+                        <button class="context-item c-item-ytdownload">YT-Download<i class="fa-solid fa-video"></i></button>
                     </div>
                 </div>
                 <button class="context-item c-item-properties">Properties<i
                         class="fa-solid fa-info-circle"></i></button>
-                <button class="context-item c-item-openinterminal context-open-in-terminal" onclick="openInTerminal()">
-                    Open in Terminal
-                    <i class="fa-solid fa-terminal"></i>
-                </button>
+                <button class="context-item c-item-openinterminal" onclick="openInTerminal()">Open in Terminal<i class="fa-solid fa-terminal"></i></button>
             </div>
+
+            <!-- :settings | Settings UI -->
             <div class="settings-ui">
-                <div class="settings-ui-header">
+                <div data-tauri-drag-region class="settings-ui-header">
                     <span style="display: flex; gap: 20px; align-items: center;">
                         <i class="fa-solid fa-gears"></i>
                         <p>Settings</p>
@@ -174,17 +174,19 @@
                     </span>
                 </div>
                 <div class="popup-controls">
-                    <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i
-                                class="fa-solid fa-xmark"></i></span>Close</button>
-                    <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i
-                                class="fa-solid fa-floppy-disk"></span></i>Save</button>
+                    <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i class="fa-solid fa-xmark"></i></span>Close</button>
+                    <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i class="fa-solid fa-floppy-disk"></span></i>Save</button>
                 </div>
             </div>
+
+            <!-- :searchbar | Search UI -->
             <div class="search-bar-container">
                 <div class="search-bar">
                     <input class="dualpane-search-input text-input" type="text" placeholder="Start typing ..." />
                 </div>
             </div>
+
+            <!-- :fullsearch | Dual pane search UI -->
             <div class="search-full-container uni-popup">
                 <div class="popup-header">
                     <span style="display: flex; gap: 20px; align-items: center;">
@@ -229,6 +231,8 @@
                     </button>
                 </div>
             </div>
+
+            <!-- :ftp | FTP connection UI -->
             <div class="ftp-connect-container uni-popup">
                 <div class="popup-header">
                     <div style="display: flex; gap: 20px; align-items: center;">
@@ -282,6 +286,8 @@
                     <div class="preloader-invert"></div>
                 </div>
             </div>
+
+            <!-- :progressbar | Progress bar popup -->
             <div class="progress-bar-container-popup">
                 <div class="progress-bar">
                     <p class="text-2 progress-bar-text"></p>
