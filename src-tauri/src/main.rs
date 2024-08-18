@@ -594,12 +594,12 @@ async fn mount_sshfs(hostname: String, username: String, password: String, remot
 }
 
 #[tauri::command]
-async fn open_in_terminal(path: String) {
+async fn open_in_terminal(path: String) -> bool {
     #[cfg(target_os = "windows")]
     {
         // Try to open with Windows Terminal first
         if Command::new("wt").args(&["-d", &path]).spawn().is_ok() {
-            return;
+            return true;
         }
 
         // Fallback to PowerShell
@@ -616,27 +616,26 @@ async fn open_in_terminal(path: String) {
             .spawn()
             .is_ok()
         {
-            return;
+            return true;
         }
 
         // Fallback to cmd
-        Command::new("cmd")
+        return Command::new("cmd")
             .args(&["/c", "start", "cmd.exe", "/k", "cd", "/d", &path])
-            .spawn()
-            .expect("Failed to open cmd");
+            .spawn().is_ok();
     }
 
     #[cfg(target_os = "macos")]
-    Command::new("open")
+    return Command::new("open")
         .args(&["-na", "Terminal", &path])
         .spawn()
-        .expect("Failed to open Terminal");
+        .is_ok();
 
     #[cfg(target_os = "linux")]
-    Command::new("exo-open")
+    return Command::new("exo-open")
         .args(&["--working-directory", &path, "--launch", "TerminalEmulator"])
         .spawn()
-        .expect("Failed to open terminal");
+        .is_ok();
 }
 
 #[tauri::command]
