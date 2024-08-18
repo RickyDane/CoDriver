@@ -10,7 +10,7 @@ use icns::{IconFamily, IconType};
 use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
-use std::fs::{self, read_dir, OpenOptions};
+use std::fs::{self, read_dir, remove_dir, OpenOptions};
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
@@ -136,7 +136,9 @@ fn main() {
             get_file_content,
             open_config_location,
             log,
-            get_config_location
+            get_config_location,
+            get_sshfs_mounts,
+            unmount_network_drive
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -394,7 +396,7 @@ async fn list_disks() -> Vec<DisksInfo> {
                     .to_string()
                     .replace("\"", ""),
                 dev: format!("{:?}", mount.file_name()),
-                format: format!("{:?}", mount.file_type()),
+                format: "SSHFS Network-Drive".into(),
                 path: format!("{:?}", mount.path()),
                 avail: format!("{:?}", mount.metadata().unwrap().len()),
                 capacity: format!("{:?}", mount.metadata().unwrap().len()),
@@ -403,6 +405,34 @@ async fn list_disks() -> Vec<DisksInfo> {
         }
     }
     return ls_disks;
+}
+
+#[tauri::command]
+async fn get_sshfs_mounts() -> Vec<DisksInfo> {
+    let ls_sshfs_mounts = fs::read_dir("/tmp/codriver-sshfs-mount");
+    if ls_sshfs_mounts.is_ok() {
+        let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
+        let mut ls_disks: Vec<DisksInfo> = vec![];
+        for mount in ls_sshfs_mounts {
+            let mount = mount.unwrap();
+            ls_disks.push(DisksInfo {
+                name: format!("{:?}", mount.file_name())
+                    .split("/")
+                    .last()
+                    .unwrap_or("/")
+                    .to_string()
+                    .replace("\"", ""),
+                dev: format!("{:?}", mount.file_name()),
+                format: "SSHFS Network-Drive".into(),
+                path: format!("{:?}", mount.path()),
+                avail: format!("{:?}", mount.metadata().unwrap().len()),
+                capacity: format!("{:?}", mount.metadata().unwrap().len()),
+                is_removable: true,
+            });
+        }
+        return ls_disks;
+    }
+    return vec![];
 }
 
 #[tauri::command]
@@ -556,7 +586,7 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
 async fn mount_sshfs(hostname: String, username: String, password: String, remote_path: String) {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
-    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &hostname;
+    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &username;
 
     // Ensure the local mount point exists
     std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
@@ -1827,4 +1857,20 @@ async fn log(log: String) {
         log
     ));
     return;
+}
+
+#[tauri::command]
+async fn unmount_network_drive(path: String) {
+    let unmount = Command::new("sh")
+        .arg("-c")
+        .arg("umount")
+        .arg("-f")
+        .arg(&path)
+        .spawn();
+    if unmount.is_ok() {
+        let _ = remove_dir(&path);
+        dbg_log(format!("Unmounted: {}", path));
+    } else {
+        dbg_log(format!("Failed to unmount: {}", path));
+    }
 }
