@@ -46,7 +46,6 @@ CoDriver does not use path caching to access files and folders, so the performan
 - Copy & Paste, delete, create and rename files and folders
 - Switch between "big buttons"-, list and miller columns mode
 - Close popups with esc
-- Ctrl / Cmd + S for a quicksearch in the current directory
 - Jump to a directory with Ctrl / Cmd + G by inputting a path
 - Sort items in list mode by size, name or last modified
 <br/>
@@ -63,6 +62,7 @@ CoDriver does not use path caching to access files and folders, so the performan
   - Configure the paths yourself in the settings
 - Create file with F6
 - Create folder with F7
+- Start typing in a directory to instantly filter dir entries
 - Dual-Pane view
   - Search for files with F8
   - Copy current selected element to other pane with F5
