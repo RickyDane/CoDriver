@@ -1931,12 +1931,12 @@ button > svg {
 }
 
 .toast-error {
-    background-color: var(--primaryColor);
+    background-color: var(--errorColor) !important;
     color: var(--textColor);
 }
 
 .toast-success {
-    background-color: var(--primaryColor);
+    background-color: var(--successColor) !important;
     color: var(--textColor);
 }
 

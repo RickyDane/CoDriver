@@ -2891,7 +2891,14 @@ async function goToDir(directory) {
 }
 
 async function openInTerminal() {
-	await invoke("open_in_terminal");
+	if (!await invoke("open_in_terminal", {"path": ArrSelectedItems.length === 0 ? CurrentDir : SelectedItemPath})) {
+		if (Platform === "linux") {
+			showToast("Failed to open terminal. Make sure exo-open is installed and configured.", "error", 5000);
+		} else {
+			showToast("Failed to open terminal.", "error");
+		}
+	}
+
 	ContextMenu.style.display = "none";
 }
 
