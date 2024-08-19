@@ -68,19 +68,19 @@ listen("tauri://file-drop", async (event) => {
 });
 
 /* Toasts */
-function showToast(message, type = "info", timeout = 2000) {
+function showToast(message, type = ToastType.INFO, timeout = 2000) {
   let toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
   let colorClass = "";
 
   switch (type) {
-    case "info":
+    case ToastType.INFO:
       colorClass = "toast-info";
       break;
-    case "success":
+    case ToastType.SUCCESS:
       colorClass = "toast-success";
       break;
-    case "error":
+    case ToastType.ERROR:
       colorClass = "toast-error";
       break;
   }
@@ -108,18 +108,20 @@ async function getThumbnail(imagePath) {
   return thumbnailPath;
 }
 
-async function dirSize(path = "", classToFill = "") {
-  let toReturnBytes = 0;
+async function getSimpleDirInfo(path = "", classToFill = "") {
   $(classToFill).html(
-    `<div style="display: flex; gap: 10px;"><div class="preloader-small-invert"></div> Loading ...</div>`,
+    `<div style="display: flex; gap: 10px;">
+      <div class="preloader-small-invert"></div>
+      Loading ...
+    </div>`,
   );
-  await invoke("get_dir_size", { path, appWindow, classToFill }).then(
-    (bytes) => {
-      $(classToFill).html(formatBytes(bytes));
-      toReturnBytes = bytes;
+  await invoke("get_simple_dir_info", { path, appWindow, classToFill }).then(
+    (simpleDirInfo) => {
+      $(classToFill).html(formatBytes(simpleDirInfo.size));
+      return simpleDirInfo;
     },
   );
-  return toReturnBytes;
+  return null;
 }
 
 function formatBytes(bytes, decimals = 2) {

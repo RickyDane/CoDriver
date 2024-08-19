@@ -32,3 +32,9 @@ const PopupType = {
     EXTRACT: "extract",
     DELETE: "delete"
 }
+
+const ToastType = {
+    INFO: "info",
+    SUCCESS: "success",
+    ERROR: "error"
+}

@@ -640,7 +640,7 @@ input[type="checkbox"] {
 }
 
 .open-config-button {
-    background-color: var(--transparentColor) !important;
+    background-color: var(--primaryColor) !important;
 }
 
 label {
@@ -1301,7 +1301,7 @@ button > svg {
     justify-content: center;
     background-color: var(--transparentColor);
     cursor: pointer;
-    border: none;
+    border: 1px solid transparent;
     color: var(--textColor);
 }
 
@@ -1650,7 +1650,9 @@ button > svg {
     z-index: 999;
     display: none;
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
-    background-color: var(--primaryColor);
+    background-color: var(--transparentColorActive);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     line-height: 1.5;
     color: var(--textColor);
     overflow: hidden;
@@ -1673,10 +1675,12 @@ button > svg {
 
 .item-preview-popup > div {
     min-height: 0;
+    max-width: 100%;
 }
 
-.item-preview-popup > pre {
+.item-preview-popup > div > pre {
     padding: 10px;
+    width: 100%;
 }
 
 .item-properties-popup {
@@ -1691,7 +1695,8 @@ button > svg {
 
 .module-container {
     overflow-x: auto;
-    overflow-y: auto;
+    overflow-y: auto !important;
+    max-height: 60vh;
     max-width: 100%;
     display: flex;
     flex-flow: row;
