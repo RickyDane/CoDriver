@@ -68,7 +68,7 @@ listen("tauri://file-drop", async (event) => {
 });
 
 /* Toasts */
-function showToast(message, type = "info") {
+function showToast(message, type = "info", timeout = 2000) {
   let toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
   let colorClass = "";
@@ -96,11 +96,11 @@ function showToast(message, type = "info") {
   setTimeout(() => {
     toast.style.opacity = 0;
     toast.style.translate = "100px";
-  }, 2000);
+  }, timeout);
 
   setTimeout(() => {
     toast?.remove();
-  }, 2200);
+  }, timeout + 200);
 }
 
 async function getThumbnail(imagePath) {
@@ -109,12 +109,24 @@ async function getThumbnail(imagePath) {
 }
 
 async function dirSize(path = "", classToFill = "") {
+  let toReturnBytes = 0;
   $(classToFill).html(
     `<div style="display: flex; gap: 10px;"><div class="preloader-small-invert"></div> Loading ...</div>`,
   );
   await invoke("get_dir_size", { path, appWindow, classToFill }).then(
     (bytes) => {
       $(classToFill).html(formatBytes(bytes));
+      toReturnBytes = bytes;
     },
   );
+  return toReturnBytes;
+}
+
+function formatBytes(bytes, decimals = 2) {
+	if (!+bytes) return "0 Bytes";
+	const k = 1000;
+	const dm = decimals < 0 ? 0 : decimals;
+	const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }

@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use chrono::prelude::{DateTime, Utc};
+use copy_dir::copy_dir;
 #[allow(unused)]
 use delete::{delete_file, rapid_delete_dir_all};
 use flate2::read::GzDecoder;
@@ -9,7 +10,7 @@ use icns::{IconFamily, IconType};
 use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
-use std::fs::{self, read_dir};
+use std::fs::{self, read_dir, remove_dir, OpenOptions};
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
@@ -37,7 +38,9 @@ mod utils;
 use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
-    calc_transfer_speed, copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes, remove_action, unpack_tar, update_progressbar, update_progressbar_2, wng_log, DirWalker, DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER
+    calc_transfer_speed, copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes,
+    remove_action, unpack_tar, update_progressbar, update_progressbar_2, wng_log, DirWalker,
+    DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER,
 };
 #[cfg(target_os = "macos")]
 mod window_tauri_ext;
@@ -87,7 +90,7 @@ fn main() {
             // See https://github.com/tauri-apps/tauri/issues/6322#issuecomment-1448141495
             #[cfg(target_os = "windows")]
             if let WindowEvent::Resized(..) = e.event() {
-                std::thread::sleep(std::time::Duration::from_nanos(1));
+                std::thread::sleep(std::time::Duration::from_millis(1));
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -133,7 +136,9 @@ fn main() {
             get_file_content,
             open_config_location,
             log,
-            get_config_location
+            get_config_location,
+            get_sshfs_mounts,
+            unmount_network_drive
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -382,7 +387,7 @@ async fn list_disks() -> Vec<DisksInfo> {
         let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
         for mount in ls_sshfs_mounts {
             let mount = mount.unwrap();
-            dbg_log(format!("{:?} || {:?}", mount.file_name(), mount.path()));
+            dbg_log(format!("{:?} | {:?}", mount.file_name(), mount.path()));
             ls_disks.push(DisksInfo {
                 name: format!("{:?}", mount.file_name())
                     .split("/")
@@ -391,7 +396,7 @@ async fn list_disks() -> Vec<DisksInfo> {
                     .to_string()
                     .replace("\"", ""),
                 dev: format!("{:?}", mount.file_name()),
-                format: format!("{:?}", mount.file_type()),
+                format: "SSHFS Network-Drive".into(),
                 path: format!("{:?}", mount.path()),
                 avail: format!("{:?}", mount.metadata().unwrap().len()),
                 capacity: format!("{:?}", mount.metadata().unwrap().len()),
@@ -400,6 +405,34 @@ async fn list_disks() -> Vec<DisksInfo> {
         }
     }
     return ls_disks;
+}
+
+#[tauri::command]
+async fn get_sshfs_mounts() -> Vec<DisksInfo> {
+    let ls_sshfs_mounts = fs::read_dir("/tmp/codriver-sshfs-mount");
+    if ls_sshfs_mounts.is_ok() {
+        let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
+        let mut ls_disks: Vec<DisksInfo> = vec![];
+        for mount in ls_sshfs_mounts {
+            let mount = mount.unwrap();
+            ls_disks.push(DisksInfo {
+                name: format!("{:?}", mount.file_name())
+                    .split("/")
+                    .last()
+                    .unwrap_or("/")
+                    .to_string()
+                    .replace("\"", ""),
+                dev: format!("{:?}", mount.file_name()),
+                format: "SSHFS Network-Drive".into(),
+                path: mount.path().as_path().to_string_lossy().to_string(),
+                avail: format!("{:?}", mount.metadata().unwrap().len()),
+                capacity: format!("{:?}", mount.metadata().unwrap().len()),
+                is_removable: true,
+            });
+        }
+        return ls_disks;
+    }
+    return vec![];
 }
 
 #[tauri::command]
@@ -550,10 +583,10 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
 
 // :ftp
 #[tauri::command]
-async fn mount_sshfs(hostname: String, username: String, password: String, remote_path: String) {
+async fn mount_sshfs(hostname: String, username: String, password: String, remote_path: String) -> String {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
-    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &hostname;
+    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &username;
 
     // Ensure the local mount point exists
     std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
@@ -587,14 +620,52 @@ async fn mount_sshfs(hostname: String, username: String, password: String, remot
             String::from_utf8_lossy(&output.stderr),
         ));
     }
+    return mount_point;
 }
 
 #[tauri::command]
-async fn open_in_terminal() {
-    // TODO: implement
-    // open terminal on macOS
-    // open terminal on linux
-    // open terminal on windows
+async fn open_in_terminal(path: String) -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        // Try to open with Windows Terminal first
+        if Command::new("wt").args(&["-d", &path]).spawn().is_ok() {
+            return true;
+        }
+
+        // Fallback to PowerShell
+        // Have to launch via cmd to get a new terminal window
+        if Command::new("cmd")
+            .args(&[
+                "/c",
+                "start",
+                "powershell",
+                "-NoExit",
+                "-Command",
+                &format!("Set-Location '{}'", path),
+            ])
+            .spawn()
+            .is_ok()
+        {
+            return true;
+        }
+
+        // Fallback to cmd
+        return Command::new("cmd")
+            .args(&["/c", "start", "cmd.exe", "/k", "cd", "/d", &path])
+            .spawn().is_ok();
+    }
+
+    #[cfg(target_os = "macos")]
+    return Command::new("open")
+        .args(&["-na", "Terminal", &path])
+        .spawn()
+        .is_ok();
+
+    #[cfg(target_os = "linux")]
+    return Command::new("exo-open")
+        .args(&["--working-directory", &path, "--launch", "TerminalEmulator"])
+        .spawn()
+        .is_ok();
 }
 
 #[tauri::command]
@@ -661,30 +732,30 @@ async fn search_for(
 
     let sw = Stopwatch::start_new();
 
-    let _ = DirWalker::new()
-        .set_ext(v_exts)
-        .search(
-            current_dir().unwrap().to_str().unwrap(),
-            search_depth as u32,
-            file_name,
-            max_items,
-            is_quick_search,
-            file_content,
-            &|item: DirWalkerEntry| {
-                unsafe { COUNT_CALLED_BACK += 1; }
-                let _ = app_window
-                    .emit_all(
-                        "addSingleItem",
-                        serde_json::to_string(&item).unwrap().to_string(),
-                    )
-                    .expect("Failed to emit");
-                let _ = app_window.eval(&format!(
-                    "$('.file-searching-file-count').html('{} items found')",
-                    unsafe { COUNT_CALLED_BACK }
-                ));
-            },
-        );
-    
+    let _ = DirWalker::new().set_ext(v_exts).search(
+        current_dir().unwrap().to_str().unwrap(),
+        search_depth as u32,
+        file_name,
+        max_items,
+        is_quick_search,
+        file_content,
+        &|item: DirWalkerEntry| {
+            unsafe {
+                COUNT_CALLED_BACK += 1;
+            }
+            let _ = app_window
+                .emit_all(
+                    "addSingleItem",
+                    serde_json::to_string(&item).unwrap().to_string(),
+                )
+                .expect("Failed to emit");
+            let _ = app_window.eval(&format!(
+                "$('.file-searching-file-count').html('{} items found')",
+                unsafe { COUNT_CALLED_BACK }
+            ));
+        },
+    );
+
     unsafe {
         IS_SEARCHING = false;
     }
@@ -698,6 +769,7 @@ async fn search_for(
     let _ = app_window
         .eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
+    return;
 }
 
 #[tauri::command]
@@ -708,7 +780,7 @@ async fn copy_paste(
     is_for_dual_pane: String,
     mut copy_to_path: String,
 ) {
-    if &copy_to_path.len() == &0 {
+    if copy_to_path.clone().len() == 0 {
         wng_log("No destination path provided. Defaulting to current dir".into());
         copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
     }
@@ -737,8 +809,18 @@ async fn copy_paste(
         }
     }
     let sw = Stopwatch::start_new();
+
+    // Windows copy pasting
     // Execute the copy process for either a dir or file
-    copy_to(&app_window, final_filename, from_path);
+    #[cfg(target_os = "windows")]
+    let _ = copy_to(&app_window, final_filename, from_path);
+    #[cfg(not(target_os = "windows"))]
+    copy_to(&app_window, final_filename.clone(), from_path.clone());
+
+    // Non windows copy pasting
+    #[cfg(not(target_os = "windows"))]
+    let _ = copy(from_path, final_filename);
+
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
     app_window.eval("resetProgressBar()").unwrap();
 }
@@ -784,9 +866,18 @@ async fn arr_copy_paste(
         )
         .await;
         // Execute the copy process for either a dir or file
-        // #[cfg(target_os = "macos")]
-        // let _ = copy(item_path, final_filename); // Copying of files is different on macOS
-        // #[cfg(not(target_os = "macos"))]
+        #[cfg(not(target_os = "windows"))]
+        // use copy_to for files larger than 5 gb
+        if item.size.parse::<u64>().unwrap_or(0) > 5000000000 {
+            copy_to(&app_window, final_filename.clone(), item_path.clone());
+        } else {
+            if item.is_dir == 1 {
+                let _ = copy_dir(item_path, final_filename);
+            } else {
+                let _ = copy(item_path, final_filename); // Copying of files is different on macOS
+            }
+        }
+        #[cfg(target_os = "windows")]
         copy_to(&app_window, final_filename, item_path);
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
@@ -856,9 +947,9 @@ async fn get_final_filename(
 async fn delete_item(act_file_name: String) {
     dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
 
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     let dir_remove = remove_dir_all(&act_file_name.replace("\\", "/"));
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     if dir_remove.is_err() {
         let _ = delete_file(&act_file_name.replace("\\", "/")).expect("Failed to delete file");
         return;
@@ -872,7 +963,9 @@ async fn delete_item(act_file_name: String) {
         is_dir = file.unwrap().metadata().unwrap().is_dir();
     }
     if is_dir {
-        let _ = rapid_delete_dir_all(&act_file_name.replace("\\", "/"), None, None).await.expect("Failed to delete dir");
+        let _ = rapid_delete_dir_all(&act_file_name.replace("\\", "/"), None, None)
+            .await
+            .expect("Failed to delete dir");
     } else {
         let _ = delete_file(&act_file_name.replace("\\", "/")).expect("Failed to delete file");
     }
@@ -887,7 +980,12 @@ async fn arr_delete_items(arr_items: Vec<String>) {
 
 #[tauri::command]
 async fn extract_item(from_path: String, app_window: Window) {
-    let action_id = create_new_action(&app_window, "Extracting ...".into(), from_path.clone().split("/").last().unwrap().to_string(), &from_path);
+    let action_id = create_new_action(
+        &app_window,
+        "Extracting ...".into(),
+        from_path.clone().split("/").last().unwrap().to_string(),
+        &from_path,
+    );
     // Check file extension
     let file_ext = ".".to_string().to_owned()
         + from_path
@@ -947,7 +1045,7 @@ async fn extract_item(from_path: String, app_window: Window) {
         let _ = remove_file(&from_path.strip_suffix(&file_ext).unwrap());
     } else {
         err_log("Unsupported file type".into());
-        return; 
+        return;
     }
 
     dbg_log(format!("Unpack time: {:?}", sw.elapsed()));
@@ -961,15 +1059,38 @@ async fn open_item(path: String) {
 }
 
 #[tauri::command]
-async fn compress_item(from_path: String, compression_level: i32, path_to_zip: String, app_window: Window) {
-    let action_id = create_new_action(&app_window, "Compressing ...".into(), from_path.clone().replace("'", "").split("/").last().unwrap().to_string(), &from_path);
+async fn compress_item(
+    from_path: String,
+    compression_level: i32,
+    path_to_zip: String,
+    app_window: Window,
+) {
+    let action_id = create_new_action(
+        &app_window,
+        "Compressing ...".into(),
+        from_path
+            .clone()
+            .replace("'", "")
+            .split("/")
+            .last()
+            .unwrap()
+            .to_string(),
+        &from_path,
+    );
     let sw = Stopwatch::start_new();
     dbg_log(format!(
         "Compression of '{}' started with compression level: {}",
         &from_path.split("/").last().unwrap(),
         &compression_level
     ));
-    let file_ext = ".".to_string().to_owned() + from_path.split("/").last().unwrap_or("").split(".").last().unwrap_or("");
+    let file_ext = ".".to_string().to_owned()
+        + from_path
+            .split("/")
+            .last()
+            .unwrap_or("")
+            .split(".")
+            .last()
+            .unwrap_or("");
     let created_file = File::create(
         path_to_zip
             .strip_suffix(&file_ext)
@@ -995,42 +1116,98 @@ async fn compress_item(from_path: String, compression_level: i32, path_to_zip: S
         source = PathBuf::from(&from_path);
     } else {
         let mut file_name = from_path.clone();
-        file_name = file_name.replace("'", "").clone().split("/").last().unwrap().into();
-        let _ = create_dir(config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir"));
+        file_name = file_name
+            .replace("'", "")
+            .clone()
+            .split("/")
+            .last()
+            .unwrap()
+            .into();
+        let _ = create_dir(
+            config_dir()
+                .unwrap()
+                .join("com.codriver.dev")
+                .join("__compressed_dir"),
+        );
         let _ = copy(
             &from_path,
-            config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir").to_string_lossy().to_string() + "/" + &file_name,
+            config_dir()
+                .unwrap()
+                .join("com.codriver.dev")
+                .join("__compressed_dir")
+                .to_string_lossy()
+                .to_string()
+                + "/"
+                + &file_name,
         );
-        source = config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir");
+        source = config_dir()
+            .unwrap()
+            .join("com.codriver.dev")
+            .join("__compressed_dir");
     }
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated)
         .compression_level(Some(compression_level));
     let _ = zip_create_from_directory_with_options(&archive, &source, options);
-    let _ = remove_dir_all(config_dir().unwrap().join("com.codriver.dev").join("__compressed_dir").as_path().to_string_lossy().to_string());
+    let _ = remove_dir_all(
+        config_dir()
+            .unwrap()
+            .join("com.codriver.dev")
+            .join("__compressed_dir")
+            .as_path()
+            .to_string_lossy()
+            .to_string(),
+    );
     remove_action(app_window, action_id);
     dbg_log(format!("Compression time: {:?}", sw.elapsed()));
 }
 
 #[tauri::command]
 async fn arr_compress_items(arr_items: Vec<String>, compression_level: i32, app_window: Window) {
-    let path_to_zip = current_dir().unwrap().join("compressed_items_archive").to_string_lossy().to_string();
-    let _ = create_dir(config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive"));
+    let path_to_zip = current_dir()
+        .unwrap()
+        .join("compressed_items_archive")
+        .to_string_lossy()
+        .to_string();
+    let _ = create_dir(
+        config_dir()
+            .unwrap()
+            .join("com.codriver.dev")
+            .join("compressed_items_archive"),
+    );
     for item_path in arr_items {
         let file_name = &item_path.split("/").last().unwrap();
         if fs::metadata(&item_path).unwrap().is_dir() {
-            copy_to(&app_window, config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive").to_string_lossy().to_string() + "/" + file_name, item_path.clone());
-        }
-        else {
+            copy_to(
+                &app_window,
+                config_dir()
+                    .unwrap()
+                    .join("com.codriver.dev")
+                    .join("compressed_items_archive")
+                    .to_string_lossy()
+                    .to_string()
+                    + "/"
+                    + file_name,
+                item_path.clone(),
+            );
+        } else {
             let _ = copy(
                 &item_path,
-                config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive").to_string_lossy().to_string() + "/" + file_name,
+                config_dir()
+                    .unwrap()
+                    .join("com.codriver.dev")
+                    .join("compressed_items_archive")
+                    .to_string_lossy()
+                    .to_string()
+                    + "/"
+                    + file_name,
             );
             app_window.eval("resetProgressBar()").unwrap();
         }
     }
     compress_item(
-        config_dir().unwrap()
+        config_dir()
+            .unwrap()
             .join("com.codriver.dev")
             .join("compressed_items_archive")
             .to_string_lossy()
@@ -1040,7 +1217,12 @@ async fn arr_compress_items(arr_items: Vec<String>, compression_level: i32, app_
         app_window.clone(),
     )
     .await;
-    let _ = remove_dir_all(config_dir().unwrap().join("com.codriver.dev").join("compressed_items_archive"));
+    let _ = remove_dir_all(
+        config_dir()
+            .unwrap()
+            .join("com.codriver.dev")
+            .join("compressed_items_archive"),
+    );
 }
 
 #[tauri::command]
@@ -1063,9 +1245,10 @@ async fn rename_element(path: String, new_name: String, app_window: Window) -> V
     );
     if renamed.is_err() {
         err_log("Failed to rename element".into());
-        app_window.eval("alert('Failed to rename element')").unwrap();
-    }
-    else {
+        app_window
+            .eval("alert('Failed to rename element')")
+            .unwrap();
+    } else {
         dbg_log(format!("Renamed from {} to {}", path, new_name));
     }
     return list_dirs().await;
@@ -1378,7 +1561,12 @@ async fn get_df_dir(number: u8) -> String {
 
 #[tauri::command]
 async fn download_yt_video(app_window: Window, url: String, quality: String) {
-    let action_id = create_new_action(&app_window, "Downloading ...".into(), url.clone(), &"".into());
+    let action_id = create_new_action(
+        &app_window,
+        "Downloading ...".into(),
+        url.clone(),
+        &"".into(),
+    );
     dbg_log(format!("Downloading {} as {}", url, quality));
     let chosen_quality = match quality.as_str() {
         "lowestvideo" => VideoQuality::LowestVideo,
@@ -1664,7 +1852,7 @@ async fn get_file_content(path: String) -> String {
         let json_string_pretty = serde_json::to_string_pretty(&json).unwrap();
         return json_string_pretty;
     }
-    content
+    return content;
 }
 
 #[tauri::command]
@@ -1674,19 +1862,61 @@ async fn open_config_location() {
 
 #[tauri::command]
 async fn get_config_location() -> String {
-    config_dir().unwrap().join("com.codriver.dev").to_str().unwrap().to_string()
+    config_dir()
+        .unwrap()
+        .join("com.codriver.dev")
+        .to_str()
+        .unwrap()
+        .to_string()
 }
 
 #[tauri::command]
 async fn log(log: String) {
-    let log_file_path = config_dir().unwrap().join("com.codriver.dev").join("log.txt");
+    let log = format!("[{}] {}\n", chrono::Local::now().format("%H:%M:%S"), log);
+    let log_file_path = config_dir()
+        .unwrap()
+        .join("com.codriver.dev")
+        .join("log.txt");
     if !log_file_path.exists() {
         let _ = fs::File::create(&log_file_path);
     }
-    let log_file = File::open(&log_file_path).unwrap();
-    let mut log_writer = BufWriter::new(log_file);
-    let _ = log_writer.write_all(log.as_bytes());
-    let _ = log_writer.flush();
-    dbg_log(format!("Written to: {} Log: {}", log_file_path.to_str().unwrap(), log));
+
+    // Write text to logfile
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(&log_file_path)
+        .unwrap();
+    let _ = file.write_all(log.as_bytes());
+
+    dbg_log(format!(
+        "Written to: {} Log: {}",
+        log_file_path.to_str().unwrap(),
+        log
+    ));
     return;
+}
+
+#[tauri::command]
+async fn unmount_network_drive(path: String) {
+    let _ = Command::new("umount")
+        .arg(&path)
+        .spawn();
+    dbg_log(format!("Unmounted: {}", path));
+    let remove = remove_dir(&path);
+    if remove.is_err() {
+        dbg_log(format!("Failed to remove: {} | Trying again in 0.5s", path));
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        let remove2 = remove_dir(&path);
+        if remove2.is_err() {
+            dbg_log(format!("Failed to remove: {} | Trying again in 1s", path));
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+            let remove3 = remove_dir(&path);
+            if remove3.is_err() {
+                dbg_log(format!("Failed to remove: {} | Err: {}", path, remove3.err().unwrap()));
+                return;
+            }
+        }
+    }
+    dbg_log(format!("Removed: {}", path));
 }

@@ -1,6 +1,5 @@
 const TAURI = window.__TAURI__;
 const { invoke } = TAURI.tauri;
-// const { listen } = window.__TAURI__.event;
 const { confirm } = TAURI.dialog;
 const { message } = TAURI.dialog;
 const { open } = TAURI.dialog;
@@ -126,6 +125,10 @@ let DraggedOverElement = null;
 let MousePos = [];
 let FileOperation = "";
 let IsFirstRun = true;
+const TIMETORESET = 500;
+let CurrentQuickSearch = "";
+let CurrentQuickSearchTime = 100;
+let CurrentQuickSearchTimer = null;
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -194,7 +197,7 @@ document.addEventListener("keyup", async (e) => {
 		$(".search-bar-input").blur();
 		// Close all popups etc.
 		ContextMenu.style.display = "none";
-		closeAllPopups();
+		resetEverything();
 		if (DraggedOverElement != null) {
 			DraggedOverElement.style.opacity = "1";
 		}
@@ -203,9 +206,62 @@ document.addEventListener("keyup", async (e) => {
 			item.style.opacity = "1";
 		});
 	}
+	if (IsInputFocused === false &&
+		IsPopUpOpen === false &&
+		e.key !== "Escape" &&
+		e.key !== "ArrowLeft" &&
+		e.key !== "ArrowRight" &&
+		e.key !== "ArrowUp" &&
+		e.key !== "ArrowDown" &&
+		e.key !== "Enter" &&
+		e.key !== "Backspace" &&
+		e.key !== "Delete" &&
+		e.key !== "CapsLock" &&
+		e.key !== "Shift" &&
+		e.key !== "Control" &&
+		e.key !== "Alt" &&
+		e.key !== "Meta" &&
+		e.key !== "Tab" &&
+		e.key !== " " &&
+		!e.metaKey &&
+		!e.ctrlKey &&
+		!e.altKey &&
+		!e.shiftKey &&
+		IsMetaDown === false &&
+		IsCtrlDown === false &&
+		IsShiftDown === false
+	) {
+		CurrentQuickSearch += e.key;
+		await searchFor(CurrentQuickSearch, 9999999, 1, true);
+		setTimeout(() => {
+			if (IsDualPaneEnabled === true) {
+				goUp(true);
+			} else {
+				goLeft();
+			}
+		}, 250);
+		CurrentQuickSearchTime = TIMETORESET;
+		clearInterval(CurrentQuickSearchTimer);
+		resetQuickSearch();
+	}
 });
 
-function closeAllPopups() {
+function resetQuickSearch() {
+	CurrentQuickSearchTimer = setInterval(() => {
+		if (CurrentQuickSearchTime <= 0) {
+			clearInterval(CurrentQuickSearchTimer);
+			CurrentQuickSearchTime = TIMETORESET;
+			CurrentQuickSearch = "";
+		} else {
+			CurrentQuickSearchTime -= 50;
+		}
+	}, 100);
+}
+
+function resetEverything() {
+	if (IsPopUpOpen === false) {
+		refreshView();
+	}
 	closeSearchBar();
 	closeSettings();
 	closeFullSearchContainer();
@@ -219,6 +275,7 @@ function closeAllPopups() {
 	closeInputDialogs();
 	unSelectAllItems();
 	closeConfirmPopup();
+	closeCustomContextMenu();
 	$(".popup-background").css("display", "none");
 	IsPopUpOpen = false;
 	IsInputFocused = false;
@@ -230,9 +287,12 @@ function closeAllPopups() {
 	$(".site-nav-bar-button").css("border", "1px solid transparent");
 	$(".item-link").css("border", "1px solid transparent");
 	$(".path-item").css("border", "1px solid transparent");
+	CurrentQuickSearch = "";
+	resetQuickSearch();
 }
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
+	// Check if your click is outside of important elements
 	if (
 		!e.target.classList.contains("context-item-icon") &&
 		!e.target.classList.contains("context-item") &&
@@ -252,30 +312,16 @@ document.addEventListener("mousedown", (e) => {
 		!e.target.classList.contains("item-button-list-info-span") &&
 		!e.target.classList.contains("disk-item-top") &&
 		!e.target.classList.contains("disk-info") &&
-		!e.target.classList.contains("item-button-text")
+		!e.target.classList.contains("item-button-text") &&
+		!e.target.classList.contains("item-preview-file-content") &&
+		!e.target.classList.contains("popup-header") &&
+		!e.target.classList.contains("item-preview-copy-path-button")
 	) {
 		ContextMenu.style.display = "none";
 		$(".extra-c-menu")?.remove();
 
 		// Reset context menu
-		ContextMenu.children[0].setAttribute("disabled", "true");
-		ContextMenu.children[0].classList.add("c-item-disabled");
-		ContextMenu.children[1].setAttribute("disabled", "true");
-		ContextMenu.children[1].classList.add("c-item-disabled");
-		ContextMenu.children[2].setAttribute("disabled", "true");
-		ContextMenu.children[2].classList.add("c-item-disabled");
-		ContextMenu.children[3].setAttribute("disabled", "true");
-		ContextMenu.children[3].classList.add("c-item-disabled");
-		ContextMenu.children[4].setAttribute("disabled", "true");
-		ContextMenu.children[4].classList.add("c-item-disabled");
-		ContextMenu.children[5].setAttribute("disabled", "true");
-		ContextMenu.children[5].classList.add("c-item-disabled");
-		ContextMenu.children[6].setAttribute("disabled", "true");
-		ContextMenu.children[6].classList.add("c-item-disabled");
-		ContextMenu.children[9].setAttribute("disabled", "true");
-		ContextMenu.children[9].classList.add("c-item-disabled");
-		// ContextMenu.children[10].setAttribute("disabled", "true");
-		// ContextMenu.children[10].classList.add("c-item-disabled");
+		resetContextMenu();
 
 		document
 			.querySelector(".c-item-duplicates")
@@ -287,9 +333,13 @@ document.addEventListener("mousedown", (e) => {
 		if (DraggedOverElement != null) {
 			DraggedOverElement.style.filter = "none";
 		}
+		// closeItemPreview();
 	}
 	if (IsPopUpOpen === true && !e.target.classList.contains("input-dialog") && !e.target.classList.contains("input-dialog-headline") && !e.target.classList.contains("text-input")) {
 		closeInputDialogs();
+	}
+	if (!e.target.classList.contains("c-item-custom")) {
+		closeCustomContextMenu();
 	}
 	$(".site-nav-bar-button").css("border", "1px solid transparent");
 	$(".item-link").css("border", "1px solid transparent");
@@ -347,13 +397,6 @@ function positionContextMenu(e) {
 	} else {
 		ContextMenu.style.left = e.clientX + "px";
 	}
-
-	// if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight && e.clientY - ContextMenu.offsetHeight <= window.innerHeight) {
-	//   ContextMenu.style.transform = "scale(0.5)";
-	// }
-	// else {
-	//   ContextMenu.style.transform = "scale(1)";
-	// }
 
 	// Vertical position
 	if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
@@ -447,26 +490,26 @@ document.onkeydown = async (e) => {
 			}
 			// check if arrow down is pressed
 			if (e.keyCode == 40) {
+				e.preventDefault();
+				e.stopPropagation();
 				if (SelectedElement == null) {
 					goUp(false, true);
 				} else {
 					goDown();
 				}
-				e.preventDefault();
-				e.stopPropagation();
 			}
 			// check if tab is pressed
 			if (e.keyCode == 9) {
-				goToOtherPane();
 				e.preventDefault();
 				e.stopPropagation();
+				goToOtherPane();
 			}
 			if (IsPopUpOpen == false) {
 				// check if f8 is pressed
 				if (e.keyCode == 119) {
-					openFullSearchContainer();
 					e.preventDefault();
 					e.stopPropagation();
+					openFullSearchContainer();
 				}
 			}
 			if (e.key == "PageUp") {
@@ -481,7 +524,7 @@ document.onkeydown = async (e) => {
 				e.preventDefault();
 				e.stopPropagation();
 			}
-		} else if (IsItemPreviewOpen == true) {
+		} else if (IsItemPreviewOpen == true && IsDualPaneEnabled === true) {
 			// check if arrow up is pressed
 			if (e.keyCode == 38) {
 				goUp();
@@ -515,6 +558,8 @@ document.onkeydown = async (e) => {
 		}
 		// Check if space is pressed on selected item
 		if (e.key == " " && SelectedElement != null) {
+			e.preventDefault();
+			e.stopPropagation();
 			if (IsPopUpOpen == false && IsInputFocused == false && IsItemPreviewOpen == false) {
 				showItemPreview(SelectedElement);
 			} else {
@@ -624,16 +669,17 @@ document.onkeydown = async (e) => {
 				e.preventDefault();
 				e.stopPropagation();
 			}
-			// check if ctrl / cmd + s is pressed
-			if (
-				((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-				e.key === "s" &&
-				IsShowDisks == false
-			) {
-				openSearchBar();
-				e.preventDefault();
-				e.stopPropagation();
-			}
+			// Disabled for instant quick search
+			// check if cmd / ctrl + s is pressed
+			// if (
+			// 	((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
+			// 	e.key === "s" &&
+			// 	IsShowDisks == false
+			// ) {
+			// 	openSearchBar();
+			// 	e.preventDefault();
+			// 	e.stopPropagation();
+			// }
 
 			// check if ctrl / cmd + shift + m is pressed
 			if (
@@ -660,32 +706,35 @@ document.onkeydown = async (e) => {
 					e.preventDefault();
 					e.stopPropagation();
 				}
-				if (ViewMode == "wrap") {
-					// check if arrow up is pressed
-					if (e.keyCode == 38) {
-						goGridUp();
-						e.preventDefault();
-						e.stopPropagation();
-					}
-					// check if arrow down is pressed
-					if (e.keyCode == 40) {
-						goGridDown();
-						e.preventDefault();
-						e.stopPropagation();
-					}
-				}
-				// check if arrow left is pressed
-				if (e.keyCode == 37 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)) {
-					goLeft();
+			}
+		}
+
+		if (IsDualPaneEnabled === false && (IsItemPreviewOpen === true && IsPopUpOpen === true || IsPopUpOpen === false)) {
+			if (ViewMode == "wrap") {
+				// check if arrow up is pressed
+				if (e.keyCode == 38) {
 					e.preventDefault();
 					e.stopPropagation();
+					goGridUp();
 				}
-				// check if arrow right is pressed
-				if (e.keyCode == 39 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)) {
-					goRight();
+				// check if arrow down is pressed
+				if (e.key === "ArrowDown") {
 					e.preventDefault();
 					e.stopPropagation();
+					goGridDown();
 				}
+			}
+			// check if arrow left is pressed
+			if (e.keyCode == 37 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)) {
+				e.preventDefault();
+				e.stopPropagation();
+				goLeft();
+			}
+			// check if arrow right is pressed
+			if (e.keyCode == 39 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)) {
+				e.preventDefault();
+				e.stopPropagation();
+				goRight();
 			}
 		}
 	}
@@ -925,7 +974,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 					if (IsImagePreview) {
 						fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
 					} else {
-						fileIcon = "resources/img-file.png";
+						fileIcon = "resources/pdf-file.png";
 					}
 					break;
 				case ".txt":
@@ -934,9 +983,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				case ".docx":
 				case ".doc":
 					fileIcon = "resources/word-file.png";
-					break;
-				case ".pdf":
-					fileIcon = "resources/pdf-file.png";
 					break;
 				case ".zip":
 				case ".rar":
@@ -1086,209 +1132,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			item.style.opacity = "1";
 			item.style.border = "1px solid transparent";
 		});
-		// :item_right_click :context_menu
+		// :item_right_click :context_menu | showItems()
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", async (e) => {
 			e.preventDefault();
-			if (ArrSelectedItems.length == 1 && (IsCtrlDown === false && Platform != "darwin" || Platform == "darwin" && IsMetaDown === false)) {
-				await unSelectAllItems();
-			}
-			if (!ArrSelectedItems.includes(item)) {
-				selectItem(item, "", true);
-			}
-			if (IsPopUpOpen == false) {
-				let appsCMenu = document.querySelector(".context-open-item-with");
-				appsCMenu.innerHTML = "";
-				await getSetInstalledApplications(item.getAttribute("itemext"));
-				if (Platform.includes("linux")) {
-					appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
-				} else if (Applications.length > 0) {
-					Applications.forEach((app) => {
-						let newItem = document.createElement("button");
-						newItem.innerHTML = app[0].split(".")[0];
-						newItem.className = "context-item";
-						newItem.setAttribute("appname", app[0].split(".")[0]);
-						newItem.setAttribute("apppath", app[1]);
-						newItem.addEventListener("click", () =>
-							open_with(item.getAttribute("itempath"), app[1]),
-						);
-						appsCMenu.appendChild(newItem);
-					});
-				} else {
-					appsCMenu.innerHTML = "<p>No applications found</p>";
-				}
-
-				// Reset so that the commands are not triggered multiple times
-				ContextMenu.children[0].replaceWith(
-					ContextMenu.children[0].cloneNode(true),
-				);
-				ContextMenu.children[2].replaceWith(
-					ContextMenu.children[2].cloneNode(true),
-				);
-				ContextMenu.children[3].replaceWith(
-					ContextMenu.children[3].cloneNode(true),
-				);
-				ContextMenu.children[4].replaceWith(
-					ContextMenu.children[4].cloneNode(true),
-				);
-				ContextMenu.children[5].replaceWith(
-					ContextMenu.children[5].cloneNode(true),
-				);
-				ContextMenu.children[6].replaceWith(
-					ContextMenu.children[6].cloneNode(true),
-				);
-				ContextMenu.children[7].replaceWith(
-					ContextMenu.children[7].cloneNode(true),
-				);
-				ContextMenu.children[8].replaceWith(
-					ContextMenu.children[8].cloneNode(true),
-				);
-				ContextMenu.children[9].replaceWith(
-					ContextMenu.children[9].cloneNode(true),
-				);
-				ContextMenu.children[10].replaceWith(
-					ContextMenu.children[10].cloneNode(true),
-				);
-				ContextMenu.children[11].replaceWith(
-					ContextMenu.children[11].cloneNode(true),
-				);
-				document.querySelector(".c-item-ytdownload").replaceWith(
-					document.querySelector(".c-item-ytdownload").cloneNode(true));
-
-				ContextMenu.children[0].removeAttribute("disabled");
-				ContextMenu.children[0].classList.remove("c-item-disabled");
-				ContextMenu.children[1].removeAttribute("disabled");
-				ContextMenu.children[1].classList.remove("c-item-disabled");
-				ContextMenu.children[3].removeAttribute("disabled");
-				ContextMenu.children[3].classList.remove("c-item-disabled");
-				ContextMenu.children[4].removeAttribute("disabled");
-				ContextMenu.children[4].classList.remove("c-item-disabled");
-				ContextMenu.children[5].removeAttribute("disabled");
-				ContextMenu.children[5].classList.remove("c-item-disabled");
-				ContextMenu.children[6].removeAttribute("disabled");
-				ContextMenu.children[6].classList.remove("c-item-disabled");
-				ContextMenu.children[9].removeAttribute("disabled");
-				ContextMenu.children[9].classList.remove("c-item-disabled");
-				ContextMenu.children[10].removeAttribute("disabled");
-				ContextMenu.children[10].classList.remove("c-item-disabled");
-				ContextMenu.children[11].removeAttribute("disabled");
-				ContextMenu.children[11].classList.remove("c-item-disabled");
-
-				let extension = item.getAttribute("itemext");
-
-				// Check if item is an supported archive
-				if (
-					extension != ".zip" &&
-					extension != ".rar" &&
-					extension != ".7z" &&
-					extension != ".tar" &&
-					extension != ".gz" &&
-					extension != ".br" &&
-					extension != ".bz2"
-				) {
-					document
-						.querySelector(".c-item-extract")
-						.setAttribute("disabled", "true");
-					document
-						.querySelector(".c-item-extract")
-						.classList.add("c-item-disabled");
-				} else {
-					document.querySelector(".c-item-extract").removeAttribute("disabled");
-					document
-						.querySelector(".c-item-extract")
-						.classList.remove("c-item-disabled");
-				}
-
-				// Check if item can be searched through for duplicates
-				if (item.getAttribute("itemisdir") == "1") {
-					document
-						.querySelector(".c-item-duplicates")
-						.removeAttribute("disabled");
-					document
-						.querySelector(".c-item-duplicates")
-						.classList.remove("c-item-disabled");
-				} else {
-					document
-						.querySelector(".c-item-duplicates")
-						.setAttribute("disabled", "true");
-					document
-						.querySelector(".c-item-duplicates")
-						.classList.add("c-item-disabled");
-				}
-
-				document.querySelector(".c-item-delete").addEventListener(
-					"click",
-					async () => {
-						await deleteItems();
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-extract").addEventListener(
-					"click",
-					async () => {
-						await extractItem(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-compress").addEventListener(
-					"click",
-					async () => {
-						await showCompressPopup(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-copy").addEventListener(
-					"click",
-					async () => {
-						await copyItem(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-moveto").addEventListener(
-					"click",
-					async () => {
-						await itemMoveTo(false);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-newfile").addEventListener(
-					"click",
-					() => {
-						createFileInputPrompt(e);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-rename").addEventListener(
-					"click",
-					() => {
-						renameElementInputPrompt(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-properties").addEventListener(
-					"click",
-					() => {
-						showProperties(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-duplicates").addEventListener(
-					"click",
-					() => {
-						showFindDuplicates(item);
-					},
-					{ once: true },
-				);
-				document.querySelector(".c-item-ytdownload").addEventListener(
-					"click",
-					async () => {
-						await showYtDownload();
-					},
-					{ once: true },
-				);
-
-				positionContextMenu(e);
-			}
+			setupItemContextMenu(item, e);
 		});
 	});
 	if (IsDualPaneEnabled == true) {
@@ -1495,9 +1343,9 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 			case ".avif":
 			case ".icns":
 				if (IsImagePreview) {
-					fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+					fileIcon = convertFileSrc(item.path); 
 					// if (item.size > 20000000) {
-					//   fileIcon = convertFileSrc(await getThumbnail(item.path)); // Beispiel für die Verwendung der Funktion
+					//   fileIcon = convertFileSrc(await getThumbnail(item.path)); 
 					// }
 				} else {
 					fileIcon = "resources/img-file.png";
@@ -1505,9 +1353,9 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 				break;
 			case ".pdf":
 				if (IsImagePreview) {
-					fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+					fileIcon = convertFileSrc(item.path); 
 				} else {
-					fileIcon = "resources/img-file.png";
+					fileIcon = "resources/pdf-file.png";
 				}
 				break;
 			case ".txt":
@@ -1516,9 +1364,6 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 			case ".docx":
 			case ".doc":
 				fileIcon = "resources/word-file.png";
-				break;
-			case ".pdf":
-				fileIcon = "resources/pdf-file.png";
 				break;
 			case ".zip":
 			case ".rar":
@@ -1651,212 +1496,11 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 		itemLink.style.opacity = "1";
 		itemLink.style.border = "1px solid transparent";
 	});
-	// :item_right_click :context_menu
+	// :item_right_click :context_menu | AddSingleItem()
 	// Open context menu when right-clicking on file/folder
 	itemLink.addEventListener("contextmenu", async (e) => {
 		e.preventDefault();
-		if (ArrSelectedItems.length <= 1) {
-			unSelectAllItems();
-			selectItem(itemLink);
-		} else {
-			selectItem(itemLink);
-		}
-		if (IsPopUpOpen == false) {
-			let appsCMenu = document.querySelector(".context-open-item-with");
-			appsCMenu.innerHTML = "";
-			await getSetInstalledApplications(itemLink.getAttribute("itemext"));
-			if (Platform.includes("linux")) {
-				appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
-			} else if (Applications.length > 0) {
-				Applications.forEach((app) => {
-					let newItem = document.createElement("button");
-					newItem.innerHTML = app[0].split(".")[0];
-					newItem.className = "context-item";
-					newItem.setAttribute("appname", app[0].split(".")[0]);
-					newItem.setAttribute("apppath", app[1]);
-					newItem.addEventListener("click", () =>
-						open_with(item.getAttribute("itempath"), app[1]),
-					);
-					appsCMenu.appendChild(newItem);
-				});
-			} else {
-				appsCMenu.innerHTML = "<p>No applications found</p>";
-			}
-
-			// Reset so that the commands are not triggered multiple times
-			ContextMenu.children[0].replaceWith(
-				ContextMenu.children[0].cloneNode(true),
-			);
-			ContextMenu.children[2].replaceWith(
-				ContextMenu.children[2].cloneNode(true),
-			);
-			ContextMenu.children[3].replaceWith(
-				ContextMenu.children[3].cloneNode(true),
-			);
-			ContextMenu.children[4].replaceWith(
-				ContextMenu.children[4].cloneNode(true),
-			);
-			ContextMenu.children[5].replaceWith(
-				ContextMenu.children[5].cloneNode(true),
-			);
-			ContextMenu.children[6].replaceWith(
-				ContextMenu.children[6].cloneNode(true),
-			);
-			ContextMenu.children[7].replaceWith(
-				ContextMenu.children[7].cloneNode(true),
-			);
-			ContextMenu.children[8].replaceWith(
-				ContextMenu.children[8].cloneNode(true),
-			);
-			ContextMenu.children[9].replaceWith(
-				ContextMenu.children[9].cloneNode(true),
-			);
-			ContextMenu.children[10].replaceWith(
-				ContextMenu.children[10].cloneNode(true),
-			);
-			ContextMenu.children[11].replaceWith(
-				ContextMenu.children[11].cloneNode(true),
-			);
-			document
-				.querySelector(".c-item-ytdownload")
-				.replaceWith(
-					document.querySelector(".c-item-ytdownload").cloneNode(true),
-				);
-
-			ContextMenu.children[0].removeAttribute("disabled");
-			ContextMenu.children[0].classList.remove("c-item-disabled");
-			ContextMenu.children[1].removeAttribute("disabled");
-			ContextMenu.children[1].classList.remove("c-item-disabled");
-			ContextMenu.children[3].removeAttribute("disabled");
-			ContextMenu.children[3].classList.remove("c-item-disabled");
-			ContextMenu.children[4].removeAttribute("disabled");
-			ContextMenu.children[4].classList.remove("c-item-disabled");
-			ContextMenu.children[5].removeAttribute("disabled");
-			ContextMenu.children[5].classList.remove("c-item-disabled");
-			ContextMenu.children[6].removeAttribute("disabled");
-			ContextMenu.children[6].classList.remove("c-item-disabled");
-			ContextMenu.children[9].removeAttribute("disabled");
-			ContextMenu.children[9].classList.remove("c-item-disabled");
-			ContextMenu.children[10].removeAttribute("disabled");
-			ContextMenu.children[10].classList.remove("c-item-disabled");
-			ContextMenu.children[11].removeAttribute("disabled");
-			ContextMenu.children[11].classList.remove("c-item-disabled");
-
-			let extension = itemLink.getAttribute("itemext");
-
-			// Check if item is a supported archive
-			if (
-				extension != ".zip" &&
-				extension != ".rar" &&
-				extension != ".7z" &&
-				extension != ".tar" &&
-				extension != ".gz" &&
-				extension != ".br" &&
-				extension != ".bz2"
-			) {
-				document
-					.querySelector(".c-item-extract")
-					.setAttribute("disabled", "true");
-				document
-					.querySelector(".c-item-extract")
-					.classList.add("c-item-disabled");
-			} else {
-				document.querySelector(".c-item-extract").removeAttribute("disabled");
-				document
-					.querySelector(".c-item-extract")
-					.classList.remove("c-item-disabled");
-			}
-
-			// Check if item can be searched through for duplicates
-			if (itemLink.getAttribute("itemisdir") == "1") {
-				document
-					.querySelector(".c-item-duplicates")
-					.removeAttribute("disabled");
-				document
-					.querySelector(".c-item-duplicates")
-					.classList.remove("c-item-disabled");
-			} else {
-				document
-					.querySelector(".c-item-duplicates")
-					.setAttribute("disabled", "true");
-				document
-					.querySelector(".c-item-duplicates")
-					.classList.add("c-item-disabled");
-			}
-
-			document.querySelector(".c-item-delete").addEventListener(
-				"click",
-				async () => {
-					await deleteItems();
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-extract").addEventListener(
-				"click",
-				async () => {
-					await extractItem(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-compress").addEventListener(
-				"click",
-				async () => {
-					await showCompressPopup(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-copy").addEventListener(
-				"click",
-				async () => {
-					await copyItem(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-moveto").addEventListener(
-				"click",
-				async () => {
-					await itemMoveTo(false);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-newfile").addEventListener(
-				"click",
-				() => {
-					createFileInputPrompt(e);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-rename").addEventListener(
-				"click",
-				() => {
-					renameElementInputPrompt(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-properties").addEventListener(
-				"click",
-				() => {
-					showProperties(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-duplicates").addEventListener(
-				"click",
-				() => {
-					showFindDuplicates(itemLink);
-				},
-				{ once: true },
-			);
-			document.querySelector(".c-item-ytdownload").addEventListener(
-				"click",
-				async () => {
-					await showYtDownload();
-				},
-				{ once: true },
-			);
-
-			positionContextMenu(e);
-		}
+		setupItemContextMenu(itemLink, e);
 	});
 
 	if (IsDualPaneEnabled === true) {
@@ -1964,7 +1608,7 @@ async function deleteItems() {
 		}
 	}
 	let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
-	let isConfirm = await confirmPopup(msg, "delete"); 
+	let isConfirm = await confirmPopup(msg, PopupType.DELETE);
 	if (isConfirm == true) {
 		let actionId = new Date().getMilliseconds();
 		createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
@@ -1992,15 +1636,25 @@ async function copyItem(item, toCut = false, fromInternal = false) {
 	}
 	if (ArrSelectedItems.length > 0) {
 		for (let i = 0; i < ArrSelectedItems.length; i++) {
+			if (toCut === true) {
+				ArrSelectedItems[i].style.opacity = "0.5";
+				ArrSelectedItems[i].style.filter = "blur(2px)";
+			}
 			ArrCopyItems.push(ArrSelectedItems[i]);
 		}
 	} else {
-		ArrCopyItems.push(item);
+		ArrCopyItems.push(item); 
+		if (toCut === true) {
+			item.style.opacity = "0.5";
+			item.style.filter = "blur(2px)";
+		}
 	}
 	ContextMenu.style.display = "none";
 	await writeText(CopyFilePath);
 	if (toCut == true) {
 		IsCopyToCut = true;
+	} else {
+		IsCopyToCut = false;
 	}
 }
 
@@ -2008,7 +1662,7 @@ async function extractItem(item) {
 	let compressFilePath = item.getAttribute("itempath");
 	let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
 	ContextMenu.style.display = "none";
-	let isExtracting = await confirmPopup("Do you want to extract " + compressFileName + "?", "extract");
+	let isExtracting = await confirmPopup("Do you want to extract " + compressFileName + "?", PopupType.EXTRACT);
 	if (isExtracting == true) {
 		ContextMenu.style.display = "none";
 		let extractFilePath = item.getAttribute("itempath");
@@ -2170,7 +1824,7 @@ function showInputPopup(msg) {
 	popup.children[1].focus();
 	IsInputFocused = true;
 	popup.children[1].addEventListener("focusout", () => {
-		closeAllPopups();
+		resetEverything();
 		IsInputFocused = false;
 	});
 }
@@ -2308,7 +1962,7 @@ function createFolderInputPrompt() {
 	nameInput.addEventListener("keyup", (e) => {
 		if (e.keyCode === 13) {
 			createFolder(nameInput.children[1].value);
-			closeAllPopups();
+			resetEverything();
 			nameInput.remove();
 		}
 	});
@@ -2337,7 +1991,7 @@ function createFileInputPrompt(e) {
 	nameInput.addEventListener("keyup", (e) => {
 		if (e.keyCode === 13) {
 			createFile(nameInput.children[1].value);
-			closeAllPopups();
+			resetEverything();
 			nameInput.remove();
 		}
 	});
@@ -2437,9 +2091,9 @@ async function checkAppConfig() {
 				break;
 		}
 
-		switchView();
+		await switchView();
 		
-		document.querySelector(".context-open-in-terminal").style.display = "none";
+		// document.querySelector(".context-open-in-terminal").style.display = "none";
 
 		if (appConfig.is_dual_pane_enabled.includes("1")) {
 			document.querySelector(".show-dual-pane-checkbox").checked = true;
@@ -2468,6 +2122,7 @@ async function checkAppConfig() {
 		// Theme options
 		CurrentTheme = appConfig.current_theme;
 		appConfig.themes = await invoke("get_themes");
+		// Fallback when there's no theme installed
 		if (appConfig.themes.length == 0) {
 			appConfig.themes = [
 				{
@@ -2499,6 +2154,8 @@ async function checkAppConfig() {
 		// Set current theme
 		themeSelect.value = CurrentTheme;
 
+		checkColorMode(appConfig);
+
 		// General configurations
 		document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
 		document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
@@ -2517,8 +2174,8 @@ async function checkAppConfig() {
 					await listDirectories();
 				}
 			} else {
-				await goHome();
 				await initDualPane(await getCurrentDir());
+				await goHome();
 			}
 		} else if (appConfig.launch_path.length >= 1 && IsFirstRun == true) {
 			let path = appConfig.launch_path;
@@ -2530,10 +2187,9 @@ async function checkAppConfig() {
 				alert("No directory found or unable to open due to missing permissions");
 			}
 		} else {
-			await goHome();
 			await initDualPane(await getCurrentDir());
+			await goHome();
 		}
-		checkColorMode(appConfig);
 	});
 	await unSelectAllItems();
 	IsFirstRun = false;
@@ -2591,35 +2247,35 @@ async function listDisks() {
 			}
 			itemButton.innerHTML = `
 				<span class="disk-item-button">
-				<div class="disk-item-top">
-				<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto"/>
-				<span class="disk-info">
-				<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><b class="disk-info">Description:</b><b class="disk-info">${item.name}</b></span>
-				<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">File-System:</span><span class="disk-info">${item.format.replace('"', "").replace('"', "")}</span></span>
+					<div class="disk-item-top">
+						<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto"/>
+						<span class="disk-info">
+							<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Description:</span><span class="disk-info">${item.name}</span></span>
+							<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">File-System:</span><span class="disk-info">${item.format.replace('"', "").replace('"', "")}</span></span>
+						</span>
+						<span class="disk-info">
+							<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Total space:</span><span class="disk-info">${formatBytes(item.capacity)}</span></span>
+							<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Available space:</span><span class="disk-info">${formatBytes(item.avail)}</span></span>
+						</span>
+					</div>
+					<span class="disk-item-bot">
+						<div class="disk-item-usage-bar" style="width: ${evalCurrentLoad(item.avail, item.capacity)}%;"></div>
+						<p class="disk-info"><b class="disk-info">Usage:</b> ${formatBytes(item.capacity)} / ${formatBytes(item.avail)} available (${evalCurrentLoad(item.avail, item.capacity)}%)</p>
+					</span>
 				</span>
-				<span class="disk-info">
-				<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><b class="disk-info">Total space:</b><b class="disk-info"${formatBytes(item.capacity)}</b></span>
-				<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Available space:</span><span class="disk-info">${formatBytes(item.avail)}</span></span>
-				</span>
-				</div>
-				<span class="disk-item-bot">
-				<div class="disk-item-usage-bar" style="width: ${evalCurrentLoad(item.avail, item.capacity)}%;"></div>
-				<p class="disk-info"><b class="disk-info">Usage:</b> ${formatBytes(item.capacity)} / ${formatBytes(item.avail)} available (${evalCurrentLoad(item.avail, item.capacity)}%)</p>
-				</span>
-				</span>
-				`;
+			`;
 			itemButton.className = "disk-item-button-button directory-entry";
 			let itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center; width: 50%;">
-				<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
-				<p class="disk-info" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+					<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
+					<p class="disk-info" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-				<p class="disk-info" style="width: auto; text-align: right;">${formatBytes(item.avail)}</p>
-				<p class="disk-info" style="width: 75px; text-align: right;">${formatBytes(item.capacity)}</p>
+					<p class="disk-info" style="width: auto; text-align: right;">${formatBytes(item.avail)}</p>
+					<p class="disk-info" style="width: 75px; text-align: right;">${formatBytes(item.capacity)}</p>
 				</span>
-				`;
+			`;
 			itemButtonList.className = "item-button-list directory-entry";
 			if (ViewMode == "column") {
 				itemButton.style.display = "none";
@@ -2791,15 +2447,14 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 			: shortcutDirPath != null
 				? 1
 				: 0;
-	let path =
-		element != null ? element.getAttribute("itempath") : shortcutDirPath;
-	let millerCol =
-		element != null ? element.getAttribute("itemformillercol") : null;
+	let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
+	let millerCol = element != null ? element.getAttribute("itemformillercol") : null;
+	let ext = element != null ? element.getAttribute("itemext") : null;
 	if (IsPopUpOpen == false || IsQuickSearchOpen === true) {
 		if (
 			IsItemPreviewOpen == false &&
 			isDir == 1 &&
-			path.split(".")[path.split(".").length - 1] != "app"
+			ext != ".app"
 		) {
 			// Open directory
 			let isSwitched = await invoke("open_dir", { path });
@@ -2922,22 +2577,21 @@ async function unSelectAllItems() {
 	if (ArrSelectedItems.length > 0) {
 		for (let i = 0; i < ArrSelectedItems.length; i++) {
 			if (IsDualPaneEnabled) {
-				ArrSelectedItems[i].children[0].children[0].classList.remove(
-					"selected-item",
-				);
+				ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
 			} else if (ViewMode == "column" || ViewMode == "miller") {
-				ArrSelectedItems[i].children[0].children[0].classList.remove(
-					"selected-item",
-				);
+				ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
 			} else {
-				ArrSelectedItems[
-					i
-				].children[0].children[0].children[0].classList.remove("selected-item");
-				ArrSelectedItems[
-					i
-				].children[0].children[0].children[1].classList.remove(
-					"selected-item-min",
-				);
+				try {
+					if (IsShowDisks === true) {
+						ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
+						ArrSelectedItems[i].children[0].children[1].classList.remove("selected-item-min");
+					} else {
+						ArrSelectedItems[i].children[0].children[0].children[0].classList.remove("selected-item");
+						ArrSelectedItems[i].children[0].children[0].children[1].classList.remove("selected-item-min");
+					}
+				} catch (e) {
+					console.log(e);
+				}
 			}
 		}
 	}
@@ -3274,27 +2928,15 @@ async function goToDir(directory) {
 	await setCurrentDir(await getCurrentDir());
 }
 
-async function openFTP(
-	hostname,
-	username,
-	password,
-	remotePath = "/home",
-	mountPoint = "/tmp/rdpFX",
-) {
-	await invoke("mount_sshfs", {
-		hostname,
-		username,
-		password,
-		remotePath,
-		mountPoint,
-	});
-	await setCurrentDir(mountPoint);
-	await listDirectories();
-	closeFtpConfig();
-}
-
 async function openInTerminal() {
-	await invoke("open_in_terminal");
+	if (!await invoke("open_in_terminal", {"path": ArrSelectedItems.length === 0 ? CurrentDir : SelectedItemPath})) {
+		if (Platform === "linux") {
+			showToast("Failed to open terminal. Make sure exo-open is installed and configured.", "error", 5000);
+		} else {
+			showToast("Failed to open terminal.", "error");
+		}
+	}
+
 	ContextMenu.style.display = "none";
 }
 
@@ -3378,7 +3020,7 @@ function openSearchBar() {
 	IsQuickSearchOpen = true;
 	IsPopUpOpen = true;
 	document.querySelector(".dualpane-search-input").addEventListener("focusout", () => {
-		closeAllPopups();
+		resetEverything();
 		IsInputFocused = false;
 	});
 }
@@ -3460,7 +3102,9 @@ async function switchView() {
 		}
 		await invoke("switch_view", { viewMode: ViewMode });
 	}
-	await listDirectories();
+	if (IsShowDisks === false) {
+		await listDirectories();
+	}
 }
 
 async function switchToDualPane() {
@@ -3684,7 +3328,6 @@ async function showProperties(item) {
 		let path = item.getAttribute("itempath");
 		let ext = item.getAttribute("itemext");
 		let extension_description = getExtDescription(ext); // undefined if it's unknown or a directory
-		let size = item.getAttribute("itemsize");
 		let modifiedAt = item.getAttribute("itemmodified");
 		ContextMenu.style.display = "none";
 		let popup = document.createElement("div");
@@ -3694,7 +3337,7 @@ async function showProperties(item) {
 			<h3>${name}</h3>
 		</div>
 		<div class="popup-body">
-			<p>Path: ${path}</p>
+			<button class="item-preview-copy-path-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', 'success');">Path: ${path}</button>
 			${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ''}
 			<br/>
 			<p>Modified: ${modifiedAt}</p>
@@ -3732,7 +3375,6 @@ async function showItemPreview(item, isOverride = false) {
 	let name = item.getAttribute("itemname");
 	let ext = item.getAttribute("itemext");
 	let path = item.getAttribute("itempath");
-	let modified = item.getAttribute("itemmodified");
 	let popup = document.createElement("div");
 	popup.className = "item-preview-popup";
 	IsItemPreviewOpen = true;
@@ -3748,16 +3390,41 @@ async function showItemPreview(item, isOverride = false) {
 		case ".ico":
 		case ".jfif":
 		case ".avif":
-			module = `<img decoding="async" src="${convertFileSrc(path)}" alt="${name}" />`;
+			module = `
+				<div class="module-container">
+					<img decoding="async" src="${convertFileSrc(path)}"/>
+				</div>
+			`;
 			break;
 		case ".pdf":
+		case ".html":
 			module = `<iframe src="${convertFileSrc(path)}" />`;
+			break;
+		case ".mp4":
+		case ".mkv":
+		case ".mov":
+		case ".avi":
+		case ".webm":
+		case ".mp3":
+		case ".wav":
+		case ".ogg":
+		case ".flac":
+		case ".aac":
+		case ".m4a":
+		case ".wma":
+		case ".ape":
+		case ".flv":
+		case ".wmv":
+			module = `
+				<div class="module-container">
+					<video src="${convertFileSrc(path)}" autoplay></video>
+				</div>
+			`;
 			break;
 		case ".txt":
 		case ".json":
 		case ".sh":
 		case ".py":
-		case ".html":
 		case ".css":
 		case ".js":
 		case ".ts":
@@ -3784,33 +3451,27 @@ async function showItemPreview(item, isOverride = false) {
 		case ".gitignore":
 			popup.style.maxWidth = "50%";
 			module = `
-				<pre style=": 20px;">
-					${await invoke("get_file_content", { path })}
-				</pre>
+				<div class="module-container"><pre class="item-preview-file-content" style="padding: 20px;">${await invoke("get_file_content", { path })}</pre></div>
 			`;
 			break;
 		default:
 			showProperties(item);
 			return;
-			module = `
-				<div class="current-item-preview">
-					<p><b>Path:</b> ${path}</p>
-					<p style="display: flex; gap: 5px;"><b>Size:</b><span class="current-item-preview-size"></span></p>
-					<p><b>Last modified:</b> ${modified}</p>
-				</div>
-				`;
-			break;
 	}
 	popup.innerHTML = `
-		<div class="popup-header" style="font-weight: bolder !important;">
-			<p><b>Name:</b> ${name}</p>
+		<div class="popup-header">
+			<h3>Name: ${name}</h3>
 		</div>
 		${module}
 	`;
 	IsPopUpOpen = true;
 	document.querySelector("body").append(popup);
 	$(popup).fadeIn(fadeTime);
-	await dirSize(path, ".current-item-preview-size");
+	popup.children[0].addEventListener("keydown", (e) => {
+		if (e.key === "Escape") {
+			e.target.blur();
+		}
+	});
 }
 
 function showMultiRenamePopup() {
@@ -3975,20 +3636,8 @@ function evalCurrentLoad(available, total) {
 	return result.toFixed(0);
 }
 
-function closeFtpConfig() {
-	$(".ftp-connect-container").css("display", "none");
-	$(".ftp-loader").css("display", "none");
-	IsPopUpOpen = false;
-}
-
 async function showFtpConfig() {
 	if (IsPopUpOpen == false) {
-		// await invoke("install_dep", {
-		//   depName: "fuse-t",
-		// });
-		// await invoke("install_dep", {
-		//   depName: "fuse-t-sshfs",
-		// });
 		document.querySelector(".ftp-connect-container").style.display = "block";
 		IsPopUpOpen = true;
 		document.querySelectorAll(".ftp-popup-input").forEach(
@@ -4002,6 +3651,12 @@ async function showFtpConfig() {
 	}
 }
 
+function closeFtpConfig() {
+	$(".ftp-connect-container").css("display", "none");
+	$(".ftp-loader").css("display", "none");
+	IsPopUpOpen = false;
+}
+
 async function connectToFtp() {
 	let hostname = $(".ftp-hostname-input").val();
 	let username = $(".ftp-username-input").val();
@@ -4011,13 +3666,22 @@ async function connectToFtp() {
 	openFTP(hostname, username, password, remotePath);
 }
 
-function formatBytes(bytes, decimals = 2) {
-	if (!+bytes) return "0 Bytes";
-	const k = 1000;
-	const dm = decimals < 0 ? 0 : decimals;
-	const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-	const i = Math.floor(Math.log(bytes) / Math.log(k));
-	return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+async function openFTP(
+	hostname,
+	username,
+	password,
+	remotePath = "/",
+) {
+	await invoke("mount_sshfs", {
+		hostname,
+		username,
+		password,
+		remotePath,
+	}).then(async (mountedPath) => {
+		await openDirAndSwitch(mountedPath);
+		insertSiteNavButtons();
+	});
+	closeFtpConfig();
 }
 
 async function sortItems(sortMethod) {
@@ -4353,6 +4017,8 @@ async function getDir(number) {
 }
 
 async function insertSiteNavButtons() {
+	$(".site-nav-bar").html("");
+	let sshfsMounts = await invoke("get_sshfs_mounts");
 	let siteNavButtons = [
 		[
 			"Desktop",
@@ -4390,7 +4056,7 @@ async function insertSiteNavButtons() {
 			"fa-solid fa-music",
 			async () => await goToDir(5),
 		],
-		Platform.includes("win") && Platform != "darwin" ? [] : ["FTP", "", "fa-solid fa-network-wired", showFtpConfig],
+		Platform.includes("win") && Platform != "darwin" ? [] : ["FTP", "", "fa-solid fa-circle-nodes", showFtpConfig],
 	];
 
 	for (let i = 0; i < siteNavButtons.length; i++) {
@@ -4422,6 +4088,30 @@ async function insertSiteNavButtons() {
 	diskButton.onclick = () => listDisks();
 	diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Disks`;
 	document.querySelector(".site-nav-bar").append(diskButton);
+
+	if (sshfsMounts.length > 0) {
+		let seperator2 = document.createElement("div");
+		seperator2.className = "horizontal-seperator";
+		document.querySelector(".site-nav-bar").append(seperator2);
+		
+		sshfsMounts.forEach((mount) => {
+			let sshfsButton = document.createElement("button");
+			sshfsButton.className = "site-nav-bar-button sshfs-mount-button";
+			sshfsButton.setAttribute("onclick", `openDirAndSwitch('${mount.path}')`);
+			sshfsButton.innerHTML = `<i class="fa-solid fa-network-wired"></i> ${mount.name}`;
+			sshfsButton.addEventListener("contextmenu", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				showCustomContextMenu(e, [
+					{
+						name: "Unmont",
+						onclick: () => unmountNetworkDrive(mount)
+					},
+				]);
+			});
+			document.querySelector(".site-nav-bar").append(sshfsButton);
+		});
+	}
 }
 
 /* File operation context menu */
@@ -4557,13 +4247,13 @@ async function openDirAndSwitch(path) {
 async function openConfigLocation() {
 	let dir = await invoke("get_config_location");
 	await openDirAndSwitch(dir);
-	closeAllPopups();
+	resetEverything();
 }
 
-async function confirmPopup(message = "Nothing to see here!", type = "") {
+async function confirmPopup(message = "Nothing to see here!", type = PopupType.CONTINUE) {
 	let confirmationButton = "";
 	switch (type) {
-		case "confirm":
+		case PopupType.CONTINUE:
 			confirmationButton = `
 				<button class="icon-button">
 					<div class="button-icon"><i class="fa-solid fa-check"></i></div>
@@ -4571,7 +4261,7 @@ async function confirmPopup(message = "Nothing to see here!", type = "") {
 				</button>
 			`;
 			break;
-		case "extract":
+		case PopupType.EXTRACT:
 			confirmationButton = `
 				<button class="icon-button">
 					<div class="button-icon"><i class="fa-solid fa-maximize"></i></div>
@@ -4579,7 +4269,7 @@ async function confirmPopup(message = "Nothing to see here!", type = "") {
 				</button>
 			`;
 			break;
-		case "delete":
+		case PopupType.DELETE:
 			confirmationButton = `
 				<button class="icon-button delete-button">
 					<div class="button-icon"><i class="fa-solid fa-trash"></i></div>
@@ -4612,7 +4302,7 @@ async function confirmPopup(message = "Nothing to see here!", type = "") {
 	document.querySelector(".confirm-popup button:last-child").focus();
 	IsPopUpOpen = true;
 	$(".popup-background").css("display", "block");
-	setTimeout(() => $(".popup-background").css("opacity", "1"));
+	setTimeout(() => $(".popup-background").css("opacity", "1")); // Workaround to trigger opacity transition
 	return new Promise((resolve) => {
 		document.querySelector(".confirm-popup button:first-child").onclick = () => {
 			closeConfirmPopup();
@@ -4632,8 +4322,209 @@ function closeConfirmPopup() {
 	IsPopUpOpen = false;
 }
 
+function resetContextMenu() {
+	// Disabled access to "open with" context menu
+	$(".c-item-openwith").css("pointer-events", "none");
+	new Set(ContextMenu.children).forEach(children => {
+		if (
+			!(children.classList.contains("context-with-dropdown") && children.children[0].innerHTML === "Extras") &&
+			!children.classList.contains("c-item-newfile") &&
+			!children.classList.contains("c-item-newfolder") &&
+			!children.classList.contains("c-item-openinterminal")
+		)
+		{
+			children.setAttribute("disabled", "true");
+			children.classList.add("c-item-disabled");
+		}
+	});
+}
+
+async function setupItemContextMenu(item, e) {
+	if (ArrSelectedItems.length == 1 && (IsCtrlDown === false && Platform != "darwin" || Platform == "darwin" && IsMetaDown === false)) {
+		await unSelectAllItems();
+	}
+	if (!ArrSelectedItems.includes(item)) {
+		selectItem(item, "", true);
+	}
+	if (IsPopUpOpen == false) {
+		let appsCMenu = document.querySelector(".context-open-item-with");
+		appsCMenu.innerHTML = "";
+		await getSetInstalledApplications(item.getAttribute("itemext"));
+		if (Platform.includes("linux")) {
+			appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
+		} else if (Applications.length > 0) {
+			Applications.forEach((app) => {
+				if (app[0].split(".")[0].length > 0) {
+					let newItem = document.createElement("button");
+					newItem.innerHTML = app[0].split(".")[0];
+					newItem.className = "context-item";
+					newItem.setAttribute("appname", app[0].split(".")[0]);
+					newItem.setAttribute("apppath", app[1]);
+					newItem.addEventListener("click", () =>
+						open_with(item.getAttribute("itempath"), app[1]),
+					);
+					appsCMenu.appendChild(newItem);
+				}
+			});
+		} else {
+			appsCMenu.innerHTML = "<p>No applications found</p>";
+		}
+
+		// Reset so that the commands are not triggered multiple times
+		new Set(ContextMenu.children).forEach(children => {
+			children.replaceWith(children.cloneNode(true));
+		});
+
+		// Enable all items
+		new Set(ContextMenu.children).forEach(children => {
+			if (children.classList.contains("c-item-paste")) {
+				if (ArrCopyItems.length > 0) {
+					children.removeAttribute("disabled");
+					children.classList.remove("c-item-disabled");	
+				}
+			} else {
+				children.removeAttribute("disabled");
+				children.classList.remove("c-item-disabled");
+			}
+		});
+
+		
+		// Check if item is an supported archive
+		let extension = item.getAttribute("itemext");
+		if (
+			extension != ".zip" &&
+			extension != ".rar" &&
+			extension != ".7z" &&
+			extension != ".tar" &&
+			extension != ".gz" &&
+			extension != ".br" &&
+			extension != ".bz2"
+		) {
+			document.querySelector(".c-item-extract").setAttribute("disabled", "true");
+			document.querySelector(".c-item-extract").classList.add("c-item-disabled");
+		} else {
+			document.querySelector(".c-item-extract").removeAttribute("disabled");
+			document.querySelector(".c-item-extract").classList.remove("c-item-disabled");
+			// Disable another compression
+			document.querySelector(".c-item-compress").setAttribute("disabled", "true");
+			document.querySelector(".c-item-compress").classList.add("c-item-disabled");
+		}
+
+		// Check if item can be searched through for duplicates
+		if (item.getAttribute("itemisdir") == "1") {
+			document.querySelector(".c-item-duplicates").removeAttribute("disabled");
+			document.querySelector(".c-item-duplicates").classList.remove("c-item-disabled");
+		} else {
+			document.querySelector(".c-item-duplicates").setAttribute("disabled", "true");
+			document.querySelector(".c-item-duplicates").classList.add("c-item-disabled");
+		}
+
+		document.querySelector(".c-item-delete").addEventListener(
+			"click",
+			async () => {
+				await deleteItems();
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-extract").addEventListener(
+			"click",
+			async () => {
+				await extractItem(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-compress").addEventListener(
+			"click",
+			async () => {
+				await showCompressPopup(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-copy").addEventListener(
+			"click",
+			async () => {
+				await copyItem(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-moveto").addEventListener(
+			"click",
+			async () => {
+				await itemMoveTo(false);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-newfile").addEventListener(
+			"click",
+			() => {
+				createFileInputPrompt(e);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-rename").addEventListener(
+			"click",
+			() => {
+				renameElementInputPrompt(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-properties").addEventListener(
+			"click",
+			() => {
+				showProperties(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-duplicates").addEventListener(
+			"click",
+			() => {
+				showFindDuplicates(item);
+			},
+			{ once: true },
+		);
+		document.querySelector(".c-item-ytdownload").addEventListener(
+			"click",
+			async () => {
+				await showYtDownload();
+			},
+			{ once: true },
+		);
+
+		$(".context-with-dropdown").css("pointer-events", "all");
+
+		positionContextMenu(e);
+	}
+}
+
+function showCustomContextMenu(e, contextMenuItems = [{}]) {
+	let customContextMenu = document.createElement("div");
+	customContextMenu.className = "custom-context-menu";
+	contextMenuItems.map((item) => {
+		let newButton = document.createElement("button");
+		newButton.innerHTML = item.name;
+		newButton.className = "c-item-custom";
+		newButton.onclick = () => {
+			item.onclick();
+			closeCustomContextMenu();
+		};
+		customContextMenu.appendChild(newButton);
+	});
+	customContextMenu.style.position = "absolute";
+	customContextMenu.style.top = `${e.clientY}px`;
+	customContextMenu.style.left = `${e.clientX}px`;
+	document.querySelector("body").append(customContextMenu);
+}
+
+function closeCustomContextMenu() {
+	$(".custom-context-menu").remove();
+}
+
+function unmountNetworkDrive(networkDrive) {
+	invoke("unmount_network_drive", { path: networkDrive.path }).then(() => {
+		insertSiteNavButtons();
+	});
+}
 
 insertSiteNavButtons();
 checkAppConfig();
 getSetInstalledApplications();
-// showPromptInput();

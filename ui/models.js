@@ -25,3 +25,10 @@ class ActiveAction {
         `;
     }
 }
+
+const PopupType = {
+    PROMPT: "prompt",
+    CONTINUE: "continue",
+    EXTRACT: "extract",
+    DELETE: "delete"
+}
