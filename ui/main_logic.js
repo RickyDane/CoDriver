@@ -189,15 +189,15 @@ async function startFullSearch() {
 	await searchFor(fileName, maxItems, searchDepth, false, fileContent);
 }
 
-document.addEventListener("keyup", async (e) => {
+document.addEventListener("keydown", async (e) => {
 	if (e.key === "Escape") {
 		if (IsQuickSearchOpen == true) {
 			goUp(false, true);	
 		}
+		await resetEverything();
 		$(".search-bar-input").blur();
 		// Close all popups etc.
 		ContextMenu.style.display = "none";
-		resetEverything();
 		if (DraggedOverElement != null) {
 			DraggedOverElement.style.opacity = "1";
 		}
@@ -258,9 +258,9 @@ function resetQuickSearch() {
 	}, 100);
 }
 
-function resetEverything() {
-	if (IsPopUpOpen === false) {
-		refreshView();
+async function resetEverything() {
+	if (IsPopUpOpen === false && IsInputFocused === false) {
+		await refreshView();
 	}
 	closeSearchBar();
 	closeSettings();
@@ -546,7 +546,7 @@ document.onkeydown = async (e) => {
 			e.key == "c"
 		) {
 			await writeText(CurrentDir);
-			showToast("Current dir path copied", "success");
+			showToast("Current dir path copied", ToastType.SUCCESS);
 			return;
 		}
 		// Check if cmd / ctrl + f is pressed
@@ -1619,7 +1619,7 @@ async function deleteItems() {
 		IsCopyToCut = false;
 		await listDirectories();
 		ArrSelectedItems = [];
-		showToast("Deletion of items is done", "success");
+		showToast("Deletion of items is done", ToastType.INFO);
 		removeAction(actionId);
 	}
 }
@@ -1670,7 +1670,7 @@ async function extractItem(item) {
 		if (extractFileName != "") {
 			let fromPath = extractFilePath.toString();
 			await invoke("extract_item", { fromPath, appWindow });
-			showToast("Extraction done", "success");
+			showToast("Extraction done", ToastType.SUCCESS);
 			await listDirectories();
 		}
 	}
@@ -1762,7 +1762,7 @@ async function compressItem(arrItems, compressionLevel = 3) {
 			appWindow
 		});
 		await listDirectories();
-		showToast("Compressing done", "success");
+		showToast("Compressing done", ToastType.INFO);
 	} else {
 		let item = arrItems[0];
 		let compressFilePath = item.getAttribute("itempath");
@@ -1778,7 +1778,7 @@ async function compressItem(arrItems, compressionLevel = 3) {
 				appWindow
 			});
 			await listDirectories();
-			showToast("Compressing done", "success");
+			showToast("Compressing done", ToastType.INFO);
 		}
 	}
 }
@@ -1931,7 +1931,7 @@ async function pasteItem(copyToPath = "") {
 		await listDirectories(true);
 	}
 	if (arr.length >= 1) {
-		showToast("Done copying some files", "success");
+		showToast("Done copying some files", ToastType.SUCCESS);
 	}
 }
 
@@ -2292,7 +2292,9 @@ async function listDisks() {
 			newRow.append(itemButtonList);
 			itemLink.append(newRow);
 			DirectoryList.append(itemLink);
-			document.querySelector(".current-path").textContent = "Disks/";
+			document.querySelector(".current-path").innerHTML = `
+				<div class="path-item">Disks</div>
+			`;
 		});
 	});
 	document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
@@ -2931,9 +2933,9 @@ async function goToDir(directory) {
 async function openInTerminal() {
 	if (!await invoke("open_in_terminal", {"path": ArrSelectedItems.length === 0 ? CurrentDir : SelectedItemPath})) {
 		if (Platform === "linux") {
-			showToast("Failed to open terminal. Make sure exo-open is installed and configured.", "error", 5000);
+			showToast("Failed to open terminal. Make sure exo-open is installed and configured.", ToastType.ERROR, 5000);
 		} else {
-			showToast("Failed to open terminal.", "error");
+			showToast("Failed to open terminal.", ToastType.ERROR);
 		}
 	}
 
@@ -3021,7 +3023,6 @@ function openSearchBar() {
 	IsPopUpOpen = true;
 	document.querySelector(".dualpane-search-input").addEventListener("focusout", () => {
 		resetEverything();
-		IsInputFocused = false;
 	});
 }
 
@@ -3297,7 +3298,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 		arrFavorites: ArrFavorites,
 	});
 	if (isVerbose === true) {
-		showToast("Settings have been saved", "success");
+		showToast("Settings have been saved", ToastType.INFO);
 	}
 	if (isToReload == true) {
 		checkAppConfig();
@@ -3337,7 +3338,7 @@ async function showProperties(item) {
 			<h3>${name}</h3>
 		</div>
 		<div class="popup-body">
-			<button class="item-preview-copy-path-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', 'success');">Path: ${path}</button>
+			<button class="item-preview-copy-path-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', ToastType.INFO);">Path: ${path}</button>
 			${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ''}
 			<br/>
 			<p>Modified: ${modifiedAt}</p>
@@ -3355,7 +3356,7 @@ async function showProperties(item) {
 		`;
 		document.querySelector("body").append(popup);
 		IsPopUpOpen = true;
-		await dirSize(path, ".properties-item-size");
+		await getSimpleDirInfo(path, ".properties-item-size");
 	}
 }
 
@@ -4017,7 +4018,11 @@ async function getDir(number) {
 }
 
 async function insertSiteNavButtons() {
-	$(".site-nav-bar").html("");
+	for (let children of document.querySelector(".site-nav-bar").children) {
+		if (!children.classList.contains("active-actions-container")) {
+			children.remove();
+		}
+	}
 	let sshfsMounts = await invoke("get_sshfs_mounts");
 	let siteNavButtons = [
 		[
@@ -4149,74 +4154,6 @@ async function fileOperationContextMenu() {
 	});
 	contextMenu.remove();
 	return FileOperation;
-}
-
-async function showPromptInput() {
-	let popup = document.createElement("div");
-	popup.className = "uni-popup llm-prompt-input-popup";
-	popup.innerHTML = `
-		<div class="popup-header">
-		<h3>Prompt</h3>
-		</div>
-		<div class="popup-body">
-		<div class="popup-body-row-section">
-		<input type="text" class="text-input llm-prompt-input" placeholder="Enter your prompt here">
-		</div>
-		<div class="popup-body-row-section">
-		<div style='width: 100%' class="popup-body-col-section">
-		<p>Response</p>
-		<textarea style='width: 100%; resize: none; height: 200px;' class="text-input llm-prompt-response" readonly></textarea>
-		</div>
-		</div>
-		</div>
-		<div class="popup-controls">
-		<button class="icon-button" onclick="closeLLMPromptInputPopup()">
-		<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-		Cancel
-		</button>
-		<button class="icon-button llm-prompt-run">
-		<div class="button-icon"><i class="fa-solid fa-arrow-right"></i></div>
-		Run
-		</button>
-		</div>
-		`;
-	document.body.appendChild(popup);
-	IsPopUpOpen = true;
-
-	document.querySelector(".llm-prompt-response").value = "";
-
-	document.querySelector(".llm-prompt-input").onkeyup = (e) => {
-		if (e.key === "Enter") {
-			document.querySelector(".llm-prompt-run").click();
-		}
-	};
-
-	document.querySelector(".llm-prompt-input").focus();
-	IsInputFocused = true;
-
-	document.querySelector(".llm-prompt-run").onclick = async () => {
-		showLoadingPopup("Loading model ...");
-		document.querySelector(".llm-prompt-run").disabled = true;
-		document.querySelector(".llm-prompt-run").style.opacity = "0.5";
-		document.querySelector(".llm-prompt-input").disabled = true;
-		document.querySelector(".llm-prompt-input").style.opacity = "0.5";
-		document.querySelector(".llm-prompt-response").value = "Loading ...";
-		let prompt = document.querySelector(".llm-prompt-input").value;
-		if (prompt.length > 0) {
-			await get_llm_response(prompt);
-		}
-	};
-}
-
-async function closeLLMPromptInputPopup() {
-	cancelOperation();
-	document.querySelector(".llm-prompt-input-popup")?.remove();
-	IsInputFocused = false;
-	IsPopUpOpen = false;
-}
-
-async function get_llm_response(prompt) {
-	return await invoke("get_llm_response", { appWindow, prompt });
 }
 
 async function stopSearching() {

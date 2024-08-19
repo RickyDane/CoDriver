@@ -9,6 +9,7 @@ use flate2::read::GzDecoder;
 use icns::{IconFamily, IconType};
 use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
+use serde::Serialize;
 use serde_json::Value;
 use std::fs::{self, read_dir, remove_dir, OpenOptions};
 #[allow(unused)]
@@ -130,7 +131,7 @@ fn main() {
             download_yt_video,
             get_app_icns,
             get_thumbnail,
-            get_dir_size,
+            get_simple_dir_info,
             get_themes,
             stop_searching,
             get_file_content,
@@ -1795,24 +1796,37 @@ async fn get_thumbnail(image_path: String) -> String {
 }
 
 #[tauri::command]
-async fn get_dir_size(path: String, app_window: Window, class_to_fill: String) -> u64 {
+async fn get_simple_dir_info(path: String, app_window: Window, class_to_fill: String) -> SimpleDirInfo {
     unsafe {
         CALCED_SIZE = 0;
     }
-    dir_size(path, &app_window, class_to_fill)
+    dir_info(path, &app_window, class_to_fill)
+}
+
+#[derive(Debug, Serialize)]
+struct SimpleDirInfo {
+    size: u64,
+    count_elements: u64,
 }
 
 static mut CALCED_SIZE: u64 = 0; // Currently unused -> Coming implementation for showing progress
-fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
+fn dir_info(path: String, app_window: &Window, class_to_fill: String) -> SimpleDirInfo {
     if PathBuf::from(&path).is_file() {
-        return PathBuf::from(&path).metadata().unwrap().len();
+        return SimpleDirInfo {
+            size: PathBuf::from(&path).metadata().unwrap().len(),
+            count_elements: 1
+        };
     }
 
     let entry = match fs::read_dir(path) {
         Ok(entry) => entry,
-        Err(_) => return 0,
+        Err(_) => return SimpleDirInfo {
+            size: 0,
+            count_elements: 0
+        },
     };
     let mut size = 0;
+    let mut count_elements = 0;
 
     for entry in entry {
         if let Ok(entry) = entry {
@@ -1823,25 +1837,20 @@ fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
                 };
                 size += file_size;
             } else if entry.file_type().unwrap().is_dir() {
-                let dir_size = dir_size(
+                let dir_size = dir_info(
                     entry.path().to_string_lossy().to_string(),
                     app_window,
                     class_to_fill.clone(),
-                );
+                ).size;
                 size += dir_size;
-                // unsafe {
-                //     CALCED_SIZE += dir_size;
-                //     if CALCED_SIZE % 1000 == 0 {
-                //         let _ = app_window.eval(&format!(
-                //             "document.querySelector('{}').innerHTML = formatBytes({}) + ' ' + formatBytes({})",
-                //             class_to_fill, CALCED_SIZE, dir_size
-                //         ));
-                //     }
-                // }
             }
+            count_elements += 1;
         }
     }
-    size
+    SimpleDirInfo {
+        size,
+        count_elements
+    }
 }
 
 #[tauri::command]
