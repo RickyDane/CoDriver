@@ -46,7 +46,6 @@ CoDriver does not use path caching to access files and folders, so the performan
 - Copy & Paste, delete, create and rename files and folders
 - Switch between "big buttons"-, list and miller columns mode
 - Close popups with esc
-- Ctrl / Cmd + S for a quicksearch in the current directory
 - Jump to a directory with Ctrl / Cmd + G by inputting a path
 - Sort items in list mode by size, name or last modified
 <br/>
@@ -63,6 +62,7 @@ CoDriver does not use path caching to access files and folders, so the performan
   - Configure the paths yourself in the settings
 - Create file with F6
 - Create folder with F7
+- Start typing in a directory to instantly filter dir entries
 - Dual-Pane view
   - Search for files with F8
   - Copy current selected element to other pane with F5
@@ -187,7 +187,6 @@ sudo dnf group install "C Development Tools and Libraries"
 ### Dual pane view
 ![Screenshot 2024-08-13 at 19 08 25](https://github.com/user-attachments/assets/a3f9a511-5e8f-44ed-95d3-1a59e2cba05b)
 
-
 ## Speed comparison
 Windows File Explorer: _39.83 sec._<br/>
 CoDriver: **_0.81 sec._**
@@ -198,6 +197,18 @@ Windows File Explorer: _44.91 sec._<br/>
 CoDriver: **_< 0.5 sec._**
 
 https://github.com/user-attachments/assets/169da3d0-06ac-4775-a631-5c5708ae4766
+
+</br>
+
+## How to contribute
+Setup your machine for developing tauri v1 applications: [Tauri prerequisites](https://tauri.app/v1/guides/getting-started/prerequisites)
+</br></br>
+When this is done just do ```git clone https://github.com/RickyDane/CoDriver``` or ```gh repo clone RickyDane/CoDriver``` in a location on your machine.
+</br></br>
+You should be able to run ```cargo tauri dev``` in the root directory of this project to start building and running CoDriver.
+</br>
+Be sure to have tauri-cli installed: ```cargo install tauri-cli```
+</br></br>
 
 ## Star History
 

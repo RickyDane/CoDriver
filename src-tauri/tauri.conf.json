@@ -8,14 +8,14 @@
   },
   "package": {
     "productName": "CoDriver",
-    "version": "0.4.82"
+    "version": "0.4.83"
   },
   "tauri": {
     "updater": {
       "windows":{
         "installMode": "passive"
       },
-      "active": true,
+      "active": false,
       "endpoints": [
         "https://raw.githubusercontent.com/RickyDane/CoDriver/master/codriver-update.json",
         "https://gist.githubusercontent.com/RickyDane/1b3c8e1d79e9982cd876cec8e666f5fd/raw/"

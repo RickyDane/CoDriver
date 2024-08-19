@@ -10,7 +10,7 @@ use icns::{IconFamily, IconType};
 use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde_json::Value;
-use std::fs::{self, read_dir};
+use std::fs::{self, read_dir, remove_dir, OpenOptions};
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
@@ -136,10 +136,11 @@ fn main() {
             get_file_content,
             open_config_location,
             log,
-            get_config_location
+            get_config_location,
+            get_sshfs_mounts,
+            unmount_network_drive
         ])
         .plugin(tauri_plugin_drag::init())
-        .plugin(devtools::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -386,7 +387,7 @@ async fn list_disks() -> Vec<DisksInfo> {
         let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
         for mount in ls_sshfs_mounts {
             let mount = mount.unwrap();
-            dbg_log(format!("{:?} || {:?}", mount.file_name(), mount.path()));
+            dbg_log(format!("{:?} | {:?}", mount.file_name(), mount.path()));
             ls_disks.push(DisksInfo {
                 name: format!("{:?}", mount.file_name())
                     .split("/")
@@ -395,7 +396,7 @@ async fn list_disks() -> Vec<DisksInfo> {
                     .to_string()
                     .replace("\"", ""),
                 dev: format!("{:?}", mount.file_name()),
-                format: format!("{:?}", mount.file_type()),
+                format: "SSHFS Network-Drive".into(),
                 path: format!("{:?}", mount.path()),
                 avail: format!("{:?}", mount.metadata().unwrap().len()),
                 capacity: format!("{:?}", mount.metadata().unwrap().len()),
@@ -404,6 +405,34 @@ async fn list_disks() -> Vec<DisksInfo> {
         }
     }
     return ls_disks;
+}
+
+#[tauri::command]
+async fn get_sshfs_mounts() -> Vec<DisksInfo> {
+    let ls_sshfs_mounts = fs::read_dir("/tmp/codriver-sshfs-mount");
+    if ls_sshfs_mounts.is_ok() {
+        let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
+        let mut ls_disks: Vec<DisksInfo> = vec![];
+        for mount in ls_sshfs_mounts {
+            let mount = mount.unwrap();
+            ls_disks.push(DisksInfo {
+                name: format!("{:?}", mount.file_name())
+                    .split("/")
+                    .last()
+                    .unwrap_or("/")
+                    .to_string()
+                    .replace("\"", ""),
+                dev: format!("{:?}", mount.file_name()),
+                format: "SSHFS Network-Drive".into(),
+                path: mount.path().as_path().to_string_lossy().to_string(),
+                avail: format!("{:?}", mount.metadata().unwrap().len()),
+                capacity: format!("{:?}", mount.metadata().unwrap().len()),
+                is_removable: true,
+            });
+        }
+        return ls_disks;
+    }
+    return vec![];
 }
 
 #[tauri::command]
@@ -554,10 +583,10 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
 
 // :ftp
 #[tauri::command]
-async fn mount_sshfs(hostname: String, username: String, password: String, remote_path: String) {
+async fn mount_sshfs(hostname: String, username: String, password: String, remote_path: String) -> String {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
-    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &hostname;
+    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &username;
 
     // Ensure the local mount point exists
     std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
@@ -591,6 +620,7 @@ async fn mount_sshfs(hostname: String, username: String, password: String, remot
             String::from_utf8_lossy(&output.stderr),
         ));
     }
+    return mount_point;
 }
 
 #[tauri::command]
@@ -750,7 +780,7 @@ async fn copy_paste(
     is_for_dual_pane: String,
     mut copy_to_path: String,
 ) {
-    if &copy_to_path.len() == &0 {
+    if copy_to_path.clone().len() == 0 {
         wng_log("No destination path provided. Defaulting to current dir".into());
         copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
     }
@@ -1822,7 +1852,7 @@ async fn get_file_content(path: String) -> String {
         let json_string_pretty = serde_json::to_string_pretty(&json).unwrap();
         return json_string_pretty;
     }
-    content
+    return content;
 }
 
 #[tauri::command]
@@ -1842,6 +1872,7 @@ async fn get_config_location() -> String {
 
 #[tauri::command]
 async fn log(log: String) {
+    let log = format!("[{}] {}\n", chrono::Local::now().format("%H:%M:%S"), log);
     let log_file_path = config_dir()
         .unwrap()
         .join("com.codriver.dev")
@@ -1849,14 +1880,43 @@ async fn log(log: String) {
     if !log_file_path.exists() {
         let _ = fs::File::create(&log_file_path);
     }
-    let log_file = File::open(&log_file_path).unwrap();
-    let mut log_writer = BufWriter::new(log_file);
-    let _ = log_writer.write_all(log.as_bytes());
-    let _ = log_writer.flush();
+
+    // Write text to logfile
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(&log_file_path)
+        .unwrap();
+    let _ = file.write_all(log.as_bytes());
+
     dbg_log(format!(
         "Written to: {} Log: {}",
         log_file_path.to_str().unwrap(),
         log
     ));
     return;
+}
+
+#[tauri::command]
+async fn unmount_network_drive(path: String) {
+    let _ = Command::new("umount")
+        .arg(&path)
+        .spawn();
+    dbg_log(format!("Unmounted: {}", path));
+    let remove = remove_dir(&path);
+    if remove.is_err() {
+        dbg_log(format!("Failed to remove: {} | Trying again in 0.5s", path));
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        let remove2 = remove_dir(&path);
+        if remove2.is_err() {
+            dbg_log(format!("Failed to remove: {} | Trying again in 1s", path));
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+            let remove3 = remove_dir(&path);
+            if remove3.is_err() {
+                dbg_log(format!("Failed to remove: {} | Err: {}", path, remove3.err().unwrap()));
+                return;
+            }
+        }
+    }
+    dbg_log(format!("Removed: {}", path));
 }
