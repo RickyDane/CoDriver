@@ -125,7 +125,10 @@ let DraggedOverElement = null;
 let MousePos = [];
 let FileOperation = "";
 let IsFirstRun = true;
+const TIMETORESET = 500;
 let CurrentQuickSearch = "";
+let CurrentQuickSearchTime = 100;
+let CurrentQuickSearchTimer = null;
 
 /* Colors  */
 let PrimaryColor = "#3f4352";
@@ -194,7 +197,7 @@ document.addEventListener("keyup", async (e) => {
 		$(".search-bar-input").blur();
 		// Close all popups etc.
 		ContextMenu.style.display = "none";
-		closeAllPopups();
+		resetEverything();
 		if (DraggedOverElement != null) {
 			DraggedOverElement.style.opacity = "1";
 		}
@@ -203,7 +206,8 @@ document.addEventListener("keyup", async (e) => {
 			item.style.opacity = "1";
 		});
 	}
-	if (IsDualPaneEnabled &&
+	if (IsInputFocused === false &&
+		IsPopUpOpen === false &&
 		e.key !== "Escape" &&
 		e.key !== "ArrowLeft" &&
 		e.key !== "ArrowRight" &&
@@ -212,21 +216,52 @@ document.addEventListener("keyup", async (e) => {
 		e.key !== "Enter" &&
 		e.key !== "Backspace" &&
 		e.key !== "Delete" &&
+		e.key !== "CapsLock" &&
+		e.key !== "Shift" &&
+		e.key !== "Control" &&
+		e.key !== "Alt" &&
+		e.key !== "Meta" &&
+		e.key !== "Tab" &&
+		e.key !== " " &&
 		!e.metaKey &&
 		!e.ctrlKey &&
 		!e.altKey &&
 		!e.shiftKey &&
 		IsMetaDown === false &&
 		IsCtrlDown === false &&
-		IsAltDown === false &&
 		IsShiftDown === false
 	) {
 		CurrentQuickSearch += e.key;
-		searchFor(CurrentQuickSearch, 9999999, 1, true);
+		await searchFor(CurrentQuickSearch, 9999999, 1, true);
+		setTimeout(() => {
+			if (IsDualPaneEnabled === true) {
+				goUp(true);
+			} else {
+				goLeft();
+			}
+		}, 250);
+		CurrentQuickSearchTime = TIMETORESET;
+		clearInterval(CurrentQuickSearchTimer);
+		resetQuickSearch();
 	}
 });
 
-function closeAllPopups() {
+function resetQuickSearch() {
+	CurrentQuickSearchTimer = setInterval(() => {
+		if (CurrentQuickSearchTime <= 0) {
+			clearInterval(CurrentQuickSearchTimer);
+			CurrentQuickSearchTime = TIMETORESET;
+			CurrentQuickSearch = "";
+		} else {
+			CurrentQuickSearchTime -= 50;
+		}
+	}, 100);
+}
+
+function resetEverything() {
+	if (IsPopUpOpen === false) {
+		refreshView();
+	}
 	closeSearchBar();
 	closeSettings();
 	closeFullSearchContainer();
@@ -252,6 +287,8 @@ function closeAllPopups() {
 	$(".site-nav-bar-button").css("border", "1px solid transparent");
 	$(".item-link").css("border", "1px solid transparent");
 	$(".path-item").css("border", "1px solid transparent");
+	CurrentQuickSearch = "";
+	resetQuickSearch();
 }
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
@@ -632,16 +669,17 @@ document.onkeydown = async (e) => {
 				e.preventDefault();
 				e.stopPropagation();
 			}
-			// check if ctrl / cmd + s is pressed
-			if (
-				((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-				e.key === "s" &&
-				IsShowDisks == false
-			) {
-				openSearchBar();
-				e.preventDefault();
-				e.stopPropagation();
-			}
+			// Disabled for instant quick search
+			// check if cmd / ctrl + s is pressed
+			// if (
+			// 	((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
+			// 	e.key === "s" &&
+			// 	IsShowDisks == false
+			// ) {
+			// 	openSearchBar();
+			// 	e.preventDefault();
+			// 	e.stopPropagation();
+			// }
 
 			// check if ctrl / cmd + shift + m is pressed
 			if (
@@ -1786,7 +1824,7 @@ function showInputPopup(msg) {
 	popup.children[1].focus();
 	IsInputFocused = true;
 	popup.children[1].addEventListener("focusout", () => {
-		closeAllPopups();
+		resetEverything();
 		IsInputFocused = false;
 	});
 }
@@ -1924,7 +1962,7 @@ function createFolderInputPrompt() {
 	nameInput.addEventListener("keyup", (e) => {
 		if (e.keyCode === 13) {
 			createFolder(nameInput.children[1].value);
-			closeAllPopups();
+			resetEverything();
 			nameInput.remove();
 		}
 	});
@@ -1953,7 +1991,7 @@ function createFileInputPrompt(e) {
 	nameInput.addEventListener("keyup", (e) => {
 		if (e.keyCode === 13) {
 			createFile(nameInput.children[1].value);
-			closeAllPopups();
+			resetEverything();
 			nameInput.remove();
 		}
 	});
@@ -2982,7 +3020,7 @@ function openSearchBar() {
 	IsQuickSearchOpen = true;
 	IsPopUpOpen = true;
 	document.querySelector(".dualpane-search-input").addEventListener("focusout", () => {
-		closeAllPopups();
+		resetEverything();
 		IsInputFocused = false;
 	});
 }
@@ -4209,7 +4247,7 @@ async function openDirAndSwitch(path) {
 async function openConfigLocation() {
 	let dir = await invoke("get_config_location");
 	await openDirAndSwitch(dir);
-	closeAllPopups();
+	resetEverything();
 }
 
 async function confirmPopup(message = "Nothing to see here!", type = PopupType.CONTINUE) {
@@ -4291,7 +4329,8 @@ function resetContextMenu() {
 		if (
 			!(children.classList.contains("context-with-dropdown") && children.children[0].innerHTML === "Extras") &&
 			!children.classList.contains("c-item-newfile") &&
-			!children.classList.contains("c-item-newfolder")
+			!children.classList.contains("c-item-newfolder") &&
+			!children.classList.contains("c-item-openinterminal")
 		)
 		{
 			children.setAttribute("disabled", "true");

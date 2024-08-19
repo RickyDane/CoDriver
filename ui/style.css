@@ -1607,7 +1607,6 @@ button > svg {
     background-color: var(--primaryColor);
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     border: 1px solid var(--tertiaryColor);
-    border-top: none;
     border-radius: 10px;
     overflow: hidden;
     z-index: 98 !important;

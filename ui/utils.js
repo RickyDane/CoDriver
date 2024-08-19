@@ -109,14 +109,17 @@ async function getThumbnail(imagePath) {
 }
 
 async function dirSize(path = "", classToFill = "") {
+  let toReturnBytes = 0;
   $(classToFill).html(
     `<div style="display: flex; gap: 10px;"><div class="preloader-small-invert"></div> Loading ...</div>`,
   );
   await invoke("get_dir_size", { path, appWindow, classToFill }).then(
     (bytes) => {
       $(classToFill).html(formatBytes(bytes));
+      toReturnBytes = bytes;
     },
   );
+  return toReturnBytes;
 }
 
 function formatBytes(bytes, decimals = 2) {
