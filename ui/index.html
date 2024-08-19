@@ -127,10 +127,10 @@
                 <div class="settings-ui-body">
                     <div class="popup-body-col-section">
                         <h3 class="settings-ui-headline">Theme</h3>
-                        <div style="display: flex; gap: 10px; align-items: center;">
+                        <div class="popup-body-row-section">
                             <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig(true)"></i>
                             <select style="min-width: 0 !important;" class="select theme-select" onchange="saveConfig(true, true)"></select>
-                            <button class="icon-button" onclick="openConfigLocation()">
+                            <button class="open-config-button icon-button" onclick="openConfigLocation()">
                                 <span class="button-icon"><i class="fa-solid fa-folder"></i></span>
                                 Open config location
                             </button>
@@ -148,10 +148,10 @@
                     <br />
                     <h3 class="settings-ui-headline">Search settings</h3>
                     <p>Search depth (higher = slower) | Standard: 10</p>
-                    <input style="width: 100px;" type="number" class="text-input number-input search-depth-input"
+                    <input style="width: 100px;" type="number" class="text-input settings-input number-input search-depth-input"
                         placeholder="0 = off" />
                     <p>Max count of items to find (higher = slower) | Standard: 1000</p>
-                    <input style="width: 100px;" type="number" class="text-input number-input max-items-input"
+                    <input style="width: 100px;" type="number" class="text-input settings-input number-input max-items-input"
                         placeholder="0 = off" />
                     <p>Path to launch at start</p>
                     <input type="text" class="settings-ui-input text-input launch-path-input" placeholder="/home" />

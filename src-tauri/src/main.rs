@@ -387,7 +387,7 @@ async fn list_disks() -> Vec<DisksInfo> {
         let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
         for mount in ls_sshfs_mounts {
             let mount = mount.unwrap();
-            dbg_log(format!("{:?} || {:?}", mount.file_name(), mount.path()));
+            dbg_log(format!("{:?} | {:?}", mount.file_name(), mount.path()));
             ls_disks.push(DisksInfo {
                 name: format!("{:?}", mount.file_name())
                     .split("/")
@@ -424,7 +424,7 @@ async fn get_sshfs_mounts() -> Vec<DisksInfo> {
                     .replace("\"", ""),
                 dev: format!("{:?}", mount.file_name()),
                 format: "SSHFS Network-Drive".into(),
-                path: format!("{:?}", mount.path()),
+                path: mount.path().as_path().to_string_lossy().to_string(),
                 avail: format!("{:?}", mount.metadata().unwrap().len()),
                 capacity: format!("{:?}", mount.metadata().unwrap().len()),
                 is_removable: true,
@@ -583,7 +583,7 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
 
 // :ftp
 #[tauri::command]
-async fn mount_sshfs(hostname: String, username: String, password: String, remote_path: String) {
+async fn mount_sshfs(hostname: String, username: String, password: String, remote_path: String) -> String {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
     let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &username;
@@ -620,6 +620,7 @@ async fn mount_sshfs(hostname: String, username: String, password: String, remot
             String::from_utf8_lossy(&output.stderr),
         ));
     }
+    return mount_point;
 }
 
 #[tauri::command]
@@ -1861,16 +1862,24 @@ async fn log(log: String) {
 
 #[tauri::command]
 async fn unmount_network_drive(path: String) {
-    let unmount = Command::new("sh")
-        .arg("-c")
-        .arg("umount")
-        .arg("-f")
+    let _ = Command::new("umount")
         .arg(&path)
         .spawn();
-    if unmount.is_ok() {
-        let _ = remove_dir(&path);
-        dbg_log(format!("Unmounted: {}", path));
-    } else {
-        dbg_log(format!("Failed to unmount: {}", path));
+    dbg_log(format!("Unmounted: {}", path));
+    let remove = remove_dir(&path);
+    if remove.is_err() {
+        dbg_log(format!("Failed to remove: {} | Trying again in 0.5s", path));
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        let remove2 = remove_dir(&path);
+        if remove2.is_err() {
+            dbg_log(format!("Failed to remove: {} | Trying again in 1s", path));
+            std::thread::sleep(std::time::Duration::from_millis(1000));
+            let remove3 = remove_dir(&path);
+            if remove3.is_err() {
+                dbg_log(format!("Failed to remove: {} | Err: {}", path, remove3.err().unwrap()));
+                return;
+            }
+        }
     }
+    dbg_log(format!("Removed: {}", path));
 }

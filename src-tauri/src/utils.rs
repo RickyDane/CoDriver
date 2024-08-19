@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use color_print::cprintln;
 use regex::Regex;
 use serde::Serialize;
+use sysinfo::System;
 use std::{
     ffi::OsStr,
     fmt::Debug,
@@ -297,7 +298,7 @@ impl DirWalker {
         }
 
         for entry in jwalk::WalkDir::new(path)
-            .parallelism(jwalk::Parallelism::RayonNewPool(num_cpus::get() - 2))
+            .parallelism(jwalk::Parallelism::RayonNewPool(System::new().physical_core_count().unwrap_or(4) - 2))
             .sort(true)
             .min_depth(1)
             .max_depth(depth as usize)
