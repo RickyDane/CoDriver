@@ -68,7 +68,7 @@ listen("tauri://file-drop", async (event) => {
 });
 
 /* Toasts */
-function showToast(message, type = "info") {
+function showToast(message, type = "info", timeout = 2000) {
   let toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
   let colorClass = "";
@@ -96,11 +96,11 @@ function showToast(message, type = "info") {
   setTimeout(() => {
     toast.style.opacity = 0;
     toast.style.translate = "100px";
-  }, 2000);
+  }, timeout);
 
   setTimeout(() => {
     toast?.remove();
-  }, 2200);
+  }, timeout + 200);
 }
 
 async function getThumbnail(imagePath) {

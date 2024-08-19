@@ -275,6 +275,7 @@ document.addEventListener("mousedown", (e) => {
 		ContextMenu.children[9].classList.add("c-item-disabled");
 		// ContextMenu.children[10].setAttribute("disabled", "true");
 		// ContextMenu.children[10].classList.add("c-item-disabled");
+		ContextMenu.children[12].style.display = "";
 
 		document
 			.querySelector(".c-item-duplicates")
@@ -1215,6 +1216,19 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 						.classList.add("c-item-disabled");
 				}
 
+				// Check if the item can be opened in the terminal
+				if (item.getAttribute("itemisdir") == "1" && ArrSelectedItems.length == 1) {
+					document
+						.querySelector(".c-item-openinterminal")
+						.style
+						.display = "";
+				} else {
+					document
+						.querySelector(".c-item-openinterminal")
+						.style
+						.display = "none";
+				}
+
 				document.querySelector(".c-item-delete").addEventListener(
 					"click",
 					async () => {
@@ -1781,6 +1795,19 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 				document
 					.querySelector(".c-item-duplicates")
 					.classList.add("c-item-disabled");
+			}
+
+			// Check if the item can be opened in the terminal
+			if (item.getAttribute("itemisdir") == "1" && ArrSelectedItems.length == 1) {
+				document
+					.querySelector(".c-item-openinterminal")
+					.style
+					.display = "";
+			} else {
+				document
+					.querySelector(".c-item-openinterminal")
+					.style
+					.display = "none";
 			}
 
 			document.querySelector(".c-item-delete").addEventListener(
@@ -2447,8 +2474,6 @@ async function checkAppConfig() {
 		}
 
 		switchView();
-		
-		document.querySelector(".context-open-in-terminal").style.display = "none";
 
 		if (appConfig.is_dual_pane_enabled.includes("1")) {
 			document.querySelector(".show-dual-pane-checkbox").checked = true;
@@ -3303,7 +3328,14 @@ async function openFTP(
 }
 
 async function openInTerminal() {
-	await invoke("open_in_terminal");
+	if (!await invoke("open_in_terminal", {"path": ArrSelectedItems.length === 0 ? CurrentDir : SelectedItemPath})) {
+		if (Platform === "linux") {
+			showToast("Failed to open terminal. Make sure exo-open is installed and configured.", "error", 5000);
+		} else {
+			showToast("Failed to open terminal.", "error");
+		}
+	}
+
 	ContextMenu.style.display = "none";
 }
 
