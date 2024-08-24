@@ -208,30 +208,14 @@ document.addEventListener("keydown", async (e) => {
 	}
 	if (IsInputFocused === false &&
 		IsPopUpOpen === false &&
-		e.key !== "Escape" &&
-		e.key !== "ArrowLeft" &&
-		e.key !== "ArrowRight" &&
-		e.key !== "ArrowUp" &&
-		e.key !== "ArrowDown" &&
-		e.key !== "Enter" &&
-		e.key !== "Backspace" &&
-		e.key !== "Delete" &&
-		e.key !== "CapsLock" &&
-		e.key !== "Shift" &&
-		e.key !== "Control" &&
-		e.key !== "Alt" &&
-		e.key !== "Meta" &&
-		e.key !== "Tab" &&
-		e.key !== " " &&
-		!e.metaKey &&
-		!e.ctrlKey &&
-		!e.altKey &&
-		!e.shiftKey &&
 		IsMetaDown === false &&
 		IsCtrlDown === false &&
-		IsShiftDown === false
+		IsShiftDown === false &&
+		isShortcut(e.key) === false	
 	) {
 		CurrentQuickSearch += e.key;
+		$(".instant-search-input").css("display", "block");
+		$(".instant-search-input").val(CurrentQuickSearch);
 		await searchFor(CurrentQuickSearch, 9999999, 1, true);
 		setTimeout(() => {
 			if (IsDualPaneEnabled === true) {
@@ -252,6 +236,8 @@ function resetQuickSearch() {
 			clearInterval(CurrentQuickSearchTimer);
 			CurrentQuickSearchTime = TIMETORESET;
 			CurrentQuickSearch = "";
+			$(".instant-search-input").val("");
+			$(".instant-search-input").css("display", "none");
 		} else {
 			CurrentQuickSearchTime -= 50;
 		}
@@ -409,6 +395,56 @@ function positionContextMenu(e) {
 }
 
 /* :shortcuts Shortcuts configuration */
+
+function isShortcut(key) {
+	if (key == "Meta" ||
+		key == "Control" ||
+		key == "Shift" ||
+		key == "Alt" ||
+		key == "CapsLock" ||
+		key == "Enter" ||
+		key == "Backspace" ||
+		key == "Delete" ||
+		key == "ArrowLeft" ||
+		key == "ArrowRight" ||
+		key == "ArrowUp" ||
+		key == "ArrowDown" ||
+		key == "Escape" ||
+		key == "Tab" ||
+		key == "F1" ||
+		key == "F2" ||
+		key == "F3" ||
+		key == "F4" ||
+		key == "F5" ||
+		key == "F6" ||
+		key == "F7" ||
+		key == "F8" ||
+		key == "F9" ||
+		key == "F10" ||
+		key == "F11" ||
+		key == "F12" ||
+		key == "F13" ||
+		key == "Home" ||
+		key == "End" ||
+		key == "PageUp" ||
+		key == "PageDown" ||
+		key == "PrintScreen" ||
+		key == "Insert" ||
+		key == "Pause" ||
+		key == "Help" ||
+		key == "NumLock" ||
+		key == "Clear" ||
+		key == "ScrollLock" ||
+		key == "+" ||
+		key == "-" ||
+		key == "*" ||
+		key == "/" ||
+		key == ",") {
+		return true;
+	} else {
+		return false;
+	}
+}
 
 document.onkeydown = async (e) => {
 	if (IsDisableShortcuts === false) {
@@ -4019,7 +4055,7 @@ async function getDir(number) {
 
 async function insertSiteNavButtons() {
 	for (let children of document.querySelector(".site-nav-bar").children) {
-		if (!children.classList.contains("active-actions-container")) {
+		if (!children.classList.contains("active-actions-container") && !children.classList.contains("codriver-name")) {
 			children.remove();
 		}
 	}

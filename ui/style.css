@@ -2116,3 +2116,22 @@ button > svg {
 .c-item-custom:hover {
     background-color: var(--transparentColorActive);
 }
+
+.instant-search-input {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 100px;
+    margin: auto;
+    border: 1px solid var(--tertiaryColor);
+    border-radius: 10px;
+    padding: 5px;
+    background-color: var(--transparentColor);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    color: var(--textColor);
+    font-size: var(--fontSize);
+    width: 200px;
+    z-index: 5;
+}
