@@ -71,8 +71,10 @@ CoDriver does not use path caching to access files and folders, so the performan
 - Multi rename your selection with Ctrl / Cmd + LShift + M
   - Run multi rename with Ctrl / Cmd + Return
 - File quick preview -> Select directory entry and tap the space bar.
-  - Supported files: all image files (.jpg, .png, ...), pdf's
+  - Supported files: all image files (.jpg, .png, ...), .pdf, .mp4, .json, .txt, .html
   - All other items will show a small tile with some information about it. (path, size, last modified)
+- Instant navigation -> Start typing and automatically filter the directory entries making it sometimes <br/>
+  much faster to navigate to a desired location
 <br/>
 
 ## Dependencies (If not working instantly)
