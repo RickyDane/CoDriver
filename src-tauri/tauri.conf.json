@@ -8,11 +8,11 @@
   },
   "package": {
     "productName": "CoDriver",
-    "version": "0.4.832"
+    "version": "0.4.85"
   },
   "tauri": {
     "updater": {
-      "windows":{
+      "windows": {
         "installMode": "passive"
       },
       "active": false,
@@ -24,9 +24,7 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ3MzcwNjIzMDdCNjM4NTMKUldSVE9MWUhJd1kzUjkrZEk4Z3RrU25nV3ZjeDNuUE4ycVpzNVIreGFvMlc1OFR6MFltYnlSL28K"
     },
     "bundle": {
-      "resources": [
-        "resources/*"
-      ],
+      "resources": ["resources/*"],
       "active": true,
       "category": "DeveloperTool",
       "copyright": "",
@@ -70,10 +68,7 @@
         "removeFile": true,
         "renameFile": true,
         "exists": true,
-        "scope": [
-          "**",
-          "$RESOURCE/*"
-        ]
+        "scope": ["**", "$RESOURCE/*"]
       },
       "http": {
         "all": true,
@@ -135,9 +130,7 @@
       "protocol": {
         "asset": true,
         "assetScope": {
-          "allow": [
-            "**"
-          ],
+          "allow": ["**"],
           "requireLiteralLeadingDot": false
         },
         "all": true

@@ -192,7 +192,7 @@ async function startFullSearch() {
 document.addEventListener("keydown", async (e) => {
 	if (e.key === "Escape") {
 		if (IsQuickSearchOpen == true) {
-			goUp(false, true);	
+			goUp(false, true);
 		}
 		await resetEverything();
 		$(".search-bar-input").blur();
@@ -211,7 +211,8 @@ document.addEventListener("keydown", async (e) => {
 		IsMetaDown === false &&
 		IsCtrlDown === false &&
 		IsShiftDown === false &&
-		isShortcut(e.key) === false	
+		!isShortcut(e.key) &&
+		e.key != " "
 	) {
 		CurrentQuickSearch += e.key;
 		$(".instant-search-input").css("display", "block");
@@ -1184,7 +1185,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			document.querySelector(".dual-pane-right").append(DirectoryList);
 			RightDualPanePath = CurrentDir;
 			RightPaneItemCollection = DirectoryList;
-		} 
+		}
 	} else if (ViewMode == "miller") {
 		$(".miller-col-" + millerCol).html("");
 		$(".miller-col-" + millerCol).append(DirectoryList);
@@ -1379,9 +1380,9 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 			case ".avif":
 			case ".icns":
 				if (IsImagePreview) {
-					fileIcon = convertFileSrc(item.path); 
+					fileIcon = convertFileSrc(item.path);
 					// if (item.size > 20000000) {
-					//   fileIcon = convertFileSrc(await getThumbnail(item.path)); 
+					//   fileIcon = convertFileSrc(await getThumbnail(item.path));
 					// }
 				} else {
 					fileIcon = "resources/img-file.png";
@@ -1389,7 +1390,7 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 				break;
 			case ".pdf":
 				if (IsImagePreview) {
-					fileIcon = convertFileSrc(item.path); 
+					fileIcon = convertFileSrc(item.path);
 				} else {
 					fileIcon = "resources/pdf-file.png";
 				}
@@ -1562,7 +1563,7 @@ async function getCurrentDir() {
 
 async function setCurrentDir(currentDir = "", dualPaneSide = "") {
 	if (currentDir == "") return;
-	
+
 	if (dualPaneSide != "") {
 		SelectedItemPaneSide = dualPaneSide;
 	}
@@ -1679,7 +1680,7 @@ async function copyItem(item, toCut = false, fromInternal = false) {
 			ArrCopyItems.push(ArrSelectedItems[i]);
 		}
 	} else {
-		ArrCopyItems.push(item); 
+		ArrCopyItems.push(item);
 		if (toCut === true) {
 			item.style.opacity = "0.5";
 			item.style.filter = "blur(2px)";
@@ -1751,7 +1752,7 @@ async function showCompressPopup(item) {
 			<div class="popup-controls">
 			<button class="icon-button" onclick="closeCompressPopup()">
 			<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-			Close	
+			Close
 			</button>
 			<button class="icon-button compress-item-button">
 			<div class="button-icon"><i class="fa-solid fa-minimize"></i></div>
@@ -2128,7 +2129,7 @@ async function checkAppConfig() {
 		}
 
 		await switchView();
-		
+
 		// document.querySelector(".context-open-in-terminal").style.display = "none";
 
 		if (appConfig.is_dual_pane_enabled.includes("1")) {
@@ -2505,7 +2506,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 						await addMillerCol(millerCol);
 						await setMillerColActive(null, millerCol);
 						await listDirectories();
-					} 
+					}
 					else {
 						await listDirectories();
 					}
@@ -2872,7 +2873,7 @@ async function initDualPane(path = "") {
 function goLeft(isToFirst = false, index = null) {
 	if (index == null) {
 		if (SelectedElement == null) {
-			index = 0;	
+			index = 0;
 		}
 		else {
 			index = parseInt(SelectedElement?.getAttribute("itemindex")) - 1 ?? 0;
@@ -2888,7 +2889,7 @@ function goLeft(isToFirst = false, index = null) {
 function goRight(isToFirst = false, index = null) {
 	if (index == null) {
 		if (SelectedElement == null) {
-			index = 0;	
+			index = 0;
 		}
 		else {
 			index = parseInt(SelectedElement?.getAttribute("itemindex")) + 1 ?? 0;
@@ -2915,7 +2916,7 @@ function goGridUp() {
 	if (SelectedElement != null) {
 		index = parseInt(SelectedElement?.getAttribute("itemindex")) - rowlen;
 	}
-	goLeft(false, index);	
+	goLeft(false, index);
 }
 
 function goGridDown() {
@@ -2932,7 +2933,7 @@ function goGridDown() {
 	if (SelectedElement != null) {
 		index = parseInt(SelectedElement?.getAttribute("itemindex")) + rowlen;
 	}
-	goRight(false, index);	
+	goRight(false, index);
 }
 
 async function openSelectedItem() {
@@ -3221,7 +3222,7 @@ async function switchToDualPane() {
 		await applyPlatformFeatures();
 		document.querySelector(".switch-dualpane-view-button").innerHTML =
 			`<i class="fa-solid fa-table-columns"></i>`;
-		// Reset to view before the 
+		// Reset to view before the
 		switch (OrgViewMode) {
 			case "wrap":
 				ViewMode = "miller";
@@ -4054,11 +4055,14 @@ async function getDir(number) {
 }
 
 async function insertSiteNavButtons() {
-	for (let children of document.querySelector(".site-nav-bar").children) {
-		if (!children.classList.contains("active-actions-container") && !children.classList.contains("codriver-name")) {
-			children.remove();
-		}
-	}
+  // Clear current stack of nav buttons
+  document.querySelectorAll(".site-nav-bar-button").forEach(item => item.remove());
+  new Set(document.querySelector(".site-nav-bar").children).forEach(item => {
+    if (item.className == "horizontal-seperator") {
+      item.remove();
+    }
+  });
+
 	let sshfsMounts = await invoke("get_sshfs_mounts");
 	let siteNavButtons = [
 		[
@@ -4097,6 +4101,7 @@ async function insertSiteNavButtons() {
 			"fa-solid fa-music",
 			async () => await goToDir(5),
 		],
+		// No sshfs implemenation for windows *yet*
 		Platform.includes("win") && Platform != "darwin" ? [] : ["FTP", "", "fa-solid fa-circle-nodes", showFtpConfig],
 	];
 
@@ -4134,7 +4139,7 @@ async function insertSiteNavButtons() {
 		let seperator2 = document.createElement("div");
 		seperator2.className = "horizontal-seperator";
 		document.querySelector(".site-nav-bar").append(seperator2);
-		
+
 		sshfsMounts.forEach((mount) => {
 			let sshfsButton = document.createElement("button");
 			sshfsButton.className = "site-nav-bar-button sshfs-mount-button";
@@ -4268,7 +4273,7 @@ async function confirmPopup(message = "Nothing to see here!", type = PopupType.C
 				<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
 				Cancel
 			</button>
-			${confirmationButton}	
+			${confirmationButton}
 		</div>
 	`;
 	document.body.appendChild(popup);
@@ -4353,7 +4358,7 @@ async function setupItemContextMenu(item, e) {
 			if (children.classList.contains("c-item-paste")) {
 				if (ArrCopyItems.length > 0) {
 					children.removeAttribute("disabled");
-					children.classList.remove("c-item-disabled");	
+					children.classList.remove("c-item-disabled");
 				}
 			} else {
 				children.removeAttribute("disabled");
@@ -4361,7 +4366,7 @@ async function setupItemContextMenu(item, e) {
 			}
 		});
 
-		
+
 		// Check if item is an supported archive
 		let extension = item.getAttribute("itemext");
 		if (
