@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "CoDriver",
-    "version": "0.4.85"
+    "version": "0.4.86"
   },
   "tauri": {
     "updater": {
@@ -147,10 +147,10 @@
         "decorations": true,
         "fullscreen": false,
         "transparent": true,
-        "height": 750,
+        "height": 550,
         "resizable": true,
         "title": "CoDriver",
-        "width": 1350,
+        "width": 1050,
         "hiddenTitle": true,
         "titleBarStyle": "Overlay"
       }

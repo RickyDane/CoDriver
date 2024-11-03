@@ -67,6 +67,7 @@ let IsShowHiddenFiles = false;
 let IsMetaDown = false;
 let IsCtrlDown = false;
 let IsShiftDown = false;
+let IsAltDown = false;
 
 let IsQuickSearchOpen = false;
 let ConfiguredPathOne = "";
@@ -159,37 +160,51 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 });
 
 /* Quicksearch for dual pane view */
-document.querySelector(".fullsearch-search-button").onclick = async () => {
-	if (IsFullSearching == false) {
-		await startFullSearch();
-	}
-};
-document.querySelectorAll(".trigger-for-full-search").forEach((item) =>
-	item.addEventListener("keyup", async (e) => {
-		if (e.keyCode === 13 && IsFullSearching == false) {
-			await startFullSearch();
-		}
-	}),
-);
 
 async function startFullSearch() {
-	IsFullSearching = true;
-	let fileName = document.querySelector(".full-dualpane-search-input").value;
-	let maxItems = parseInt(
-		document.querySelector(".full-search-max-items-input").value,
-	);
-	maxItems = maxItems >= 1 ? maxItems : 9999999;
-	let searchDepth = parseInt(
-		document.querySelector(".full-search-search-depth-input").value,
-	);
-	searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
-	let fileContent = document.querySelector(
-		".full-dualpane-search-file-content-input",
-	).value;
-	await searchFor(fileName, maxItems, searchDepth, false, fileContent);
+  if (IsFullSearching == false) {
+    IsFullSearching = true;
+    $(".full-searching-loader").css("display", "block");
+    $(".fullsearch-search-button").html(`
+      <div class="button-icon"><i class="fa-solid fa-stop"></i></div>
+      Stop
+    `);
+    document.querySelector(".fullsearch-search-button").addEventListener("click", async () => {
+      await stopFullSearch();
+    });
+    let fileName = document.querySelector(".full-dualpane-search-input").value;
+    let maxItems = parseInt(
+      document.querySelector(".full-search-max-items-input").value,
+    );
+    maxItems = maxItems >= 1 ? maxItems : 9999999;
+    let searchDepth = parseInt(
+      document.querySelector(".full-search-search-depth-input").value,
+    );
+    searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
+    let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
+    await searchFor(fileName, maxItems, searchDepth, false, fileContent);
+  }
+}
+
+async function stopFullSearch() {
+  document.querySelector(".fullsearch-search-button").replaceWith(document.querySelector(".fullsearch-search-button").cloneNode(true));
+  IsFullSearching = false;
+  $(".full-searching-loader").css("display", "none");
+  $(".fullsearch-current-file").html("");
+  $(".fullsearch-search-button").html(`
+    <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+    Search
+  `);
+  document.querySelector(".fullsearch-search-button").addEventListener("click", async () => {
+    await startFullSearch();
+  });
+  await stopSearching();
 }
 
 document.addEventListener("keydown", async (e) => {
+  if (IsAltDown == true) return;
+  if (IsMetaDown == true) return;
+  if (IsCtrlDown == true) return;
 	if (e.key === "Escape") {
 		if (IsQuickSearchOpen == true) {
 			goUp(false, true);
@@ -246,7 +261,7 @@ function resetQuickSearch() {
 }
 
 async function resetEverything() {
-	if (IsPopUpOpen === false && IsInputFocused === false) {
+	if (IsPopUpOpen === false && IsInputFocused === false && IsItemPreviewOpen === false) {
 		await refreshView();
 	}
 	closeSearchBar();
@@ -450,31 +465,20 @@ function isShortcut(key) {
 document.onkeydown = async (e) => {
 	if (IsDisableShortcuts === false) {
 		// Shortcut for jumping to configured directory
-		if (e.metaKey && Platform == "darwin") {
-			IsMetaDown = true;
-		}
-		if (e.ctrlKey && Platform != "darwin") {
-			IsCtrlDown = true;
-		}
-		if (e.key == "Shift") {
-			IsShiftDown = true;
-		}
+		if (e.metaKey && Platform == "darwin") IsMetaDown = true;
+		if (e.ctrlKey && Platform != "darwin") IsCtrlDown = true;
+		if (e.key == "Shift") IsShiftDown = true;
+		if (e.key == "Alt") IsAltDown = true;
 		if (e.altKey && e.code == "Digit1") {
-			if (ConfiguredPathOne == "") {
-				return;
-			}
+			if (ConfiguredPathOne == "") return;
 			openItem(null, SelectedItemPaneSide, ConfiguredPathOne);
 		}
 		if (e.altKey && e.code == "Digit2") {
-			if (ConfiguredPathTwo == "") {
-				return;
-			}
+			if (ConfiguredPathTwo == "") return;
 			openItem(null, SelectedItemPaneSide, ConfiguredPathTwo);
 		}
 		if (e.altKey && e.code == "Digit3") {
-			if (ConfiguredPathThree == "") {
-				return;
-			}
+			if (ConfiguredPathThree == "") return;
 			openItem(null, SelectedItemPaneSide, ConfiguredPathThree);
 		}
 
@@ -588,6 +592,7 @@ document.onkeydown = async (e) => {
 		}
 		// Check if cmd / ctrl + f is pressed
 		if (e.key == "f" && (e.ctrlKey || e.metaKey)) {
+      if (IsDualPaneEnabled == true) return;
 			$(".search-bar-input").focus();
 			IsInputFocused = true;
 			e.preventDefault();
@@ -613,6 +618,7 @@ document.onkeydown = async (e) => {
 				goUp();
 				e.preventDefault();
 				e.stopPropagation();
+        return;
 			}
 			// Check if cmd / ctrl + a is pressed
 			if (
@@ -779,18 +785,11 @@ document.onkeydown = async (e) => {
 
 // Reset key toggle
 document.onkeyup = (e) => {
-	if (e.key == "G" || e.key == "g") {
-		IsGDown = false;
-	}
-	if (e.keyCode === 91 && Platform == "darwin") {
-		IsMetaDown = false;
-	}
-	if (e.key == "Control" && Platform != "darwin") {
-		IsCtrlDown = false;
-	}
-	if (e.key == "Shift") {
-		IsShiftDown = false;
-	}
+	if (e.key == "G" || e.key == "g") IsGDown = false;
+	if (e.keyCode === 91 && Platform == "darwin") IsMetaDown = false;
+	if (e.key == "Control" && Platform != "darwin") IsCtrlDown = false;
+	if (e.key == "Shift") IsShiftDown = false;
+  if (e.key == "Alt") IsAltDown = false;
 };
 
 /* End of shortcut config */
@@ -2567,13 +2566,13 @@ function selectItem(element, dualPaneSide = "", isNotReset = false) {
 		SelectedElement.children[0].classList.add("selected-item");
 	} else if (ViewMode == "column" || ViewMode == "miller") {
 		if (IsShowDisks) {
-			SelectedElement.children[0].children[1].classList.add("selected-item");
+			SelectedElement?.children[0].children[1].classList.add("selected-item");
 		} else {
-			SelectedElement.children[0].children[0].classList.add("selected-item");
+			SelectedElement?.children[0].children[0].classList.add("selected-item");
 		}
 	} else {
 		if (IsShowDisks == true) {
-			SelectedElement.children[0].children[0].classList.add("selected-item");
+			SelectedElement  .children[0].children[0].classList.add("selected-item");
 		} else {
 			SelectedElement.children[0].children[0].children[0].classList.add(
 				"selected-item",
@@ -2733,19 +2732,19 @@ function goUp(isSwitched = false, toFirst = false) {
 			/* Scroll logic */
 			if (SelectedItemPaneSide == "left") {
 				if (
-					parseInt(selectedItemIndex) * 36 -
+					parseInt(selectedItemIndex) * 38 -
 					document.querySelector(".dual-pane-left").scrollTop <
 					10
 				) {
-					document.querySelector(".dual-pane-left").scrollTop -= 36;
+					document.querySelector(".dual-pane-left").scrollTop -= 38;
 				}
 			} else if (SelectedItemPaneSide == "right") {
 				if (
-					parseInt(selectedItemIndex) * 36 -
+					parseInt(selectedItemIndex) * 38 -
 					document.querySelector(".dual-pane-right").scrollTop <
 					10
 				) {
-					document.querySelector(".dual-pane-right").scrollTop -= 36;
+					document.querySelector(".dual-pane-right").scrollTop -= 38;
 				}
 			}
 		} else {
@@ -2830,19 +2829,19 @@ function goDown() {
 	/* Scroll logic */
 	if (SelectedItemPaneSide == "left") {
 		if (
-			parseInt(selectedItemIndex) * 36 -
+			parseInt(selectedItemIndex) * 38 -
 			document.querySelector(".dual-pane-left").scrollTop >
-			window.innerHeight - 200
+			window.innerHeight - 150
 		) {
-			document.querySelector(".dual-pane-left").scrollTop += 36;
+			document.querySelector(".dual-pane-left").scrollTop += 38;
 		}
 	} else if (SelectedItemPaneSide == "right") {
 		if (
-			parseInt(selectedItemIndex) * 36 -
+			parseInt(selectedItemIndex) * 38 -
 			document.querySelector(".dual-pane-right").scrollTop >
-			window.innerHeight - 200
+			window.innerHeight - 150
 		) {
-			document.querySelector(".dual-pane-right").scrollTop += 36;
+			document.querySelector(".dual-pane-right").scrollTop += 38;
 		}
 	}
 }
@@ -3017,6 +3016,7 @@ async function searchFor(
 			});
 		}, 250);
 	} else {
+    stopFullSearch();
 		alert("Type in a minimum of 2 characters");
 	}
 	IsSearching = false;
@@ -3029,6 +3029,11 @@ function openFullSearchContainer() {
 	IsInputFocused = true;
 	IsPopUpOpen = true;
 	IsDisableShortcuts = true;
+  document.querySelectorAll(".trigger-for-full-search").forEach(element => element.addEventListener("keydown", (e) => {
+    if (e.key == "Enter") {
+      startFullSearch();
+    }
+  }));
 }
 
 function closeFullSearchContainer() {
@@ -3039,7 +3044,7 @@ function closeFullSearchContainer() {
 }
 
 document.querySelector(".dualpane-search-input").addEventListener("keyup", async (e) => {
-	if (e.keyCode == 13) {
+	if (e.keyCode == 13) { // 13 = Enter
 		closeSearchBar();
 		if (IsDualPaneEnabled == true) {
 			await openSelectedItem(SelectedElement);
@@ -4338,9 +4343,10 @@ async function setupItemContextMenu(item, e) {
 					newItem.className = "context-item";
 					newItem.setAttribute("appname", app[0].split(".")[0]);
 					newItem.setAttribute("apppath", app[1]);
-					newItem.addEventListener("click", () =>
-						open_with(item.getAttribute("itempath"), app[1]),
-					);
+          newItem.addEventListener("click", () => {
+            console.log(app);
+            open_with(item.getAttribute("itempath"), app[1]);
+          });
 					appsCMenu.appendChild(newItem);
 				}
 			});
@@ -4365,7 +4371,6 @@ async function setupItemContextMenu(item, e) {
 				children.classList.remove("c-item-disabled");
 			}
 		});
-
 
 		// Check if item is an supported archive
 		let extension = item.getAttribute("itemext");
