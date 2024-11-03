@@ -22,6 +22,10 @@
         </div>
     </div>
     <div class="popup-background"></div>
+
+    <!-- :instant-search | Instant Search -->
+    <input class="instant-search-input text-input" type="text" placeholder="Start typing ..." disabled/>
+
     <div style="display: flex; width: 100%; height: 100vh;">
         <div data-tauri-drag-region class="site-nav-bar">
             <div class="codriver-name">CoDriver</div>
@@ -202,9 +206,9 @@
                     </div>
                     <div class="popup-body-col-section">
                         <p class="text-2">File content</p>
-                        <input 
+                        <input
                             class="full-dualpane-search-file-content-input trigger-for-full-search text-input"
-                            type="text" placeholder="A long time ago in a galaxy far, far away ..." />
+                            type="text" placeholder="A long, long time ago in a galaxy far far away..." />
                     </div>
                     <div class="popup-body-col-section">
                         <p class="text-2">Max count of search results (0 = off)</p>
@@ -220,15 +224,22 @@
                     </div>
                 </div>
                 <div class="popup-controls">
-                    <button class="icon-button" onclick="closeFullSearchContainer()">
-                        <div class="button-icon"><i class="fa-solid fa-ban"></i></div>
-                        Close 
-                    </button>
-                    <button class="fullsearch-search-button icon-button">
-                        <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-                        Start
-                        <div class="fullsearch-loader preloader-small-invert" style="display: none;"></div>
-                    </button>
+                    <!-- show current file which is being searched -->
+                    <div style="width: 50%; display: flex; align-items: center; gap: 15px; margin-left: 10px;">
+                        <div class="preloader-small-invert full-searching-loader" style="display: none;"></div>
+                        <p class="text-2 warbing-text fullsearch-current-file"></p>
+                    </div>
+                    <div style="width: 50%; display: flex; flex-flow: row; gap: 5px; justify-content: flex-end;">
+                        <button class="icon-button" onclick="closeFullSearchContainer()">
+                            <div class="button-icon"><i class="fa-solid fa-ban"></i></div>
+                            Close
+                        </button>
+                        <button class="fullsearch-search-button icon-button" onclick="startFullSearch()">
+                            <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                            Start
+                            <div class="fullsearch-loader preloader-small-invert" style="display: none;"></div>
+                        </button>
+                    </div>
                 </div>
             </div>
 

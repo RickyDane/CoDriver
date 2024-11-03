@@ -9,6 +9,7 @@ use flate2::read::GzDecoder;
 use icns::{IconFamily, IconType};
 use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
+use serde::Serialize;
 use serde_json::Value;
 use std::fs::{self, read_dir, remove_dir, OpenOptions};
 #[allow(unused)]
@@ -130,7 +131,7 @@ fn main() {
             download_yt_video,
             get_app_icns,
             get_thumbnail,
-            get_dir_size,
+            get_simple_dir_info,
             get_themes,
             stop_searching,
             get_file_content,
@@ -583,7 +584,12 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
 
 // :ftp
 #[tauri::command]
-async fn mount_sshfs(hostname: String, username: String, password: String, remote_path: String) -> String {
+async fn mount_sshfs(
+    hostname: String,
+    username: String,
+    password: String,
+    remote_path: String,
+) -> String {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
     let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &username;
@@ -652,7 +658,8 @@ async fn open_in_terminal(path: String) -> bool {
         // Fallback to cmd
         return Command::new("cmd")
             .args(&["/c", "start", "cmd.exe", "/k", "cd", "/d", &path])
-            .spawn().is_ok();
+            .spawn()
+            .is_ok();
     }
 
     #[cfg(target_os = "macos")]
@@ -754,6 +761,7 @@ async fn search_for(
                 unsafe { COUNT_CALLED_BACK }
             ));
         },
+        &app_window,
     );
 
     unsafe {
@@ -768,6 +776,7 @@ async fn search_for(
     let _ = app_window.eval("setTimeout(() => $('.file-searching-done').html(''), 1500)");
     let _ = app_window
         .eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
+    let _ = app_window.eval("stopFullSearch()");
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
     return;
 }
@@ -1795,24 +1804,43 @@ async fn get_thumbnail(image_path: String) -> String {
 }
 
 #[tauri::command]
-async fn get_dir_size(path: String, app_window: Window, class_to_fill: String) -> u64 {
+async fn get_simple_dir_info(
+    path: String,
+    app_window: Window,
+    class_to_fill: String,
+) -> SimpleDirInfo {
     unsafe {
         CALCED_SIZE = 0;
     }
-    dir_size(path, &app_window, class_to_fill)
+    dir_info(path, &app_window, class_to_fill)
+}
+
+#[derive(Debug, Serialize)]
+struct SimpleDirInfo {
+    size: u64,
+    count_elements: u64,
 }
 
 static mut CALCED_SIZE: u64 = 0; // Currently unused -> Coming implementation for showing progress
-fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
+fn dir_info(path: String, app_window: &Window, class_to_fill: String) -> SimpleDirInfo {
     if PathBuf::from(&path).is_file() {
-        return PathBuf::from(&path).metadata().unwrap().len();
+        return SimpleDirInfo {
+            size: PathBuf::from(&path).metadata().unwrap().len(),
+            count_elements: 1,
+        };
     }
 
     let entry = match fs::read_dir(path) {
         Ok(entry) => entry,
-        Err(_) => return 0,
+        Err(_) => {
+            return SimpleDirInfo {
+                size: 0,
+                count_elements: 0,
+            }
+        }
     };
     let mut size = 0;
+    let mut count_elements = 0;
 
     for entry in entry {
         if let Ok(entry) = entry {
@@ -1823,25 +1851,21 @@ fn dir_size(path: String, app_window: &Window, class_to_fill: String) -> u64 {
                 };
                 size += file_size;
             } else if entry.file_type().unwrap().is_dir() {
-                let dir_size = dir_size(
+                let dir_size = dir_info(
                     entry.path().to_string_lossy().to_string(),
                     app_window,
                     class_to_fill.clone(),
-                );
+                )
+                .size;
                 size += dir_size;
-                // unsafe {
-                //     CALCED_SIZE += dir_size;
-                //     if CALCED_SIZE % 1000 == 0 {
-                //         let _ = app_window.eval(&format!(
-                //             "document.querySelector('{}').innerHTML = formatBytes({}) + ' ' + formatBytes({})",
-                //             class_to_fill, CALCED_SIZE, dir_size
-                //         ));
-                //     }
-                // }
             }
+            count_elements += 1;
         }
     }
-    size
+    SimpleDirInfo {
+        size,
+        count_elements,
+    }
 }
 
 #[tauri::command]
@@ -1899,9 +1923,7 @@ async fn log(log: String) {
 
 #[tauri::command]
 async fn unmount_network_drive(path: String) {
-    let _ = Command::new("umount")
-        .arg(&path)
-        .spawn();
+    let _ = Command::new("umount").arg(&path).spawn();
     dbg_log(format!("Unmounted: {}", path));
     let remove = remove_dir(&path);
     if remove.is_err() {
@@ -1913,7 +1935,11 @@ async fn unmount_network_drive(path: String) {
             std::thread::sleep(std::time::Duration::from_millis(1000));
             let remove3 = remove_dir(&path);
             if remove3.is_err() {
-                dbg_log(format!("Failed to remove: {} | Err: {}", path, remove3.err().unwrap()));
+                dbg_log(format!(
+                    "Failed to remove: {} | Err: {}",
+                    path,
+                    remove3.err().unwrap()
+                ));
                 return;
             }
         }

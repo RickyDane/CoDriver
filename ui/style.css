@@ -77,7 +77,7 @@ body {
     margin: 5px;
     font-weight: bolder !important;
     background-color: var(--primaryColor);
-	border: 1px solid var(--tertiaryColor);
+    border: 1px solid var(--tertiaryColor);
     line-height: 21px;
     color: var(--textColor);
 }
@@ -102,19 +102,19 @@ body {
 }
 
 .miller-column {
-	display: flex;
+    display: flex;
     flex-flow: column;
     justify-content: flex-start;
-	align-items: flex-start;
+    align-items: flex-start;
     min-width: 250px;
-	width: 250px;
-	max-width: 250px;
-	overflow-x: hidden;
-	padding: 10px;
-	margin-top: 55px !important;
+    width: 250px;
+    max-width: 250px;
+    overflow-x: hidden;
+    padding: 10px;
+    margin-top: 55px !important;
     height: calc(100% - 55px);
     border-right: 2px solid var(--primaryColor);
-	overflow-y: auto;
+    overflow-y: auto;
 }
 
 .dual-pane-container {
@@ -128,7 +128,7 @@ body {
     overflow: hidden;
     background-color: var(--secondaryColor);
     opacity: 0;
-    transition: opacity 0.5s ease; 
+    transition: opacity 0.5s ease;
 }
 
 .non-dual-pane-container {
@@ -168,7 +168,7 @@ body {
     overflow: hidden;
     border-radius: 0px;
     background-color: var(--secondaryColor);
-	pointer-events: all;
+    pointer-events: all;
 }
 
 .main-window-container {
@@ -193,7 +193,7 @@ body {
     color: var(--textColor);
     background-color: var(--navBarColor);
     backdrop-filter: blur(5px);
-	-webkit-backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     transition: 0.3s ease-out;
 }
 
@@ -348,24 +348,24 @@ body {
 }
 
 .windows-linux-titlebar-buttons {
-	display: none;
-	flex-flow: row;
-	gap: 5px;
+    display: none;
+    flex-flow: row;
+    gap: 5px;
     margin-right: -3px;
 }
 
 .windows-linux-titlebar-buttons > button {
-	width: 45px;
-	height: 40px;
-	border: none;
-	background-color: transparent;
-	border-radius: 10px;
-	color: var(--textColor);
-	cursor: pointer;
+    width: 45px;
+    height: 40px;
+    border: none;
+    background-color: transparent;
+    border-radius: 10px;
+    color: var(--textColor);
+    cursor: pointer;
 }
 
 .windows-linux-titlebar-buttons > button:hover {
-	background-color: var(--transparentColorActive);
+    background-color: var(--transparentColorActive);
 }
 
 .macos-red-button:hover {
@@ -439,7 +439,9 @@ body {
     border-bottom: 1px solid var(--tertiaryColor);
     box-shadow: 0px 0px 5px 0px var(--transparentColorActive);
     opacity: 1;
-    transition: opacity 0.3s ease, height 0.3s ease;
+    transition:
+        opacity 0.3s ease,
+        height 0.3s ease;
     overflow: hidden;
 }
 
@@ -640,7 +642,7 @@ input[type="checkbox"] {
 }
 
 .open-config-button {
-    background-color: var(--transparentColor) !important;
+    background-color: var(--primaryColor) !important;
 }
 
 label {
@@ -1129,7 +1131,7 @@ button > svg {
     border: none;
     z-index: 3;
     outline: none;
-    color: var(--textColor); 
+    color: var(--textColor);
 }
 
 .file-searchbar > input:active {
@@ -1301,7 +1303,7 @@ button > svg {
     justify-content: center;
     background-color: var(--transparentColor);
     cursor: pointer;
-    border: none;
+    border: 1px solid transparent;
     color: var(--textColor);
 }
 
@@ -1593,8 +1595,10 @@ button > svg {
     padding: 10px;
     border-radius: 10px;
     width: fit-content;
+    min-width: 300px;
     height: fit-content;
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+    z-index: 2;
 }
 
 .uni-popup {
@@ -1650,7 +1654,9 @@ button > svg {
     z-index: 999;
     display: none;
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
-    background-color: var(--primaryColor);
+    background-color: var(--transparentColorActive);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     line-height: 1.5;
     color: var(--textColor);
     overflow: hidden;
@@ -1673,10 +1679,12 @@ button > svg {
 
 .item-preview-popup > div {
     min-height: 0;
+    max-width: 100%;
 }
 
-.item-preview-popup > pre {
+.item-preview-popup > div > pre {
     padding: 10px;
+    width: 100%;
 }
 
 .item-properties-popup {
@@ -1691,7 +1699,8 @@ button > svg {
 
 .module-container {
     overflow-x: auto;
-    overflow-y: auto;
+    overflow-y: auto !important;
+    max-height: 60vh;
     max-width: 100%;
     display: flex;
     flex-flow: row;
@@ -1925,7 +1934,7 @@ button > svg {
 }
 
 .toast-info {
-	box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.2);
     color: var(--textColor);
 }
 
@@ -2015,9 +2024,9 @@ button > svg {
     padding: 5px;
     margin: auto;
     color: var(--textColor2);
-	font-size: var(--fontSize);
-	font-weight: bolder !important;
-	text-shadow: 0px 0px 15px black;
+    font-size: var(--fontSize);
+    font-weight: bolder !important;
+    text-shadow: 0px 0px 15px black;
 }
 
 .progress-bar-text-2 {
@@ -2031,7 +2040,7 @@ button > svg {
     width: 100%;
     padding: 10px;
     text-align: right;
-	text-shadow: 0px 0px 15px black;
+    text-shadow: 0px 0px 15px black;
 }
 
 .progress-bar-2 {
@@ -2110,4 +2119,48 @@ button > svg {
 }
 .c-item-custom:hover {
     background-color: var(--transparentColorActive);
+}
+
+.instant-search-input {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 100px;
+    margin: auto;
+    border: 1px solid var(--tertiaryColor);
+    border-radius: 10px;
+    padding: 5px;
+    background-color: var(--transparentColor);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    color: var(--textColor);
+    font-size: var(--fontSize);
+    width: 200px;
+    z-index: 5;
+}
+
+.fullsearch-current-file {
+    max-width: 80%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@keyframes warbing-text-anim {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    50% {
+        transform: translateX(-5px);
+        opacity: 0.2;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+.warbing-text {
+    animation: warbing-text-anim 1.5s infinite;
 }

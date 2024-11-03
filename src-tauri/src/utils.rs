@@ -2,7 +2,6 @@ use chrono::prelude::*;
 use color_print::cprintln;
 use regex::Regex;
 use serde::Serialize;
-use sysinfo::System;
 use std::{
     ffi::OsStr,
     fmt::Debug,
@@ -10,6 +9,7 @@ use std::{
     io::{BufReader, BufWriter, Read, Write},
 };
 use stopwatch::Stopwatch;
+use sysinfo::System;
 use tar::Archive as TarArchive;
 use tauri::Window;
 
@@ -287,7 +287,8 @@ impl DirWalker {
         max_items: i32,
         is_quick_search: bool,
         file_content: String,
-        callback: &impl Fn(DirWalkerEntry)
+        callback: &impl Fn(DirWalkerEntry),
+        app_window: &Window,
     ) {
         let reg_exp: Regex;
 
@@ -298,7 +299,9 @@ impl DirWalker {
         }
 
         for entry in jwalk::WalkDir::new(path)
-            .parallelism(jwalk::Parallelism::RayonNewPool(System::new().physical_core_count().unwrap_or(4) - 2))
+            .parallelism(jwalk::Parallelism::RayonNewPool(
+                System::new().physical_core_count().unwrap_or(4) - 1,
+            ))
             .sort(true)
             .min_depth(1)
             .max_depth(depth as usize)
@@ -342,6 +345,23 @@ impl DirWalker {
 
             let last_mod: DateTime<Utc> = file_metadata.unwrap().modified().unwrap().into();
 
+            if !reg_exp.is_match(&name) {
+                continue;
+            }
+
+            app_window
+                .eval(
+                    format!(
+                        "document.querySelector('.fullsearch-current-file').innerHTML = '{} ({})'",
+                        name,
+                        format_bytes(fs::metadata(&path).unwrap().len())
+                    )
+                    .as_str(),
+                )
+                .unwrap();
+
+            println!("{}: is match {}", name, reg_exp.is_match(&name));
+
             if reg_exp.is_match(&name)
                 && (self.exts.len() > 0 && self.exts.contains(&item_ext)
                     || path.is_file() && self.exts.len() == 0
@@ -349,9 +369,10 @@ impl DirWalker {
             {
                 // Search for file content
                 if !file_content.is_empty() {
-                    let content = fs::read_to_string(&path).unwrap();
-                    // Extend with line number later on
+                    let content = fs::read_to_string(&path).unwrap_or_else(|_| "".into());
+                    // Extend with line number of text occurence later on
                     if content.contains(&file_content) {
+                        dbg_log(format!("File found with file_content: {}", &name));
                         callback(DirWalkerEntry {
                             name,
                             path: path.to_string_lossy().to_string(),
@@ -362,20 +383,20 @@ impl DirWalker {
                             last_modified: format!("{:?}", last_mod),
                             size: fs::metadata(&path).unwrap().len(),
                         });
-                        return;
                     }
+                } else {
+                    // Search w/o file content
+                    callback(DirWalkerEntry {
+                        name,
+                        path: path.to_string_lossy().to_string(),
+                        depth,
+                        is_dir: path.is_dir(),
+                        is_file: path.is_file(),
+                        extension: item_ext,
+                        last_modified: format!("{:?}", last_mod),
+                        size: fs::metadata(&path).unwrap().len(),
+                    });
                 }
-                // Search w/o file content
-                callback(DirWalkerEntry {
-                    name,
-                    path: path.to_string_lossy().to_string(),
-                    depth,
-                    is_dir: path.is_dir(),
-                    is_file: path.is_file(),
-                    extension: item_ext,
-                    last_modified: format!("{:?}", last_mod),
-                    size: fs::metadata(&path).unwrap().len(),
-                });
             }
         }
     }
@@ -443,9 +464,20 @@ pub fn unpack_tar(file: File) {
     }
 }
 
-pub fn create_new_action(app_window: &Window, action_name: String, action_desc: String, path: &String) -> String {
+pub fn create_new_action(
+    app_window: &Window,
+    action_name: String,
+    action_desc: String,
+    path: &String,
+) -> String {
     let id = uuid::Uuid::new_v4().to_string();
-    let _ = app_window.eval(format!("createNewAction('{}', '{}', '{}', '{}')", id, action_name, action_desc, path).as_str());
+    let _ = app_window.eval(
+        format!(
+            "createNewAction('{}', '{}', '{}', '{}')",
+            id, action_name, action_desc, path
+        )
+        .as_str(),
+    );
     return id;
 }
 
