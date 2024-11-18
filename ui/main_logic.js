@@ -401,13 +401,19 @@ function positionContextMenu(e) {
 	}
 
 	// Vertical position
-	if (ContextMenu.offsetHeight + e.clientY >= window.innerHeight) {
-		ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
-		ContextMenu.style.bottom = null;
-	} else {
-		ContextMenu.style.bottom = null;
-		ContextMenu.style.top = e.clientY + "px";
-	}
+  if (ContextMenu.offsetHeight + e.clientY <= window.innerHeight) {
+    ContextMenu.style.top = e.clientY + "px";
+    ContextMenu.style.bottom = null;
+    console.log("Case 1");
+  } else if ((ContextMenu.offsetHeight + e.clientY >= window.innerHeight) && (e.clientY - ContextMenu.offsetHeight > 0)) {
+    ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
+    ContextMenu.style.bottom = null;
+    console.log("Case 2");
+  } else {
+    ContextMenu.style.top = window.innerHeight - ContextMenu.offsetHeight - 10 + "px";
+    ContextMenu.style.bottom = null;
+    console.log("Case 3");
+  }
 }
 
 /* :shortcuts Shortcuts configuration */
@@ -4068,7 +4074,7 @@ async function insertSiteNavButtons() {
     }
   });
 
-	let sshfsMounts = await invoke("get_sshfs_mounts");
+	let disks = await invoke("list_disks");
 	let siteNavButtons = [
 		[
 			"Desktop",
@@ -4140,27 +4146,33 @@ async function insertSiteNavButtons() {
 	diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Disks`;
 	document.querySelector(".site-nav-bar").append(diskButton);
 
-	if (sshfsMounts.length > 0) {
+	if (disks.length > 0) {
 		let seperator2 = document.createElement("div");
 		seperator2.className = "horizontal-seperator";
 		document.querySelector(".site-nav-bar").append(seperator2);
 
-		sshfsMounts.forEach((mount) => {
-			let sshfsButton = document.createElement("button");
-			sshfsButton.className = "site-nav-bar-button sshfs-mount-button";
-			sshfsButton.setAttribute("onclick", `openDirAndSwitch('${mount.path}')`);
-			sshfsButton.innerHTML = `<i class="fa-solid fa-network-wired"></i> ${mount.name}`;
-			sshfsButton.addEventListener("contextmenu", (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				showCustomContextMenu(e, [
-					{
-						name: "Unmont",
-						onclick: () => unmountNetworkDrive(mount)
-					},
-				]);
-			});
-			document.querySelector(".site-nav-bar").append(sshfsButton);
+		disks.forEach((mount) => {
+			let diskButton = document.createElement("button");
+			diskButton.className = "site-nav-bar-button";
+			diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> ${mount.name != "" ? mount.name : "/"}`;
+      diskButton.onclick = async () => {
+        console.log(mount.path);
+        await invoke("open_dir", { path: mount.path});
+        await listDirectories();
+      };
+      if (mount.format.includes("SSHFS")) {
+        diskButton.oncontextmenu = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showCustomContextMenu(e, [
+            {
+              name: "Unmont",
+              onclick: () => unmountNetworkDrive(mount)
+            },
+          ]);
+        };
+      }
+			document.querySelector(".site-nav-bar").append(diskButton);
 		});
 	}
 }
