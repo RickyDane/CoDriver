@@ -11,3 +11,4 @@ worker.js
 .vscode
 target/
 .idea
+AuthKey*
