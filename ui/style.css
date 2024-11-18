@@ -200,6 +200,7 @@ body {
 .site-nav-bar {
     background-color: var(--siteBarColor);
     width: 150px;
+    min-width: 150px;
     display: flex;
     flex-flow: column;
     align-items: center;
@@ -211,12 +212,14 @@ body {
     transition: 0.3s ease-out;
     overflow: hidden;
     position: relative;
+    overflow-y: auto;
 }
 
 .site-nav-bar-button {
     background-color: transparent;
     border: 1px solid transparent;
     width: 100%;
+    min-height: 30px;
     text-align: left;
     border-radius: 10px;
     padding: 7.5px 10px;
@@ -247,7 +250,10 @@ body {
     right: 0;
     display: flex;
     flex-flow: column;
-    width: calc(150px - 12px);
+    justify-content: center;
+    align-items: center;
+    width: calc(150px);
+    padding: 5px;
 }
 .active-action {
     display: flex;
@@ -258,13 +264,12 @@ body {
     border-radius: 10px;
     background-color: var(--primaryColor);
     cursor: pointer;
-    transition: 0.3s ease;
-    margin: 0px 5px 5px 5px;
+    margin-top: 5px;
     padding: 10px;
-    height: 35px;
-    transition: 0.3s ease;
+    max-height: 35px;
+    width: 100%;
     overflow: hidden;
-    opacity: 1;
+    overflow-y: clip;
     transition: 0.3s ease;
 }
 .active-action-header {
@@ -277,7 +282,7 @@ body {
     align-items: center;
 }
 .active-action:hover {
-    height: auto;
+    max-height: 100px;
 }
 .active-action > div {
     overflow: hidden;
@@ -321,6 +326,7 @@ body {
 	border-radius: 10px 10px 0px 0px;
 	display: none;
 } */
+
 .titlebar-button-macos {
     width: 12px;
     height: 12px;

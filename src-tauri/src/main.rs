@@ -376,7 +376,7 @@ async fn list_disks() -> Vec<DisksInfo> {
                 .replace("\"", ""),
             dev: format!("{:?}", disk.name()),
             format: format!("{:?}", disk.file_system().to_string_lossy()),
-            path: format!("{:?}", disk.mount_point()),
+            path: format!("{:?}", disk.mount_point()).replace("\"", ""),
             avail: format!("{:?}", disk.available_space()),
             capacity: format!("{:?}", disk.total_space()),
             is_removable: disk.is_removable(),
@@ -398,7 +398,7 @@ async fn list_disks() -> Vec<DisksInfo> {
                     .replace("\"", ""),
                 dev: format!("{:?}", mount.file_name()),
                 format: "SSHFS Network-Drive".into(),
-                path: format!("{:?}", mount.path()),
+                path: format!("{:?}", mount.path()).replace("\"", ""),
                 avail: format!("{:?}", mount.metadata().unwrap().len()),
                 capacity: format!("{:?}", mount.metadata().unwrap().len()),
                 is_removable: true,
@@ -538,6 +538,7 @@ async fn open_dir(path: String) -> bool {
     let md = fs::read_dir(&path);
     dbg_log(format!("Opening dir: {}", &path));
     if md.is_err() {
+        dbg_log(format!("Failed to open dir: {} | {}", &path, md.err().unwrap()));
         return false;
     }
     let _ = set_dir(path.clone().into()).await;
