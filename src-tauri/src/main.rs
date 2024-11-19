@@ -75,7 +75,7 @@ fn main() {
             #[cfg(target_os = "macos")]
             win.set_transparent_titlebar(true);
             #[cfg(target_os = "macos")]
-            win.position_traffic_lights(20.0, 25.0);
+            win.position_traffic_lights(25.0, 27.0);
             let _ = win.center();
             #[cfg(not(target_os = "macos"))]
             let _ = win.set_decorations(false);
@@ -85,7 +85,7 @@ fn main() {
             #[cfg(target_os = "macos")]
             if let WindowEvent::Resized(..) = e.event() {
                 let win = e.window();
-                win.position_traffic_lights(20.0, 25.0);
+                win.position_traffic_lights(25.0, 27.0);
             }
             // Fixes sluggish window resizing on Windows
             // See https://github.com/tauri-apps/tauri/issues/6322#issuecomment-1448141495

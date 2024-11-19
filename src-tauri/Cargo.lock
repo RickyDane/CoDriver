@@ -4,14 +4,13 @@ version = 3
 
 [[package]]
 name = "CoDriver"
-version = "0.4.86"
+version = "0.4.87"
 dependencies = [
  "archiver-rs",
  "chrono",
  "cocoa 0.25.0",
  "color-print",
  "copy_dir",
- "dateparser",
  "delete",
  "flate2",
  "icns",
@@ -20,7 +19,6 @@ dependencies = [
  "num_cpus",
  "objc",
  "open",
- "rar",
  "rayon",
  "regex",
  "remove_dir_all",
@@ -86,7 +84,7 @@ dependencies = [
  "cfg-if",
  "getrandom 0.2.15",
  "once_cell",
- "version_check 0.9.5",
+ "version_check",
  "zerocopy",
 ]
 
@@ -295,7 +293,7 @@ dependencies = [
  "anyhow",
  "arrayvec",
  "log",
- "nom 7.1.3",
+ "nom",
  "num-rational 0.4.2",
  "v_frame",
 ]
@@ -517,7 +515,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.74",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]
@@ -890,7 +888,7 @@ version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77ff1a80c5f3cb1ca7c06ffdd71b6a6dd6d8f896c42141fbd43f50ed28dcdb93"
 dependencies = [
- "nom 7.1.3",
+ "nom",
  "proc-macro2",
  "quote",
  "syn 2.0.74",
@@ -932,7 +930,7 @@ checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
 dependencies = [
  "percent-encoding",
  "time 0.3.36",
- "version_check 0.9.5",
+ "version_check",
 ]
 
 [[package]]
@@ -1227,18 +1225,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dateparser"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2ef451feee09ae5ecd8a02e738bd9adee9266b8fa9b44e22d3ce968d8694238"
-dependencies = [
- "anyhow",
- "chrono",
- "lazy_static",
- "regex",
-]
-
-[[package]]
 name = "deflate"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1509,28 +1495,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "failure"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d32e9bd16cc02eae7db7ef620b392808b89f6a5e16bb3497d159c6b92a0f4f86"
-dependencies = [
- "backtrace",
- "failure_derive",
-]
-
-[[package]]
-name = "failure_derive"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa4da3c766cd7a0db8242e326e9e4e081edd567072893ed320008189715366a4"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
- "synstructure 0.12.6",
-]
-
-[[package]]
 name = "fast-float"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1795,12 +1759,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gcc"
-version = "0.3.55"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f5f3913fa0bfe7ee1fd8248b6b9f42a5af4b9d65ec2dd2c3c26132b950ecfc2"
-
-[[package]]
 name = "gdk"
 version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1920,7 +1878,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
- "version_check 0.9.5",
+ "version_check",
 ]
 
 [[package]]
@@ -3063,7 +3021,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f03cd3335fb5f2447755d45cda9c70f76013626a9db44374973791b0926a86c3"
 dependencies = [
  "chrono",
- "nom 7.1.3",
+ "nom",
 ]
 
 [[package]]
@@ -3271,16 +3229,6 @@ name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72ef4a56884ca558e5ddb05a1d1e7e1bfd9a68d9ed024c21704cc98872dae1bb"
-
-[[package]]
-name = "nom"
-version = "4.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ad2a91a8e869eeb30b9cb3119ae87773a8f4ae617f41b1eb9c154b2905f7bd6"
-dependencies = [
- "memchr",
- "version_check 0.1.5",
-]
 
 [[package]]
 name = "nom"
@@ -4160,7 +4108,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
- "version_check 0.9.5",
+ "version_check",
 ]
 
 [[package]]
@@ -4171,7 +4119,7 @@ checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
 dependencies = [
  "proc-macro2",
  "quote",
- "version_check 0.9.5",
+ "version_check",
 ]
 
 [[package]]
@@ -4264,16 +4212,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fa76aaf39101c457836aec0ce2316dbdc3ab723cdda1c6bd4e6ad4208acaca7"
 dependencies = [
  "proc-macro2",
-]
-
-[[package]]
-name = "rand"
-version = "0.3.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64ac302d8f83c0c1974bf758f6b041c6c8ada916fbb44a609158ca8b064cc76c"
-dependencies = [
- "libc",
- "rand 0.4.6",
 ]
 
 [[package]]
@@ -4383,19 +4321,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16abd0c1b639e9eb4d7c50c0b8100b0d0f849be2349829c740fe8e6eb4816429"
 dependencies = [
  "rand_core 0.5.1",
-]
-
-[[package]]
-name = "rar"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bd51aebfbf238d0e6362359e115f4a5fd62f8b75bef4675f262a0b23b277529"
-dependencies = [
- "chrono",
- "failure",
- "lazy_static",
- "nom 4.2.3",
- "rust-crypto",
 ]
 
 [[package]]
@@ -4740,19 +4665,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f86ae463694029097b846d8f99fd5536740602ae00022c0c50c5600720b2f71"
 dependencies = [
  "bytemuck",
-]
-
-[[package]]
-name = "rust-crypto"
-version = "0.2.36"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f76d05d3993fd5f4af9434e8e436db163a12a9d40e1a58a726f27a01dfd12a2a"
-dependencies = [
- "gcc",
- "libc",
- "rand 0.3.23",
- "rustc-serialize",
- "time 0.1.45",
 ]
 
 [[package]]
@@ -5402,18 +5314,6 @@ name = "sync_wrapper"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
-
-[[package]]
-name = "synstructure"
-version = "0.12.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f36bdaa60a83aca3921b5259d5400cbf5e90fc51931376a9bd4a0eb79aa7210f"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
- "unicode-xid",
-]
 
 [[package]]
 name = "synstructure"
@@ -6167,7 +6067,7 @@ dependencies = [
  "fnv",
  "home",
  "memchr",
- "nom 7.1.3",
+ "nom",
  "once_cell",
  "petgraph",
 ]
@@ -6325,12 +6225,6 @@ name = "version-compare"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "852e951cb7832cb45cb1169900d19760cfa39b82bc0ea9c0e5a14ae88411c98b"
-
-[[package]]
-name = "version_check"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "914b1a6776c4c929a602fafd8bc742e06365d4bcbe48c30f9cca5824f70dc9dd"
 
 [[package]]
 name = "version_check"
@@ -7335,7 +7229,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.74",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]
@@ -7377,7 +7271,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.74",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]

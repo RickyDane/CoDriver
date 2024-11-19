@@ -264,6 +264,7 @@ async function resetEverything() {
 	if (IsPopUpOpen === false && IsInputFocused === false && IsItemPreviewOpen === false) {
 		await refreshView();
 	}
+  closeLoadingPopup();
 	closeSearchBar();
 	closeSettings();
 	closeFullSearchContainer();
@@ -292,6 +293,7 @@ async function resetEverything() {
 	CurrentQuickSearch = "";
 	resetQuickSearch();
 }
+
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
 	// Check if your click is outside of important elements
@@ -1076,7 +1078,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		if (ViewMode == "wrap") {
 			var itemButton = document.createElement("div");
 			itemButton.innerHTML = `
-				<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" />
+				<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" loading="lazy" />
 				<p class="item-button-text" style="text-align: left;">${item.name}</p>
 			`;
 			itemButton.className = "item-button directory-entry";
@@ -1088,7 +1090,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			var itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
-					<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+					<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px" loading="lazy"/>
 					<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
@@ -1109,7 +1111,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			var itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
-					<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+					<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px" loading="lazy"/>
 					<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				`;
@@ -1457,7 +1459,7 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 	if (ViewMode == "wrap") {
 		var itemButton = document.createElement("div");
 		itemButton.innerHTML = `
-			<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" />
+			<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" loading="lazy" />
 			<p class="item-button-text" style="text-align: left;">${item.name}</p>
 			`;
 		itemButton.className = "item-button directory-entry";
@@ -1471,7 +1473,7 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 		var itemButtonList = document.createElement("div");
 		itemButtonList.innerHTML = `
 			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
-			<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+			<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px" loading="lazy"/>
 			<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 			</span>
 			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
@@ -2246,7 +2248,7 @@ async function applyPlatformFeatures() {
 		headerNav.style.boxShadow = "none";
 		$(".site-nav-bar").css("padding-top", "50px");
 		$(".search-bar-input").attr("placeholder", "Cmd + F");
-		$(".settings-ui-header").css("padding", "5px 10px 5px 100px");
+		$(".settings-ui-header").css("padding", "5px 5px 5px 100px");
 	} else {
 		appWindow.transparent = true;
 		appWindow.setDecorations(false);
@@ -2290,7 +2292,7 @@ async function listDisks() {
 			itemButton.innerHTML = `
 				<span class="disk-item-button">
 					<div class="disk-item-top">
-						<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto"/>
+						<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto" loading="lazy"/>
 						<span class="disk-info">
 							<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Description:</span><span class="disk-info">${item.name}</span></span>
 							<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">File-System:</span><span class="disk-info">${item.format.replace('"', "").replace('"', "")}</span></span>
@@ -2310,7 +2312,7 @@ async function listDisks() {
 			let itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center; width: 50%;">
-					<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
+					<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="24px" height="24px" loading="lazy"/>
 					<p class="disk-info" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
@@ -3386,16 +3388,22 @@ async function showProperties(item) {
 			<h3>${name}</h3>
 		</div>
 		<div class="popup-body">
-			<button class="item-preview-copy-path-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', ToastType.INFO);">Path: ${path}</button>
+		  <span style="display: flex; gap: 10px; align-items: center;">
+				Path:
+				<button class="icon-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', ToastType.INFO);">
+  				<div class="button-icon">
+  				<i class="fa-regular fa-copy"></i></div>
+  				<p style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${path}</p>
+				</button>
+			</span>
 			${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ''}
 			<br/>
 			<p>Modified: ${modifiedAt}</p>
-			<br/>
-			<div style="display: flex; gap: 5px;">
-				<div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
-			</div>
 		</div>
-		<div class="popup-controls">
+		<div class="popup-controls" style="display: flex; justify-content: space-between;">
+  		<div style="display: flex; gap: 5px;">
+  			<div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
+  		</div>
 			<button class="icon-button" onclick="closeInfoProperties()">
 				<span class="button-icon"><i class="fa-solid fa-ban"></i></span>
 				Close
@@ -3441,13 +3449,13 @@ async function showItemPreview(item, isOverride = false) {
 		case ".avif":
 			module = `
 				<div class="module-container">
-					<img decoding="async" src="${convertFileSrc(path)}"/>
+					<img decoding="async" src="${convertFileSrc(path)}" loading="lazy"/>
 				</div>
 			`;
 			break;
 		case ".pdf":
 		case ".html":
-			module = `<iframe src="${convertFileSrc(path)}" />`;
+			module = `<iframe decoding="async" src="${convertFileSrc(path)}" />>`;
 			break;
 		case ".mp4":
 		case ".mkv":
@@ -3466,7 +3474,7 @@ async function showItemPreview(item, isOverride = false) {
 		case ".wmv":
 			module = `
 				<div class="module-container">
-					<video src="${convertFileSrc(path)}" autoplay></video>
+					<video decoding="async" src="${convertFileSrc(path)}" autoplay></video>
 				</div>
 			`;
 			break;
@@ -3529,41 +3537,38 @@ function showMultiRenamePopup() {
 	popup.className = "uni-popup multi-rename-popup";
 	popup.innerHTML = `
 		<h3 class="multi-rename-popup-header">
-		<div>
-		<i class="fa-solid fa-pen-to-square" style="padding-right: 5px;"></i>
-		Multi-Rename
-		</div>
-		<button onclick="closeMultiRenamePopup()" class="popup-close-button">
-		<i class="fa-solid fa-xmark"></i>
-		</button>
+  		<div style="display: flex; gap: 10px; align-items: center;">
+    		<i class="fa-solid fa-pen-to-square" style="padding-right: 5px;"></i>
+    		<h4 class="text">Multi-Rename</h4>
+  		</div>
 		</h3>
 		<div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
-		<h4>Options</h4>
-		<p class="text-2">If no extension is supplied the extension won't be changed</p>
+  		<h4>Options</h4>
+  		<p class="text-2">If no extension is supplied the extension won't be changed</p>
 		</div>
 		<div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
-		<div style="display: flex; flex-flow: row; gap: 10px;">
-		<div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
-		<p class="text-2">New name</p>
-		<input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
-		</div>
-		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-		<p class="text-2">Start at</p>
-		<input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
-		</div>
-		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-		<p class="text-2">Step by</p>
-		<input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
-		</div>
-		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-		<p class="text-2">Digits</p>
-		<input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
-		</div>
-		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-		<p class="text-2">Extension</p>
-		<input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
-		</div>
-		</div>
+		  <div style="display: flex; flex-flow: row; gap: 10px;">
+    		<div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
+      		<p class="text-2">New name</p>
+      		<input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
+    		</div>
+    		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+      		<p class="text-2">Start at</p>
+      		<input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
+    		</div>
+    		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+      		<p class="text-2">Step by</p>
+      		<input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
+    		</div>
+    		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+      		<p class="text-2">Digits</p>
+      		<input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
+    		</div>
+    		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+      		<p class="text-2">Extension</p>
+    		  <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
+    		</div>
+  		</div>
 		</div>
 		<h4 style="padding: 10px; background-color: var(--secondaryColor);">Selected items to rename</h4>
 		`;

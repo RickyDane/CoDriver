@@ -555,8 +555,8 @@ body {
     left: 0;
     right: 0;
     background-color: var(--navBarColor);
-    width: 100%;
-    padding: 5px 10px 5px 20px;
+    width: calc(100% - 10px);
+    padding: 5px 5px 5px 20px;
     font-size: large;
     font-weight: bolder !important;
     display: flex;
@@ -568,6 +568,8 @@ body {
     margin-bottom: 1px;
     color: var(--textColor);
     height: 65px;
+    border-radius: 10px;
+    margin: 5px 5px 0px 5px;
 }
 
 .settings-ui-body {
@@ -593,7 +595,6 @@ body {
     gap: 5px;
     justify-content: flex-end;
     padding: 5px;
-    background-color: var(--primaryColor);
     z-index: 3;
     border-top: 1px solid var(--tertiaryColor);
     color: var(--textColor);
@@ -623,6 +624,14 @@ body {
     color: var(--textColor);
 }
 
+.settings-ui-input:hover {
+    background-color: var(--secondaryColor) !important;
+}
+
+.settings-ui-input:focus {
+    background-color: var(--tertiaryColor) !important;
+}
+
 .settings-ui-checkbox {
     width: 20px;
     height: 20px;
@@ -649,6 +658,9 @@ input[type="checkbox"] {
 
 .open-config-button {
     background-color: var(--primaryColor) !important;
+}
+.open-config-button:hover {
+    background-color: var(--secondaryColor) !important;
 }
 
 label {
@@ -709,6 +721,10 @@ button > svg {
     min-width: 110%;
     cursor: pointer;
     color: var(--textColor);
+}
+
+.select:hover {
+    background-color: var(--secondaryColor);
 }
 
 .select::after {
@@ -1019,6 +1035,7 @@ button > svg {
     justify-content: center;
     align-items: center;
     background-color: var(--secondaryColor);
+    box-shadow: 0px 0px 20px 0px var(--transparentColor);
     border-radius: 10px;
     cursor: pointer;
     transition: 0.1s ease-out;
@@ -1102,7 +1119,7 @@ button > svg {
 }
 
 .horizontal-seperator {
-    width: 80%;
+    width: 90%;
     height: 1px;
     background-color: var(--tertiaryColor);
     margin: 2px 0px;
@@ -1211,8 +1228,12 @@ button > svg {
     color: var(--textColor);
 }
 
+.number-input:hover {
+    background-color: var(--secondaryColor) !important;
+}
+
 .number-input:focus {
-    background-color: var(--transparentColorActive);
+    background-color: var(--tertiaryColor) !important;
 }
 
 .search-bar-text {
@@ -1700,7 +1721,7 @@ button > svg {
     color: var(--textColor);
 }
 .item-properties-popup > .popup-body {
-    padding: 20px !important;
+    padding: 15px 15px 5px 15px !important;
 }
 
 .module-container {
@@ -1790,10 +1811,12 @@ button > svg {
     display: flex;
     flex-flow: row;
     justify-content: flex-end;
+    align-items: center;
     gap: 5px;
     padding: 5px;
+    padding-left: 15px;
     /* border-top: 1px solid var(--tertiaryColor); */
-    box-shadow: 0px 0px 10px 1px var(--transparentColor);
+    /*box-shadow: 0px 0px 10px 1px var(--transparentColor);*/
     color: var(--textColor);
 }
 
@@ -1980,6 +2003,9 @@ button > svg {
 }
 
 /* Text styles */
+.text {
+    color: var(--textColor);
+}
 .text-2 {
     font-size: var(--fontSize);
     color: var(--textColor2);
