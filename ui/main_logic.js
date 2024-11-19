@@ -261,7 +261,7 @@ function resetQuickSearch() {
 }
 
 async function resetEverything() {
-	if (IsPopUpOpen === false && IsInputFocused === false && IsItemPreviewOpen === false) {
+	if (IsPopUpOpen === false && IsInputFocused === false && IsItemPreviewOpen === false && IsSearching === false) {
 		await refreshView();
 	}
   closeLoadingPopup();
@@ -3538,12 +3538,12 @@ function showMultiRenamePopup() {
 	popup.innerHTML = `
 		<h3 class="multi-rename-popup-header">
   		<div style="display: flex; gap: 10px; align-items: center;">
-    		<i class="fa-solid fa-pen-to-square" style="padding-right: 5px;"></i>
+    		<i class="fa-solid fa-pen-to-square text" style="padding-right: 5px;"></i>
     		<h4 class="text">Multi-Rename</h4>
   		</div>
 		</h3>
 		<div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
-  		<h4>Options</h4>
+  		<h4 class="text">Options</h4>
   		<p class="text-2">If no extension is supplied the extension won't be changed</p>
 		</div>
 		<div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
@@ -3570,7 +3570,7 @@ function showMultiRenamePopup() {
     		</div>
   		</div>
 		</div>
-		<h4 style="padding: 10px; background-color: var(--secondaryColor);">Selected items to rename</h4>
+		<h4 class="text" style="padding: 10px; background-color: var(--secondaryColor);">Selected items to rename</h4>
 		`;
 	let arrItemsToRename = ArrSelectedItems;
 	let list = document.createElement("div");
@@ -3587,12 +3587,12 @@ function showMultiRenamePopup() {
 	popupControls.className = "popup-controls";
 	popupControls.innerHTML = `
 		<button class="icon-button" onclick="closeMultiRenamePopup()">
-		<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-		Cancel
+  		<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+  		Cancel
 		</button>
 		<button class="icon-button multi-rename-button-run">
-		<div class="button-icon"><i class="fa-solid fa-pencil"></i></div>
-		Rename
+  		<div class="button-icon"><i class="fa-solid fa-pencil"></i></div>
+  		Rename
 		</button>
 		`;
 	popup.append(popupControls);

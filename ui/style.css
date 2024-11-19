@@ -1149,7 +1149,7 @@ button > svg {
 .file-searchbar > input {
     width: 100%;
     padding: 10px 15px;
-    background-color: var(--transparentColor);
+    background-color: var(--primaryColor);
     border-radius: 10px 0px 0px 5px;
     border: none;
     z-index: 3;
@@ -1157,17 +1157,18 @@ button > svg {
     color: var(--textColor);
 }
 
-.file-searchbar > input:active {
-    background-color: var(--transparentColorActive);
+.file-searchbar > input:hover {
+    background-color: var(--tertiaryColor);
 }
 
 .search-button,
 .cancel-search-button {
     padding: 10px 15px 10px 12px;
     border: none;
-    background-color: var(--transparentColor);
+    background-color: var(--primaryColor);
     cursor: pointer;
     z-index: 2;
+    transition: 0.3s ease;
 }
 
 .cancel-search-button {
@@ -1207,10 +1208,15 @@ button > svg {
     outline: none;
     width: 100%;
     color: var(--textColor);
+    transition: 0.1s ease;
+}
+
+.text-input:hover {
+    background-color: var(--tertiaryColor);
 }
 
 .text-input:focus {
-    background-color: var(--transparentColorActive);
+    background-color: var(--tertiaryColor);
 }
 
 .settings-input.number-input {
@@ -1894,7 +1900,6 @@ button > svg {
     width: 100%;
     padding: 7.5px 10px;
     cursor: pointer;
-    border-radius: 10px;
     color: var(--textColor2);
     font-weight: 300;
 }
@@ -1903,7 +1908,6 @@ button > svg {
     width: 100%;
     padding: 7.5px 10px;
     cursor: pointer;
-    border-radius: 10px;
     color: var(--textColor2);
     font-size: var(--fontSize);
     font-weight: 300;
@@ -1911,12 +1915,16 @@ button > svg {
     transition: 0.2s ease-out;
 }
 
-.list-item:nth-last-of-type() {
-    border-bottom: none;
+.list-item:nth-child(odd) {
+    background-color: var(--primaryColor);
 }
 
-.list-item:hover {
+.list-item:nth-child(even) {
     background-color: var(--tertiaryColor);
+}
+
+.list-item:nth-last-of-type() {
+    border-bottom: none;
 }
 
 /* Toast */
