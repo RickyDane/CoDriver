@@ -75,7 +75,7 @@ fn main() {
             #[cfg(target_os = "macos")]
             win.set_transparent_titlebar(true);
             #[cfg(target_os = "macos")]
-            win.position_traffic_lights(25.0, 27.0);
+            win.position_traffic_lights(25.0, 28.0);
             let _ = win.center();
             #[cfg(not(target_os = "macos"))]
             let _ = win.set_decorations(false);
