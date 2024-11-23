@@ -8,7 +8,9 @@ listen("tauri://file-drop", async (event) => {
     ArrCopyItems = [];
     event.payload.forEach((item) => {
       CopyFilePath = item;
-      CopyFileName = CopyFilePath.split("/")[CopyFilePath.split("/").length - 1].replace("'", "");
+      CopyFileName = CopyFilePath.split("/")[
+        CopyFilePath.split("/").length - 1
+      ].replace("'", "");
       let element = document.createElement("button");
       element.setAttribute("itemname", CopyFileName);
       element.setAttribute("itempath", CopyFilePath);
@@ -27,8 +29,7 @@ listen("tauri://file-drop", async (event) => {
           IsCopyToCut = false;
           await listDirectories();
         }
-      }
-      else {
+      } else {
         await pasteItem();
       }
       CopyFileName = "";
@@ -55,7 +56,7 @@ listen("tauri://file-drop", async (event) => {
       DraggedOverElement = null;
     }
   } catch (error) {
-    await invoke("log", { log: JSON.stringify(error) });
+    writeLog(error);
     IsFileOpIntern = false;
     alert(error);
   }
@@ -108,7 +109,7 @@ async function getThumbnail(imagePath) {
   return thumbnailPath;
 }
 
-async function getSimpleDirInfo(path = "", classToFill = "") {
+async function getSimpleDirInfo(path = "", classToFill = "", isDir = false) {
   $(classToFill).html(
     `<div style="display: flex; gap: 10px;">
       <div class="preloader-small-invert"></div>
@@ -117,7 +118,14 @@ async function getSimpleDirInfo(path = "", classToFill = "") {
   );
   await invoke("get_simple_dir_info", { path, appWindow, classToFill }).then(
     (simpleDirInfo) => {
-      $(classToFill).html(formatBytes(simpleDirInfo.size));
+      $(classToFill).html(
+        formatBytes(simpleDirInfo.size) +
+          " - " +
+          simpleDirInfo.count_elements +
+          (isDir == true && simpleDirInfo.count_elements > 1
+            ? " items"
+            : " item"),
+      );
       return simpleDirInfo;
     },
   );
@@ -125,10 +133,37 @@ async function getSimpleDirInfo(path = "", classToFill = "") {
 }
 
 function formatBytes(bytes, decimals = 2) {
-	if (!+bytes) return "0 Bytes";
-	const k = 1000;
-	const dm = decimals < 0 ? 0 : decimals;
-	const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-	const i = Math.floor(Math.log(bytes) / Math.log(k));
-	return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+  if (!+bytes) return "0 Bytes";
+  const k = 1000;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
+async function writeLog(log) {
+  await invoke("log", { log: JSON.stringify(log) });
+}
+
+function isImage(fileExt) {
+  switch (fileExt) {
+    case ".png":
+    case ".PNG":
+    case ".jpg":
+    case ".JPG":
+    case ".jpeg":
+    case ".JPEG":
+    case ".gif":
+    case ".svg":
+    case ".bmp":
+    case ".ico":
+    case ".icns":
+    case ".avif":
+    case ".webp":
+    case ".jfif":
+    case ".tiff":
+      return true;
+    default:
+      return false;
+  }
 }

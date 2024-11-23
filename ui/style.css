@@ -9,6 +9,7 @@
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    font-weight: 400 !important;
 }
 
 ::-webkit-scrollbar {
@@ -62,11 +63,6 @@ body {
     border: none;
     border-radius: 10px;
     transition: 0.3s ease-out;
-    /* will-change: transform; */
-}
-
-* {
-    font-weight: 400 !important;
 }
 
 .codriver-name {
@@ -89,6 +85,7 @@ body {
     user-select: none;
     opacity: 1;
     overflow-y: auto;
+    will-change: transform;
 }
 
 .miller-container {
@@ -564,10 +561,9 @@ body {
     justify-content: space-between;
     align-items: center;
     z-index: 4;
-    border-bottom: 1px solid var(--tertiaryColor);
+    border: 1px solid var(--tertiaryColor);
     margin-bottom: 1px;
     color: var(--textColor);
-    height: 65px;
     border-radius: 10px;
     margin: 5px 5px 0px 5px;
 }
@@ -797,7 +793,7 @@ button > svg {
 
 .item-icon {
     filter: saturate(1.2);
-    border-radius: 10px;
+    border-radius: 5px;
     user-select: none;
     -webkit-user-select: none;
     -webkit-user-drag: none;
@@ -833,17 +829,13 @@ button > svg {
     border-radius: 10px;
     padding: 5px;
     /* filter: hue-rotate(10deg), brightness(2); */
-    object-fit: contain;
+    object-fit: fill;
+    overflow: hidden;
 }
 
 .item-button > img > svg {
     color: black;
 }
-
-/* .item-button:hover>img {
-    background-color: var(--transparentColor);
-    filter: brightness(0.85);
-} */
 
 .item-button > p {
     position: absolute;
@@ -887,7 +879,6 @@ button > svg {
     overflow: hidden;
     word-wrap: normal;
     white-space: nowrap;
-    transition: 0.1s ease-out;
     border-radius: 10px;
     margin: 1px 0px;
     border: 1px solid transparent;
@@ -932,23 +923,18 @@ button > svg {
     background-color: var(--transparentColor);
 }
 
-.directory-item-entry {
-    width: 100%;
-    max-width: 100%;
-    border-radius: 10px;
-    color: var(--textColor);
-}
-
 .item-link {
     background-color: transparent;
     border: 1px solid transparent;
-    border-radius: 7.5px;
     transition: 0.1s ease-out;
-    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 2;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 10px;
+    color: var(--textColor);
 }
 
 .disk-item-button-button {
@@ -1126,7 +1112,7 @@ button > svg {
 }
 
 .nav-seperator-1 {
-    color: var(--textColor);
+    color: var(--tertiaryColor);
 }
 
 .header-nav-right-container {
@@ -1137,7 +1123,7 @@ button > svg {
     display: flex;
     flex-flow: row;
     align-items: center;
-    border: 1px solid var(--secondaryColor);
+    border: 1px solid var(--tertiaryColor);
     width: 200px;
     height: 80%;
     border-radius: 10px;
@@ -1149,8 +1135,7 @@ button > svg {
 .file-searchbar > input {
     width: 100%;
     padding: 10px 15px;
-    background-color: var(--primaryColor);
-    border-radius: 10px 0px 0px 5px;
+    border-radius: 5px 0px 0px 5px;
     border: none;
     z-index: 3;
     outline: none;
@@ -1165,7 +1150,7 @@ button > svg {
 .cancel-search-button {
     padding: 10px 15px 10px 12px;
     border: none;
-    background-color: var(--primaryColor);
+    background-color: var(--secondaryColor);
     cursor: pointer;
     z-index: 2;
     transition: 0.3s ease;
@@ -1350,7 +1335,6 @@ button > svg {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     margin: 0 auto;
-    will-change: transform;
     row-gap: 15px;
     column-gap: 15px;
     transition: 0.3s ease-out;
@@ -1631,7 +1615,6 @@ button > svg {
     min-width: 300px;
     height: fit-content;
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
-    z-index: 2;
 }
 
 .uni-popup {
@@ -1684,6 +1667,7 @@ button > svg {
     max-height: 90vh;
     max-width: 90vw;
     border-radius: 10px;
+    border: 1px solid var(--tertiaryColor);
     z-index: 999;
     display: none;
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
@@ -1702,6 +1686,13 @@ button > svg {
     min-height: 0;
     object-fit: contain;
     object-position: 50%;
+}
+
+.item-preview-popup > .popup-header > h3 {
+    max-width: 50vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .item-preview-popup > iframe {
@@ -1747,9 +1738,8 @@ button > svg {
 }
 
 .module-container > img {
-    max-width: 100%;
+    width: auto;
     max-height: 60vh;
-    border-radius: 10px;
 }
 
 .item-preview-copy-path-button {
@@ -1907,20 +1897,11 @@ button > svg {
 .list-item {
     width: 100%;
     padding: 7.5px 10px;
-    cursor: pointer;
     color: var(--textColor2);
     font-size: var(--fontSize);
     font-weight: 300;
-    border-bottom: 1px solid var(--tertiaryColor);
+    border-bottom: 1px solid var(--secondaryColor);
     transition: 0.2s ease-out;
-}
-
-.list-item:nth-child(odd) {
-    background-color: var(--primaryColor);
-}
-
-.list-item:nth-child(even) {
-    background-color: var(--tertiaryColor);
 }
 
 .list-item:nth-last-of-type() {

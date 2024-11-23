@@ -8,21 +8,9 @@
   },
   "package": {
     "productName": "CoDriver",
-    "version": "0.4.87"
+    "version": "0.4.88"
   },
   "tauri": {
-    "updater": {
-      "windows": {
-        "installMode": "passive"
-      },
-      "active": false,
-      "endpoints": [
-        "https://raw.githubusercontent.com/RickyDane/CoDriver/master/codriver-update.json",
-        "https://gist.githubusercontent.com/RickyDane/1b3c8e1d79e9982cd876cec8e666f5fd/raw/"
-      ],
-      "dialog": true,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ3MzcwNjIzMDdCNjM4NTMKUldSVE9MWUhJd1kzUjkrZEk4Z3RrU25nV3ZjeDNuUE4ycVpzNVIreGFvMlc1OFR6MFltYnlSL28K"
-    },
     "bundle": {
       "resources": ["resources/*"],
       "active": true,
@@ -147,10 +135,10 @@
         "decorations": true,
         "fullscreen": false,
         "transparent": true,
-        "height": 550,
+        "height": 650,
         "resizable": true,
         "title": "CoDriver",
-        "width": 1050,
+        "width": 1100,
         "hiddenTitle": true,
         "titleBarStyle": "Overlay"
       }

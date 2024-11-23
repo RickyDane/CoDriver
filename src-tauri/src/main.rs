@@ -11,7 +11,7 @@ use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
-use std::fs::{self, read_dir, remove_dir, OpenOptions};
+use std::fs::{self, read_dir, remove_dir};
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
@@ -81,18 +81,19 @@ fn main() {
             let _ = win.set_decorations(false);
             Ok(())
         })
-        .on_window_event(|e| {
+        .on_window_event(|e| match e.event() {
             #[cfg(target_os = "macos")]
-            if let WindowEvent::Resized(..) = e.event() {
+            WindowEvent::Resized { .. } => {
                 let win = e.window();
-                win.position_traffic_lights(25.0, 27.0);
+                win.position_traffic_lights(25.0, 28.0);
             }
             // Fixes sluggish window resizing on Windows
             // See https://github.com/tauri-apps/tauri/issues/6322#issuecomment-1448141495
             #[cfg(target_os = "windows")]
-            if let WindowEvent::Resized(..) = e.event() {
+            WindowEvent::Resized { .. } => {
                 std::thread::sleep(std::time::Duration::from_millis(1));
             }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             list_dirs,
@@ -366,7 +367,7 @@ async fn list_disks() -> Vec<DisksInfo> {
     let mut ls_disks: Vec<DisksInfo> = vec![];
     let disks = Disks::new_with_refreshed_list();
     for disk in &disks {
-        dbg_log(format!("{:?}", &disk));
+        dbg_log(format!("{:?}", &disk), dbg!("").into());
         ls_disks.push(DisksInfo {
             name: format!("{:?}", disk.mount_point())
                 .split("/")
@@ -388,7 +389,10 @@ async fn list_disks() -> Vec<DisksInfo> {
         let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
         for mount in ls_sshfs_mounts {
             let mount = mount.unwrap();
-            dbg_log(format!("{:?} | {:?}", mount.file_name(), mount.path()));
+            dbg_log(
+                format!("{:?} | {:?}", mount.file_name(), mount.path()),
+                dbg!("").into(),
+            );
             ls_disks.push(DisksInfo {
                 name: format!("{:?}", mount.file_name())
                     .split("/")
@@ -438,7 +442,10 @@ async fn get_sshfs_mounts() -> Vec<DisksInfo> {
 
 #[tauri::command]
 async fn switch_to_directory(current_dir: String) {
-    dbg_log(format!("Switching to directory: {}", &current_dir));
+    dbg_log(
+        format!("Switching to directory: {}", &current_dir),
+        dbg!("").into(),
+    );
     let _ = set_dir(current_dir.into()).await;
 }
 #[tauri::command]
@@ -464,7 +471,10 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         .unwrap(),
         &app_config,
     );
-    dbg_log(format!("View-style switched to: {}", view_mode));
+    dbg_log(
+        format!("View-style switched to: {}", view_mode),
+        dbg!("").into(),
+    );
     return list_dirs().await;
 }
 
@@ -481,7 +491,7 @@ async fn get_current_dir() -> String {
 
 #[tauri::command]
 async fn set_dir(current_dir: String) -> bool {
-    dbg_log(format!("Current dir: {}", &current_dir));
+    dbg_log(format!("Current dir: {}", &current_dir), dbg!("").into());
     let md = fs::metadata(&current_dir);
     if md.is_err() {
         return false;
@@ -536,16 +546,23 @@ async fn list_dirs() -> Vec<FDir> {
 #[tauri::command]
 async fn open_dir(path: String) -> bool {
     let md = fs::read_dir(&path);
-    dbg_log(format!("Opening dir: {}", &path));
-    if md.is_err() {
-        dbg_log(format!("Failed to open dir: {} | {}", &path, md.err().unwrap()));
-        return false;
-    }
-    let _ = set_dir(path.clone().into()).await;
-    unsafe {
-        PATH_HISTORY.push(path);
-    }
-    return true;
+    dbg_log(format!("Opening dir: {}", &path), dbg!("").into());
+    match md {
+        Ok(_) => {
+            let _ = set_dir(path.clone().into()).await;
+            unsafe {
+                PATH_HISTORY.push(path);
+            }
+            return true;
+        }
+        Err(_) => {
+            dbg_log(
+                format!("Failed to open dir: {} | {}", &path, md.err().unwrap()),
+                dbg!("").into(),
+            );
+            return false;
+        }
+    };
 }
 
 #[tauri::command]
@@ -553,7 +570,7 @@ async fn go_back(is_dual_pane: bool) {
     unsafe {
         if PATH_HISTORY.len() > 1 && !is_dual_pane {
             let last_path = &PATH_HISTORY[PATH_HISTORY.len() - 2];
-            dbg_log(format!("Went back to: {}", last_path));
+            dbg_log(format!("Went back to: {}", last_path), dbg!("").into());
             let _ = set_dir(last_path.into()).await;
             PATH_HISTORY.pop();
         } else {
@@ -609,7 +626,7 @@ async fn mount_sshfs(
         .expect("Failed to start sshfs process");
 
     // Write the password to stdin of the sshfs process
-    dbg_log(format!("Connecting to {}", remote_address));
+    dbg_log(format!("Connecting to {}", remote_address), dbg!("").into());
     let stdin = child.stdin.as_mut().expect("Failed to open stdin");
     stdin
         .write_all(password.as_bytes())
@@ -620,7 +637,10 @@ async fn mount_sshfs(
         .expect("Failed to read sshfs output");
 
     if output.status.success() {
-        dbg_log(format!("Mounted {} to {}", remote_address, mount_point));
+        dbg_log(
+            format!("Mounted {} to {}", remote_address, mount_point),
+            dbg!("").into(),
+        );
     } else {
         wng_log(format!(
             "Failed to mount: {}",
@@ -686,7 +706,10 @@ async fn go_home() {
 
 #[tauri::command]
 async fn stop_searching() {
-    dbg_log(format!("Stopped searching: {}", unsafe { IS_SEARCHING }));
+    dbg_log(
+        format!("Stopped searching: {}", unsafe { IS_SEARCHING }),
+        dbg!("").into(),
+    );
     unsafe {
         IS_SEARCHING = false;
         COUNT_CALLED_BACK = 0;
@@ -714,14 +737,17 @@ async fn search_for(
         "$('.file-searching-file-count').html('{} items found')",
         unsafe { COUNT_CALLED_BACK }
     ));
-    dbg_log(format!(
-        "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}",
-        &file_name,
-        search_depth,
-        max_items,
-        &file_content,
-        num_cpus::get()
-    ));
+    dbg_log(
+        format!(
+            "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}",
+            &file_name,
+            search_depth,
+            max_items,
+            &file_content,
+            num_cpus::get()
+        ),
+        dbg!("").into(),
+    );
     let temp_file_name = String::from(&file_name);
     if temp_file_name.split(".").nth(0).unwrap().contains("*") {
         file_name = temp_file_name.trim().replace("*", "");
@@ -778,7 +804,7 @@ async fn search_for(
     let _ = app_window
         .eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
     let _ = app_window.eval("stopFullSearch()");
-    dbg_log(format!("Search took: {:?}", sw.elapsed()));
+    dbg_log(format!("Search took: {:?}", sw.elapsed()), dbg!("").into());
     return;
 }
 
@@ -799,7 +825,7 @@ async fn copy_paste(
     }
     let _ = &app_window
         .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
-    dbg_log(format!("Copying: {} ...", &act_file_name));
+    dbg_log(format!("Copying: {} ...", &act_file_name), dbg!("").into());
     let final_filename = get_final_filename(
         act_file_name,
         from_path.clone(),
@@ -831,7 +857,10 @@ async fn copy_paste(
     #[cfg(not(target_os = "windows"))]
     let _ = copy(from_path, final_filename);
 
-    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
+    dbg_log(
+        format!("Copy-Paste time: {:?}", sw.elapsed()),
+        dbg!("").into(),
+    );
     app_window.eval("resetProgressBar()").unwrap();
 }
 
@@ -890,7 +919,10 @@ async fn arr_copy_paste(
         #[cfg(target_os = "windows")]
         copy_to(&app_window, final_filename, item_path);
     }
-    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
+    dbg_log(
+        format!("Copy-Paste time: {:?}", sw.elapsed()),
+        dbg!("").into(),
+    );
     app_window.eval("resetProgressBar()").unwrap();
     // app_window.eval("listDirectories(true)").unwrap();
 }
@@ -955,7 +987,10 @@ async fn get_final_filename(
 
 #[tauri::command]
 async fn delete_item(act_file_name: String) {
-    dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
+    dbg_log(
+        format!("Deleting: {}", String::from(&act_file_name)),
+        dbg!("").into(),
+    );
 
     #[cfg(target_os = "windows")]
     let dir_remove = remove_dir_all(&act_file_name.replace("\\", "/"));
@@ -977,7 +1012,10 @@ async fn delete_item(act_file_name: String) {
             .await
             .expect("Failed to delete dir");
     } else {
-        let _ = delete_file(&act_file_name.replace("\\", "/")).expect("Failed to delete file");
+        let file_deletion = delete_file(&act_file_name.replace("\\", "/"));
+        if file_deletion.is_err() {
+            return;
+        }
     }
 }
 
@@ -1003,7 +1041,10 @@ async fn extract_item(from_path: String, app_window: Window) {
             .nth(from_path.split(".").count() - 1)
             .unwrap_or("");
 
-    dbg_log(format!("Start unpacking {} - {}", &file_ext, &from_path));
+    dbg_log(
+        format!("Start unpacking {} - {}", &file_ext, &from_path),
+        dbg!("").into(),
+    );
 
     // zip, 7z or rar unpack
     let sw = Stopwatch::start_new();
@@ -1021,11 +1062,14 @@ async fn extract_item(from_path: String, app_window: Window) {
     } else if file_ext == ".rar" {
         let mut archive = Archive::new(&from_path).open_for_processing().unwrap();
         while let Some(header) = archive.read_header().unwrap() {
-            dbg_log(format!(
-                "{} bytes: {}",
-                header.entry().unpacked_size,
-                header.entry().filename.to_string_lossy()
-            ));
+            dbg_log(
+                format!(
+                    "{} bytes: {}",
+                    header.entry().unpacked_size,
+                    header.entry().filename.to_string_lossy()
+                ),
+                dbg!("").into(),
+            );
             archive = if header.entry().is_file() {
                 header.extract().unwrap()
             } else {
@@ -1058,13 +1102,13 @@ async fn extract_item(from_path: String, app_window: Window) {
         return;
     }
 
-    dbg_log(format!("Unpack time: {:?}", sw.elapsed()));
+    dbg_log(format!("Unpack time: {:?}", sw.elapsed()), dbg!("").into());
     remove_action(app_window, action_id);
 }
 
 #[tauri::command]
 async fn open_item(path: String) {
-    dbg_log(format!("Opening: {}", &path));
+    dbg_log(format!("Opening: {}", &path), dbg!("").into());
     let _ = open::that_detached(path);
 }
 
@@ -1088,11 +1132,14 @@ async fn compress_item(
         &from_path,
     );
     let sw = Stopwatch::start_new();
-    dbg_log(format!(
-        "Compression of '{}' started with compression level: {}",
-        &from_path.split("/").last().unwrap(),
-        &compression_level
-    ));
+    dbg_log(
+        format!(
+            "Compression of '{}' started with compression level: {}",
+            &from_path.split("/").last().unwrap(),
+            &compression_level
+        ),
+        dbg!("").into(),
+    );
     let file_ext = ".".to_string().to_owned()
         + from_path
             .split("/")
@@ -1109,7 +1156,7 @@ async fn compress_item(
             + ".zip",
     )
     .unwrap();
-    dbg_log(format!("Created file: {:?}", created_file));
+    dbg_log(format!("Created file: {:?}", created_file), dbg!("").into());
     let source: PathBuf;
     let archive = PathBuf::from(
         path_to_zip
@@ -1121,7 +1168,7 @@ async fn compress_item(
             .to_owned()
             + ".zip",
     );
-    dbg_log(format!("Archive: {:?}", archive));
+    dbg_log(format!("Archive: {:?}", archive), dbg!("").into());
     if fs::metadata(&from_path).unwrap().is_dir() {
         source = PathBuf::from(&from_path);
     } else {
@@ -1169,7 +1216,10 @@ async fn compress_item(
             .to_string(),
     );
     remove_action(app_window, action_id);
-    dbg_log(format!("Compression time: {:?}", sw.elapsed()));
+    dbg_log(
+        format!("Compression time: {:?}", sw.elapsed()),
+        dbg!("").into(),
+    );
 }
 
 #[tauri::command]
@@ -1259,7 +1309,10 @@ async fn rename_element(path: String, new_name: String, app_window: Window) -> V
             .eval("alert('Failed to rename element')")
             .unwrap();
     } else {
-        dbg_log(format!("Renamed from {} to {}", path, new_name));
+        dbg_log(
+            format!("Renamed from {} to {}", path, new_name),
+            dbg!("").into(),
+        );
     }
     return list_dirs().await;
 }
@@ -1312,7 +1365,10 @@ async fn save_config(
         .unwrap()
         .to_string();
     let _ = serde_json::to_writer_pretty(File::create(&config_dir).unwrap(), &app_config_json);
-    dbg_log(format!("app_config was saved to {}", config_dir));
+    dbg_log(
+        format!("app_config was saved to {}", config_dir),
+        dbg!("").into(),
+    );
 }
 
 #[tauri::command]
@@ -1334,11 +1390,14 @@ async fn rename_elements_with_format(
             &element,
             format!("{}{:0>n_digits$}{}", new_name, counter, item_ext),
         );
-        dbg_log(format!(
-            "Renamed from {} to {}",
-            element,
-            format!("{}{:0>n_digits$}{}", new_name, counter, item_ext)
-        ));
+        dbg_log(
+            format!(
+                "Renamed from {} to {}",
+                element,
+                format!("{}{:0>n_digits$}{}", new_name, counter, item_ext)
+            ),
+            dbg!("").into(),
+        );
         counter += step_by;
     }
 }
@@ -1371,7 +1430,10 @@ async fn add_favorite(arr_favorites: Vec<String>) {
         .unwrap(),
         &app_config,
     );
-    dbg_log(format!("Saved favorites: {:?}", arr_favorites));
+    dbg_log(
+        format!("Saved favorites: {:?}", arr_favorites),
+        dbg!("").into(),
+    );
 }
 
 #[tauri::command]
@@ -1577,7 +1639,10 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
         url.clone(),
         &"".into(),
     );
-    dbg_log(format!("Downloading {} as {}", url, quality));
+    dbg_log(
+        format!("Downloading {} as {}", url, quality),
+        dbg!("").into(),
+    );
     let chosen_quality = match quality.as_str() {
         "lowestvideo" => VideoQuality::LowestVideo,
         "lowestaudio" => VideoQuality::LowestAudio,
@@ -1586,7 +1651,10 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
         _ => VideoQuality::HighestVideo,
     };
 
-    dbg_log(format!("Chosen quality: {:?}", chosen_quality));
+    dbg_log(
+        format!("Chosen quality: {:?}", chosen_quality),
+        dbg!("").into(),
+    );
 
     let video_options = VideoOptions {
         quality: chosen_quality,
@@ -1609,7 +1677,7 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
     let mut downloaded: f64 = 0.0;
     let sw = Stopwatch::start_new();
 
-    while let Some(chunk) = stream.chunk().await.unwrap() {
+    while let Some(chunk) = stream.chunk().await.unwrap_or_default() {
         file.write_all(&chunk).unwrap();
         downloaded += chunk.len() as f64;
         let speed = calc_transfer_speed(downloaded, sw.elapsed_ms() as f64 / 1000.0);
@@ -1750,7 +1818,10 @@ async fn get_app_icns(_path: String) -> String {
                 let file = file.unwrap();
                 BufWriter::new(&file);
                 image.write_png(file).unwrap();
-                dbg_log(format!("Writing image to: {}", new_img_path));
+                dbg_log(
+                    format!("Writing image to: {}", new_img_path),
+                    dbg!("").into(),
+                );
             }
 
             return new_img_path;
@@ -1762,16 +1833,11 @@ async fn get_app_icns(_path: String) -> String {
 
 #[tauri::command]
 async fn get_thumbnail(image_path: String) -> String {
-    let item = image::open(&image_path);
+    dbg_log(
+        format!("Getting thumbnail for: {}", image_path),
+        dbg!("").into(),
+    );
 
-    if item.is_err() {
-        dbg_log(format!(
-            "Couldn't load image for thumbnail: {}",
-            &image_path.split("/").last().unwrap()
-        ));
-        return image_path;
-    }
-    let item = item.unwrap();
     let thumbnails_dir = config_dir()
         .unwrap()
         .join("com.codriver.dev")
@@ -1781,18 +1847,35 @@ async fn get_thumbnail(image_path: String) -> String {
         let _ = create_dir(&thumbnails_dir);
     }
 
-    let thumbnail = item.thumbnail(100, 50);
     let new_thumbnail_path = thumbnails_dir.join(image_path.clone().split("/").last().unwrap());
 
     if PathBuf::from(&new_thumbnail_path).exists() {
-        dbg_log(format!("Getting thumbnail for: {}", image_path));
         return new_thumbnail_path.to_string_lossy().to_string();
     }
 
-    dbg_log(format!(
-        "Saving thumbnail for: {}",
-        image_path.split("/").last().unwrap()
-    ));
+    let item = image::open(&image_path);
+
+    if item.is_err() {
+        dbg_log(
+            format!(
+                "Couldn't load image for thumbnail: {}",
+                &image_path.split("/").last().unwrap()
+            ),
+            dbg!("").into(),
+        );
+        return image_path;
+    }
+    let item = item.unwrap();
+
+    let thumbnail = item.thumbnail(50, 25);
+
+    dbg_log(
+        format!(
+            "Saving thumbnail for: {}",
+            image_path.split("/").last().unwrap()
+        ),
+        dbg!("").into(),
+    );
 
     let _ = thumbnail
         .save_with_format(
@@ -1897,53 +1980,40 @@ async fn get_config_location() -> String {
 
 #[tauri::command]
 async fn log(log: String) {
-    let log = format!("[{}] {}\n", chrono::Local::now().format("%H:%M:%S"), log);
-    let log_file_path = config_dir()
-        .unwrap()
-        .join("com.codriver.dev")
-        .join("log.txt");
-    if !log_file_path.exists() {
-        let _ = fs::File::create(&log_file_path);
-    }
-
-    // Write text to logfile
-    let mut file = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open(&log_file_path)
-        .unwrap();
-    let _ = file.write_all(log.as_bytes());
-
-    dbg_log(format!(
-        "Written to: {} Log: {}",
-        log_file_path.to_str().unwrap(),
-        log
-    ));
-    return;
+    utils::log(log);
 }
 
 #[tauri::command]
 async fn unmount_network_drive(path: String) {
     let _ = Command::new("umount").arg(&path).spawn();
-    dbg_log(format!("Unmounted: {}", path));
+    dbg_log(format!("Unmounted: {}", path), dbg!("").into());
     let remove = remove_dir(&path);
     if remove.is_err() {
-        dbg_log(format!("Failed to remove: {} | Trying again in 0.5s", path));
+        dbg_log(
+            format!("Failed to remove: {} | Trying again in 0.5s", path),
+            dbg!("").into(),
+        );
         std::thread::sleep(std::time::Duration::from_millis(500));
         let remove2 = remove_dir(&path);
         if remove2.is_err() {
-            dbg_log(format!("Failed to remove: {} | Trying again in 1s", path));
+            dbg_log(
+                format!("Failed to remove: {} | Trying again in 1s", path),
+                dbg!("").into(),
+            );
             std::thread::sleep(std::time::Duration::from_millis(1000));
             let remove3 = remove_dir(&path);
             if remove3.is_err() {
-                dbg_log(format!(
-                    "Failed to remove: {} | Err: {}",
-                    path,
-                    remove3.err().unwrap()
-                ));
+                dbg_log(
+                    format!(
+                        "Failed to remove: {} | Err: {}",
+                        path,
+                        remove3.err().unwrap()
+                    ),
+                    dbg!("").into(),
+                );
                 return;
             }
         }
     }
-    dbg_log(format!("Removed: {}", path));
+    dbg_log(format!("Removed: {}", path), dbg!("").into());
 }
