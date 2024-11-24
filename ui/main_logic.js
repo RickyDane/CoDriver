@@ -2342,7 +2342,7 @@ async function listDisks() {
 			let itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center; width: 50%;">
-					<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="24px" height="24px" loading="lazy"/>
+					<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="32px" height="32px" loading="lazy"/>
 					<p class="disk-info" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
@@ -2371,6 +2371,7 @@ async function listDisks() {
 		});
 	});
 	document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
+	insertSiteNavButtons();
 }
 
 async function listDirectories(fromDualPaneCopy = false) {
@@ -2585,12 +2586,12 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
 				}
 			} else {
 				if (IsShowDisks == true) {
-					item.children[0].children[0].classList.remove("selected-item");
+					item.children[0].classList.remove("selected-item");
 				} else {
-					item.children[0].children[0].classList.remove(
+					item.children[0].classList.remove(
 						"selected-item",
 					);
-					item.children[0].children[1].classList.remove(
+					item.children[1].classList.remove(
 						"selected-item-min",
 					);
 				}
@@ -4182,6 +4183,7 @@ async function insertSiteNavButtons() {
 	seperator.className = "horizontal-seperator";
 	document.querySelector(".site-nav-bar").append(seperator);
 
+	// Available disks as site nav buttons
 	let diskButton = document.createElement("button");
 	diskButton.className = "site-nav-bar-button";
 	diskButton.onclick = () => listDisks();
@@ -4196,7 +4198,7 @@ async function insertSiteNavButtons() {
 		disks.forEach((mount) => {
 			let diskButton = document.createElement("button");
 			diskButton.className = "site-nav-bar-button";
-			diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> ${mount.name != "" ? mount.name : "/"}`;
+			diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i><p>${mount.name != "" ? mount.name : "/"}</p>`;
       diskButton.onclick = async () => {
         await openDirAndSwitch(mount.path);
         await listDirectories();

@@ -172,7 +172,6 @@ pub fn update_progressbar(
     items_count_text: &str,
     mb_per_sec: f64,
 ) {
-    show_progressbar(app_window);
     let _ = app_window.eval(
         format!(
             "document.querySelector('.progress-bar-fill').style.width = '{}%'",

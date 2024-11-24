@@ -40,8 +40,8 @@ use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
     calc_transfer_speed, copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes,
-    remove_action, unpack_tar, update_progressbar, update_progressbar_2, wng_log, DirWalker,
-    DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER,
+    remove_action, show_progressbar, unpack_tar, update_progressbar, update_progressbar_2, wng_log,
+    DirWalker, DirWalkerEntry, COPY_COUNTER, TO_COPY_COUNTER,
 };
 #[cfg(target_os = "macos")]
 mod window_tauri_ext;
@@ -840,22 +840,12 @@ async fn copy_paste(
             let _ =
                 app_window.eval("document.querySelector('.progress-bar-2').style.display = 'none'");
         } else {
-            let _ = app_window
-                .eval("document.querySelector('.progress-bar-2').style.display = 'block'");
+            show_progressbar(&app_window);
         }
     }
     let sw = Stopwatch::start_new();
 
-    // Windows copy pasting
-    // Execute the copy process for either a dir or file
-    #[cfg(target_os = "windows")]
     let _ = copy_to(&app_window, final_filename, from_path);
-    #[cfg(not(target_os = "windows"))]
-    copy_to(&app_window, final_filename.clone(), from_path.clone());
-
-    // Non windows copy pasting
-    #[cfg(not(target_os = "windows"))]
-    let _ = copy(from_path, final_filename);
 
     dbg_log(
         format!("Copy-Paste time: {:?}", sw.elapsed()),
@@ -905,18 +895,6 @@ async fn arr_copy_paste(
         )
         .await;
         // Execute the copy process for either a dir or file
-        #[cfg(not(target_os = "windows"))]
-        // use copy_to for files larger than 5 gb
-        if item.size.parse::<u64>().unwrap_or(0) > 5000000000 {
-            copy_to(&app_window, final_filename.clone(), item_path.clone());
-        } else {
-            if item.is_dir == 1 {
-                let _ = copy_dir(item_path, final_filename);
-            } else {
-                let _ = copy(item_path, final_filename); // Copying of files is different on macOS
-            }
-        }
-        #[cfg(target_os = "windows")]
         copy_to(&app_window, final_filename, item_path);
     }
     dbg_log(

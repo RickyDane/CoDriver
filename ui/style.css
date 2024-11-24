@@ -228,8 +228,12 @@ body {
     font-size: small;
     transition: 0.1s ease-out;
     color: var(--textColor);
+}
+
+.site-nav-bar-button > p {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .site-nav-bar-button > svg {
