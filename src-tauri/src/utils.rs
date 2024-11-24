@@ -391,17 +391,19 @@ impl DirWalker {
                 .unwrap();
 
             let is_match = reg_exp.is_match(&name);
-            println!("{}: is match {}", name, is_match);
+            let is_with_exts = self.exts.len() > 0 && self.exts.contains(&item_ext);
+            let is_file = path.is_file();
+            let is_quick_search = is_quick_search;
+            println!(
+                "{}: is match {} | is_with_exts {} | is_file {} | is_quick_search {}",
+                name, is_match, is_with_exts, is_file, is_quick_search
+            );
 
-            if is_match
-                && ((self.exts.len() > 0 && self.exts.contains(&item_ext))
-                    || path.is_file() && self.exts.len() == 0
-                    || is_quick_search)
-            {
+            if is_match && (is_with_exts || is_file || is_quick_search) {
                 // Search for file content
                 if !file_content.is_empty() {
                     let content = fs::read_to_string(&path).unwrap_or_else(|_| "".into());
-                    // Extend with line number of text occurence later on
+                    // Todo: Extend with line number of text occurence later on
                     if content.contains(&file_content) {
                         dbg_log(
                             format!("File found with file_content: {}", &name),
@@ -419,6 +421,7 @@ impl DirWalker {
                         });
                     }
                 } else {
+                    dbg!("Found matching item");
                     // Search w/o file content
                     callback(DirWalkerEntry {
                         name,

@@ -755,7 +755,7 @@ document.onkeydown = async (e) => {
 			}
 		}
 
-		if (IsDualPaneEnabled === false && (IsItemPreviewOpen === true && IsPopUpOpen === true || IsPopUpOpen === false)) {
+		if (IsDualPaneEnabled === false && (IsItemPreviewOpen === true && IsPopUpOpen === true || IsPopUpOpen === false) && IsInputFocused === false) {
 			if (ViewMode == "wrap") {
 				// check if arrow up is pressed
 				if (e.keyCode == 38) {
@@ -890,79 +890,78 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		if (item.is_dir == 1) {
 			fileIcon = "resources/folder-icon.png";
 			// Check for dir name to apply custom icons
-			if (item.name.toLowerCase().includes("downloads")) {
-				fileIcon = "resources/folder-downloads.png";
-			} else if (
-				item.name.toLowerCase().includes("desktop") ||
-				item.name.toLowerCase().includes("schreibtisch")
-			) {
-				fileIcon = "resources/folder-desktop.png";
-			} else if (
-				item.name.toLowerCase().includes("dokumente") ||
-				item.name.toLowerCase().includes("doks") ||
-				item.name.toLowerCase().includes("documents") ||
-				item.name.toLowerCase().includes("docs")
-			) {
-				fileIcon = "resources/folder-docs.png";
-			} else if (
-			  item.name.toLowerCase().includes("audio") ||
-				item.name.toLowerCase().includes("musik") ||
-				item.name.toLowerCase().includes("music")
-			) {
-				fileIcon = "resources/folder-music.png";
-			} else if (
-				item.name.toLowerCase().includes("bilder") ||
-				item.name.toLowerCase().includes("fotos") ||
-				item.name.toLowerCase().includes("photos") ||
-				item.name.toLowerCase().includes("pictures") ||
-				item.name.toLowerCase().includes("images")
-			) {
-				fileIcon = "resources/folder-images.png";
-			} else if (
-				item.name.toLowerCase().includes("videos") ||
-				item.name.toLowerCase().includes("video") ||
-				item.name.toLowerCase().includes("movies") ||
-				item.name.toLowerCase().includes("movie") ||
-				item.name.toLowerCase().includes("films") ||
-				item.name.toLowerCase().includes("filme")
-			) {
-				fileIcon = "resources/folder-videos.png";
-			} else if (
-				item.name.toLowerCase().includes("coding") ||
-				item.name.toLowerCase().includes("programming") ||
-				item.name.toLowerCase().includes("programmieren") ||
-				item.name.toLowerCase().includes("code")
-			) {
-				fileIcon = "resources/folder-coding.png";
-			} else if (
-				item.name.toLowerCase().includes("werkzeuge") ||
-				item.name.toLowerCase().includes("tools")
-			) {
-				fileIcon = "resources/folder-tools.png";
-			} else if (
-				item.name.toLowerCase().includes("public") ||
-				item.name.toLowerCase().includes("öffentlich") ||
-				item.name.toLowerCase().includes("shared") ||
-				item.name.toLowerCase().includes("geteilt")
-			) {
-				fileIcon = "resources/folder-public.png";
-			} else if (
-				item.name.toLowerCase().includes("games") ||
-				item.name.toLowerCase().includes("spiele")
-			) {
-				fileIcon = "resources/folder-games.png";
-			} else if (
-				item.name.toLowerCase().includes("developer") ||
-				item.name.toLowerCase().includes("entwickler") ||
-				item.name.toLowerCase().includes("entwicklung") ||
-				item.name.toLowerCase().includes("development")
-			) {
-				fileIcon = "resources/folder-development.png";
-			} else if (
-				item.name.toLowerCase().includes("applications") ||
-				item.name.toLowerCase().includes("programme")) {
-					fileIcon = "resources/folder-applications.png";
-				}
+      switch (item.name.toLowerCase()) {
+        case "downloads":
+          fileIcon = "resources/folder-downloads.png";
+          break;
+        case "desktop":
+        case "schreibtisch":
+          fileIcon = "resources/folder-desktop.png";
+          break;
+        case "dokumente":
+        case "doks":
+        case "documents":
+        case "docs":
+          fileIcon = "resources/folder-docs.png";
+          break;
+        case "musik":
+        case "music":
+        case "audio":
+          fileIcon = "resources/folder-music.png";
+          break;
+        case "bilder":
+        case "fotos":
+        case "photos":
+        case "pictures":
+        case "images":
+          fileIcon = "resources/folder-images.png";
+          break;
+        case "videos":
+        case "video":
+        case "movies":
+        case "movie":
+        case "films":
+        case "filme":
+          fileIcon = "resources/folder-videos.png";
+          break;
+        case "coding":
+        case "programming":
+        case "programmieren":
+        case "code":
+          fileIcon = "resources/folder-coding.png";
+          break;
+        case "werkzeuge":
+        case "tools":
+          fileIcon = "resources/folder-tools.png";
+          break;
+        case "public":
+        case "öffentlich":
+        case "shared":
+        case "geteilt":
+          fileIcon = "resources/folder-public.png";
+          break;
+        case "games":
+        case "gaming":
+        case "spiele":
+          fileIcon = "resources/folder-games.png";
+          break;
+        case "developer":
+        case "entwickler":
+        case "entwicklung":
+        case "development":
+          fileIcon = "resources/folder-development.png";
+          break;
+        case "applications":
+        case "programme":
+          fileIcon = "resources/folder-applications.png";
+          break;
+        case "sdk":
+        case "sdks":
+          fileIcon = "resources/folder-sdk.png";
+        default:
+          fileIcon = "resources/folder-icon.png";
+          break;
+      }
 		} else {
 			switch (item.extension.toLowerCase()) {
 				case ".rs":
