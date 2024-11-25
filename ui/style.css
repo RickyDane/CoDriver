@@ -9,6 +9,7 @@
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    font-weight: 400 !important;
 }
 
 ::-webkit-scrollbar {
@@ -62,11 +63,6 @@ body {
     border: none;
     border-radius: 10px;
     transition: 0.3s ease-out;
-    /* will-change: transform; */
-}
-
-* {
-    font-weight: 400 !important;
 }
 
 .codriver-name {
@@ -89,6 +85,7 @@ body {
     user-select: none;
     opacity: 1;
     overflow-y: auto;
+    will-change: transform;
 }
 
 .miller-container {
@@ -231,8 +228,12 @@ body {
     font-size: small;
     transition: 0.1s ease-out;
     color: var(--textColor);
+}
+
+.site-nav-bar-button > p {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .site-nav-bar-button > svg {
@@ -555,8 +556,8 @@ body {
     left: 0;
     right: 0;
     background-color: var(--navBarColor);
-    width: 100%;
-    padding: 5px 10px 5px 20px;
+    width: calc(100% - 10px);
+    padding: 5px 5px 5px 20px;
     font-size: large;
     font-weight: bolder !important;
     display: flex;
@@ -564,10 +565,11 @@ body {
     justify-content: space-between;
     align-items: center;
     z-index: 4;
-    border-bottom: 1px solid var(--tertiaryColor);
+    border: 1px solid var(--tertiaryColor);
     margin-bottom: 1px;
     color: var(--textColor);
-    height: 65px;
+    border-radius: 10px;
+    margin: 5px 5px 0px 5px;
 }
 
 .settings-ui-body {
@@ -593,7 +595,6 @@ body {
     gap: 5px;
     justify-content: flex-end;
     padding: 5px;
-    background-color: var(--primaryColor);
     z-index: 3;
     border-top: 1px solid var(--tertiaryColor);
     color: var(--textColor);
@@ -623,6 +624,14 @@ body {
     color: var(--textColor);
 }
 
+.settings-ui-input:hover {
+    background-color: var(--secondaryColor) !important;
+}
+
+.settings-ui-input:focus {
+    background-color: var(--tertiaryColor) !important;
+}
+
 .settings-ui-checkbox {
     width: 20px;
     height: 20px;
@@ -649,6 +658,9 @@ input[type="checkbox"] {
 
 .open-config-button {
     background-color: var(--primaryColor) !important;
+}
+.open-config-button:hover {
+    background-color: var(--secondaryColor) !important;
 }
 
 label {
@@ -709,6 +721,10 @@ button > svg {
     min-width: 110%;
     cursor: pointer;
     color: var(--textColor);
+}
+
+.select:hover {
+    background-color: var(--secondaryColor);
 }
 
 .select::after {
@@ -781,7 +797,7 @@ button > svg {
 
 .item-icon {
     filter: saturate(1.2);
-    border-radius: 10px;
+    border-radius: 5px;
     user-select: none;
     -webkit-user-select: none;
     -webkit-user-drag: none;
@@ -817,17 +833,13 @@ button > svg {
     border-radius: 10px;
     padding: 5px;
     /* filter: hue-rotate(10deg), brightness(2); */
-    object-fit: contain;
+    object-fit: fill;
+    overflow: hidden;
 }
 
 .item-button > img > svg {
     color: black;
 }
-
-/* .item-button:hover>img {
-    background-color: var(--transparentColor);
-    filter: brightness(0.85);
-} */
 
 .item-button > p {
     position: absolute;
@@ -871,7 +883,6 @@ button > svg {
     overflow: hidden;
     word-wrap: normal;
     white-space: nowrap;
-    transition: 0.1s ease-out;
     border-radius: 10px;
     margin: 1px 0px;
     border: 1px solid transparent;
@@ -916,23 +927,18 @@ button > svg {
     background-color: var(--transparentColor);
 }
 
-.directory-item-entry {
-    width: 100%;
-    max-width: 100%;
-    border-radius: 10px;
-    color: var(--textColor);
-}
-
 .item-link {
     background-color: transparent;
     border: 1px solid transparent;
-    border-radius: 7.5px;
     transition: 0.1s ease-out;
-    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 2;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 10px;
+    color: var(--textColor);
 }
 
 .disk-item-button-button {
@@ -1019,6 +1025,7 @@ button > svg {
     justify-content: center;
     align-items: center;
     background-color: var(--secondaryColor);
+    box-shadow: 0px 0px 20px 0px var(--transparentColor);
     border-radius: 10px;
     cursor: pointer;
     transition: 0.1s ease-out;
@@ -1102,14 +1109,14 @@ button > svg {
 }
 
 .horizontal-seperator {
-    width: 80%;
+    width: 90%;
     height: 1px;
     background-color: var(--tertiaryColor);
     margin: 2px 0px;
 }
 
 .nav-seperator-1 {
-    color: var(--textColor);
+    color: var(--tertiaryColor);
 }
 
 .header-nav-right-container {
@@ -1120,7 +1127,7 @@ button > svg {
     display: flex;
     flex-flow: row;
     align-items: center;
-    border: 1px solid var(--secondaryColor);
+    border: 1px solid var(--tertiaryColor);
     width: 200px;
     height: 80%;
     border-radius: 10px;
@@ -1132,25 +1139,25 @@ button > svg {
 .file-searchbar > input {
     width: 100%;
     padding: 10px 15px;
-    background-color: var(--transparentColor);
-    border-radius: 10px 0px 0px 5px;
+    border-radius: 5px 0px 0px 5px;
     border: none;
     z-index: 3;
     outline: none;
     color: var(--textColor);
 }
 
-.file-searchbar > input:active {
-    background-color: var(--transparentColorActive);
+.file-searchbar > input:hover {
+    background-color: var(--tertiaryColor);
 }
 
 .search-button,
 .cancel-search-button {
     padding: 10px 15px 10px 12px;
     border: none;
-    background-color: var(--transparentColor);
+    background-color: var(--secondaryColor);
     cursor: pointer;
     z-index: 2;
+    transition: 0.3s ease;
 }
 
 .cancel-search-button {
@@ -1190,10 +1197,15 @@ button > svg {
     outline: none;
     width: 100%;
     color: var(--textColor);
+    transition: 0.1s ease;
+}
+
+.text-input:hover {
+    background-color: var(--tertiaryColor);
 }
 
 .text-input:focus {
-    background-color: var(--transparentColorActive);
+    background-color: var(--tertiaryColor);
 }
 
 .settings-input.number-input {
@@ -1211,8 +1223,12 @@ button > svg {
     color: var(--textColor);
 }
 
+.number-input:hover {
+    background-color: var(--secondaryColor) !important;
+}
+
 .number-input:focus {
-    background-color: var(--transparentColorActive);
+    background-color: var(--tertiaryColor) !important;
 }
 
 .search-bar-text {
@@ -1323,7 +1339,6 @@ button > svg {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     margin: 0 auto;
-    will-change: transform;
     row-gap: 15px;
     column-gap: 15px;
     transition: 0.3s ease-out;
@@ -1604,7 +1619,6 @@ button > svg {
     min-width: 300px;
     height: fit-content;
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
-    z-index: 2;
 }
 
 .uni-popup {
@@ -1657,6 +1671,7 @@ button > svg {
     max-height: 90vh;
     max-width: 90vw;
     border-radius: 10px;
+    border: 1px solid var(--tertiaryColor);
     z-index: 999;
     display: none;
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
@@ -1675,6 +1690,13 @@ button > svg {
     min-height: 0;
     object-fit: contain;
     object-position: 50%;
+}
+
+.item-preview-popup > .popup-header > h3 {
+    max-width: 50vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .item-preview-popup > iframe {
@@ -1700,7 +1722,7 @@ button > svg {
     color: var(--textColor);
 }
 .item-properties-popup > .popup-body {
-    padding: 20px !important;
+    padding: 15px 15px 5px 15px !important;
 }
 
 .module-container {
@@ -1720,9 +1742,8 @@ button > svg {
 }
 
 .module-container > img {
-    max-width: 100%;
+    width: auto;
     max-height: 60vh;
-    border-radius: 10px;
 }
 
 .item-preview-copy-path-button {
@@ -1790,10 +1811,12 @@ button > svg {
     display: flex;
     flex-flow: row;
     justify-content: flex-end;
+    align-items: center;
     gap: 5px;
     padding: 5px;
+    padding-left: 15px;
     /* border-top: 1px solid var(--tertiaryColor); */
-    box-shadow: 0px 0px 10px 1px var(--transparentColor);
+    /*box-shadow: 0px 0px 10px 1px var(--transparentColor);*/
     color: var(--textColor);
 }
 
@@ -1871,7 +1894,6 @@ button > svg {
     width: 100%;
     padding: 7.5px 10px;
     cursor: pointer;
-    border-radius: 10px;
     color: var(--textColor2);
     font-weight: 300;
 }
@@ -1879,21 +1901,15 @@ button > svg {
 .list-item {
     width: 100%;
     padding: 7.5px 10px;
-    cursor: pointer;
-    border-radius: 10px;
     color: var(--textColor2);
     font-size: var(--fontSize);
     font-weight: 300;
-    border-bottom: 1px solid var(--tertiaryColor);
+    border-bottom: 1px solid var(--secondaryColor);
     transition: 0.2s ease-out;
 }
 
 .list-item:nth-last-of-type() {
     border-bottom: none;
-}
-
-.list-item:hover {
-    background-color: var(--tertiaryColor);
 }
 
 /* Toast */
@@ -1980,6 +1996,9 @@ button > svg {
 }
 
 /* Text styles */
+.text {
+    color: var(--textColor);
+}
 .text-2 {
     font-size: var(--fontSize);
     color: var(--textColor2);

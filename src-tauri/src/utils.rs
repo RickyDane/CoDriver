@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use color_print::cprintln;
 use regex::Regex;
 use serde::Serialize;
+use std::fs::OpenOptions;
 use std::{
     ffi::OsStr,
     fmt::Debug,
@@ -11,6 +12,7 @@ use std::{
 use stopwatch::Stopwatch;
 use sysinfo::System;
 use tar::Archive as TarArchive;
+use tauri::api::path::config_dir;
 use tauri::Window;
 
 #[allow(unused_imports)]
@@ -20,7 +22,7 @@ use crate::{COUNT_CALLED_BACK, IS_SEARCHING};
 pub static mut COPY_COUNTER: f32 = 0.0;
 pub static mut TO_COPY_COUNTER: f32 = 0.0;
 
-pub fn dbg_log(msg: String) {
+pub fn dbg_log(msg: String, _line_no: String) {
     cprintln!(
         "[<white>{:?}</white> DBG] {}",
         Local::now().format("%H:%M:%S").to_string(),
@@ -40,8 +42,36 @@ pub fn err_log(msg: String) {
         Local::now().format("%H:%M:%S").to_string(),
         msg
     );
+    log(msg);
 }
 
+pub fn log(msg: String) {
+    let log = format!("[{}] {}\n", chrono::Local::now().format("%H:%M:%S"), msg);
+    let log_file_path = config_dir()
+        .unwrap()
+        .join("com.codriver.dev")
+        .join("log.txt");
+    if !log_file_path.exists() {
+        let _ = fs::File::create(&log_file_path);
+    }
+
+    // Write text to logfile
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(&log_file_path)
+        .unwrap();
+    let _ = file.write_all(log.as_bytes());
+
+    dbg_log(
+        format!(
+            "Written to: {} Log: {}",
+            log_file_path.to_str().unwrap(),
+            log
+        ),
+        dbg!("").into(),
+    );
+}
 pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
     let file = fs::metadata(&from_path).unwrap();
     if file.is_file() {
@@ -142,7 +172,6 @@ pub fn update_progressbar(
     items_count_text: &str,
     mb_per_sec: f64,
 ) {
-    show_progressbar(app_window);
     let _ = app_window.eval(
         format!(
             "document.querySelector('.progress-bar-fill').style.width = '{}%'",
@@ -310,7 +339,7 @@ impl DirWalker {
         {
             unsafe {
                 if IS_SEARCHING == false && COUNT_CALLED_BACK < max_items {
-                    dbg_log("Interrupted searching".into());
+                    dbg_log("Interrupted searching".into(), dbg!("").into());
                     return;
                 }
                 if COUNT_CALLED_BACK >= max_items || IS_SEARCHING == false {
@@ -360,19 +389,25 @@ impl DirWalker {
                 )
                 .unwrap();
 
-            println!("{}: is match {}", name, reg_exp.is_match(&name));
+            let is_match = reg_exp.is_match(&name);
+            let is_with_exts = self.exts.len() > 0 && self.exts.contains(&item_ext);
+            let is_file = path.is_file();
+            let is_quick_search = is_quick_search;
+            println!(
+                "{}: is match {} | is_with_exts {} | is_file {} | is_quick_search {}",
+                name, is_match, is_with_exts, is_file, is_quick_search
+            );
 
-            if reg_exp.is_match(&name)
-                && (self.exts.len() > 0 && self.exts.contains(&item_ext)
-                    || path.is_file() && self.exts.len() == 0
-                    || is_quick_search)
-            {
+            if is_match && (is_with_exts || is_file || is_quick_search) {
                 // Search for file content
                 if !file_content.is_empty() {
                     let content = fs::read_to_string(&path).unwrap_or_else(|_| "".into());
-                    // Extend with line number of text occurence later on
+                    // Todo: Extend with line number of text occurence later on
                     if content.contains(&file_content) {
-                        dbg_log(format!("File found with file_content: {}", &name));
+                        dbg_log(
+                            format!("File found with file_content: {}", &name),
+                            dbg!("").into(),
+                        );
                         callback(DirWalkerEntry {
                             name,
                             path: path.to_string_lossy().to_string(),
@@ -385,6 +420,7 @@ impl DirWalker {
                         });
                     }
                 } else {
+                    dbg!("Found matching item");
                     // Search w/o file content
                     callback(DirWalkerEntry {
                         name,

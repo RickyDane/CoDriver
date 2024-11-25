@@ -23,7 +23,7 @@ const { readDir } = TAURI.fs;
 // :entry_point Entry point
 
 getMatches().then((matches) => {
-	console.log("source: " + JSON.stringify(matches.args.source));
+  // alert(JSON.stringify(matches.args.source.value));
 })
 
 // :drag / Dragging functionality
@@ -261,9 +261,7 @@ function resetQuickSearch() {
 }
 
 async function resetEverything() {
-	if (IsPopUpOpen === false && IsInputFocused === false && IsItemPreviewOpen === false) {
-		await refreshView();
-	}
+  closeLoadingPopup();
 	closeSearchBar();
 	closeSettings();
 	closeFullSearchContainer();
@@ -278,6 +276,7 @@ async function resetEverything() {
 	unSelectAllItems();
 	closeConfirmPopup();
 	closeCustomContextMenu();
+  closeFindDuplicatesPopup();
 	$(".popup-background").css("display", "none");
 	IsPopUpOpen = false;
 	IsInputFocused = false;
@@ -292,6 +291,7 @@ async function resetEverything() {
 	CurrentQuickSearch = "";
 	resetQuickSearch();
 }
+
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
 	// Check if your click is outside of important elements
@@ -304,7 +304,6 @@ document.addEventListener("mousedown", (e) => {
 		!e.target.classList.contains("uni-popup") &&
 		!e.target.classList.contains("popup-body") &&
 		!e.target.classList.contains("popup-body-content") &&
-		!e.target.classList.contains("directory-item-entry") &&
 		!e.target.classList.contains("directory-entry") &&
 		!e.target.classList.contains("disk-item") &&
 		!e.target.classList.contains("item-button") &&
@@ -339,6 +338,7 @@ document.addEventListener("mousedown", (e) => {
 	}
 	if (IsPopUpOpen === true && !e.target.classList.contains("input-dialog") && !e.target.classList.contains("input-dialog-headline") && !e.target.classList.contains("text-input")) {
 		closeInputDialogs();
+    IsInputFocused = false;
 	}
 	if (!e.target.classList.contains("c-item-custom")) {
 		closeCustomContextMenu();
@@ -352,7 +352,7 @@ document.addEventListener("mousedown", (e) => {
 // :context open
 document.addEventListener("contextmenu", (e) => {
 	e.preventDefault();
-	if (IsPopUpOpen == false) {
+	if (IsPopUpOpen == false && IsInputFocused == false) {
 		ContextMenu.children[7].replaceWith(
 			ContextMenu.children[7].cloneNode(true),
 		);
@@ -376,17 +376,17 @@ document.addEventListener("contextmenu", (e) => {
 				.querySelector(".c-item-paste")
 				.classList.remove("c-item-disabled");
 		}
+  	document
+  		.querySelector(".c-item-ytdownload")
+  		.replaceWith(document.querySelector(".c-item-ytdownload").cloneNode(true));
+  	document.querySelector(".c-item-ytdownload").addEventListener(
+  		"click",
+  		async () => {
+  			await showYtDownload();
+  		},
+  		{ once: true },
+  	);
 	}
-	document
-		.querySelector(".c-item-ytdownload")
-		.replaceWith(document.querySelector(".c-item-ytdownload").cloneNode(true));
-	document.querySelector(".c-item-ytdownload").addEventListener(
-		"click",
-		async () => {
-			await showYtDownload();
-		},
-		{ once: true },
-	);
 });
 
 // Position contextmenu
@@ -404,19 +404,16 @@ function positionContextMenu(e) {
   if (ContextMenu.offsetHeight + e.clientY <= window.innerHeight) {
     ContextMenu.style.top = e.clientY + "px";
     ContextMenu.style.bottom = null;
-    console.log("Case 1");
   } else if ((ContextMenu.offsetHeight + e.clientY >= window.innerHeight) && (e.clientY - ContextMenu.offsetHeight > 0)) {
     ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
     ContextMenu.style.bottom = null;
-    console.log("Case 2");
   } else {
     ContextMenu.style.top = window.innerHeight - ContextMenu.offsetHeight - 10 + "px";
     ContextMenu.style.bottom = null;
-    console.log("Case 3");
   }
 }
 
-/* :shortcuts Shortcuts configuration */
+/* :shortcuts Shortcuts definition */
 
 function isShortcut(key) {
 	if (key == "Meta" ||
@@ -758,7 +755,7 @@ document.onkeydown = async (e) => {
 			}
 		}
 
-		if (IsDualPaneEnabled === false && (IsItemPreviewOpen === true && IsPopUpOpen === true || IsPopUpOpen === false)) {
+		if (IsDualPaneEnabled === false && (IsItemPreviewOpen === true && IsPopUpOpen === true || IsPopUpOpen === false) && IsInputFocused === false) {
 			if (ViewMode == "wrap") {
 				// check if arrow up is pressed
 				if (e.keyCode == 38) {
@@ -830,8 +827,15 @@ document
 async function showItems(items, dualPaneSide = "", millerCol = 1) {
 	await cancelSearch();
 	IsShowDisks = false;
-	// Reset position when navigating in another directory
-	window.scrollTo(0, 0);
+
+	if (items.length > 1000) {
+	  showLoadingPopup("Loading much data, please wait...");
+		await new Promise(resolve => setTimeout(resolve, 50));
+	}
+
+	// Reset position when navigating into another directory
+	document.querySelector(".explorer-container")?.scrollTo(0, 0);
+
 	if (IsDualPaneEnabled == true) {
 		if (dualPaneSide == "left") {
 			document.querySelector(".dual-pane-left").innerHTML = "";
@@ -862,6 +866,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 	items = items.filter((str) => !str.name.toLowerCase().includes("ntuser"));
 	let counter = 0;
 	items.forEach(async (item) => {
+	  let itemIconId = crypto.randomUUID();
 		let itemLink = document.createElement("button");
 		itemLink.setAttribute(
 			"onclick",
@@ -880,78 +885,83 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		itemLink.setAttribute("id", "item-link");
 		itemLink.setAttribute("itemformillercol", parseInt(millerCol) + 1);
 
-		let newRow = document.createElement("div");
-		newRow.className = "directory-item-entry";
 		let fileIcon = "resources/file-icon.png"; // Default
 		let iconSize = "56px";
 		if (item.is_dir == 1) {
 			fileIcon = "resources/folder-icon.png";
 			// Check for dir name to apply custom icons
-			if (item.name.toLowerCase().includes("downloads")) {
-				fileIcon = "resources/folder-downloads.png";
-			} else if (
-				item.name.toLowerCase().includes("desktop") ||
-				item.name.toLowerCase().includes("schreibtisch")
-			) {
-				fileIcon = "resources/folder-desktop.png";
-			} else if (
-				item.name.toLowerCase().includes("dokumente") ||
-				item.name.toLowerCase().includes("documents") ||
-				item.name.toLowerCase().includes("docs")
-			) {
-				fileIcon = "resources/folder-docs.png";
-			} else if (
-				item.name.toLowerCase().includes("musik") ||
-				item.name.toLowerCase().includes("music")
-			) {
-				fileIcon = "resources/folder-music.png";
-			} else if (
-				item.name.toLowerCase().includes("bilder") ||
-				item.name.toLowerCase().includes("pictures") ||
-				item.name.toLowerCase().includes("images")
-			) {
-				fileIcon = "resources/folder-images.png";
-			} else if (
-				item.name.toLowerCase().includes("videos") ||
-				item.name.toLowerCase().includes("movies") ||
-				item.name.toLowerCase().includes("films") ||
-				item.name.toLowerCase().includes("filme")
-			) {
-				fileIcon = "resources/folder-videos.png";
-			} else if (
-				item.name.toLowerCase().includes("coding") ||
-				item.name.toLowerCase().includes("programming") ||
-				item.name.toLowerCase().includes("programmieren") ||
-				item.name.toLowerCase().includes("code")
-			) {
-				fileIcon = "resources/folder-coding.png";
-			} else if (
-				item.name.toLowerCase().includes("werkzeuge") ||
-				item.name.toLowerCase().includes("tools")
-			) {
-				fileIcon = "resources/folder-tools.png";
-			} else if (
-				item.name.toLowerCase().includes("public") ||
-				item.name.toLowerCase().includes("öffentlich") ||
-				item.name.toLowerCase().includes("shared") ||
-				item.name.toLowerCase().includes("geteilt")
-			) {
-				fileIcon = "resources/folder-public.png";
-			} else if (
-				item.name.toLowerCase().includes("games") ||
-				item.name.toLowerCase().includes("spiele")
-			) {
-				fileIcon = "resources/folder-games.png";
-			} else if (
-				item.name.toLowerCase().includes("developer") ||
-				item.name.toLowerCase().includes("development")
-			) {
-				fileIcon = "resources/folder-development.png";
-			} else if (item.path.split(".")[1] == "app") {
-				fileIcon = convertFileSrc(
-					await invoke("get_app_icns", { path: item.path }),
-				);
-			}
+      switch (item.name.toLowerCase()) {
+        case "downloads":
+          fileIcon = "resources/folder-downloads.png";
+          break;
+        case "desktop":
+        case "schreibtisch":
+          fileIcon = "resources/folder-desktop.png";
+          break;
+        case "dokumente":
+        case "doks":
+        case "documents":
+        case "docs":
+          fileIcon = "resources/folder-docs.png";
+          break;
+        case "musik":
+        case "music":
+        case "audio":
+          fileIcon = "resources/folder-music.png";
+          break;
+        case "bilder":
+        case "fotos":
+        case "photos":
+        case "pictures":
+        case "images":
+          fileIcon = "resources/folder-images.png";
+          break;
+        case "videos":
+        case "video":
+        case "movies":
+        case "movie":
+        case "films":
+        case "filme":
+          fileIcon = "resources/folder-videos.png";
+          break;
+        case "coding":
+        case "programming":
+        case "programmieren":
+        case "code":
+          fileIcon = "resources/folder-coding.png";
+          break;
+        case "werkzeuge":
+        case "tools":
+          fileIcon = "resources/folder-tools.png";
+          break;
+        case "public":
+        case "öffentlich":
+        case "shared":
+        case "geteilt":
+          fileIcon = "resources/folder-public.png";
+          break;
+        case "games":
+        case "gaming":
+        case "spiele":
+          fileIcon = "resources/folder-games.png";
+          break;
+        case "developer":
+        case "entwickler":
+        case "entwicklung":
+        case "development":
+          fileIcon = "resources/folder-development.png";
+          break;
+        case "applications":
+        case "programme":
+          fileIcon = "resources/folder-applications.png";
+          break;
+        case "sdk":
+        case "sdks":
+          fileIcon = "resources/folder-sdk.png";
+        default:
+          fileIcon = "resources/folder-icon.png";
+          break;
+      }
 		} else {
 			switch (item.extension.toLowerCase()) {
 				case ".rs":
@@ -1004,22 +1014,26 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				case ".avif":
 				case ".icns":
 					if (IsImagePreview) {
-						fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
-						// if (item.size > 20000000) {
-						//   fileIcon = convertFileSrc(await getThumbnail(item.path)); // Beispiel für die Verwendung der Funktion
-						// }
+					  if (item.size < 10000000 && items.length < 1000) { // ~10 mb
+						  fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+						} else {
+						  fileIcon = "resources/img-file.png";
+						}
 					} else {
 						fileIcon = "resources/img-file.png";
 					}
 					break;
 				case ".pdf":
 					if (IsImagePreview) {
-						fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+            if (item.size < 5000000) { // ~5 mb
+              fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+            }
 					} else {
 						fileIcon = "resources/pdf-file.png";
 					}
 					break;
 				case ".txt":
+				case ".rtf":
 					fileIcon = "resources/text-file.png";
 					break;
 				case ".docx":
@@ -1076,11 +1090,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		if (ViewMode == "wrap") {
 			var itemButton = document.createElement("div");
 			itemButton.innerHTML = `
-				<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" />
+				<img id="${itemIconId}" decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" loading="lazy" />
 				<p class="item-button-text" style="text-align: left;">${item.name}</p>
 			`;
 			itemButton.className = "item-button directory-entry";
-			newRow.append(itemButton);
+			itemLink.append(itemButton);
 			DirectoryList.style.gridTemplateColumns =
 				"repeat(auto-fill, minmax(80px, 1fr))";
 			DirectoryList.style.rowGap = "15px";
@@ -1088,7 +1102,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			var itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
-					<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+					<img id="${itemIconId}" decoding="async" class="item-icon" src="${fileIcon}" width="32px" height="32px" loading="lazy"/>
 					<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
@@ -1101,7 +1115,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			} else {
 				itemButtonList.className = "item-button-list directory-entry";
 			}
-			newRow.append(itemButtonList);
+			itemLink.append(itemButtonList);
 			DirectoryList.style.gridTemplateColumns = "unset";
 			DirectoryList.style.rowGap = "2px";
 		}
@@ -1109,7 +1123,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			var itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
-					<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+					<img id="${itemIconId}" decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px" loading="lazy"/>
 					<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				`;
@@ -1118,13 +1132,18 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 			} else {
 				itemButtonList.className = "item-button-list directory-entry";
 			}
-			newRow.append(itemButtonList);
+			itemLink.append(itemButtonList);
 			DirectoryList.style.gridTemplateColumns = "unset";
 			DirectoryList.style.rowGap = "1px";
 		}
-		itemLink.append(newRow);
 		DirectoryList.append(itemLink);
 		ArrDirectoryItems.push(itemLink);
+		let itemIconElement = document.getElementById(itemIconId);
+    if (itemIconElement) {
+      if (item.size > 10000000) { // ~10 mb
+        item.src = convertFileSrc(await getThumbnail(item.path));
+      }
+    }
 	});
 	DirectoryList.querySelectorAll("#item-link").forEach((item) => {
 		// Start dragging item
@@ -1151,12 +1170,12 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 				(Platform.includes("win") || Platform.includes("linux"))
 			) {
 				await startDrag({ item: arr, icon: icon });
-				unSelectAllItems();
-				refreshView();
+				await unSelectAllItems();
+				await refreshView();
 			} else {
 				await startDrag({ item: arr, icon: icon });
-				unSelectAllItems();
-				refreshView();
+				await unSelectAllItems();
+				await refreshView();
 			}
 		};
 		// Accept file drop into folders
@@ -1178,8 +1197,20 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		// Open context menu when right-clicking on file/folder
 		item.addEventListener("contextmenu", async (e) => {
 			e.preventDefault();
-			setupItemContextMenu(item, e);
+			console.log(IsPopUpOpen, IsInputFocused);
+			if (IsPopUpOpen == false && IsInputFocused == false) {
+			  setupItemContextMenu(item, e);
+			}
 		});
+    (async () => {
+      if (isImage(item.getAttribute("itemext"))) {
+        if (item.getAttribute("itemrawsize") > 10000000) { // ~10 mb
+          item.querySelector("img").src = convertFileSrc(await getThumbnail(item.getAttribute("itempath")));
+        }
+      } else if (item.getAttribute("itemext") == ".app") {
+        item.querySelector("img").src = convertFileSrc(await invoke("get_app_icns", { path: item.getAttribute("itempath") }));
+      }
+    })();
 	});
 	if (IsDualPaneEnabled == true) {
 		if (dualPaneSide == "left") {
@@ -1204,11 +1235,13 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 		selectables: document.querySelectorAll(".item-link"),
 		area: document.querySelector(".explorer-container"),
 		draggability: false
-	  });
+  });
+	closeLoadingPopup();
 }
 
 listen("addSingleItem", async (item) => {
 	item = JSON.parse(item.payload);
+	// We need to wait here, otherwise the function won't be triggered
 	setTimeout(async () => {
 		if (IsDualPaneEnabled == true) {
 			await addSingleItem(item, SelectedItemPaneSide);
@@ -1261,8 +1294,6 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 	itemLink.setAttribute("id", "item-link");
 	itemLink.setAttribute("itemformillercol", parseInt(millerCol) + 1);
 
-	let newRow = document.createElement("div");
-	newRow.className = "directory-item-entry";
 	let fileIcon = "resources/file-icon.png"; // Default
 	let iconSize = "56px";
 	if (item.is_dir == 1) {
@@ -1328,10 +1359,6 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 			item.name.toLowerCase().includes("development")
 		) {
 			fileIcon = "resources/folder-development.png";
-		} else if (item.path.split(".")[1] == "app") {
-			fileIcon = convertFileSrc(
-				await invoke("get_app_icns", { path: item.path }),
-			);
 		}
 	} else {
 		switch (item.extension) {
@@ -1385,10 +1412,12 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 			case ".avif":
 			case ".icns":
 				if (IsImagePreview) {
-					fileIcon = convertFileSrc(item.path);
-					// if (item.size > 20000000) {
-					//   fileIcon = convertFileSrc(await getThumbnail(item.path));
-					// }
+  				if (item.size < 10000000) { // ~10 mb
+  					fileIcon = convertFileSrc(item.path);
+  				}
+          else {
+            fileIcon = "resources/img-file.png";
+          }
 				} else {
 					fileIcon = "resources/img-file.png";
 				}
@@ -1457,11 +1486,11 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 	if (ViewMode == "wrap") {
 		var itemButton = document.createElement("div");
 		itemButton.innerHTML = `
-			<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" />
+			<img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" loading="lazy" />
 			<p class="item-button-text" style="text-align: left;">${item.name}</p>
 			`;
 		itemButton.className = "item-button directory-entry";
-		newRow.append(itemButton);
+		itemLink.append(itemButton);
 		$(".directory-list").css(
 			"gridTemplateColumns",
 			"repeat(auto-fill, minmax(80px, 1fr))",
@@ -1471,7 +1500,7 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 		var itemButtonList = document.createElement("div");
 		itemButtonList.innerHTML = `
 			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
-			<img decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px"/>
+			<img decoding="async" class="item-icon" src="${fileIcon}" width="32px" height="32px" loading="lazy"/>
 			<p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 			</span>
 			<span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
@@ -1484,7 +1513,7 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 		} else {
 			itemButtonList.className = "item-button-list directory-entry";
 		}
-		newRow.append(itemButtonList);
+		itemLink.append(itemButtonList);
 		$(".directory-list").css("gridTemplateColumns", "unset");
 		$(".directory-list").css("rowGap", "2px");
 	}
@@ -1492,7 +1521,6 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 		$(".directory-list").style.gridTemplateColumns = "unset";
 		$(".directory-list").style.rowGap = "1px";
 	}
-	itemLink.append(newRow);
 	// Start dragging item
 	itemLink.ondragstart = async (e) => {
 		e.preventDefault();
@@ -1542,7 +1570,9 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
 	// Open context menu when right-clicking on file/folder
 	itemLink.addEventListener("contextmenu", async (e) => {
 		e.preventDefault();
-		setupItemContextMenu(itemLink, e);
+		if (IsPopUpOpen == false && IsInputFocused == false) {
+		  setupItemContextMenu(itemLink, e);
+		}
 	});
 
 	if (IsDualPaneEnabled === true) {
@@ -1622,9 +1652,7 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
 			}
 		}
 		catch (err) {
-			// alert(err);
-			await invoke("log", { log: JSON.stringify(err) });
-			console.log("INFO: Not enough children to remove last current dir tracker element");
+      await writeLog(err);
 		}
 	});
 
@@ -1828,6 +1856,7 @@ async function compressItem(arrItems, compressionLevel = 3) {
 async function closeCompressPopup() {
 	$(".compression-popup").remove();
 	IsPopUpOpen = false;
+  IsInputFocused = false;
 }
 
 function showLoadingPopup(msg) {
@@ -1853,7 +1882,7 @@ function showInputPopup(msg) {
 		<h4 style="color: var(--textColor);">${msg}</h4>
 		<input class="text-input" placeholder="/path/to/dir" autofocus/>
 		`;
-	popup.className = "input-popup input-dialog";
+	popup.className = "input-popup input-dialog uni-popup";
 	popup.children[1].addEventListener("keyup", async (e) => {
 		if (e.keyCode == 13) {
 			await invoke("open_dir", { path: popup.children[1].value });
@@ -1958,8 +1987,14 @@ async function pasteItem(copyToPath = "") {
 		ContextMenu.style.display = "none";
 	}
 	if (IsCopyToCut == true) {
+    arr = arr.map((element) => element.path);
+    if (arr.includes(copyToPath)) {
+      alert("Cannot copy to the same directory");
+      writeLog("Cannot copy to the same directory");
+      return;
+    }
 		await invoke("arr_delete_items", {
-			arrItems: arr.map((element) => element.path),
+			arrItems: arr,
 		});
 		ArrCopyItems = [];
 		if (IsDualPaneEnabled === true) {
@@ -1990,7 +2025,7 @@ function createFolderInputPrompt() {
 		item.remove();
 	});
 	let nameInput = document.createElement("div");
-	nameInput.className = "input-dialog";
+	nameInput.className = "input-dialog uni-popup";
 	nameInput.innerHTML = `
 		<h4 class="input-dialog-headline">Type in a name for your new folder.</h4>
 		<input class="text-input" type="text" placeholder="New folder" autofocus>
@@ -2083,7 +2118,7 @@ function renameElementInputPrompt(item) {
 		}
 	});
 	nameInput.addEventListener("focusout", () => {
-		IsInputFocused = false;
+    IsInputFocused = false;
 	});
 	nameInput.addEventListener("focusin", () => {
 		IsInputFocused = true;
@@ -2246,7 +2281,7 @@ async function applyPlatformFeatures() {
 		headerNav.style.boxShadow = "none";
 		$(".site-nav-bar").css("padding-top", "50px");
 		$(".search-bar-input").attr("placeholder", "Cmd + F");
-		$(".settings-ui-header").css("padding", "5px 10px 5px 100px");
+		$(".settings-ui-header").css("padding", "5px 5px 5px 100px");
 	} else {
 		appWindow.transparent = true;
 		appWindow.setDecorations(false);
@@ -2280,8 +2315,6 @@ async function listDisks() {
 			);
 			itemLink.setAttribute("itemisdir", 1);
 			itemLink.setAttribute("onclick", "interactWithItem(this, '')");
-			let newRow = document.createElement("div");
-			newRow.className = "directory-item-entry";
 			itemLink.className = "item-link directory-entry";
 			let itemButton = document.createElement("div");
 			if (item.name == "") {
@@ -2290,7 +2323,7 @@ async function listDisks() {
 			itemButton.innerHTML = `
 				<span class="disk-item-button">
 					<div class="disk-item-top">
-						<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto"/>
+						<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto" loading="lazy"/>
 						<span class="disk-info">
 							<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Description:</span><span class="disk-info">${item.name}</span></span>
 							<span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">File-System:</span><span class="disk-info">${item.format.replace('"', "").replace('"', "")}</span></span>
@@ -2310,7 +2343,7 @@ async function listDisks() {
 			let itemButtonList = document.createElement("div");
 			itemButtonList.innerHTML = `
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center; width: 50%;">
-					<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="24px" height="24px"/>
+					<img decoding="async" class="item-icon" src="resources/disk-icon.png" width="32px" height="32px" loading="lazy"/>
 					<p class="disk-info" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
 				</span>
 				<span class="disk-info" style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
@@ -2330,9 +2363,8 @@ async function listDisks() {
 			}
 			itemButton.style.width = "100%";
 			itemButton.style.height = "100px";
-			newRow.append(itemButton);
-			newRow.append(itemButtonList);
-			itemLink.append(newRow);
+			itemLink.append(itemButton);
+			itemLink.append(itemButtonList);
 			DirectoryList.append(itemLink);
 			document.querySelector(".current-path").innerHTML = `
 				<div class="path-item">Disks</div>
@@ -2340,6 +2372,7 @@ async function listDisks() {
 		});
 	});
 	document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
+	insertSiteNavButtons();
 }
 
 async function listDirectories(fromDualPaneCopy = false) {
@@ -2537,28 +2570,29 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 	}
 }
 
-function selectItem(element, dualPaneSide = "", isNotReset = false) {
+async function selectItem(element, dualPaneSide = "", isNotReset = false) {
+  ContextMenu.style.display = "none";
 	let path = element?.getAttribute("itempath");
 	let index = element?.getAttribute("itemindex");
 	// Reset colored selection
 	if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false && IsShiftDown == false && (isNotReset === false)) {
 		ArrSelectedItems.forEach((item) => {
 			if (IsDualPaneEnabled) {
-				item.children[0].classList.remove("selected-item");
+				item.classList.remove("selected-item");
 			} else if (ViewMode == "column" || ViewMode == "miller") {
 				if (IsShowDisks) {
-					item.children[0].children[1].classList.remove("selected-item");
+					item.children[1].classList.remove("selected-item");
 				} else {
-					item.children[0].children[0].classList.remove("selected-item");
+					item.children[0].classList.remove("selected-item");
 				}
 			} else {
 				if (IsShowDisks == true) {
-					item.children[0].children[0].classList.remove("selected-item");
+					item.children[0].classList.remove("selected-item");
 				} else {
-					item.children[0].children[0].children[0].classList.remove(
+					item.children[0].classList.remove(
 						"selected-item",
 					);
-					item.children[0].children[0].children[1].classList.remove(
+					item.children[1].classList.remove(
 						"selected-item-min",
 					);
 				}
@@ -2572,18 +2606,18 @@ function selectItem(element, dualPaneSide = "", isNotReset = false) {
 		SelectedElement.children[0].classList.add("selected-item");
 	} else if (ViewMode == "column" || ViewMode == "miller") {
 		if (IsShowDisks) {
-			SelectedElement?.children[0].children[1].classList.add("selected-item");
+			SelectedElement?.children[1].classList.add("selected-item");
 		} else {
-			SelectedElement?.children[0].children[0].classList.add("selected-item");
+			SelectedElement?.children[0].classList.add("selected-item");
 		}
 	} else {
 		if (IsShowDisks == true) {
-			SelectedElement  .children[0].children[0].classList.add("selected-item");
+			SelectedElement.children[0].classList.add("selected-item");
 		} else {
-			SelectedElement.children[0].children[0].children[0].classList.add(
+			SelectedElement.children[0].children[0].classList.add(
 				"selected-item",
 			);
-			SelectedElement.children[0].children[0].children[1].classList.add(
+			SelectedElement.children[0].children[1].classList.add(
 				"selected-item-min",
 			);
 		}
@@ -2608,10 +2642,10 @@ function deSelectitem(item) {
 	if (IsDualPaneEnabled) {
 		item.children[0].classList.remove("selected-item");
 	} else if (ViewMode == "column") {
-		item.children[0].children[0].classList.remove("selected-item");
+		item.children[0].classList.remove("selected-item");
 	} else {
-		item.children[0].children[0].children[0].classList.remove("selected-item");
-		item.children[0].children[0].children[1].classList.remove(
+		item.children[0].children[0].classList.remove("selected-item");
+		item.children[0].children[1].classList.remove(
 			"selected-item-min",
 		);
 	}
@@ -2621,20 +2655,20 @@ async function unSelectAllItems() {
 	if (ArrSelectedItems.length > 0) {
 		for (let i = 0; i < ArrSelectedItems.length; i++) {
 			if (IsDualPaneEnabled) {
-				ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
+				ArrSelectedItems[i].children[0].classList.remove("selected-item");
 			} else if (ViewMode == "column" || ViewMode == "miller") {
-				ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
+				ArrSelectedItems[i].children[0].classList.remove("selected-item");
 			} else {
 				try {
 					if (IsShowDisks === true) {
+						ArrSelectedItems[i].children[0].classList.remove("selected-item");
+						ArrSelectedItems[i].children[1].classList.remove("selected-item-min");
+					} else {
 						ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
 						ArrSelectedItems[i].children[0].children[1].classList.remove("selected-item-min");
-					} else {
-						ArrSelectedItems[i].children[0].children[0].children[0].classList.remove("selected-item");
-						ArrSelectedItems[i].children[0].children[0].children[1].classList.remove("selected-item-min");
 					}
 				} catch (e) {
-					console.log(e);
+				  writeLog(e);
 				}
 			}
 		}
@@ -2862,7 +2896,7 @@ async function goToOtherPane() {
 		goUp(true);
 	}
 	catch (e) {
-		console.log(e);
+    writeLog(e);
 	}
 }
 
@@ -3093,7 +3127,6 @@ async function switchView() {
 	if (IsDualPaneEnabled == false) {
 		if (ViewMode == "wrap") {
 			document.querySelectorAll(".directory-list").forEach((list) => {
-				// list.style.flexFlow = "column";
 				list.style.gridTemplateColumns = "unset";
 				list.style.rowGap = "2px";
 			});
@@ -3355,7 +3388,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 
 async function addFavorites(item) {
 	ArrFavorites.push(item);
-	// await invoke("save_favorites", { arrFavorites: ArrFavorites });
+	// await invoke("save_favorites", { arrFavorites: ArrFavorites }); // Todo: implement this
 }
 
 function closeSettings() {
@@ -3386,16 +3419,22 @@ async function showProperties(item) {
 			<h3>${name}</h3>
 		</div>
 		<div class="popup-body">
-			<button class="item-preview-copy-path-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', ToastType.INFO);">Path: ${path}</button>
+		  <span style="display: flex; gap: 10px; align-items: center;">
+				Path:
+				<button class="icon-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', ToastType.INFO);">
+  				<div class="button-icon">
+  				<i class="fa-regular fa-copy"></i></div>
+  				<p style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${path}</p>
+				</button>
+			</span>
 			${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ''}
 			<br/>
 			<p>Modified: ${modifiedAt}</p>
-			<br/>
-			<div style="display: flex; gap: 5px;">
-				<div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
-			</div>
 		</div>
-		<div class="popup-controls">
+		<div class="popup-controls" style="display: flex; justify-content: space-between;">
+  		<div style="display: flex; gap: 5px;">
+  			<div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
+  		</div>
 			<button class="icon-button" onclick="closeInfoProperties()">
 				<span class="button-icon"><i class="fa-solid fa-ban"></i></span>
 				Close
@@ -3404,7 +3443,7 @@ async function showProperties(item) {
 		`;
 		document.querySelector("body").append(popup);
 		IsPopUpOpen = true;
-		await getSimpleDirInfo(path, ".properties-item-size");
+		await getSimpleDirInfo(path, ".properties-item-size", item.getAttribute("itemisdir") == "1");
 	}
 }
 
@@ -3428,6 +3467,7 @@ async function showItemPreview(item, isOverride = false) {
 	popup.className = "item-preview-popup";
 	IsItemPreviewOpen = true;
 	let module = "";
+  let moduleImgId = crypto.randomUUID();
 	switch (ext.toLowerCase()) {
 		case ".png":
 		case ".icns":
@@ -3441,13 +3481,13 @@ async function showItemPreview(item, isOverride = false) {
 		case ".avif":
 			module = `
 				<div class="module-container">
-					<img decoding="async" src="${convertFileSrc(path)}"/>
+					<img class="${moduleImgId}" decoding="async" src="resources/preloader_big.gif" width="100%" height="100%" />
 				</div>
 			`;
 			break;
 		case ".pdf":
 		case ".html":
-			module = `<iframe src="${convertFileSrc(path)}" />`;
+			module = `<iframe decoding="async" src="${convertFileSrc(path)}" />>`;
 			break;
 		case ".mp4":
 		case ".mkv":
@@ -3466,7 +3506,7 @@ async function showItemPreview(item, isOverride = false) {
 		case ".wmv":
 			module = `
 				<div class="module-container">
-					<video src="${convertFileSrc(path)}" autoplay></video>
+					<video decoding="async" src="${convertFileSrc(path)}" autoplay></video>
 				</div>
 			`;
 			break;
@@ -3500,7 +3540,7 @@ async function showItemPreview(item, isOverride = false) {
 		case ".gitignore":
 			popup.style.maxWidth = "50%";
 			module = `
-				<div class="module-container"><pre class="item-preview-file-content" style="padding: 20px;">${await invoke("get_file_content", { path })}</pre></div>
+				<div class="module-container"><pre class="item-preview-file-content" style="padding: 20px; font-size: 12px;">${await invoke("get_file_content", { path })}</pre></div>
 			`;
 			break;
 		default:
@@ -3515,7 +3555,8 @@ async function showItemPreview(item, isOverride = false) {
 	`;
 	IsPopUpOpen = true;
 	document.querySelector("body").append(popup);
-	$(popup).fadeIn(fadeTime);
+  $(popup).fadeIn(fadeTime);
+	popup.querySelector("img").src = convertFileSrc(item.getAttribute("itempath"));
 	popup.children[0].addEventListener("keydown", (e) => {
 		if (e.key === "Escape") {
 			e.target.blur();
@@ -3529,43 +3570,40 @@ function showMultiRenamePopup() {
 	popup.className = "uni-popup multi-rename-popup";
 	popup.innerHTML = `
 		<h3 class="multi-rename-popup-header">
-		<div>
-		<i class="fa-solid fa-pen-to-square" style="padding-right: 5px;"></i>
-		Multi-Rename
-		</div>
-		<button onclick="closeMultiRenamePopup()" class="popup-close-button">
-		<i class="fa-solid fa-xmark"></i>
-		</button>
+  		<div style="display: flex; gap: 10px; align-items: center;">
+    		<i class="fa-solid fa-pen-to-square text" style="padding-right: 5px;"></i>
+    		<h4 class="text">Multi-Rename</h4>
+  		</div>
 		</h3>
 		<div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
-		<h4>Options</h4>
-		<p class="text-2">If no extension is supplied the extension won't be changed</p>
+  		<h4 class="text">Options</h4>
+  		<p class="text-2">If no extension is supplied the extension won't be changed</p>
 		</div>
 		<div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
-		<div style="display: flex; flex-flow: row; gap: 10px;">
-		<div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
-		<p class="text-2">New name</p>
-		<input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
+		  <div style="display: flex; flex-flow: row; gap: 10px;">
+    		<div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
+      		<p class="text-2">New name</p>
+      		<input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
+    		</div>
+    		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+      		<p class="text-2">Start at</p>
+      		<input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
+    		</div>
+    		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+      		<p class="text-2">Step by</p>
+      		<input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
+    		</div>
+    		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+      		<p class="text-2">Digits</p>
+      		<input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
+    		</div>
+    		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+      		<p class="text-2">Extension</p>
+    		  <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
+    		</div>
+  		</div>
 		</div>
-		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-		<p class="text-2">Start at</p>
-		<input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
-		</div>
-		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-		<p class="text-2">Step by</p>
-		<input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
-		</div>
-		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-		<p class="text-2">Digits</p>
-		<input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
-		</div>
-		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-		<p class="text-2">Extension</p>
-		<input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
-		</div>
-		</div>
-		</div>
-		<h4 style="padding: 10px; background-color: var(--secondaryColor);">Selected items to rename</h4>
+		<h4 class="text" style="padding: 10px; background-color: var(--secondaryColor);">Selected items to rename</h4>
 		`;
 	let arrItemsToRename = ArrSelectedItems;
 	let list = document.createElement("div");
@@ -3582,24 +3620,24 @@ function showMultiRenamePopup() {
 	popupControls.className = "popup-controls";
 	popupControls.innerHTML = `
 		<button class="icon-button" onclick="closeMultiRenamePopup()">
-		<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-		Cancel
+  		<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+  		Cancel
 		</button>
 		<button class="icon-button multi-rename-button-run">
-		<div class="button-icon"><i class="fa-solid fa-pencil"></i></div>
-		Rename
+  		<div class="button-icon"><i class="fa-solid fa-pencil"></i></div>
+  		Rename
 		</button>
 		`;
 	popup.append(popupControls);
 	document.querySelector("body").append(popup);
 	$(".multi-rename-newname").focus();
 	document.querySelectorAll(".multi-rename-input").forEach((input) =>
-		input.addEventListener("keyup", (e) => {
+		input.addEventListener("keyup", async (e) => {
 			if (
 				((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
 				e.key === "Enter"
 			) {
-				renameItemsWithFormat(
+				await renameItemsWithFormat(
 					arrItemsToRename.map((item) => item.getAttribute("itempath")),
 					$(".multi-rename-newname").val(),
 					$(".multi-rename-startat").val(),
@@ -3612,8 +3650,8 @@ function showMultiRenamePopup() {
 	);
 	document
 		.querySelector(".multi-rename-button-run")
-		.addEventListener("click", () => {
-			renameItemsWithFormat(
+		.addEventListener("click", async () => {
+			await renameItemsWithFormat(
 				arrItemsToRename.map((item) => item.getAttribute("itempath")),
 				$(".multi-rename-newname").val(),
 				$(".multi-rename-startat").val(),
@@ -3635,17 +3673,16 @@ async function renameItemsWithFormat(
 	startAt = parseInt(startAt);
 	stepBy = parseInt(stepBy);
 	nDigits = parseInt(nDigits);
-	await invoke("rename_elements_with_format", {
-		arrElements,
-		newName,
-		startAt,
-		stepBy,
-		nDigits,
-		ext,
-	}).then(async () => {
-		closeMultiRenamePopup();
-		await listDirectories();
-	});
+	closeMultiRenamePopup();
+  await invoke("rename_elements_with_format", {
+    arrElements,
+    newName,
+    startAt,
+    stepBy,
+    nDigits,
+    ext,
+  });
+  await listDirectories();
 }
 
 function closeMultiRenamePopup() {
@@ -3896,7 +3933,7 @@ function showFindDuplicates(item) {
 function closeFindDuplicatesPopup() {
 	IsPopUpOpen = false;
 	cancelOperation();
-	document.querySelector(".find-duplicates-popup").remove();
+	document.querySelector(".find-duplicates-popup")?.remove();
 }
 
 async function findDuplicates(item, depth) {
@@ -4076,6 +4113,12 @@ async function insertSiteNavButtons() {
 
 	let disks = await invoke("list_disks");
 	let siteNavButtons = [
+	  Platform.includes("darwin") ? [
+			"Applications",
+			"/Applications",
+			"fa-solid fa-rocket",
+			async () => await openDirAndSwitch("/Applications"),
+		] : [],
 		[
 			"Desktop",
 			await getDir(0),
@@ -4140,6 +4183,7 @@ async function insertSiteNavButtons() {
 	seperator.className = "horizontal-seperator";
 	document.querySelector(".site-nav-bar").append(seperator);
 
+	// Available disks as site nav buttons
 	let diskButton = document.createElement("button");
 	diskButton.className = "site-nav-bar-button";
 	diskButton.onclick = () => listDisks();
@@ -4154,10 +4198,9 @@ async function insertSiteNavButtons() {
 		disks.forEach((mount) => {
 			let diskButton = document.createElement("button");
 			diskButton.className = "site-nav-bar-button";
-			diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> ${mount.name != "" ? mount.name : "/"}`;
+			diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i><p>${mount.name != "" ? mount.name : "/"}</p>`;
       diskButton.onclick = async () => {
-        console.log(mount.path);
-        await invoke("open_dir", { path: mount.path});
+        await openDirAndSwitch(mount.path);
         await listDirectories();
       };
       if (mount.format.includes("SSHFS")) {
@@ -4182,9 +4225,9 @@ async function fileOperationContextMenu() {
 	let contextMenu = document.createElement("div");
 	contextMenu.className = "uni-popup context-menu";
 	contextMenu.innerHTML = `
-			<button class="context-item">Copy</button>
-			<button class="context-item">Move</button>
-			`;
+		<button class="context-item">Copy</button>
+		<button class="context-item">Move</button>
+	`;
 	contextMenu.children[0].onclick = () => (FileOperation = "copy");
 	contextMenu.children[1].onclick = () => (FileOperation = "move");
 	contextMenu.style.left = MousePos[0] + "px";
@@ -4212,24 +4255,6 @@ async function fileOperationContextMenu() {
 	});
 	contextMenu.remove();
 	return FileOperation;
-}
-
-async function stopSearching() {
-	await invoke("stop_searching");
-}
-
-function createNewAction(actionId, actionName, actionDescription, path) {
-	let newAction = new ActiveAction(actionName, actionDescription, actionId, path);
-	ArrActiveActions.push(newAction);
-	$(".active-actions-container").append(newAction.getHTMLElement());
-}
-
-function removeAction(actionId) {
-	ArrActiveActions = ArrActiveActions.filter((action) => action.id !== actionId);
-	$(`.active-action-${actionId}`).css("opacity", "0");
-	setTimeout(() => {
-		$(`.active-action-${actionId}`).remove();
-	}, 300);
 }
 
 async function openDirAndSwitch(path) {
@@ -4355,10 +4380,7 @@ async function setupItemContextMenu(item, e) {
 					newItem.className = "context-item";
 					newItem.setAttribute("appname", app[0].split(".")[0]);
 					newItem.setAttribute("apppath", app[1]);
-          newItem.addEventListener("click", () => {
-            console.log(app);
-            open_with(item.getAttribute("itempath"), app[1]);
-          });
+          newItem.setAttribute("onclick", `open_with('${item.getAttribute("itempath")}', '${app[1]}')`);
 					appsCMenu.appendChild(newItem);
 				}
 			});
@@ -4520,6 +4542,8 @@ function unmountNetworkDrive(networkDrive) {
 	});
 }
 
-insertSiteNavButtons();
-checkAppConfig();
-getSetInstalledApplications();
+(async () => {
+  await getSetInstalledApplications();
+  await checkAppConfig();
+  await insertSiteNavButtons();
+})();
