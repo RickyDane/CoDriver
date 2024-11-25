@@ -1885,7 +1885,7 @@ function showInputPopup(msg) {
 	popup.className = "input-popup input-dialog uni-popup";
 	popup.children[1].addEventListener("keyup", async (e) => {
 		if (e.keyCode == 13) {
-			await invoke("open_dir", { path: popup.children[1].value });
+      await openDirAndSwitch(popup.children[1].value);
 			await listDirectories();
 			closeInputPopup();
 		}
@@ -1903,6 +1903,7 @@ function showInputPopup(msg) {
 function closeInputPopup() {
 	$(".input-popup").remove();
 	IsPopUpOpen = false;
+  IsInputFocused = false;
 }
 
 async function itemMoveTo(isForDualPane = false) {
