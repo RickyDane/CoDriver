@@ -2592,7 +2592,7 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
 					item.children[0].classList.remove(
 						"selected-item",
 					);
-					item.children[1].classList.remove(
+					item.children[0].children[1].classList.remove(
 						"selected-item-min",
 					);
 				}
