@@ -374,7 +374,8 @@ async fn list_disks() -> Vec<DisksInfo> {
                 .last()
                 .unwrap_or("/")
                 .to_string()
-                .replace("\"", ""),
+                .replace("\"", "")
+                .replace("\\", ""),
             dev: format!("{:?}", disk.name()),
             format: format!("{:?}", disk.file_system().to_string_lossy()),
             path: format!("{:?}", disk.mount_point()).replace("\"", ""),
