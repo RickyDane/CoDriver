@@ -167,3 +167,28 @@ function isImage(fileExt) {
       return false;
   }
 }
+
+async function stopSearching() {
+  await invoke("stop_searching");
+}
+
+function createNewAction(actionId, actionName, actionDescription, path) {
+  let newAction = new ActiveAction(
+    actionName,
+    actionDescription,
+    actionId,
+    path,
+  );
+  ArrActiveActions.push(newAction);
+  $(".active-actions-container").append(newAction.getHTMLElement());
+}
+
+function removeAction(actionId) {
+  ArrActiveActions = ArrActiveActions.filter(
+    (action) => action.id !== actionId,
+  );
+  $(`.active-action-${actionId}`).css("opacity", "0");
+  setTimeout(() => {
+    $(`.active-action-${actionId}`).remove();
+  }, 300);
+}

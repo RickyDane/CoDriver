@@ -1856,6 +1856,7 @@ async function compressItem(arrItems, compressionLevel = 3) {
 async function closeCompressPopup() {
 	$(".compression-popup").remove();
 	IsPopUpOpen = false;
+  IsInputFocused = false;
 }
 
 function showLoadingPopup(msg) {
@@ -3631,12 +3632,12 @@ function showMultiRenamePopup() {
 	document.querySelector("body").append(popup);
 	$(".multi-rename-newname").focus();
 	document.querySelectorAll(".multi-rename-input").forEach((input) =>
-		input.addEventListener("keyup", (e) => {
+		input.addEventListener("keyup", async (e) => {
 			if (
 				((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
 				e.key === "Enter"
 			) {
-				renameItemsWithFormat(
+				await renameItemsWithFormat(
 					arrItemsToRename.map((item) => item.getAttribute("itempath")),
 					$(".multi-rename-newname").val(),
 					$(".multi-rename-startat").val(),
@@ -3649,8 +3650,8 @@ function showMultiRenamePopup() {
 	);
 	document
 		.querySelector(".multi-rename-button-run")
-		.addEventListener("click", () => {
-			renameItemsWithFormat(
+		.addEventListener("click", async () => {
+			await renameItemsWithFormat(
 				arrItemsToRename.map((item) => item.getAttribute("itempath")),
 				$(".multi-rename-newname").val(),
 				$(".multi-rename-startat").val(),
@@ -3672,17 +3673,16 @@ async function renameItemsWithFormat(
 	startAt = parseInt(startAt);
 	stepBy = parseInt(stepBy);
 	nDigits = parseInt(nDigits);
-	await invoke("rename_elements_with_format", {
-		arrElements,
-		newName,
-		startAt,
-		stepBy,
-		nDigits,
-		ext,
-	}).then(async () => {
-		closeMultiRenamePopup();
-		await listDirectories();
-	});
+	closeMultiRenamePopup();
+  await invoke("rename_elements_with_format", {
+    arrElements,
+    newName,
+    startAt,
+    stepBy,
+    nDigits,
+    ext,
+  });
+  await listDirectories();
 }
 
 function closeMultiRenamePopup() {
@@ -4255,24 +4255,6 @@ async function fileOperationContextMenu() {
 	});
 	contextMenu.remove();
 	return FileOperation;
-}
-
-async function stopSearching() {
-	await invoke("stop_searching");
-}
-
-function createNewAction(actionId, actionName, actionDescription, path) {
-	let newAction = new ActiveAction(actionName, actionDescription, actionId, path);
-	ArrActiveActions.push(newAction);
-	$(".active-actions-container").append(newAction.getHTMLElement());
-}
-
-function removeAction(actionId) {
-	ArrActiveActions = ArrActiveActions.filter((action) => action.id !== actionId);
-	$(`.active-action-${actionId}`).css("opacity", "0");
-	setTimeout(() => {
-		$(`.active-action-${actionId}`).remove();
-	}, 300);
 }
 
 async function openDirAndSwitch(path) {
