@@ -2,11 +2,11 @@
 <html>
 
 <head>
-    <script src="jquery.js"></script>
+    <script src="jquery.js" async></script>
     <script src="font-awesome/js/all.min.js" async></script>
-    <script src="ds.min.js"></script>
-    <script src="utils.js"></script>
-    <script src="file_extensions.js"></script>
+    <script src="ds.min.js" async></script>
+    <script src="utils.js" async></script>
+    <script src="file_extensions.js" async></script>
     <script src="models.js" async defer></script>
     <script src="main_logic.js" async defer></script>
     <link rel="stylesheet" href="font-awesome/css/all.min.css" />
@@ -177,7 +177,7 @@
                         <label for="show-dual-pane">Enable "Dual pane" view (Experimental)</p>
                     </span>
                 </div>
-                <div class="popup-controls">
+                <div class="popup-controls" style="border-top: 1px solid var(--tertiaryColor)">
                     <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i class="fa-solid fa-xmark"></i></span>Close</button>
                     <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i class="fa-solid fa-floppy-disk"></span></i>Save</button>
                 </div>
