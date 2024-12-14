@@ -17,7 +17,6 @@ listen("tauri://file-drop", async (event) => {
       ArrCopyItems.push(element);
     });
     if (IsFileOpIntern == false) {
-      console.log("Extern file drop");
       if (DraggedOverElement != null) {
         let operation = await fileOperationContextMenu();
         if (operation == "copy") {
@@ -37,7 +36,6 @@ listen("tauri://file-drop", async (event) => {
       ArrCopyItems = [];
       ArrSelectedItems = [];
     } else if (DraggedOverElement != null) {
-      console.log("Intern file operation");
       let operation = await fileOperationContextMenu();
       if (operation == "copy") {
         await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
