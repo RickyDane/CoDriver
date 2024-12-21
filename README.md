@@ -20,6 +20,9 @@
   <br>
   It is operating system independent and trimmed for optimization.
 </p>
+<p align="center">
+    [![](https://dcbadge.limes.pink/api/server/https://discord.gg/zSE27rjdzp)](https://discord.gg/zSE27rjdzp)
+</p>
 
 <br/><br/>
 
@@ -141,7 +144,7 @@ sudo dnf group install "C Development Tools and Libraries"
   | macOS | Linux | Windows |
   | ----- | ----- | ------- |
   | fuse-t <br/> fuse-t-sshfs | libfuse | Not supported **_yet_** |
-  
+
   ### Installation:
   #### macOS
   ```
