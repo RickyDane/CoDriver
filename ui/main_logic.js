@@ -277,6 +277,7 @@ async function resetEverything() {
   closeConfirmPopup();
   closeCustomContextMenu();
   closeFindDuplicatesPopup();
+  resetBackButton();
   $(".popup-background").css("display", "none");
   IsPopUpOpen = false;
   IsInputFocused = false;
@@ -2268,6 +2269,7 @@ async function checkAppConfig() {
       await goHome();
     }
   });
+  await configBackButton();
   await unSelectAllItems();
   IsFirstRun = false;
 }
@@ -2536,6 +2538,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
       // Open directory
       let isSwitched = await invoke("open_dir", { path });
       if (isSwitched == true) {
+        await configBackButton(CurrentDir);
         if (IsDualPaneEnabled === false) {
           if (ViewMode == "miller") {
             $(".selected-item").removeClass("selected-item");
@@ -4257,10 +4260,12 @@ async function fileOperationContextMenu() {
     );
   });
   contextMenu.remove();
+  resetBackButton();
   return FileOperation;
 }
 
 async function openDirAndSwitch(path) {
+  await configBackButton(CurrentDir);
   await invoke("open_dir", { path });
   await setCurrentDir(path);
   await listDirectories();
@@ -4543,6 +4548,26 @@ function unmountNetworkDrive(networkDrive) {
   invoke("unmount_network_drive", { path: networkDrive.path }).then(() => {
     insertSiteNavButtons();
   });
+}
+
+async function configBackButton(path = "") {
+  let button = document.querySelector(".go-back-button")
+  button.setAttribute("itempath", path);
+  button.ondragover = (e) => {
+    button.style.opacity = "0.5";
+    button.style.border = "1px solid var(--textColor)";
+    DraggedOverElement = button;
+    MousePos = [e.clientX, e.clientY];
+  };
+  button.ondragleave = () => {
+    resetBackButton();
+  };
+}
+
+function resetBackButton() {
+  let button = document.querySelector(".go-back-button");
+  button.style.opacity = "1";
+  button.style.border = "1px solid transparent";
 }
 
 (async () => {

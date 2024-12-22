@@ -54,8 +54,8 @@ use archiver_rs::Compressed;
 mod rdpfs;
 use substring::Substring;
 
+static mut LAST_DIR: String = String::new();
 static mut ISCANCELED: bool = false;
-
 static mut PATH_HISTORY: Vec<String> = vec![];
 
 // #[cfg(target_os = "windows")]
@@ -140,7 +140,7 @@ fn main() {
             log,
             get_config_location,
             get_sshfs_mounts,
-            unmount_network_drive
+            unmount_network_drive,
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
