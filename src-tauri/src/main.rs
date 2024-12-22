@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use chrono::prelude::{DateTime, Utc};
-use copy_dir::copy_dir;
+use chrono::prelude::DateTime;
+use chrono::Local;
 #[allow(unused)]
 use delete::{delete_file, rapid_delete_dir_all};
 use flate2::read::GzDecoder;
@@ -54,8 +54,8 @@ use archiver_rs::Compressed;
 mod rdpfs;
 use substring::Substring;
 
+static mut LAST_DIR: String = String::new();
 static mut ISCANCELED: bool = false;
-
 static mut PATH_HISTORY: Vec<String> = vec![];
 
 // #[cfg(target_os = "windows")]
@@ -140,7 +140,7 @@ fn main() {
             log,
             get_config_location,
             get_sshfs_mounts,
-            unmount_network_drive
+            unmount_network_drive,
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -520,12 +520,15 @@ async fn list_dirs() -> Vec<FDir> {
                 .nth(&path.split(".").count() - 1)
                 .unwrap_or("");
         let file_data = fs::metadata(&temp_item.path());
-        let file_date: DateTime<Utc>;
+        let file_date: DateTime<Local>;
         let size = temp_item.metadata().unwrap().len();
-        if file_data.is_ok() {
-            file_date = file_data.unwrap().modified().unwrap().clone().into();
-        } else {
-            file_date = Utc::now();
+        match file_data {
+            Ok(file_data) => {
+                file_date = file_data.modified().unwrap().clone().into();
+            }
+            Err(_) => {
+                file_date = Local::now();
+            }
         }
         let is_dir_int = match temp_item.path().is_dir() {
             true => 1,

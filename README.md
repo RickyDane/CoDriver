@@ -14,6 +14,12 @@
   </p>
 </a>
 
+<p align="center">
+  <a href="https://discord.gg/zSE27rjdzp">
+      <img src="https://dcbadge.limes.pink/api/server/https://discord.gg/zSE27rjdzp" />
+  </a>
+</p>
+
 <a href="https://github.com/RickyDane/CoDriver/actions/workflows/main.yml"><p align="center"><img src="https://github.com/RickyDane/CoDriver/actions/workflows/main.yml/badge.svg?branch=master"></p></a>
 <p align="center">
   A simple file explorer that was born because I wanted to learn the Rust language.
@@ -141,7 +147,7 @@ sudo dnf group install "C Development Tools and Libraries"
   | macOS | Linux | Windows |
   | ----- | ----- | ------- |
   | fuse-t <br/> fuse-t-sshfs | libfuse | Not supported **_yet_** |
-  
+
   ### Installation:
   #### macOS
   ```
