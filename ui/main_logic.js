@@ -46,7 +46,7 @@ ds.subscribe('DS:select', async (payload) => {
   selectItem(payload.item, "", true);
 });
 ds.subscribe('DS:unselect', async (payload) => {
-  deSelectitem(payload.item);
+  deSelectItem(payload.item);
 });
 
 /* region Global Variables */
@@ -885,6 +885,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     itemLink.setAttribute("draggable", true);
     itemLink.setAttribute("id", "item-link");
     itemLink.setAttribute("itemformillercol", parseInt(millerCol) + 1);
+    itemLink.setAttribute("itemisselected", false);
 
     let fileIcon = "resources/file-icon.png"; // Default
     let iconSize = "56px";
@@ -1139,12 +1140,13 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     }
     DirectoryList.append(itemLink);
     ArrDirectoryItems.push(itemLink);
-    let itemIconElement = document.getElementById(itemIconId);
-    if (itemIconElement) {
-      if (item.size > 10000000) { // ~10 mb
-        item.src = convertFileSrc(await getThumbnail(item.path));
-      }
-    }
+
+    // let itemIconElement = document.getElementById(itemIconId);
+    // if (itemIconElement) {
+    //   if (item.size > 10000000) { // ~10 mb
+    //     item.src = convertFileSrc(await getThumbnail(item.path));
+    //   }
+    // }
   });
   DirectoryList.querySelectorAll("#item-link").forEach((item) => {
     // Start dragging item
@@ -1202,11 +1204,13 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         setupItemContextMenu(item, e);
       }
     });
+
+    // :thumbnail :set_thubnail | Set thumbnail image
     (async () => {
       if (isImage(item.getAttribute("itemext"))) {
-        if (item.getAttribute("itemrawsize") > 10000000) { // ~10 mb
-          item.querySelector("img").src = convertFileSrc(await getThumbnail(item.getAttribute("itempath")));
-        }
+        // if (item.getAttribute("itemrawsize") > 10000000) { // ~10 mb
+        //   item.querySelector("img").src = convertFileSrc(await getThumbnail(item.getAttribute("itempath")));
+        // }
       } else if (item.getAttribute("itemext") == ".app") {
         item.querySelector("img").src = convertFileSrc(await invoke("get_app_icns", { path: item.getAttribute("itempath") }));
       }
@@ -1942,7 +1946,7 @@ async function itemMoveTo(isForDualPane = false) {
   }
 }
 
-async function pasteItem(copyToPath = "") {
+async function pasteItem(copyToPath = "", isCopyToCut = false) {
   let arr = [];
   if (IsDualPaneEnabled == true) {
     arr = ArrSelectedItems;
@@ -1987,7 +1991,7 @@ async function pasteItem(copyToPath = "") {
     });
     ContextMenu.style.display = "none";
   }
-  if (IsCopyToCut == true) {
+  if (isCopyToCut == true) {
     arr = arr.map((element) => element.path);
     if (arr.includes(copyToPath)) {
       alert("Cannot copy to the same directory");
@@ -2002,7 +2006,6 @@ async function pasteItem(copyToPath = "") {
       refreshBothViews(SelectedItemPaneSide);
     }
     await listDirectories();
-    IsCopyToCut = false;
   }
   else {
     await unSelectAllItems();
@@ -2445,6 +2448,7 @@ async function interactWithItem(
       "inset 0px 0px 30px 3px rgba(0, 0, 0, 0.2)";
     document.querySelector(".dual-pane-left").style.boxShadow = "none";
   }
+
   // Interaction mode: Select
   if (
     element != null &&
@@ -2502,7 +2506,8 @@ async function interactWithItem(
       }
     }
     else {
-      selectItem(element);
+      await selectItem(element);
+      console.log("Is item already selected:", element.getAttribute("itemisselected"));
     }
   }
   // Interaction mode: Open item
@@ -2513,7 +2518,7 @@ async function interactWithItem(
   ) {
     await openItem(element, dualPaneSide, shortcutPath);
   }
-  // Double click logic / reset after 500 ms to force double click to open
+  // Double click logic / reset after 250 ms to force double click to open
   setTimeout(() => {
     SelectedItemToOpen = null;
   }, 250); // Maybe make this customizable in the future
@@ -2577,6 +2582,7 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
   ContextMenu.style.display = "none";
   let path = element?.getAttribute("itempath");
   let index = element?.getAttribute("itemindex");
+
   // Reset colored selection
   if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false && IsShiftDown == false && (isNotReset === false)) {
     ArrSelectedItems.forEach((item) => {
@@ -2625,6 +2631,7 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
       );
     }
   }
+  SelectedElement.setAttribute("itemisselected", true);
   SelectedItemPath = path;
   if (dualPaneSide != "" && dualPaneSide != null) {
     SelectedItemPaneSide = dualPaneSide;
@@ -2636,12 +2643,12 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
   }
   // Switch item preview when already open
   if (IsItemPreviewOpen == true) {
-    showItemPreview(SelectedElement, true);
+    await showItemPreview(SelectedElement, true);
   }
   ArrSelectedItems.push(SelectedElement);
 }
 
-function deSelectitem(item) {
+function deSelectItem(item) {
   if (IsDualPaneEnabled) {
     item.children[0].classList.remove("selected-item");
   } else if (ViewMode == "column") {
@@ -2652,6 +2659,7 @@ function deSelectitem(item) {
       "selected-item-min",
     );
   }
+  item.setAttribute("itemisselected", false);
 }
 
 async function unSelectAllItems() {
@@ -2674,6 +2682,7 @@ async function unSelectAllItems() {
           writeLog(e);
         }
       }
+      ArrSelectedItems[i].setAttribute("itemisselected", false);
     }
   }
   SelectedElement = null;

@@ -23,9 +23,7 @@ listen("tauri://file-drop", async (event) => {
           await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
           await listDirectories();
         } else if (operation == "move") {
-          IsCopyToCut = true;
-          await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
-          IsCopyToCut = false;
+          await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "", true);
           await listDirectories();
         }
       } else {
@@ -41,9 +39,7 @@ listen("tauri://file-drop", async (event) => {
         await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
         await listDirectories();
       } else if (operation == "move") {
-        IsCopyToCut = true;
-        await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
-        IsCopyToCut = false;
+        await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "", true);
         await listDirectories();
       }
       CopyFileName = "";

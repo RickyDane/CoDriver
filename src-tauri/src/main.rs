@@ -1888,6 +1888,7 @@ struct SimpleDirInfo {
 }
 
 static mut CALCED_SIZE: u64 = 0; // Currently unused -> Coming implementation for showing progress
+
 fn dir_info(path: String, app_window: &Window, class_to_fill: String) -> SimpleDirInfo {
     if PathBuf::from(&path).is_file() {
         return SimpleDirInfo {
@@ -1925,6 +1926,7 @@ fn dir_info(path: String, app_window: &Window, class_to_fill: String) -> SimpleD
                 .size;
                 size += dir_size;
             }
+            if entry.file_name().to_string_lossy().to_string().starts_with(".") { continue; }
             count_elements += 1;
         }
     }
