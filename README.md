@@ -1,7 +1,7 @@
 <br/>
 <p align="center"><img width="700" src="https://github.com/user-attachments/assets/44295a1a-c904-407d-97af-bc1aa74baa86"/></p>
 <br>
-<p align="center"><a target="_blank" href="https://discord.gg/XPakYank"><img src="https://dcbadge.limes.pink/api/server/XPakYank" alt="" /></a></p>
+<!-- <p align="center"><a target="_blank" href="https://discord.gg/XPakYank"><img src="https://dcbadge.limes.pink/api/server/XPakYank" alt="" /></a></p> -->
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-blue" />
   <img src="https://img.shields.io/badge/ macOS-white" />

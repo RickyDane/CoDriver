@@ -1875,9 +1875,7 @@ async fn get_simple_dir_info(
     app_window: Window,
     class_to_fill: String,
 ) -> SimpleDirInfo {
-    unsafe {
-        CALCED_SIZE = 0;
-    }
+    unsafe { CALCED_SIZE = 0; }
     dir_info(path, &app_window, class_to_fill)
 }
 
@@ -1930,6 +1928,7 @@ fn dir_info(path: String, app_window: &Window, class_to_fill: String) -> SimpleD
             count_elements += 1;
         }
     }
+
     SimpleDirInfo {
         size,
         count_elements,

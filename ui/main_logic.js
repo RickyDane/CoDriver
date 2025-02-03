@@ -235,9 +235,9 @@ document.addEventListener("keydown", async (e) => {
     await searchFor(CurrentQuickSearch, 9999999, 1, true);
     setTimeout(() => {
       if (IsDualPaneEnabled === true) {
-        goUp(true);
+        // goUp(true);
       } else {
-        goLeft();
+        // goLeft();
       }
     }, 250);
     CurrentQuickSearchTime = TIMETORESET;
@@ -287,8 +287,11 @@ async function resetEverything() {
   }
   $(".path-item")?.css("opacity", "1");
   $(".site-nav-bar-button").css("border", "1px solid transparent");
+  $(".site-nav-bar-button").css("backgroundColor", "transparent");
   $(".item-link").css("border", "1px solid transparent");
+  $(".item-link").css("backgroundColor", "transparent");
   $(".path-item").css("border", "1px solid transparent");
+  $(".path-item").css("backgroundColor", "var(--transparentColor)");
   CurrentQuickSearch = "";
   resetQuickSearch();
 }
@@ -1186,15 +1189,15 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       MousePos = [e.clientX, e.clientY];
       if (item.getAttribute("itemisdir") == "1") {
         if (!ArrSelectedItems.includes(item)) {
-          item.style.opacity = "0.5";
-          item.style.border = "1px solid var(--textColor)";
+          item.style.border = "1px solid var(--tertiaryColor)";
+          item.style.backgroundColor = "var(--primaryColor)";
           DraggedOverElement = item;
         }
       }
     });
     item.addEventListener("dragleave", () => {
-      item.style.opacity = "1";
       item.style.border = "1px solid transparent";
+      item.style.backgroundColor = "1px solid var(--transparentColor)";
     });
     // :item_right_click :context_menu | showItems()
     // Open context menu when right-clicking on file/folder
@@ -1635,14 +1638,15 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
       pathItem.ondragover = (e) => {
         MousePos = [e.clientX, e.clientY-60];
         e.preventDefault();
-        pathItem.style.opacity = 0.5;
-        pathItem.style.border = "1px solid var(--textColor)";
+        pathItem.style.border = "2px solid var(--secondaryColor)";
+        pathItem.style.backgroundColor = "var(--tertiaryColor)";
         DraggedOverElement = pathItem;
       }
       pathItem.ondragleave = (e) => {
         e.preventDefault();
         pathItem.style.opacity = 1;
-        pathItem.style.border = "1px solid transparent";
+        pathItem.style.border = "2px solid transparent";
+        pathItem.style.backgroundColor = "var(--transparentColor)";
       }
       let divider = document.createElement("i");
       divider.className = "fa fa-chevron-right";
@@ -4182,14 +4186,14 @@ async function insertSiteNavButtons() {
     button.setAttribute("itempath", siteNavButtons[i][1]);
     button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
     button.ondragover = (e) => {
-      button.style.opacity = "0.5";
-      button.style.border = "1px solid var(--textColor)";
+      button.style.border = "1px solid var(--tertiaryColor)";
+      button.style.backgroundColor = "var(--secondaryColor)";
       DraggedOverElement = button;
       MousePos = [e.clientX, e.clientY];
     };
     button.ondragleave = () => {
-      button.style.opacity = "1";
       button.style.border = "1px solid transparent";
+      button.style.backgroundColor = "var(--siteBarColor)";
     };
     document.querySelector(".site-nav-bar").append(button);
   }
