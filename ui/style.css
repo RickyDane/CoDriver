@@ -127,6 +127,43 @@ body {
     background-color: var(--secondaryColor);
     opacity: 0;
     transition: opacity 0.5s ease;
+    position: relative;
+}
+
+.dual-pane-toolbar {
+    width: 100%;
+    position: absolute;
+    top: 55px;
+    height: 35px;
+    padding: 0 5px;
+    background-color: var(--siteBarColor);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--tertiaryColor);
+}
+
+.dual-pane-disk-dropdown {
+    background-color: var(--secondaryColor);
+    border-radius: 7px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    padding: 0 5px;
+    gap: 5px;
+}
+
+.dual-pane-disk-dropdown > select {
+    background-color: transparent;
+    width: 100%;
+    min-width: 100px;
+    color: var(--textColor);
+    outline: none;
+    border: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    cursor: pointer;
 }
 
 .non-dual-pane-container {

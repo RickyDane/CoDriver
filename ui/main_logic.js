@@ -489,6 +489,7 @@ document.onkeydown = async (e) => {
       openItem(null, SelectedItemPaneSide, ConfiguredPathThree);
     }
 
+    // :dual_pane :shortcuts
     if (
       IsDualPaneEnabled == true &&
       IsDisableShortcuts == false &&
@@ -571,6 +572,21 @@ document.onkeydown = async (e) => {
         goDown();
         e.preventDefault();
         e.stopPropagation();
+      }
+      if (e.key == 1 && IsMetaDown == true) {
+        SelectedItemPaneSide = "left";
+        let diskDropdown = document.querySelector(".left-disk-dropdown");
+        let evt = document.createEvent("MouseEvents")
+        evt.initMouseEvent("mousedown");
+        diskDropdown.dispatchEvent(evt);
+        IsMetaDown = false;
+      } else if (e.key == 2 && IsMetaDown == true) {
+        SelectedItemPaneSide = "right";
+        let diskDropdown = document.querySelector(".right-disk-dropdown");
+        let evt = document.createEvent("MouseEvents")
+        evt.initMouseEvent("mousedown");
+        diskDropdown.dispatchEvent(evt);
+        IsMetaDown = false;
       }
     } else if (IsItemPreviewOpen == true && IsDualPaneEnabled === true) {
       // check if arrow up is pressed
@@ -2921,8 +2937,34 @@ async function initDualPane(path = "") {
   RightDualPanePath = path;
   SelectedItemIndex = 0;
   SelectedItemPaneSide = "left";
+
+  // Set the disks into the dropdowns
+  await setDiskDropdowns();
+
   await refreshBothViews();
   goUp(false, true);
+}
+
+async function setDiskDropdowns() {
+  let leftDiskDropdown = document.querySelector(".left-disk-dropdown");
+  let rightDiskDropdown = document.querySelector(".right-disk-dropdown");
+
+  // Get current disks
+  let disks = await invoke("list_disks");
+
+  // reset current selection
+  leftDiskDropdown.innerHTML = "";
+  rightDiskDropdown.innerHTML = "";
+
+  for (let i = 0; i < disks.length; i++) {
+    leftDiskDropdown.innerHTML += `<option value="${disks[i].path}">${disks[i].name != "" ? disks[i].name : "/"}</option>`;
+    rightDiskDropdown.innerHTML += `<option value="${disks[i].path}">${disks[i].name != "" ? disks[i].name : "/"}</option>`;
+  }
+}
+
+async function navigateToDisk(path) {
+  await setCurrentDir(path);
+  await listDirectories();
 }
 
 function goLeft(isToFirst = false, index = null) {
@@ -3235,7 +3277,7 @@ async function switchToDualPane() {
     $(".list-column-header").css("border", "none");
     $(".dual-pane-container").css("opacity", "1");
     $(".dual-pane-container").css("height", "100%");
-    $(".dual-pane-container").css("padding-top", "55px");
+    $(".dual-pane-container").css("padding-top", "90px"); // --> 55px from nav bar and 15px from toolbar
     $(".non-dual-pane-container").css("width", "0");
     $(".non-dual-pane-container").css("opacity", "0");
     $(".non-dual-pane-container").css("height", "0px");
