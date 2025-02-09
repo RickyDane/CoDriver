@@ -151,6 +151,7 @@ body {
     align-items: center;
     padding: 0 5px;
     gap: 5px;
+    border: 1px solid var(--tertiaryColor);
 }
 
 .dual-pane-disk-dropdown > select {

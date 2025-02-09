@@ -87,14 +87,14 @@
                     <div class="dual-pane-toolbar">
                         <div class="dual-pane-disk-dropdown left">
                             <i class="fa-solid fa-hdd" style="font-size: 12px; color: var(--textColor);"></i>
-                            <select class="left-disk-dropdown" onchange="navigateToDisk(this.value)">
+                            <select class="left-disk-dropdown" onchange="navigateToDisk(this.value, 'left')">
                                 <option value="1">Disk 1</option>
                                 <option value="2">Disk 2</option>
                             </select>
                         </div>
                         <div class="dual-pane-disk-dropdown right">
                             <i class="fa-solid fa-hdd" style="font-size: 12px; color: var(--textColor);"></i>
-                            <select class="right-disk-dropdown" onchange="navigateToDisk(this.value)">
+                            <select class="right-disk-dropdown" onchange="navigateToDisk(this.value, 'right')">
                                 <option value="1">Disk 1</option>
                                 <option value="2">Disk 2</option>
                             </select>

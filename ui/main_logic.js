@@ -221,6 +221,8 @@ document.addEventListener("keydown", async (e) => {
       item.style.opacity = "1";
     });
   }
+
+  // :quicksearch :instantsearch
   if (IsInputFocused === false &&
     IsPopUpOpen === false &&
     IsMetaDown === false &&
@@ -573,18 +575,19 @@ document.onkeydown = async (e) => {
         e.preventDefault();
         e.stopPropagation();
       }
+
+      // Open disk dropdown / :dropdown :disk_dropdown
       if (e.key == 1 && IsMetaDown == true) {
-        SelectedItemPaneSide = "left";
         let diskDropdown = document.querySelector(".left-disk-dropdown");
         let evt = document.createEvent("MouseEvents")
-        evt.initMouseEvent("mousedown");
+        evt.initMouseEvent("mousedown"); // Find alternative to obsolete method
         diskDropdown.dispatchEvent(evt);
         IsMetaDown = false;
       } else if (e.key == 2 && IsMetaDown == true) {
         SelectedItemPaneSide = "right";
         let diskDropdown = document.querySelector(".right-disk-dropdown");
         let evt = document.createEvent("MouseEvents")
-        evt.initMouseEvent("mousedown");
+        evt.initMouseEvent("mousedown"); // Find alternative to obsolete method
         diskDropdown.dispatchEvent(evt);
         IsMetaDown = false;
       }
@@ -1192,12 +1195,10 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         (Platform.includes("win") || Platform.includes("linux"))
       ) {
         await startDrag({ item: arr, icon: icon });
-        await unSelectAllItems();
-        await refreshView();
+        await resetEverything();
       } else {
         await startDrag({ item: arr, icon: icon });
-        await unSelectAllItems();
-        await refreshView();
+        await resetEverything();
       }
     };
     // Accept file drop into folders
@@ -1631,53 +1632,9 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
       alert("Switching directory failed. Probably no permissions.");
       return;
     }
-    CurrentDir = currentDir;
-    let currentDirContainer = document.querySelector(".current-path");
-    currentDirContainer.innerHTML = "";
-    let currentPathTracker = "/";
-    if (Platform != "darwin" && Platform.includes("win")) {
-      currentPathTracker = "";
-    }
-    currentDir.split("/").forEach((path) => {
-      if (path == "") return;
-      let pathItem = document.createElement("button");
-      pathItem.textContent = path;
-      pathItem.className = "path-item";
-      currentPathTracker += path + "/";
-      pathItem.setAttribute("itempath", currentPathTracker);
-      pathItem.setAttribute("itempaneside", dualPaneSide);
-      pathItem.setAttribute("itemisdir", 1);
-      pathItem.setAttribute(
-        "onClick",
-        "openItem(this, '" + dualPaneSide + "', '')",
-      );
-      pathItem.ondragover = (e) => {
-        MousePos = [e.clientX, e.clientY-60];
-        e.preventDefault();
-        pathItem.style.border = "2px solid var(--secondaryColor)";
-        pathItem.style.backgroundColor = "var(--tertiaryColor)";
-        DraggedOverElement = pathItem;
-      }
-      pathItem.ondragleave = (e) => {
-        e.preventDefault();
-        pathItem.style.opacity = 1;
-        pathItem.style.border = "2px solid transparent";
-        pathItem.style.backgroundColor = "var(--transparentColor)";
-      }
-      let divider = document.createElement("i");
-      divider.className = "fa fa-chevron-right";
-      divider.style.color = "var(--textColor)";
-      currentDirContainer.appendChild(pathItem);
-      currentDirContainer.appendChild(divider);
-    });
-    try {
-      if (currentDirContainer?.lastElementChild?.textContent !== "/") {
-        currentDirContainer?.removeChild(currentDirContainer?.lastElementChild);
-      }
-    }
-    catch (err) {
-      await writeLog(err);
-    }
+
+    // Setting the current path on the bottom
+    updateCurrentPath(currentDir, dualPaneSide);
   });
 
   if (dualPaneSide == "left") {
@@ -1689,6 +1646,63 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
     $(".dual-pane-right").css("box-shadow", "inset 0px 0px 30px 3px var(--transparentColorActive)");
     $(".dual-pane-left").css("box-shadow", "none");
   }
+}
+
+function updateCurrentPath(currentDir, dualPaneSide) {
+  CurrentDir = currentDir;
+  let currentDirContainer = document.querySelector(".current-path");
+  currentDirContainer.innerHTML = "";
+  let currentPathTracker = "/";
+  if (Platform != "darwin" && Platform.includes("win")) {
+    currentPathTracker = "";
+  }
+
+  if (currentDir.endsWith("/")) {
+    currentDir = currentDir.substring(currentDir.length - 1);
+  }
+
+  if (currentDir.startsWith("/")) {
+    currentDir = currentDir.substring(1, currentDir.length);
+  }
+
+  let counter = 0;
+
+  currentDir.split("/").forEach((path) => {
+    if (path == "") return;
+    let pathItem = document.createElement("button");
+    pathItem.textContent = path;
+    pathItem.className = "path-item";
+    currentPathTracker += path + "/";
+    pathItem.setAttribute("itempath", currentPathTracker);
+    pathItem.setAttribute("itempaneside", dualPaneSide);
+    pathItem.setAttribute("itemisdir", 1);
+    pathItem.setAttribute(
+      "onClick",
+      "openItem(this, '" + dualPaneSide + "', '')",
+    );
+    pathItem.ondragover = (e) => {
+      MousePos = [e.clientX, e.clientY-60];
+      e.preventDefault();
+      pathItem.style.border = "2px solid var(--secondaryColor)";
+      pathItem.style.backgroundColor = "var(--tertiaryColor)";
+      DraggedOverElement = pathItem;
+    }
+    pathItem.ondragleave = (e) => {
+      e.preventDefault();
+      pathItem.style.opacity = 1;
+      pathItem.style.border = "2px solid transparent";
+      pathItem.style.backgroundColor = "var(--transparentColor)";
+    }
+    let divider = document.createElement("i");
+    divider.className = "fa fa-chevron-right";
+    divider.style.color = "var(--textColor)";
+    divider.style.fontSize = "10px";
+    if (counter > 0) { 
+      currentDirContainer.appendChild(divider);
+    }
+    currentDirContainer.appendChild(pathItem);
+    counter++;
+  });
 }
 
 async function deleteItems() {
@@ -2194,8 +2208,6 @@ async function checkAppConfig() {
 
     await switchView();
 
-    // document.querySelector(".context-open-in-terminal").style.display = "none";
-
     if (appConfig.is_dual_pane_enabled.includes("1")) {
       document.querySelector(".show-dual-pane-checkbox").checked = true;
       document.querySelector(".switch-dualpane-view-button").style.display =
@@ -2527,7 +2539,6 @@ async function interactWithItem(
     }
     else {
       await selectItem(element);
-      console.log("Is item already selected:", element.getAttribute("itemisselected"));
     }
   }
   // Interaction mode: Open item
@@ -2962,8 +2973,8 @@ async function setDiskDropdowns() {
   }
 }
 
-async function navigateToDisk(path) {
-  await setCurrentDir(path);
+async function navigateToDisk(path, paneSide = SelectedItemPaneSide) {
+  await setCurrentDir(path, paneSide);
   await listDirectories();
 }
 
@@ -3259,6 +3270,7 @@ async function switchToDualPane() {
     document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
     document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "flex"));
     document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
+    setCurrentDir(await getCurrentDir());
     await invoke("list_dirs").then(async (items) => {
       await showItems(items, "left");
       await showItems(items, "right");

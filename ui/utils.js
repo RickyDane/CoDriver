@@ -137,6 +137,7 @@ function formatBytes(bytes, decimals = 2) {
 
 async function writeLog(log) {
   await invoke("log", { log: JSON.stringify(log) });
+  console.log(log);
 }
 
 function isImage(fileExt) {
