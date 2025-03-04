@@ -11,12 +11,15 @@ use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
+use sevenz_rust::nt_time::time::format_description::parse;
+use tauri::api::dialog;
 use std::fs::{self, read_dir, remove_dir};
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
+use std::thread::current;
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_file, File},
@@ -54,7 +57,7 @@ use archiver_rs::Compressed;
 mod rdpfs;
 use substring::Substring;
 
-static mut LAST_DIR: String = String::new();
+// static mut LAST_DIR: String = String::new();
 static mut ISCANCELED: bool = false;
 static mut PATH_HISTORY: Vec<String> = vec![];
 
@@ -504,45 +507,52 @@ async fn set_dir(current_dir: String) -> bool {
 #[tauri::command]
 async fn list_dirs() -> Vec<FDir> {
     let mut dir_list: Vec<FDir> = Vec::new();
-    let current_dir = fs::read_dir(current_dir().unwrap()).unwrap();
-    for item in current_dir {
-        let temp_item = item.unwrap();
-        let name = &temp_item.file_name().into_string().unwrap();
-        let path = &temp_item
-            .path()
-            .to_str()
-            .unwrap()
-            .to_string()
-            .replace("\\", "/");
-        let file_ext = ".".to_string().to_owned()
-            + &path
-                .split(".")
-                .nth(&path.split(".").count() - 1)
-                .unwrap_or("");
-        let file_data = fs::metadata(&temp_item.path());
-        let file_date: DateTime<Local>;
-        let size = temp_item.metadata().unwrap().len();
-        match file_data {
-            Ok(file_data) => {
-                file_date = file_data.modified().unwrap().clone().into();
-            }
-            Err(_) => {
-                file_date = Local::now();
-            }
+    let current_dir_path = current_dir();
+    if current_dir_path.is_err() { return vec![]; }
+    let current_dir = fs::read_dir(current_dir_path.unwrap());
+    if current_dir.is_err() { return vec![]; }
+    for item in current_dir.unwrap() {
+        match item {
+            Ok(temp_item) => {
+                let name = &temp_item.file_name().into_string().unwrap();
+                let path = &temp_item
+                    .path()
+                    .to_str()
+                    .unwrap()
+                    .to_string()
+                    .replace("\\", "/");
+                let file_ext = ".".to_string().to_owned()
+                    + &path
+                        .split(".")
+                        .nth(&path.split(".").count() - 1)
+                        .unwrap_or("");
+                let file_data = fs::metadata(&temp_item.path());
+                let file_date: String;
+                let size = temp_item.metadata().unwrap().len();
+                match file_data {
+                    Ok(file_data) => {
+                        let dt: DateTime<Local> = file_data.modified().unwrap().clone().into();
+                        file_date = dt.to_string();
+                    },
+                    Err(_) => file_date = "-".into(),
+                }
+                let is_dir_int = match temp_item.path().is_dir() {
+                    true => 1,
+                    false => 0,
+                };
+                dir_list.push(FDir {
+                    name: String::from(name),
+                    is_dir: is_dir_int,
+                    path: String::from(path),
+                    extension: file_ext,
+                    size: size.to_string(),
+                    last_modified: file_date.split(".").nth(0).unwrap().into(),
+                });
+            },
+            _ => continue,
         }
-        let is_dir_int = match temp_item.path().is_dir() {
-            true => 1,
-            false => 0,
-        };
-        dir_list.push(FDir {
-            name: String::from(name),
-            is_dir: is_dir_int,
-            path: String::from(path),
-            extension: file_ext,
-            size: size.to_string(),
-            last_modified: String::from(file_date.to_string().split(".").nth(0).unwrap()),
-        });
     }
+    // Standard sort them by name
     dir_list.sort_by_key(|a| a.name.to_lowercase());
     return dir_list;
 }
@@ -611,7 +621,8 @@ async fn mount_sshfs(
     username: String,
     password: String,
     remote_path: String,
-) -> String {
+    app_window: Window,
+) -> Result<String, ()> {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
     let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &username;
@@ -620,14 +631,19 @@ async fn mount_sshfs(
     std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
 
     // Start sshfs process
-    let mut child = Command::new("sshfs")
+    let child = Command::new("sshfs")
         .arg(&remote_address)
         .arg(&mount_point)
         .arg("-o")
         .arg("password_stdin")
         .stdin(Stdio::piped())
-        .spawn()
-        .expect("Failed to start sshfs process");
+        .spawn();
+
+    if child.is_err() {
+        dialog::message(Some(&app_window), "", "Failed to start sshfs process");
+    }
+
+    let mut child = child.unwrap();
 
     // Write the password to stdin of the sshfs process
     dbg_log(format!("Connecting to {}", remote_address), dbg!("").into());
@@ -651,7 +667,7 @@ async fn mount_sshfs(
             String::from_utf8_lossy(&output.stderr),
         ));
     }
-    return mount_point;
+    return Ok(mount_point);
 }
 
 #[tauri::command]

@@ -252,8 +252,18 @@ impl DirWalker {
         if self.depth > 0 && depth > self.depth {
             return;
         }
-        for entry in fs::read_dir(path).unwrap() {
-            let item = entry.unwrap();
+        let entries = fs::read_dir(path);
+
+        if entries.is_err() {
+            return;
+        }
+
+        for entry in entries.unwrap() {
+            let item = entry;
+            if item.is_err() {
+                continue;
+            }
+            let item = item.unwrap();
             if item.file_name().to_str().unwrap().starts_with(".") {
                 continue;
             }

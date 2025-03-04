@@ -31,6 +31,7 @@
 :root {
     --primaryColor: #3f4352;
     --secondaryColor: rgba(56, 59, 71, 1);
+    --secondaryColorActive: rgba(46, 49, 61, 1);
     --tertiaryColor: #474b5c;
     --transparentColor: rgba(0, 0, 0, 0.1);
     --transparentColorActive: rgba(0, 0, 0, 0.25);
@@ -1072,7 +1073,6 @@ button > svg {
     overflow: hidden;
     gap: 5px;
     padding-right: 20px;
-    padding-left: 5px;
     border: 1px solid var(--tertiaryColor);
     color: var(--textColor);
     font-size: var(--fontSize);
@@ -1093,14 +1093,13 @@ button > svg {
     align-items: center;
     height: 32px;
     width: 32px;
-    margin-top: 2px;
     transition: 0.1s ease-out;
     /* background-color: var(--transparentColor); */
     border-radius: 10px 0px 0px 5px;
 }
 
 .icon-button:hover > .button-icon {
-    background-color: var(--secondaryColorActive);
+    background-color: var(--transparentColor);
 }
 
 /* Menu buttons */
@@ -1593,6 +1592,7 @@ button > svg {
     border-radius: 10px;
     max-width: 300px;
     border: 1px solid var(--tertiaryColor);
+    z-index: 3;
 }
 
 .input-dialog > h4 {

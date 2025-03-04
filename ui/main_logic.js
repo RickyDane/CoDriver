@@ -5,20 +5,13 @@ const { message } = TAURI.dialog;
 const { open } = TAURI.dialog;
 const { appWindow } = TAURI.window;
 const { writeText } = TAURI.clipboard;
-const { writeFile } = TAURI.clipboard;
 const { getTauriVersion } = TAURI.app;
 const { getVersion } = TAURI.app;
-const { getName } = TAURI.app;
 const { getMatches } = TAURI.cli;
 const { platform } = TAURI.os;
 const { arch } = TAURI.os;
-const { fetch } = TAURI.http;
 const convertFileSrc = TAURI.convertFileSrc;
-const { appDataDir } = TAURI.path;
 const { resolveResource } = TAURI.path;
-const { resourceDir } = TAURI.path;
-const { BaseDirectory } = TAURI.fs;
-const { readDir } = TAURI.fs;
 
 // :entry_point Entry point
 
@@ -35,6 +28,7 @@ async function startDrag(options, onEvent) {
     image: options.icon,
     onEventFn: onEvent ? transformCallback(onEvent) : null,
   });
+  resetEverything();
 }
 
 const ds = new DragSelect({
@@ -358,6 +352,7 @@ document.addEventListener("mousedown", (e) => {
 // :context open
 document.addEventListener("contextmenu", (e) => {
   e.preventDefault();
+  console.log(IsPopUpOpen, IsInputFocused);
   if (IsPopUpOpen == false && IsInputFocused == false) {
     ContextMenu.children[7].replaceWith(
       ContextMenu.children[7].cloneNode(true),
@@ -373,7 +368,7 @@ document.addEventListener("contextmenu", (e) => {
       { once: true },
     );
 
-    if (CopyFilePath == "") {
+    if (CopyFilePath === "") {
       document.querySelector(".c-item-paste").setAttribute("disabled", "true");
       document.querySelector(".c-item-paste").classList.add("c-item-disabled");
     } else {
@@ -382,16 +377,16 @@ document.addEventListener("contextmenu", (e) => {
         .querySelector(".c-item-paste")
         .classList.remove("c-item-disabled");
     }
-   	document
-    		.querySelector(".c-item-ytdownload")
-    		.replaceWith(document.querySelector(".c-item-ytdownload").cloneNode(true));
-   	document.querySelector(".c-item-ytdownload").addEventListener(
-    		"click",
-    		async () => {
-     			await showYtDownload();
-    		},
-    		{ once: true },
-   	);
+
+    // Currently disabled due to issues with download functionality
+    // document.querySelector(".c-item-ytdownload").replaceWith(document.querySelector(".c-item-ytdownload").cloneNode(true));
+    // document.querySelector(".c-item-ytdownload").addEventListener(
+    // 		"click",
+    // 		async () => {
+    //  			await showYtDownload();
+    // 		},
+    // 		{ once: true },
+   	// );
   }
 });
 
@@ -577,18 +572,20 @@ document.onkeydown = async (e) => {
       }
 
       // Open disk dropdown / :dropdown :disk_dropdown
-      if (e.key == 1 && IsMetaDown == true) {
+      if (e.key == "F1" && (IsMetaDown == true || IsAltDown == true)) {
         let diskDropdown = document.querySelector(".left-disk-dropdown");
         let evt = document.createEvent("MouseEvents")
-        evt.initMouseEvent("mousedown"); // Find alternative to obsolete method
+        evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
         diskDropdown.dispatchEvent(evt);
+        IsAltDown = false;
         IsMetaDown = false;
-      } else if (e.key == 2 && IsMetaDown == true) {
+      } else if (e.key == "F2" && (IsMetaDown == true || IsAltDown == true)) {
         SelectedItemPaneSide = "right";
         let diskDropdown = document.querySelector(".right-disk-dropdown");
         let evt = document.createEvent("MouseEvents")
-        evt.initMouseEvent("mousedown"); // Find alternative to obsolete method
+        evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
         diskDropdown.dispatchEvent(evt);
+        IsAltDown = false;
         IsMetaDown = false;
       }
     } else if (IsItemPreviewOpen == true && IsDualPaneEnabled === true) {
@@ -1697,7 +1694,7 @@ function updateCurrentPath(currentDir, dualPaneSide) {
     divider.className = "fa fa-chevron-right";
     divider.style.color = "var(--textColor)";
     divider.style.fontSize = "10px";
-    if (counter > 0) { 
+    if (counter > 0) {
       currentDirContainer.appendChild(divider);
     }
     currentDirContainer.appendChild(pathItem);
@@ -2629,7 +2626,7 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
         if (IsShowDisks == true) {
           item.children[0].classList.remove("selected-item");
         } else {
-          item.children[0].classList.remove(
+          item.children[0].children[0].classList.remove(
             "selected-item",
           );
           item.children[0].children[1].classList.remove(
@@ -3949,7 +3946,6 @@ async function getSetInstalledApplications(ext = "") {
 
 function showFindDuplicates(item) {
   ContextMenu.style.display = "none";
-  IsPopUpOpen = true;
   let popup = document.createElement("div");
   popup.className = "uni-popup find-duplicates-popup";
   popup.innerHTML = `
@@ -4001,6 +3997,7 @@ function showFindDuplicates(item) {
         document.querySelector(".duplicates-search-depth-input").value,
       );
     });
+  IsPopUpOpen = true;
 }
 
 function closeFindDuplicatesPopup() {
@@ -4013,13 +4010,13 @@ async function findDuplicates(item, depth) {
   showLoadingPopup("Searching for duplicates ...");
   document.querySelector(".list").innerHTML = "";
   ContextMenu.style.display = "none";
+  IsPopUpOpen = true;
   await invoke("find_duplicates", {
     appWindow: appWindow,
     path: item.getAttribute("itempath"),
     depth: parseInt(depth),
   });
   closeLoadingPopup();
-  IsPopUpOpen = true;
 }
 
 async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
@@ -4574,13 +4571,15 @@ async function setupItemContextMenu(item, e) {
       },
       { once: true },
     );
-    document.querySelector(".c-item-ytdownload").addEventListener(
-      "click",
-      async () => {
-        await showYtDownload();
-      },
-      { once: true },
-    );
+
+    // Currently disabled due to issues with download functionality
+    // document.querySelector(".c-item-ytdownload").addEventListener(
+    //   "click",
+    //   async () => {
+    //     await showYtDownload();
+    //   },
+    //   { once: true },
+    // );
 
     $(".context-with-dropdown").css("pointer-events", "all");
 
