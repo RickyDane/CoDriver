@@ -865,7 +865,17 @@ async fn copy_paste(
     }
     let sw = Stopwatch::start_new();
 
-    let _ = copy_to(&app_window, final_filename, from_path);
+    let item_md = fs::metadata(&from_path);
+    match item_md {
+        Ok(md) => {
+            if md.len() < 100000000 { // 100 mb
+                let _ = copy(from_path, final_filename);
+            } else {
+                let _ = copy_to(&app_window, final_filename, from_path);
+            }
+        },
+        _ => return
+    }
 
     dbg_log(
         format!("Copy-Paste time: {:?}", sw.elapsed()),

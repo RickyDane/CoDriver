@@ -77,7 +77,7 @@ body {
     border: 1px solid var(--tertiaryColor);
     line-height: 21px;
     color: var(--textColor);
-    box-shadow: 3px 3px 5px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 0px 5px 2px var(--tertiaryColor);
 }
 
 .explorer-container {
@@ -281,7 +281,7 @@ body {
 }
 
 .site-nav-bar-button:hover {
-    background-color: var(--transparentColorActive);
+    background-color: var(--transparentColorActive) !important;
 }
 
 .active-actions-container {
@@ -1369,7 +1369,7 @@ button > svg {
 }
 
 .path-item:hover {
-    background-color: var(--transparentColorActive);
+    background-color: var(--transparentColorActive) !important;
 }
 
 .directory-list {

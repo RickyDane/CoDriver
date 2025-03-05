@@ -333,20 +333,25 @@ impl DirWalker {
 
         if !self.exts.is_empty() {
             reg_exp = Regex::new(format!("(?i){}", file_name).as_str()).unwrap();
+            println!("Searching with file extension: {} | regex: {}", self.exts.first().unwrap(), reg_exp.as_str());
         } else {
             reg_exp = Regex::new(format!("(?i){}.*", file_name).as_str()).unwrap();
         }
+
+        let mut count_of_checked_items: usize = 0;
 
         for entry in jwalk::WalkDir::new(path)
             .parallelism(jwalk::Parallelism::RayonNewPool(
                 System::new().physical_core_count().unwrap_or(4) - 1,
             ))
             .sort(true)
-            .min_depth(1)
+            .min_depth(0)
             .max_depth(depth as usize)
             .skip_hidden(false)
             .follow_links(true)
         {
+            count_of_checked_items += 1;
+
             unsafe {
                 if IS_SEARCHING == false && COUNT_CALLED_BACK < max_items {
                     dbg_log("Interrupted searching".into(), dbg!("").into());
@@ -357,18 +362,26 @@ impl DirWalker {
                 }
             }
 
-            if entry.is_err() {
-                continue;
-            }
+            if entry.is_err() { continue; }
 
             let entry = entry.unwrap();
 
-            let name = entry.file_name().to_str().unwrap().to_string();
+            let name = entry.file_name().to_str().unwrap_or("").to_string();
             let path = entry.path();
-            let item_path = entry.file_name().to_str().unwrap().to_lowercase();
-            if item_path.contains("onedrive") {
-                continue;
-            }
+            let item_path = entry.file_name().to_str().unwrap_or("").to_lowercase();
+
+            println!("Checking: {}", item_path);
+
+            // Show how many files have already been checked
+            let _ = app_window.eval(&format!(
+                "$('.file-searching-file-count').html('{} items found<br/><br/>{} items checked')",
+                unsafe { COUNT_CALLED_BACK },
+                count_of_checked_items
+            ));
+
+            // Exclude onedrive so the file explorer doesn't download stuff from it => TODO: Make it configurable in the future
+            if item_path.contains("onedrive") { continue; }
+
             let item_ext = ".".to_owned()
                 + &item_path
                     .split(".")
@@ -378,15 +391,11 @@ impl DirWalker {
                     .to_lowercase();
 
             let file_metadata = fs::metadata(&path);
-            if file_metadata.is_err() {
-                return;
-            }
+            if file_metadata.is_err() { return; }
 
             let last_mod: DateTime<Utc> = file_metadata.unwrap().modified().unwrap().into();
 
-            if !reg_exp.is_match(&name) {
-                continue;
-            }
+            if !reg_exp.is_match(&name) { continue; }
 
             app_window
                 .eval(
@@ -403,16 +412,12 @@ impl DirWalker {
             let is_with_exts = self.exts.len() > 0 && self.exts.contains(&item_ext);
             let is_file = path.is_file();
             let is_quick_search = is_quick_search;
-            println!(
-                "{}: is match {} | is_with_exts {} | is_file {} | is_quick_search {}",
-                name, is_match, is_with_exts, is_file, is_quick_search
-            );
 
-            if is_match && (is_with_exts || is_file || is_quick_search) {
+            if is_match && ((is_with_exts && is_file) || is_quick_search) {
                 // Search for file content
                 if !file_content.is_empty() {
                     let content = fs::read_to_string(&path).unwrap_or_else(|_| "".into());
-                    // Todo: Extend with line number of text occurence later on
+                    // => TODO: Extend with line number of text occurence later on
                     if content.contains(&file_content) {
                         dbg_log(
                             format!("File found with file_content: {}", &name),
@@ -430,8 +435,8 @@ impl DirWalker {
                         });
                     }
                 } else {
-                    dbg!("Found matching item");
                     // Search w/o file content
+                    dbg_log(format!("File found: {}", &name), dbg!("").into());
                     callback(DirWalkerEntry {
                         name,
                         path: path.to_string_lossy().to_string(),

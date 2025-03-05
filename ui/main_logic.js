@@ -671,7 +671,7 @@ document.onkeydown = async (e) => {
       }
       if (
         (e.altKey && e.key == "Enter") ||
-        e.key == "F2" ||
+        (e.key == "F2" && !e.metaKey && !e.ctrlKey && !e.altKey) ||
         (Platform == "darwin" &&
           e.key == "Enter" &&
           IsDualPaneEnabled == false &&
@@ -1222,7 +1222,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       }
     });
 
-    // :thumbnail :set_thubnail | Set thumbnail image
+    // :thumbnail :set_thumbnail | Set thumbnail image
     (async () => {
       if (isImage(item.getAttribute("itemext"))) {
         // if (item.getAttribute("itemrawsize") > 10000000) { // ~10 mb
@@ -1269,7 +1269,7 @@ listen("addSingleItem", async (item) => {
     } else {
       await addSingleItem(item);
     }
-  }, 10);
+  }, 5);
 });
 
 async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex = 0) {
@@ -1618,6 +1618,7 @@ async function getCurrentDir() {
 }
 
 async function setCurrentDir(currentDir = "", dualPaneSide = "") {
+  console.log("Setting current directory:", currentDir, dualPaneSide);
   if (currentDir == "") return;
 
   if (dualPaneSide != "") {
@@ -1670,7 +1671,7 @@ function updateCurrentPath(currentDir, dualPaneSide) {
     pathItem.textContent = path;
     pathItem.className = "path-item";
     currentPathTracker += path + "/";
-    pathItem.setAttribute("itempath", currentPathTracker);
+    pathItem.setAttribute("itempath", currentPathTracker.endsWith("/") ? currentPathTracker.substring(0, currentPathTracker.length-1) : currentPathTracker);
     pathItem.setAttribute("itempaneside", dualPaneSide);
     pathItem.setAttribute("itemisdir", 1);
     pathItem.setAttribute(
