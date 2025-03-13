@@ -1,7 +1,7 @@
 # cargo-features = ["profile-rustflags"]
 [package]
 name = "CoDriver"
-version = "0.5.0"
+version = "0.5.1"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "BSD-2-Clause license"
