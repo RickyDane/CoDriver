@@ -499,6 +499,7 @@ body {
     width: 100px !important;
     cursor: pointer;
     padding: 5px;
+	margin: 0 20px;
     border-radius: 10px;
     text-align: center;
     color: var(--textColor);
@@ -915,7 +916,7 @@ button > svg {
     gap: 5px;
     align-items: center;
     cursor: pointer;
-    padding: 5px 10px 5px 5px;
+    padding: 5px;
     max-height: 40px;
     font-size: small;
     width: 100%;
@@ -948,6 +949,12 @@ button > svg {
 .item-button-list > .item-icon {
     height: 24px;
     width: 24px;
+}
+
+.item-size-box {
+	padding: 5px 10px;
+	border-radius: 8px;
+	background-color: var(--transparentColor);
 }
 
 .dual-pane-list-item {

@@ -57,7 +57,7 @@ pub fn log(msg: String) {
 
     // Write text to logfile
     let mut file = OpenOptions::new()
-        .write(true)
+        
         .append(true)
         .open(&log_file_path)
         .unwrap();
@@ -152,7 +152,7 @@ pub fn count_entries(path: &str) -> Result<f32, std::io::Error> {
         let path = entry.path();
 
         if path.is_dir() {
-            count += count_entries(&path.to_str().unwrap()).unwrap();
+            count += count_entries(path.to_str().unwrap()).unwrap();
         } else {
             count += 1.0;
         }
@@ -268,8 +268,8 @@ impl DirWalker {
                 continue;
             }
             let path = item.path();
-            if !fs::metadata(&path).is_ok()
-                || (self.exts.len() > 0
+            if fs::metadata(&path).is_err()
+                || (!self.exts.is_empty()
                     && !self.exts.contains(
                         &item
                             .file_name()
@@ -287,12 +287,12 @@ impl DirWalker {
                 self.items.push(DirWalkerEntry {
                     name: item.file_name().to_str().unwrap().to_string(),
                     path: path.to_str().unwrap().to_string().replace("\\", "/"),
-                    depth: depth,
+                    depth,
                     is_dir: true,
                     is_file: false,
                     extension: path
                         .extension()
-                        .unwrap_or(&OsStr::new(""))
+                        .unwrap_or(OsStr::new(""))
                         .to_string_lossy()
                         .to_string(),
                     last_modified: format!("{:?}", item.metadata().unwrap().modified().unwrap()),
@@ -303,12 +303,12 @@ impl DirWalker {
                 self.items.push(DirWalkerEntry {
                     name: item.file_name().to_str().unwrap().to_string(),
                     path: path.to_str().unwrap().to_string().replace("\\", "/"),
-                    depth: depth,
+                    depth,
                     is_dir: false,
                     is_file: true,
                     extension: path
                         .extension()
-                        .unwrap_or(&OsStr::new(""))
+                        .unwrap_or(OsStr::new(""))
                         .to_string_lossy()
                         .to_string(),
                     last_modified: format!("{:?}", item.metadata().unwrap().modified().unwrap()),
@@ -353,11 +353,11 @@ impl DirWalker {
             count_of_checked_items += 1;
 
             unsafe {
-                if IS_SEARCHING == false && COUNT_CALLED_BACK < max_items {
+                if !IS_SEARCHING && COUNT_CALLED_BACK < max_items {
                     dbg_log("Interrupted searching".into(), dbg!("").into());
                     return;
                 }
-                if COUNT_CALLED_BACK >= max_items || IS_SEARCHING == false {
+                if COUNT_CALLED_BACK >= max_items || !IS_SEARCHING {
                     return;
                 }
             }
@@ -409,7 +409,7 @@ impl DirWalker {
                 .unwrap();
 
             let is_match = reg_exp.is_match(&name);
-            let is_with_exts = self.exts.len() > 0 && self.exts.contains(&item_ext);
+            let is_with_exts = !self.exts.is_empty() && self.exts.contains(&item_ext);
             let is_file = path.is_file();
             let is_quick_search = is_quick_search;
 
@@ -529,7 +529,7 @@ pub fn create_new_action(
         )
         .as_str(),
     );
-    return id;
+    id
 }
 
 pub fn remove_action(app_window: Window, action_id: String) {

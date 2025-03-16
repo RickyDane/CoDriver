@@ -17,7 +17,7 @@ const { resolveResource } = TAURI.path;
 
 getMatches().then((matches) => {
   // alert(JSON.stringify(matches.args.source.value));
-})
+});
 
 // :drag / Dragging functionality
 
@@ -33,13 +33,19 @@ async function startDrag(options, onEvent) {
 
 const ds = new DragSelect({
   immediateDrag: false,
-})
+});
 
-ds.subscribe('DS:select', async (payload) => {
-  if (payload.item == SelectedElement || IsShiftDown === true || IsCtrlDown === true || IsMetaDown === true) return;
+ds.subscribe("DS:select", async (payload) => {
+  if (
+    payload.item == SelectedElement ||
+    IsShiftDown === true ||
+    IsCtrlDown === true ||
+    IsMetaDown === true
+  )
+    return;
   selectItem(payload.item, "", true);
 });
-ds.subscribe('DS:unselect', async (payload) => {
+ds.subscribe("DS:unselect", async (payload) => {
   deSelectItem(payload.item);
 });
 
@@ -140,10 +146,12 @@ document.querySelector(".search-bar-input").addEventListener("focusin", (e) => {
   $(".file-searchbar").css("width", "250px");
   IsInputFocused = true;
 });
-document.querySelector(".search-bar-input").addEventListener("focusout", (e) => {
-  $(".file-searchbar").css("width", "200px");
-  IsInputFocused = false;
-});
+document
+  .querySelector(".search-bar-input")
+  .addEventListener("focusout", (e) => {
+    $(".file-searchbar").css("width", "200px");
+    IsInputFocused = false;
+  });
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
   if (e.keyCode === 13) {
     let fileName = $(".search-bar-input").val();
@@ -163,9 +171,11 @@ async function startFullSearch() {
       <div class="button-icon"><i class="fa-solid fa-stop"></i></div>
       Stop
       `);
-    document.querySelector(".fullsearch-search-button").addEventListener("click", async () => {
-      await stopFullSearch();
-    });
+    document
+      .querySelector(".fullsearch-search-button")
+      .addEventListener("click", async () => {
+        await stopFullSearch();
+      });
     let fileName = document.querySelector(".full-dualpane-search-input").value;
     let maxItems = parseInt(
       document.querySelector(".full-search-max-items-input").value,
@@ -175,13 +185,19 @@ async function startFullSearch() {
       document.querySelector(".full-search-search-depth-input").value,
     );
     searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
-    let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
+    let fileContent = document.querySelector(
+      ".full-dualpane-search-file-content-input",
+    ).value;
     await searchFor(fileName, maxItems, searchDepth, false, fileContent);
   }
 }
 
 async function stopFullSearch() {
-  document.querySelector(".fullsearch-search-button").replaceWith(document.querySelector(".fullsearch-search-button").cloneNode(true));
+  document
+    .querySelector(".fullsearch-search-button")
+    .replaceWith(
+      document.querySelector(".fullsearch-search-button").cloneNode(true),
+    );
   IsFullSearching = false;
   $(".full-searching-loader").css("display", "none");
   $(".fullsearch-current-file").html("");
@@ -189,9 +205,11 @@ async function stopFullSearch() {
     <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
     Search
     `);
-  document.querySelector(".fullsearch-search-button").addEventListener("click", async () => {
-    await startFullSearch();
-  });
+  document
+    .querySelector(".fullsearch-search-button")
+    .addEventListener("click", async () => {
+      await startFullSearch();
+    });
   await stopSearching();
 }
 
@@ -217,7 +235,8 @@ document.addEventListener("keydown", async (e) => {
   }
 
   // :quicksearch :instantsearch
-  if (IsInputFocused === false &&
+  if (
+    IsInputFocused === false &&
     IsPopUpOpen === false &&
     IsMetaDown === false &&
     IsCtrlDown === false &&
@@ -235,7 +254,7 @@ document.addEventListener("keydown", async (e) => {
       } else {
         // goLeft();
       }
-    }, 250);
+    }, 500);
     CurrentQuickSearchTime = TIMETORESET;
     clearInterval(CurrentQuickSearchTimer);
     resetQuickSearch();
@@ -336,7 +355,12 @@ document.addEventListener("mousedown", (e) => {
     }
     // closeItemPreview();
   }
-  if (IsPopUpOpen === true && !e.target.classList.contains("input-dialog") && !e.target.classList.contains("input-dialog-headline") && !e.target.classList.contains("text-input")) {
+  if (
+    IsPopUpOpen === true &&
+    !e.target.classList.contains("input-dialog") &&
+    !e.target.classList.contains("input-dialog-headline") &&
+    !e.target.classList.contains("text-input")
+  ) {
     closeInputDialogs();
     IsInputFocused = false;
   }
@@ -344,7 +368,9 @@ document.addEventListener("mousedown", (e) => {
     closeCustomContextMenu();
   }
   $(".site-nav-bar-button").css("border", "1px solid transparent");
+  $(".site-nav-bar-button").css("backgroundColor", "transparent");
   $(".item-link").css("border", "1px solid transparent");
+  $(".item-link").css("backgroundColor", "transparent");
   $(".path-item").css("border", "1px solid transparent");
 });
 
@@ -386,7 +412,7 @@ document.addEventListener("contextmenu", (e) => {
     //  			await showYtDownload();
     // 		},
     // 		{ once: true },
-   	// );
+    // );
   }
 });
 
@@ -405,11 +431,15 @@ function positionContextMenu(e) {
   if (ContextMenu.offsetHeight + e.clientY <= window.innerHeight) {
     ContextMenu.style.top = e.clientY + "px";
     ContextMenu.style.bottom = null;
-  } else if ((ContextMenu.offsetHeight + e.clientY >= window.innerHeight) && (e.clientY - ContextMenu.offsetHeight > 0)) {
+  } else if (
+    ContextMenu.offsetHeight + e.clientY >= window.innerHeight &&
+    e.clientY - ContextMenu.offsetHeight > 0
+  ) {
     ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
     ContextMenu.style.bottom = null;
   } else {
-    ContextMenu.style.top = window.innerHeight - ContextMenu.offsetHeight - 10 + "px";
+    ContextMenu.style.top =
+      window.innerHeight - ContextMenu.offsetHeight - 10 + "px";
     ContextMenu.style.bottom = null;
   }
 }
@@ -417,7 +447,8 @@ function positionContextMenu(e) {
 /* :shortcuts Shortcuts definition */
 
 function isShortcut(key) {
-  if (key == "Meta" ||
+  if (
+    key == "Meta" ||
     key == "Control" ||
     key == "Shift" ||
     key == "Alt" ||
@@ -459,11 +490,12 @@ function isShortcut(key) {
     key == "-" ||
     key == "*" ||
     key == "/" ||
-    key == ",") {
-      return true;
-    } else {
-      return false;
-    }
+    key == ","
+  ) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 document.onkeydown = async (e) => {
@@ -574,7 +606,7 @@ document.onkeydown = async (e) => {
       // Open disk dropdown / :dropdown :disk_dropdown
       if (e.key == "F1" && (IsMetaDown == true || IsAltDown == true)) {
         let diskDropdown = document.querySelector(".left-disk-dropdown");
-        let evt = document.createEvent("MouseEvents")
+        let evt = document.createEvent("MouseEvents");
         evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
         diskDropdown.dispatchEvent(evt);
         IsAltDown = false;
@@ -582,7 +614,7 @@ document.onkeydown = async (e) => {
       } else if (e.key == "F2" && (IsMetaDown == true || IsAltDown == true)) {
         SelectedItemPaneSide = "right";
         let diskDropdown = document.querySelector(".right-disk-dropdown");
-        let evt = document.createEvent("MouseEvents")
+        let evt = document.createEvent("MouseEvents");
         evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
         diskDropdown.dispatchEvent(evt);
         IsAltDown = false;
@@ -625,7 +657,11 @@ document.onkeydown = async (e) => {
     if (e.key == " " && SelectedElement != null) {
       e.preventDefault();
       e.stopPropagation();
-      if (IsPopUpOpen == false && IsInputFocused == false && IsItemPreviewOpen == false) {
+      if (
+        IsPopUpOpen == false &&
+        IsInputFocused == false &&
+        IsItemPreviewOpen == false
+      ) {
         showItemPreview(SelectedElement);
       } else {
         closeItemPreview();
@@ -634,7 +670,10 @@ document.onkeydown = async (e) => {
 
     if (IsPopUpOpen == false) {
       // check if del is pressed
-      if (IsInputFocused == false && (e.keyCode == 46 || (e.metaKey && e.keyCode == 8))) {
+      if (
+        IsInputFocused == false &&
+        (e.keyCode == 46 || (e.metaKey && e.keyCode == 8))
+      ) {
         await deleteItems();
         closeLoadingPopup();
         await listDirectories();
@@ -767,7 +806,12 @@ document.onkeydown = async (e) => {
           e.stopPropagation();
         }
         // check if backspace is pressed
-        if (e.keyCode == 8 && IsPopUpOpen === false && IsInputFocused === false && ArrSelectedItems.length == 0) {
+        if (
+          e.keyCode == 8 &&
+          IsPopUpOpen === false &&
+          IsInputFocused === false &&
+          ArrSelectedItems.length == 0
+        ) {
           goBack();
           e.preventDefault();
           e.stopPropagation();
@@ -775,7 +819,12 @@ document.onkeydown = async (e) => {
       }
     }
 
-    if (IsDualPaneEnabled === false && (IsItemPreviewOpen === true && IsPopUpOpen === true || IsPopUpOpen === false) && IsInputFocused === false) {
+    if (
+      IsDualPaneEnabled === false &&
+      ((IsItemPreviewOpen === true && IsPopUpOpen === true) ||
+        IsPopUpOpen === false) &&
+      IsInputFocused === false
+    ) {
       if (ViewMode == "wrap") {
         // check if arrow up is pressed
         if (e.keyCode == 38) {
@@ -791,13 +840,19 @@ document.onkeydown = async (e) => {
         }
       }
       // check if arrow left is pressed
-      if (e.keyCode == 37 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)) {
+      if (
+        e.keyCode == 37 ||
+        ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)
+      ) {
         e.preventDefault();
         e.stopPropagation();
         goLeft();
       }
       // check if arrow right is pressed
-      if (e.keyCode == 39 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)) {
+      if (
+        e.keyCode == 39 ||
+        ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)
+      ) {
         e.preventDefault();
         e.stopPropagation();
         goRight();
@@ -850,7 +905,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 
   if (items.length > 1000) {
     showLoadingPopup("Loading much data, please wait...");
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
   // Reset position when navigating into another directory
@@ -881,7 +936,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     DirectoryList.className = "directory-list";
   }
   if (IsShowHiddenFiles === false) {
-    items = items.filter((str) => !str.name.startsWith(".") && !str.name.toLowerCase().includes("desktop.ini"));
+    items = items.filter(
+      (str) =>
+        !str.name.startsWith(".") &&
+        !str.name.toLowerCase().includes("desktop.ini"),
+    );
   }
   items = items.filter((str) => !str.name.toLowerCase().includes("ntuser"));
   let counter = 0;
@@ -913,102 +972,102 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       // Check for dir name to apply custom icons
       switch (item.name.toLowerCase()) {
         case "downloads":
-        fileIcon = "resources/folder-downloads.png";
-        break;
+          fileIcon = "resources/folder-downloads.png";
+          break;
         case "desktop":
         case "schreibtisch":
-        fileIcon = "resources/folder-desktop.png";
-        break;
+          fileIcon = "resources/folder-desktop.png";
+          break;
         case "dokumente":
         case "doks":
         case "documents":
         case "docs":
-        fileIcon = "resources/folder-docs.png";
-        break;
+          fileIcon = "resources/folder-docs.png";
+          break;
         case "musik":
         case "music":
         case "audio":
-        fileIcon = "resources/folder-music.png";
-        break;
+          fileIcon = "resources/folder-music.png";
+          break;
         case "bilder":
         case "fotos":
         case "photos":
         case "pictures":
         case "images":
-        fileIcon = "resources/folder-images.png";
-        break;
+          fileIcon = "resources/folder-images.png";
+          break;
         case "videos":
         case "video":
         case "movies":
         case "movie":
         case "films":
         case "filme":
-        fileIcon = "resources/folder-videos.png";
-        break;
+          fileIcon = "resources/folder-videos.png";
+          break;
         case "coding":
         case "programming":
         case "programmieren":
         case "code":
-        fileIcon = "resources/folder-coding.png";
-        break;
+          fileIcon = "resources/folder-coding.png";
+          break;
         case "werkzeuge":
         case "tools":
-        fileIcon = "resources/folder-tools.png";
-        break;
+          fileIcon = "resources/folder-tools.png";
+          break;
         case "public":
         case "öffentlich":
         case "shared":
         case "geteilt":
-        fileIcon = "resources/folder-public.png";
-        break;
+          fileIcon = "resources/folder-public.png";
+          break;
         case "games":
         case "gaming":
         case "spiele":
-        fileIcon = "resources/folder-games.png";
-        break;
+          fileIcon = "resources/folder-games.png";
+          break;
         case "developer":
         case "entwickler":
         case "entwicklung":
         case "development":
-        fileIcon = "resources/folder-development.png";
-        break;
+          fileIcon = "resources/folder-development.png";
+          break;
         case "applications":
         case "programme":
-        fileIcon = "resources/folder-applications.png";
-        break;
+          fileIcon = "resources/folder-applications.png";
+          break;
         case "sdk":
         case "sdks":
-        fileIcon = "resources/folder-sdk.png";
+          fileIcon = "resources/folder-sdk.png";
         default:
-        fileIcon = "resources/folder-icon.png";
-        break;
+          fileIcon = "resources/folder-icon.png";
+          break;
       }
     } else {
       switch (item.extension.toLowerCase()) {
         case ".rs":
-        fileIcon = "resources/rust-file.png";
-        break;
+          fileIcon = "resources/rust-file.png";
+          break;
         case ".js":
         case ".jsx":
-        fileIcon = "resources/javascript-file.png";
-        break;
+          fileIcon = "resources/javascript-file.png";
+          break;
         case ".css":
         case ".scss":
-        fileIcon = "resources/css-file.png";
-        break;
+          fileIcon = "resources/css-file.png";
+          break;
         case ".sql":
         case ".db":
-        fileIcon = "resources/sql-file.png";
-        break;
+          fileIcon = "resources/sql-file.png";
+          break;
         case ".go":
-        fileIcon = "resources/go-file.png";
-        break;
+          fileIcon = "resources/go-file.png";
+          break;
         case ".md":
-        fileIcon = "resources/markdown-file.png";
-        break;
+          fileIcon = "resources/markdown-file.png";
+          break;
         case ".bin":
-        fileIcon = "resources/bin-file.png";
-        break;
+          fileIcon = "resources/bin-file.png";
+          break;
         case ".json":
         case ".cs":
         case ".c":
@@ -1019,8 +1078,8 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         case ".py":
         case ".ts":
         case ".tsx":
-        fileIcon = "resources/code-file.png";
-        break;
+          fileIcon = "resources/code-file.png";
+          break;
         case ".png":
         case ".jpg":
         case ".jpeg":
@@ -1034,33 +1093,35 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         case ".jfif":
         case ".avif":
         case ".icns":
-        if (IsImagePreview) {
-          if (item.size < 10000000 && items.length < 1000) { // ~10 mb
-            fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+          if (IsImagePreview) {
+            if (item.size < 10000000 && items.length < 1000) {
+              // ~10 mb
+              fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+            } else {
+              fileIcon = "resources/img-file.png";
+            }
           } else {
             fileIcon = "resources/img-file.png";
           }
-        } else {
-          fileIcon = "resources/img-file.png";
-        }
-        break;
+          break;
         case ".pdf":
-        if (IsImagePreview) {
-          if (item.size < 5000000) { // ~5 mb
-            fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+          if (IsImagePreview) {
+            if (item.size < 5000000) {
+              // ~5 mb
+              fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
+            }
+          } else {
+            fileIcon = "resources/pdf-file.png";
           }
-        } else {
-          fileIcon = "resources/pdf-file.png";
-        }
-        break;
+          break;
         case ".txt":
         case ".rtf":
-        fileIcon = "resources/text-file.png";
-        break;
+          fileIcon = "resources/text-file.png";
+          break;
         case ".docx":
         case ".doc":
-        fileIcon = "resources/word-file.png";
-        break;
+          fileIcon = "resources/word-file.png";
+          break;
         case ".zip":
         case ".rar":
         case ".tar":
@@ -1076,14 +1137,14 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         case ".z":
         case ".zstd":
         case ".br":
-        fileIcon = "resources/zip-file.png";
-        break;
+          fileIcon = "resources/zip-file.png";
+          break;
         case ".xlsx":
-        fileIcon = "resources/spreadsheet-file.png";
-        break;
+          fileIcon = "resources/spreadsheet-file.png";
+          break;
         case ".appimage":
-        fileIcon = "resources/appimage-file.png";
-        break;
+          fileIcon = "resources/appimage-file.png";
+          break;
         case ".mp4":
         case ".mkv":
         case ".avi":
@@ -1091,20 +1152,20 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         case ".wmv":
         case ".flv":
         case ".webm":
-        fileIcon = "resources/video-file.png";
-        break;
+          fileIcon = "resources/video-file.png";
+          break;
         case ".mp3":
         case ".wav":
         case ".ogg":
         case ".opus":
-        fileIcon = "resources/audio-file.png";
-        break;
+          fileIcon = "resources/audio-file.png";
+          break;
         case ".iso":
-        fileIcon = "resources/iso-file.png";
-        break;
+          fileIcon = "resources/iso-file.png";
+          break;
         default:
-        fileIcon = "resources/file-icon.png";
-        break;
+          fileIcon = "resources/file-icon.png";
+          break;
       }
     }
     itemLink.className = "item-link directory-entry";
@@ -1128,7 +1189,10 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         </span>
         <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
         <p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
-        <p class="item-button-list-text" style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+        <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
+			${formatBytes(parseInt(item.size), 2)}
+			<i class="fa-solid fa-cube""></i>
+		</div>
         </span>
         `;
       if (dualPaneSide != null && dualPaneSide != "") {
@@ -1139,8 +1203,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       itemLink.append(itemButtonList);
       DirectoryList.style.gridTemplateColumns = "unset";
       DirectoryList.style.rowGap = "2px";
-    }
-    else if (ViewMode == "miller") {
+    } else if (ViewMode == "miller") {
       var itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
         <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
@@ -1179,8 +1242,8 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       if (
         ArrSelectedItems.find(
           (itemOfArray) =>
-          itemOfArray.getAttribute("itempath") ==
-          item.getAttribute("itempath"),
+            itemOfArray.getAttribute("itempath") ==
+            item.getAttribute("itempath"),
         ) == null ||
         ArrSelectedItems.length == 0
       ) {
@@ -1229,7 +1292,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         //   item.querySelector("img").src = convertFileSrc(await getThumbnail(item.getAttribute("itempath")));
         // }
       } else if (item.getAttribute("itemext") == ".app") {
-        item.querySelector("img").src = convertFileSrc(await invoke("get_app_icns", { path: item.getAttribute("itempath") }));
+        item.querySelector("img").src = convertFileSrc(
+          await invoke("get_app_icns", { path: item.getAttribute("itempath") }),
+        );
       }
     })();
   });
@@ -1255,7 +1320,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
   ds.setSettings({
     selectables: document.querySelectorAll(".item-link"),
     area: document.querySelector(".explorer-container"),
-    draggability: false
+    draggability: false,
   });
   closeLoadingPopup();
 }
@@ -1272,9 +1337,17 @@ listen("addSingleItem", async (item) => {
   }, 5);
 });
 
-async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex = 0) {
+async function addSingleItem(
+  item,
+  dualPaneSide = "",
+  millerCol = 1,
+  itemIndex = 0,
+) {
   if (IsShowHiddenFiles === false) {
-    if (item.name.startsWith(".") == true || item.name.toLowerCase().includes("desktop.ini")) {
+    if (
+      item.name.startsWith(".") == true ||
+      item.name.toLowerCase().includes("desktop.ini")
+    ) {
       return;
     }
   }
@@ -1384,29 +1457,29 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
   } else {
     switch (item.extension) {
       case ".rs":
-      fileIcon = "resources/rust-file.png";
-      break;
+        fileIcon = "resources/rust-file.png";
+        break;
       case ".js":
       case ".jsx":
-      fileIcon = "resources/javascript-file.png";
-      break;
+        fileIcon = "resources/javascript-file.png";
+        break;
       case ".css":
       case ".scss":
-      fileIcon = "resources/css-file.png";
-      break;
+        fileIcon = "resources/css-file.png";
+        break;
       case ".sql":
       case ".db":
-      fileIcon = "resources/sql-file.png";
-      break;
+        fileIcon = "resources/sql-file.png";
+        break;
       case ".go":
-      fileIcon = "resources/go-file.png";
-      break;
+        fileIcon = "resources/go-file.png";
+        break;
       case ".md":
-      fileIcon = "resources/markdown-file.png";
-      break;
+        fileIcon = "resources/markdown-file.png";
+        break;
       case ".bin":
-      fileIcon = "resources/bin-file.png";
-      break;
+        fileIcon = "resources/bin-file.png";
+        break;
       case ".json":
       case ".cs":
       case ".c":
@@ -1417,8 +1490,8 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
       case ".py":
       case ".ts":
       case ".tsx":
-      fileIcon = "resources/code-file.png";
-      break;
+        fileIcon = "resources/code-file.png";
+        break;
       case ".png":
       case ".jpg":
       case ".jpeg":
@@ -1432,31 +1505,31 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
       case ".jfif":
       case ".avif":
       case ".icns":
-      if (IsImagePreview) {
-    				if (item.size < 10000000) { // ~10 mb
-     					fileIcon = convertFileSrc(item.path);
-    				}
-        else {
+        if (IsImagePreview) {
+          if (item.size < 10000000) {
+            // ~10 mb
+            fileIcon = convertFileSrc(item.path);
+          } else {
+            fileIcon = "resources/img-file.png";
+          }
+        } else {
           fileIcon = "resources/img-file.png";
         }
-      } else {
-        fileIcon = "resources/img-file.png";
-      }
-      break;
+        break;
       case ".pdf":
-      if (IsImagePreview) {
-        fileIcon = convertFileSrc(item.path);
-      } else {
-        fileIcon = "resources/pdf-file.png";
-      }
-      break;
+        if (IsImagePreview) {
+          fileIcon = convertFileSrc(item.path);
+        } else {
+          fileIcon = "resources/pdf-file.png";
+        }
+        break;
       case ".txt":
-      fileIcon = "resources/text-file.png";
-      break;
+        fileIcon = "resources/text-file.png";
+        break;
       case ".docx":
       case ".doc":
-      fileIcon = "resources/word-file.png";
-      break;
+        fileIcon = "resources/word-file.png";
+        break;
       case ".zip":
       case ".rar":
       case ".tar":
@@ -1472,14 +1545,14 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
       case ".z":
       case ".zstd":
       case ".br":
-      fileIcon = "resources/zip-file.png";
-      break;
+        fileIcon = "resources/zip-file.png";
+        break;
       case ".xlsx":
-      fileIcon = "resources/spreadsheet-file.png";
-      break;
+        fileIcon = "resources/spreadsheet-file.png";
+        break;
       case ".appimage":
-      fileIcon = "resources/appimage-file.png";
-      break;
+        fileIcon = "resources/appimage-file.png";
+        break;
       case ".mp4":
       case ".mkv":
       case ".avi":
@@ -1487,20 +1560,20 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
       case ".wmv":
       case ".flv":
       case ".webm":
-      fileIcon = "resources/video-file.png";
-      break;
+        fileIcon = "resources/video-file.png";
+        break;
       case ".mp3":
       case ".wav":
       case ".ogg":
       case ".opus":
-      fileIcon = "resources/audio-file.png";
-      break;
+        fileIcon = "resources/audio-file.png";
+        break;
       case ".iso":
-      fileIcon = "resources/iso-file.png";
-      break;
+        fileIcon = "resources/iso-file.png";
+        break;
       default:
-      fileIcon = "resources/file-icon.png";
-      break;
+        fileIcon = "resources/file-icon.png";
+        break;
     }
   }
   itemLink.className = "item-link directory-entry";
@@ -1553,8 +1626,8 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
     if (
       ArrSelectedItems.find(
         (itemOfArray) =>
-        itemOfArray.getAttribute("itempath") ==
-        itemLink.getAttribute("itempath"),
+          itemOfArray.getAttribute("itempath") ==
+          itemLink.getAttribute("itempath"),
       ) == null ||
       ArrSelectedItems.length == 0
     ) {
@@ -1606,8 +1679,7 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
       RightPaneItemCollection = document.querySelector(".dual-pane-right");
       goUp(false, true);
     }
-  }
-  else {
+  } else {
     $(".directory-list").append(itemLink);
   }
   ArrDirectoryItems.push(itemLink);
@@ -1637,11 +1709,17 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
 
   if (dualPaneSide == "left") {
     LeftDualPanePath = currentDir;
-    $(".dual-pane-left").css("box-shadow", "inset 0px 0px 30px 3px var(--transparentColorActive)");
+    $(".dual-pane-left").css(
+      "box-shadow",
+      "inset 0px 0px 30px 3px var(--transparentColorActive)",
+    );
     $(".dual-pane-right").css("box-shadow", "none");
   } else if (dualPaneSide == "right") {
     RightDualPanePath = currentDir;
-    $(".dual-pane-right").css("box-shadow", "inset 0px 0px 30px 3px var(--transparentColorActive)");
+    $(".dual-pane-right").css(
+      "box-shadow",
+      "inset 0px 0px 30px 3px var(--transparentColorActive)",
+    );
     $(".dual-pane-left").css("box-shadow", "none");
   }
 }
@@ -1671,7 +1749,12 @@ function updateCurrentPath(currentDir, dualPaneSide) {
     pathItem.textContent = path;
     pathItem.className = "path-item";
     currentPathTracker += path + "/";
-    pathItem.setAttribute("itempath", currentPathTracker.endsWith("/") ? currentPathTracker.substring(0, currentPathTracker.length-1) : currentPathTracker);
+    pathItem.setAttribute(
+      "itempath",
+      currentPathTracker.endsWith("/")
+        ? currentPathTracker.substring(0, currentPathTracker.length - 1)
+        : currentPathTracker,
+    );
     pathItem.setAttribute("itempaneside", dualPaneSide);
     pathItem.setAttribute("itemisdir", 1);
     pathItem.setAttribute(
@@ -1679,18 +1762,18 @@ function updateCurrentPath(currentDir, dualPaneSide) {
       "openItem(this, '" + dualPaneSide + "', '')",
     );
     pathItem.ondragover = (e) => {
-      MousePos = [e.clientX, e.clientY-60];
+      MousePos = [e.clientX, e.clientY - 60];
       e.preventDefault();
       pathItem.style.border = "2px solid var(--secondaryColor)";
       pathItem.style.backgroundColor = "var(--tertiaryColor)";
       DraggedOverElement = pathItem;
-    }
+    };
     pathItem.ondragleave = (e) => {
       e.preventDefault();
       pathItem.style.opacity = 1;
       pathItem.style.border = "2px solid transparent";
       pathItem.style.backgroundColor = "var(--transparentColor)";
-    }
+    };
     let divider = document.createElement("i");
     divider.className = "fa fa-chevron-right";
     divider.style.color = "var(--textColor)";
@@ -1708,9 +1791,15 @@ async function deleteItems() {
   let msg = "Do you really want to delete:<br/><br/>";
   for (let i = 0; i < ArrSelectedItems.length; i++) {
     if (i == 0) {
-      msg += "<span class='confirm-popup-item'>" + ArrSelectedItems[i].getAttribute("itemname") + "</span>";
+      msg +=
+        "<span class='confirm-popup-item'>" +
+        ArrSelectedItems[i].getAttribute("itemname") +
+        "</span>";
     } else {
-      msg += "<br/><span class='confirm-popup-item'>" + ArrSelectedItems[i].getAttribute("itemname") + "</span>";
+      msg +=
+        "<br/><span class='confirm-popup-item'>" +
+        ArrSelectedItems[i].getAttribute("itemname") +
+        "</span>";
     }
   }
   let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
@@ -1766,9 +1855,14 @@ async function copyItem(item, toCut = false, fromInternal = false) {
 
 async function extractItem(item) {
   let compressFilePath = item.getAttribute("itempath");
-  let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
+  let compressFileName = compressFilePath
+    .split("/")
+    [compressFilePath.split("/").length - 1].replace("'", "");
   ContextMenu.style.display = "none";
-  let isExtracting = await confirmPopup("Do you want to extract " + compressFileName + "?", PopupType.EXTRACT);
+  let isExtracting = await confirmPopup(
+    "Do you want to extract " + compressFileName + "?",
+    PopupType.EXTRACT,
+  );
   if (isExtracting == true) {
     ContextMenu.style.display = "none";
     let extractFilePath = item.getAttribute("itempath");
@@ -1865,7 +1959,7 @@ async function compressItem(arrItems, compressionLevel = 3) {
     await invoke("arr_compress_items", {
       arrItems: arrItems.map((item) => item.getAttribute("itempath")),
       compressionLevel: parseInt(compressionLevel),
-      appWindow
+      appWindow,
     });
     await listDirectories();
     showToast("Compressing done", ToastType.INFO);
@@ -1881,7 +1975,7 @@ async function compressItem(arrItems, compressionLevel = 3) {
         fromPath: compressFilePath,
         compressionLevel: parseInt(compressionLevel),
         pathToZip: compressFilePath,
-        appWindow
+        appWindow,
       });
       await listDirectories();
       showToast("Compressing done", ToastType.INFO);
@@ -1950,13 +2044,13 @@ async function itemMoveTo(isForDualPane = false) {
   } else {
     switch (SelectedItemPaneSide) {
       case "left":
-      await setCurrentDir(RightDualPanePath, "right");
-      selectedPath = CurrentDir;
-      break;
+        await setCurrentDir(RightDualPanePath, "right");
+        selectedPath = CurrentDir;
+        break;
       case "right":
-      await setCurrentDir(LeftDualPanePath, "left");
-      selectedPath = CurrentDir;
-      break;
+        await setCurrentDir(LeftDualPanePath, "left");
+        selectedPath = CurrentDir;
+        break;
     }
   }
   if (selectedPath != "" && selectedPath != null) {
@@ -2038,8 +2132,7 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
       refreshBothViews(SelectedItemPaneSide);
     }
     await listDirectories();
-  }
-  else {
+  } else {
     await unSelectAllItems();
     await listDirectories(true);
   }
@@ -2052,7 +2145,8 @@ function resetProgressBar() {
   document.querySelector(".progress-bar-text").textContent = "";
   document.querySelector(".progress-bar-item-text").textContent = "";
   document.querySelector(".progress-bar-fill").style.width = "0px";
-  document.querySelector(".progress-bar-container-popup").style.display = "none";
+  document.querySelector(".progress-bar-container-popup").style.display =
+    "none";
   document.querySelector(".progress-bar-2-fill").style.width = "0px";
 }
 
@@ -2194,14 +2288,14 @@ async function checkAppConfig() {
     let viewMode = appConfig.view_mode.replaceAll('"', "");
     switch (viewMode) {
       case "wrap":
-      ViewMode = "miller";
-      break;
+        ViewMode = "miller";
+        break;
       case "column":
-      ViewMode = "wrap";
-      break;
+        ViewMode = "wrap";
+        break;
       case "miller":
-      ViewMode = "column";
-      break;
+        ViewMode = "column";
+        break;
     }
 
     await switchView();
@@ -2237,18 +2331,18 @@ async function checkAppConfig() {
     if (appConfig.themes.length == 0) {
       appConfig.themes = [
         {
-          "name": "Default",
-          "primary_color": "#3f4352",
-          "secondary_color": "rgba(56, 59, 71, 1)",
-          "tertiary_color": "#474b5c",
-          "text_color": "rgba(255, 255, 255, 0.8)",
-          "text_color2": "rgba(255, 255, 255, 0.6)",
-          "text_color3": "rgb(255, 255, 255)",
-          "transparent_color": "rgba(0, 0, 0, 0.15)",
-          "transparent_color_active": "rgba(0, 0, 0, 0.25)",
-          "site_bar_color": "rgb(45, 47, 57)",
-          "nav_bar_color": "rgba(30, 30, 40, 0.5)"
-        }
+          name: "Default",
+          primary_color: "#3f4352",
+          secondary_color: "rgba(56, 59, 71, 1)",
+          tertiary_color: "#474b5c",
+          text_color: "rgba(255, 255, 255, 0.8)",
+          text_color2: "rgba(255, 255, 255, 0.6)",
+          text_color3: "rgb(255, 255, 255)",
+          transparent_color: "rgba(0, 0, 0, 0.15)",
+          transparent_color_active: "rgba(0, 0, 0, 0.25)",
+          site_bar_color: "rgb(45, 47, 57)",
+          nav_bar_color: "rgba(30, 30, 40, 0.5)",
+        },
       ];
     }
     let themeSelect = document.querySelector(".theme-select");
@@ -2268,12 +2362,17 @@ async function checkAppConfig() {
     checkColorMode(appConfig);
 
     // General configurations
-    document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
-    document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
-    document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
+    document.querySelector(".configured-path-one-input").value =
+      ConfiguredPathOne = appConfig.configured_path_one;
+    document.querySelector(".configured-path-two-input").value =
+      ConfiguredPathTwo = appConfig.configured_path_two;
+    document.querySelector(".configured-path-three-input").value =
+      ConfiguredPathThree = appConfig.configured_path_three;
     document.querySelector(".launch-path-input").value = appConfig.launch_path;
-    document.querySelector(".search-depth-input").value = SettingsSearchDepth = parseInt(appConfig.search_depth);
-    document.querySelector(".max-items-input").value = SettingsMaxItems = parseInt(appConfig.max_items);
+    document.querySelector(".search-depth-input").value = SettingsSearchDepth =
+      parseInt(appConfig.search_depth);
+    document.querySelector(".max-items-input").value = SettingsMaxItems =
+      parseInt(appConfig.max_items);
 
     if (appConfig.is_dual_pane_active.includes("1")) {
       await switchToDualPane();
@@ -2295,7 +2394,9 @@ async function checkAppConfig() {
         await setCurrentDir(path, "left");
         await listDirectories();
       } else {
-        alert("No directory found or unable to open due to missing permissions");
+        alert(
+          "No directory found or unable to open due to missing permissions",
+        );
       }
     } else {
       await initDualPane(await getCurrentDir());
@@ -2321,9 +2422,9 @@ async function applyPlatformFeatures() {
     appWindow.transparent = true;
     appWindow.setDecorations(false);
     $(".windows-linux-titlebar-buttons").css("display", "flex");
-    $('.minimize-button').on('click', () => appWindow.minimize())
-    $('.maximize-button').on('click', () => appWindow.toggleMaximize())
-    $('.close-button').on('click', () => appWindow.close())
+    $(".minimize-button").on("click", () => appWindow.minimize());
+    $(".maximize-button").on("click", () => appWindow.toggleMaximize());
+    $(".close-button").on("click", () => appWindow.close());
     $(".search-bar-input").attr("placeholder", "Ctrl + F");
   }
   DefaultFileIcon = await resolveResource("resources/file-icon.png");
@@ -2406,7 +2507,9 @@ async function listDisks() {
         `;
     });
   });
-  document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
+  document
+    .querySelector(".tab-container-" + CurrentActiveTab)
+    .append(DirectoryList);
   insertSiteNavButtons();
 }
 
@@ -2417,16 +2520,15 @@ async function listDirectories(fromDualPaneCopy = false) {
     if (fromDualPaneCopy == true) {
       switch (SelectedItemPaneSide) {
         case "left":
-        CurrentDir = RightDualPanePath;
-        await showItems(lsItems, "right");
-        break;
+          CurrentDir = RightDualPanePath;
+          await showItems(lsItems, "right");
+          break;
         case "right":
-        CurrentDir = LeftDualPanePath;
-        await showItems(lsItems, "left");
-        break;
+          CurrentDir = LeftDualPanePath;
+          await showItems(lsItems, "left");
+          break;
       }
-    }
-    else {
+    } else {
       await showItems(lsItems, SelectedItemPaneSide);
     }
     goUp(false, true);
@@ -2447,19 +2549,19 @@ async function refreshView() {
 async function refreshBothViews(dualPaneSide = "") {
   switch (dualPaneSide) {
     case "left":
-    await setCurrentDir(RightDualPanePath, "right");
-    await listDirectories();
-    await setCurrentDir(LeftDualPanePath, "left");
-    await listDirectories();
-    goUp(false, true);
-    break;
+      await setCurrentDir(RightDualPanePath, "right");
+      await listDirectories();
+      await setCurrentDir(LeftDualPanePath, "left");
+      await listDirectories();
+      goUp(false, true);
+      break;
     case "right":
-    await setCurrentDir(LeftDualPanePath, "left");
-    await listDirectories();
-    await setCurrentDir(RightDualPanePath, "right");
-    await listDirectories();
-    goUp(false, true);
-    break;
+      await setCurrentDir(LeftDualPanePath, "left");
+      await listDirectories();
+      await setCurrentDir(RightDualPanePath, "right");
+      await listDirectories();
+      goUp(false, true);
+      break;
   }
 }
 
@@ -2495,47 +2597,45 @@ async function interactWithItem(
           for (let i = firstIndex; i <= lastIndex; i++) {
             selectItem(DirectoryList.children[i]);
           }
-        }
-        else {
+        } else {
           for (let i = firstIndex; i >= lastIndex; i--) {
             selectItem(DirectoryList.children[i]);
           }
         }
-      }
-      else {
+      } else {
         if (dualPaneSide == "left") {
-          let firstIndex = parseInt(SelectedElement?.getAttribute("itemindex") ?? 0);
+          let firstIndex = parseInt(
+            SelectedElement?.getAttribute("itemindex") ?? 0,
+          );
           let lastIndex = parseInt(element.getAttribute("itemindex"));
           unSelectAllItems();
           if (firstIndex < lastIndex) {
             for (let i = firstIndex; i <= lastIndex; i++) {
               selectItem(LeftPaneItemCollection.children[i]);
             }
-          }
-          else {
+          } else {
             for (let i = firstIndex; i >= lastIndex; i--) {
               selectItem(LeftPaneItemCollection.children[i]);
             }
           }
-        }
-        else {
-          let firstIndex = parseInt(SelectedElement?.getAttribute("itemindex") ?? ß);
+        } else {
+          let firstIndex = parseInt(
+            SelectedElement?.getAttribute("itemindex") ?? ß,
+          );
           let lastIndex = parseInt(element.getAttribute("itemindex"));
           unSelectAllItems();
           if (firstIndex < lastIndex) {
             for (let i = firstIndex; i <= lastIndex; i++) {
               selectItem(RightPaneItemCollection.children[i]);
             }
-          }
-          else {
+          } else {
             for (let i = firstIndex; i >= lastIndex; i--) {
               selectItem(RightPaneItemCollection.children[i]);
             }
           }
         }
       }
-    }
-    else {
+    } else {
       await selectItem(element);
     }
   }
@@ -2556,19 +2656,17 @@ async function interactWithItem(
 async function openItem(element, dualPaneSide, shortcutDirPath = null) {
   let isDir =
     element != null
-    ? parseInt(element.getAttribute("itemisdir"))
-    : shortcutDirPath != null
-    ? 1
-    : 0;
-  let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
-  let millerCol = element != null ? element.getAttribute("itemformillercol") : null;
+      ? parseInt(element.getAttribute("itemisdir"))
+      : shortcutDirPath != null
+        ? 1
+        : 0;
+  let path =
+    element != null ? element.getAttribute("itempath") : shortcutDirPath;
+  let millerCol =
+    element != null ? element.getAttribute("itemformillercol") : null;
   let ext = element != null ? element.getAttribute("itemext") : null;
   if (IsPopUpOpen == false || IsQuickSearchOpen === true) {
-    if (
-      IsItemPreviewOpen == false &&
-      isDir == 1 &&
-      ext != ".app"
-    ) {
+    if (IsItemPreviewOpen == false && isDir == 1 && ext != ".app") {
       // Open directory
       let isSwitched = await invoke("open_dir", { path });
       if (isSwitched == true) {
@@ -2581,8 +2679,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
             await addMillerCol(millerCol);
             await setMillerColActive(null, millerCol);
             await listDirectories();
-          }
-          else {
+          } else {
             await listDirectories();
           }
           await setCurrentDir(path);
@@ -2613,7 +2710,13 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
   let index = element?.getAttribute("itemindex");
 
   // Reset colored selection
-  if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false && IsShiftDown == false && (isNotReset === false)) {
+  if (
+    SelectedElement != null &&
+    IsMetaDown == false &&
+    IsCtrlDown == false &&
+    IsShiftDown == false &&
+    isNotReset === false
+  ) {
     ArrSelectedItems.forEach((item) => {
       if (IsDualPaneEnabled) {
         item.children[0].classList.remove("selected-item");
@@ -2627,12 +2730,8 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
         if (IsShowDisks == true) {
           item.children[0].classList.remove("selected-item");
         } else {
-          item.children[0].children[0].classList.remove(
-            "selected-item",
-          );
-          item.children[0].children[1].classList.remove(
-            "selected-item-min",
-          );
+          item.children[0].children[0].classList.remove("selected-item");
+          item.children[0].children[1].classList.remove("selected-item-min");
         }
       }
     });
@@ -2652,9 +2751,7 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
     if (IsShowDisks == true) {
       SelectedElement?.children[0].classList.add("selected-item");
     } else {
-      SelectedElement?.children[0].children[0].classList.add(
-        "selected-item",
-      );
+      SelectedElement?.children[0].children[0].classList.add("selected-item");
       SelectedElement?.children[0].children[1].classList.add(
         "selected-item-min",
       );
@@ -2684,9 +2781,7 @@ function deSelectItem(item) {
     item.children[0].classList.remove("selected-item");
   } else {
     item.children[0].children[0].classList.remove("selected-item");
-    item.children[0].children[1].classList.remove(
-      "selected-item-min",
-    );
+    item.children[0].children[1].classList.remove("selected-item-min");
   }
   item.setAttribute("itemisselected", false);
 }
@@ -2702,10 +2797,16 @@ async function unSelectAllItems() {
         try {
           if (IsShowDisks === true) {
             ArrSelectedItems[i].children[0].classList.remove("selected-item");
-            ArrSelectedItems[i].children[1].classList.remove("selected-item-min");
+            ArrSelectedItems[i].children[1].classList.remove(
+              "selected-item-min",
+            );
           } else {
-            ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
-            ArrSelectedItems[i].children[0].children[1].classList.remove("selected-item-min");
+            ArrSelectedItems[i].children[0].children[0].classList.remove(
+              "selected-item",
+            );
+            ArrSelectedItems[i].children[0].children[1].classList.remove(
+              "selected-item-min",
+            );
           }
         } catch (e) {
           writeLog(e);
@@ -2814,7 +2915,7 @@ function goUp(isSwitched = false, toFirst = false) {
       if (SelectedItemPaneSide == "left") {
         if (
           parseInt(selectedItemIndex) * 38 -
-          document.querySelector(".dual-pane-left").scrollTop <
+            document.querySelector(".dual-pane-left").scrollTop <
           10
         ) {
           document.querySelector(".dual-pane-left").scrollTop -= 38;
@@ -2822,7 +2923,7 @@ function goUp(isSwitched = false, toFirst = false) {
       } else if (SelectedItemPaneSide == "right") {
         if (
           parseInt(selectedItemIndex) * 38 -
-          document.querySelector(".dual-pane-right").scrollTop <
+            document.querySelector(".dual-pane-right").scrollTop <
           10
         ) {
           document.querySelector(".dual-pane-right").scrollTop -= 38;
@@ -2911,7 +3012,7 @@ function goDown() {
   if (SelectedItemPaneSide == "left") {
     if (
       parseInt(selectedItemIndex) * 38 -
-      document.querySelector(".dual-pane-left").scrollTop >
+        document.querySelector(".dual-pane-left").scrollTop >
       window.innerHeight - 150
     ) {
       document.querySelector(".dual-pane-left").scrollTop += 38;
@@ -2919,7 +3020,7 @@ function goDown() {
   } else if (SelectedItemPaneSide == "right") {
     if (
       parseInt(selectedItemIndex) * 38 -
-      document.querySelector(".dual-pane-right").scrollTop >
+        document.querySelector(".dual-pane-right").scrollTop >
       window.innerHeight - 150
     ) {
       document.querySelector(".dual-pane-right").scrollTop += 38;
@@ -2935,8 +3036,7 @@ async function goToOtherPane() {
   }
   try {
     goUp(true);
-  }
-  catch (e) {
+  } catch (e) {
     writeLog(e);
   }
 }
@@ -2980,8 +3080,7 @@ function goLeft(isToFirst = false, index = null) {
   if (index == null) {
     if (SelectedElement == null) {
       index = 0;
-    }
-    else {
+    } else {
       index = parseInt(SelectedElement?.getAttribute("itemindex")) - 1 ?? 0;
     }
   }
@@ -2996,8 +3095,7 @@ function goRight(isToFirst = false, index = null) {
   if (index == null) {
     if (SelectedElement == null) {
       index = 0;
-    }
-    else {
+    } else {
       index = parseInt(SelectedElement?.getAttribute("itemindex")) + 1 ?? 0;
     }
   }
@@ -3009,15 +3107,22 @@ function goRight(isToFirst = false, index = null) {
 }
 
 function goGridUp() {
-  var rowlen = Array.prototype.reduce.call(DirectoryList.children, function (prev, next) {
-    if (!prev[2]) {
-      var ret = next.getBoundingClientRect().left
-      // if increasing, increment unter
-      if (!(prev[0] > -1 && ret < prev[1])) { prev[0]++ }
-        else { prev[2] = 1 } // else stop counting
-    }
-    return [prev[0], ret, prev[2]] // [counter, elem, stop-counting]
-  }, [0, null, 0])[0];
+  var rowlen = Array.prototype.reduce.call(
+    DirectoryList.children,
+    function (prev, next) {
+      if (!prev[2]) {
+        var ret = next.getBoundingClientRect().left;
+        // if increasing, increment unter
+        if (!(prev[0] > -1 && ret < prev[1])) {
+          prev[0]++;
+        } else {
+          prev[2] = 1;
+        } // else stop counting
+      }
+      return [prev[0], ret, prev[2]]; // [counter, elem, stop-counting]
+    },
+    [0, null, 0],
+  )[0];
   let index = 0;
   if (SelectedElement != null) {
     index = parseInt(SelectedElement?.getAttribute("itemindex")) - rowlen;
@@ -3026,15 +3131,22 @@ function goGridUp() {
 }
 
 function goGridDown() {
-  var rowlen = Array.prototype.reduce.call(DirectoryList.children, function (prev, next) {
-    if (!prev[2]) {
-      var ret = next.getBoundingClientRect().left
-      // if increasing, increment counter
-      if (!(prev[0] > -1 && ret < prev[1])) { prev[0]++ }
-        else { prev[2] = 1 } // else stop counting
-    }
-    return [prev[0], ret, prev[2]] // [counter, elem, stop-counting]
-  }, [0, null, 0])[0];
+  var rowlen = Array.prototype.reduce.call(
+    DirectoryList.children,
+    function (prev, next) {
+      if (!prev[2]) {
+        var ret = next.getBoundingClientRect().left;
+        // if increasing, increment counter
+        if (!(prev[0] > -1 && ret < prev[1])) {
+          prev[0]++;
+        } else {
+          prev[2] = 1;
+        } // else stop counting
+      }
+      return [prev[0], ret, prev[2]]; // [counter, elem, stop-counting]
+    },
+    [0, null, 0],
+  )[0];
   let index = 0;
   if (SelectedElement != null) {
     index = parseInt(SelectedElement?.getAttribute("itemindex")) + rowlen;
@@ -3046,15 +3158,13 @@ async function openSelectedItem() {
   if (IsDualPaneEnabled === true) {
     if (SelectedItemPaneSide == "left") {
       LastLeftPaneIndex = LeftPaneItemIndex;
-    }
-    else {
+    } else {
       LastRightPaneIndex = RightPaneItemIndex;
     }
     if (SelectedElement != null) {
       await openItem(SelectedElement, SelectedItemPaneSide);
     }
-  }
-  else {
+  } else {
     if (SelectedElement != null) {
       await openItem(SelectedElement);
     }
@@ -3074,9 +3184,17 @@ async function goToDir(directory) {
 }
 
 async function openInTerminal() {
-  if (!await invoke("open_in_terminal", {"path": ArrSelectedItems.length === 0 ? CurrentDir : SelectedItemPath})) {
+  if (
+    !(await invoke("open_in_terminal", {
+      path: ArrSelectedItems.length === 0 ? CurrentDir : SelectedItemPath,
+    }))
+  ) {
     if (Platform === "linux") {
-      showToast("Failed to open terminal. Make sure exo-open is installed and configured.", ToastType.ERROR, 5000);
+      showToast(
+        "Failed to open terminal. Make sure exo-open is installed and configured.",
+        ToastType.ERROR,
+        5000,
+      );
     } else {
       showToast("Failed to open terminal.", ToastType.ERROR);
     }
@@ -3099,12 +3217,10 @@ async function searchFor(
     if (IsDualPaneEnabled === true) {
       if (SelectedItemPaneSide === "left") {
         $(".dual-pane-left").html("");
-      }
-      else {
+      } else {
         $(".dual-pane-right").html("");
       }
-    }
-    else {
+    } else {
       $(".directory-list").html("");
     }
     IsSearching = true;
@@ -3115,7 +3231,7 @@ async function searchFor(
       searchDepth,
       fileContent,
       appWindow,
-      isQuickSearch
+      isQuickSearch,
     });
     setTimeout(() => {
       ds.setSettings({
@@ -3136,11 +3252,13 @@ function openFullSearchContainer() {
   IsInputFocused = true;
   IsPopUpOpen = true;
   IsDisableShortcuts = true;
-  document.querySelectorAll(".trigger-for-full-search").forEach(element => element.addEventListener("keydown", (e) => {
-    if (e.key == "Enter") {
-      startFullSearch();
-    }
-  }));
+  document.querySelectorAll(".trigger-for-full-search").forEach((element) =>
+    element.addEventListener("keydown", (e) => {
+      if (e.key == "Enter") {
+        startFullSearch();
+      }
+    }),
+  );
 }
 
 function closeFullSearchContainer() {
@@ -3150,18 +3268,28 @@ function closeFullSearchContainer() {
   IsInputFocused = false;
 }
 
-document.querySelector(".dualpane-search-input").addEventListener("keyup", async (e) => {
-  if (e.keyCode == 13) { // 13 = Enter
-    closeSearchBar();
-    if (IsDualPaneEnabled == true) {
-      await openSelectedItem(SelectedElement);
+document
+  .querySelector(".dualpane-search-input")
+  .addEventListener("keyup", async (e) => {
+    if (e.keyCode == 13) {
+      // 13 = Enter
+      closeSearchBar();
+      if (IsDualPaneEnabled == true) {
+        await openSelectedItem(SelectedElement);
+      }
+    } else if (
+      IsQuickSearchOpen == true &&
+      e.key !== "Escape" &&
+      e.key != "Shift" &&
+      e.key != "Control" &&
+      e.key != "Alt" &&
+      e.key != "Meta"
+    ) {
+      await searchFor($(".dualpane-search-input").val(), 999999, 1, true);
+    } else {
+      goUp(false, true);
     }
-  } else if (IsQuickSearchOpen == true && e.key !== "Escape" && e.key != "Shift" && e.key != "Control" && e.key != "Alt" && e.key != "Meta") {
-    await searchFor($(".dualpane-search-input").val(), 999999, 1, true);
-  } else {
-    goUp(false, true);
-  }
-});
+  });
 
 function openSearchBar() {
   document.querySelector(".search-bar-container").style.display = "flex";
@@ -3170,9 +3298,11 @@ function openSearchBar() {
   IsDisableShortcuts = true;
   IsQuickSearchOpen = true;
   IsPopUpOpen = true;
-  document.querySelector(".dualpane-search-input").addEventListener("focusout", () => {
-    resetEverything();
-  });
+  document
+    .querySelector(".dualpane-search-input")
+    .addEventListener("focusout", () => {
+      resetEverything();
+    });
 }
 
 function closeSearchBar() {
@@ -3218,7 +3348,8 @@ async function switchView() {
       ViewMode = "column";
     } else if (ViewMode == "column") {
       document.querySelector(".list-column-header").style.display = "none";
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
+      document.querySelector(".switch-view-button").innerHTML =
+        `<i class="fa-solid fa-grip"></i>`;
       document.querySelector(".miller-container").style.display = "flex";
       document.querySelector(".miller-column").style.display = "inline";
       document.querySelector(".non-dual-pane-container").style.display = "none";
@@ -3239,10 +3370,17 @@ async function switchView() {
       });
       document.querySelector(".miller-container").style.display = "none";
       document.querySelector(".explorer-container").style.display = "block";
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
-      document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "flex"));
-      document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "none"));
-      document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
+      document.querySelector(".switch-view-button").innerHTML =
+        `<i class="fa-solid fa-list"></i>`;
+      document
+        .querySelectorAll(".item-button")
+        .forEach((item) => (item.style.display = "flex"));
+      document
+        .querySelectorAll(".item-button-list")
+        .forEach((item) => (item.style.display = "none"));
+      document
+        .querySelectorAll(".disk-item-button-button")
+        .forEach((item) => (item.style.display = "flex"));
       document.querySelector(".list-column-header").style.display = "none";
       $(".explorer-container")?.css("padding", "85px 20px 20px 20px");
       $(".file-searchbar").css("opacity", "1");
@@ -3265,9 +3403,14 @@ async function switchToDualPane() {
     if (Platform == "darwin") {
       $(".header-nav").css("padding-left", "85px");
     }
-    document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
-    document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "flex"));
-    document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
+    document
+      .querySelectorAll(".item-button")
+      .forEach((item) => (item.style.display = "none"));
+    document
+      .querySelectorAll(".item-button-list")
+      .forEach((item) => (item.style.display = "flex"));
+    document.querySelector(".switch-dualpane-view-button").innerHTML =
+      `<i class="fa-regular fa-rectangle-xmark"></i>`;
     setCurrentDir(await getCurrentDir());
     await invoke("list_dirs").then(async (items) => {
       await showItems(items, "left");
@@ -3278,8 +3421,7 @@ async function switchToDualPane() {
     document.querySelector(".site-nav-bar").style.minWidth = "0";
     if (Platform == "darwin") {
       $(".site-nav-bar").css("padding", "55px 0 0 0");
-    }
-    else {
+    } else {
       $(".site-nav-bar").css("padding", "0");
     }
     $(".list-column-header").css("height", "0");
@@ -3311,14 +3453,16 @@ async function switchToDualPane() {
     $(".site-nav-bar")?.css("min-width", "150px");
     if (Platform == "darwin") {
       $(".site-nav-bar")?.css("padding", "55px 10px 10px 10px");
-    }
-    else {
+    } else {
       $(".site-nav-bar")?.css("padding", "10px");
     }
     $(".explorer-container").css("padding", "10px");
     $(".list-column-header")?.css("height", "35px");
     $(".list-column-header")?.css("padding", "5px");
-    $(".list-column-header")?.css("border-bottom", "1px solid var(--tertiaryColor)");
+    $(".list-column-header")?.css(
+      "border-bottom",
+      "1px solid var(--tertiaryColor)",
+    );
     $(".dual-pane-container")?.css("opacity", "0");
     $(".dual-pane-container")?.css("height", "0");
     $(".dual-pane-container")?.css("padding-top", "0");
@@ -3337,14 +3481,14 @@ async function switchToDualPane() {
     // Reset to view before the
     switch (OrgViewMode) {
       case "wrap":
-      ViewMode = "miller";
-      break;
+        ViewMode = "miller";
+        break;
       case "column":
-      ViewMode = "wrap";
-      break;
+        ViewMode = "wrap";
+        break;
       case "miller":
-      ViewMode = "column";
-      break;
+        ViewMode = "column";
+        break;
     }
     await switchView();
   }
@@ -3463,7 +3607,7 @@ function closeSettings() {
   $(".settings-ui").css("opacity", "0");
   setTimeout(() => {
     $(".settings-ui").css("display", "none");
-  }, 300)
+  }, 300);
   IsDisableShortcuts = false;
   IsPopUpOpen = false;
 }
@@ -3495,7 +3639,7 @@ async function showProperties(item) {
   				<p style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${path}</p>
       </button>
       </span>
-      ${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ''}
+      ${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ""}
       <br/>
       <p>Modified: ${modifiedAt}</p>
       </div>
@@ -3511,7 +3655,11 @@ async function showProperties(item) {
       `;
     document.querySelector("body").append(popup);
     IsPopUpOpen = true;
-    await getSimpleDirInfo(path, ".properties-item-size", item.getAttribute("itemisdir") == "1");
+    await getSimpleDirInfo(
+      path,
+      ".properties-item-size",
+      item.getAttribute("itemisdir") == "1",
+    );
   }
 }
 
@@ -3547,19 +3695,19 @@ async function showItemPreview(item, isOverride = false) {
     case ".ico":
     case ".jfif":
     case ".avif":
-    module = `
+      module = `
       <div class="module-container">
       <img class="${moduleImgId}" decoding="async" src="resources/preloader_big.gif" width="100%" height="100%" />
       </div>
       `;
-    break;
+      break;
     case ".pdf":
     case ".html":
     case ".xhtml":
     case ".htm":
-    popup.style.backgroundColor = "white";
-    module = `<iframe decoding="async" src="${convertFileSrc(path)}" />>`;
-    break;
+      popup.style.backgroundColor = "white";
+      module = `<iframe decoding="async" src="${convertFileSrc(path)}" />>`;
+      break;
     case ".mp4":
     case ".mkv":
     case ".mov":
@@ -3575,12 +3723,12 @@ async function showItemPreview(item, isOverride = false) {
     case ".ape":
     case ".flv":
     case ".wmv":
-    module = `
+      module = `
       <div class="module-container">
       <video decoding="async" src="${convertFileSrc(path)}" autoplay></video>
       </div>
       `;
-    break;
+      break;
     case ".txt":
     case ".json":
     case ".sh":
@@ -3609,14 +3757,14 @@ async function showItemPreview(item, isOverride = false) {
     case ".log":
     case ".env":
     case ".gitignore":
-    popup.style.maxWidth = "50%";
-    module = `
+      popup.style.maxWidth = "50%";
+      module = `
       <div class="module-container"><pre class="item-preview-file-content" style="padding: 20px; font-size: 12px;">${await invoke("get_file_content", { path })}</pre></div>
       `;
-    break;
+      break;
     default:
-    showProperties(item);
-    return;
+      showProperties(item);
+      return;
   }
   popup.innerHTML = `
     <div class="popup-header">
@@ -3627,7 +3775,9 @@ async function showItemPreview(item, isOverride = false) {
   IsPopUpOpen = true;
   document.querySelector("body").append(popup);
   $(popup).fadeIn(fadeTime);
-  popup.querySelector("img").src = convertFileSrc(item.getAttribute("itempath"));
+  popup.querySelector("img").src = convertFileSrc(
+    item.getAttribute("itempath"),
+  );
   popup.children[0].addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       e.target.blur();
@@ -3799,11 +3949,11 @@ async function showFtpConfig() {
     IsPopUpOpen = true;
     document.querySelectorAll(".ftp-popup-input").forEach(
       (input) =>
-      (input.onkeyup = (e) => {
-        if (e.key === "Enter") {
-          connectToFtp();
-        }
-      }),
+        (input.onkeyup = (e) => {
+          if (e.key === "Enter") {
+            connectToFtp();
+          }
+        }),
     );
   }
 }
@@ -3823,12 +3973,7 @@ async function connectToFtp() {
   openFTP(hostname, username, password, remotePath);
 }
 
-async function openFTP(
-  hostname,
-  username,
-  password,
-  remotePath = "/",
-) {
+async function openFTP(hostname, username, password, remotePath = "/") {
   await invoke("mount_sshfs", {
     hostname,
     username,
@@ -3836,7 +3981,6 @@ async function openFTP(
     remotePath,
   }).then(async (mountedPath) => {
     await openDirAndSwitch(mountedPath);
-    insertSiteNavButtons();
   });
   closeFtpConfig();
 }
@@ -3930,7 +4074,10 @@ function checkColorMode(appConfig) {
     "--textColor3",
     appConfig.themes[themeId].text_color3.replace('"', "").replace('"', ""),
   );
-  r.style.setProperty("--siteBarColor", appConfig.themes[themeId].site_bar_color);
+  r.style.setProperty(
+    "--siteBarColor",
+    appConfig.themes[themeId].site_bar_color,
+  );
   r.style.setProperty("--navBarColor", appConfig.themes[themeId].nav_bar_color);
 }
 
@@ -4174,121 +4321,126 @@ async function getDir(number) {
 }
 
 async function insertSiteNavButtons() {
-  // Clear current stack of nav buttons
-  document.querySelectorAll(".site-nav-bar-button").forEach(item => item.remove());
-  new Set(document.querySelector(".site-nav-bar").children).forEach(item => {
-    if (item.className == "horizontal-seperator") {
-      item.remove();
-    }
-  });
+	return new Promise(async (resolve, reject) => {
+		// Clear current stack of nav buttons
+		$(".site-nav-bar-button").remove();
+		new Set(document.querySelector(".site-nav-bar").children).forEach((item) => {
+			if (item.className == "horizontal-seperator") item.remove();
+		});
 
-  let disks = await invoke("list_disks");
-  let siteNavButtons = [
-    Platform.includes("darwin") ? [
-      "Applications",
-      "/Applications",
-      "fa-solid fa-rocket",
-      async () => await openDirAndSwitch("/Applications"),
-    ] : [],
-    [
-      "Desktop",
-      await getDir(0),
-      "fa-solid fa-desktop",
-      async () => await goToDir(0),
-    ],
-    [
-      "Downloads",
-      await getDir(1),
-      "fa-solid fa-download",
-      async () => await goToDir(1),
-    ],
-    [
-      "Documents",
-      await getDir(2),
-      "fa-solid fa-file",
-      async () => await goToDir(2),
-    ],
-    [
-      "Pictures",
-      await getDir(3),
-      "fa-solid fa-image",
-      async () => await goToDir(3),
-    ],
-    [
-      "Videos",
-      await getDir(4),
-      "fa-solid fa-video",
-      async () => await goToDir(4),
-    ],
-    [
-      "Music",
-      await getDir(5),
-      "fa-solid fa-music",
-      async () => await goToDir(5),
-    ],
-    // No sshfs implemenation for windows *yet*
-    Platform.includes("win") && Platform != "darwin" ? [] : ["FTP", "", "fa-solid fa-circle-nodes", showFtpConfig],
-  ];
+		let disks = await invoke("list_disks");
+		let siteNavButtons = [
+			Platform.includes("darwin")
+			? [
+				"Applications",
+				"/Applications",
+				"fa-solid fa-rocket",
+				async () => await openDirAndSwitch("/Applications"),
+			]
+			: [],
+			[
+				"Desktop",
+				await getDir(0),
+				"fa-solid fa-desktop",
+				async () => await goToDir(0),
+			],
+			[
+				"Downloads",
+				await getDir(1),
+				"fa-solid fa-download",
+				async () => await goToDir(1),
+			],
+			[
+				"Documents",
+				await getDir(2),
+				"fa-solid fa-file",
+				async () => await goToDir(2),
+			],
+			[
+				"Pictures",
+				await getDir(3),
+				"fa-solid fa-image",
+				async () => await goToDir(3),
+			],
+			[
+				"Videos",
+				await getDir(4),
+				"fa-solid fa-video",
+				async () => await goToDir(4),
+			],
+			[
+				"Music",
+				await getDir(5),
+				"fa-solid fa-music",
+				async () => await goToDir(5),
+			],
+			// No sshfs implemenation for windows *yet*
+			Platform.includes("win") && Platform != "darwin"
+			? []
+			: ["FTP", "", "fa-solid fa-circle-nodes", showFtpConfig],
+		];
 
-  for (let i = 0; i < siteNavButtons.length; i++) {
-    if (siteNavButtons[i].length == 0) continue;
-    let button = document.createElement("button");
-    button.className = "site-nav-bar-button";
-    button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
-    button.setAttribute("itempath", siteNavButtons[i][1]);
-    button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
-    button.ondragover = (e) => {
-      button.style.border = "1px solid var(--tertiaryColor)";
-      button.style.backgroundColor = "var(--secondaryColor)";
-      DraggedOverElement = button;
-      MousePos = [e.clientX, e.clientY];
-    };
-    button.ondragleave = () => {
-      button.style.border = "1px solid transparent";
-      button.style.backgroundColor = "var(--siteBarColor)";
-    };
-    document.querySelector(".site-nav-bar").append(button);
-  }
+		for (let i = 0; i < siteNavButtons.length; i++) {
+			if (siteNavButtons[i].length == 0) continue;
+			let button = document.createElement("button");
+			button.className = "site-nav-bar-button";
+			button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
+			button.setAttribute("itempath", siteNavButtons[i][1]);
+			button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
+			button.ondragover = (e) => {
+				button.style.border = "1px solid var(--tertiaryColor)";
+				button.style.backgroundColor = "var(--secondaryColor)";
+				DraggedOverElement = button;
+				MousePos = [e.clientX, e.clientY];
+			};
+			button.ondragleave = () => {
+				button.style.border = "1px solid transparent";
+				button.style.backgroundColor = "var(--siteBarColor)";
+			};
+			document.querySelector(".site-nav-bar").append(button);
+		}
 
-  let seperator = document.createElement("div");
-  seperator.className = "horizontal-seperator";
-  document.querySelector(".site-nav-bar").append(seperator);
+		let seperator = document.createElement("div");
+		seperator.className = "horizontal-seperator";
+		document.querySelector(".site-nav-bar").append(seperator);
 
-  // Available disks as site nav buttons
-  let diskButton = document.createElement("button");
-  diskButton.className = "site-nav-bar-button";
-  diskButton.onclick = () => listDisks();
-  diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Disks`;
-  document.querySelector(".site-nav-bar").append(diskButton);
+		// Available disks as site nav buttons
+		let diskButton = document.createElement("button");
+		diskButton.className = "site-nav-bar-button";
+		diskButton.onclick = () => listDisks();
+		diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Disks`;
+		document.querySelector(".site-nav-bar").append(diskButton);
 
-  if (disks.length > 0) {
-    let seperator2 = document.createElement("div");
-    seperator2.className = "horizontal-seperator";
-    document.querySelector(".site-nav-bar").append(seperator2);
+		if (disks.length > 0) {
+			let seperator2 = document.createElement("div");
+			seperator2.className = "horizontal-seperator";
+			document.querySelector(".site-nav-bar").append(seperator2);
 
-    disks.forEach((mount) => {
-      let diskButton = document.createElement("button");
-      diskButton.className = "site-nav-bar-button";
-      diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i><p>${mount.name != "" ? mount.name : "/"}</p>`;
-      diskButton.onclick = async () => {
-        await openDirAndSwitch(mount.path);
-        await listDirectories();
-      };
-      if (mount.format.includes("SSHFS")) {
-        diskButton.oncontextmenu = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          showCustomContextMenu(e, [
-            {
-              name: "Unmont",
-              onclick: () => unmountNetworkDrive(mount)
-            },
-          ]);
-        };
-      }
-      document.querySelector(".site-nav-bar").append(diskButton);
-    });
-  }
+			disks.forEach((mount) => {
+				let diskButton = document.createElement("button");
+				diskButton.className = "site-nav-bar-button";
+				diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i><p>${mount.name != "" ? mount.name : "/"}</p>`;
+				diskButton.onclick = async () => {
+					await openDirAndSwitch(mount.path);
+					await listDirectories();
+				};
+				if (mount.format.includes("SSHFS") || mount.is_removable == true) {
+					diskButton.oncontextmenu = (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						showCustomContextMenu(e, [
+							{
+								name: "Unmont",
+								onclick: () => (mount.format.includes("SSHFS") ? unmountNetworkDrive(mount) : unmountDrive(mount)),
+							},
+						]);
+					};
+				}
+				document.querySelector(".site-nav-bar").append(diskButton);
+			});
+		}
+		resolve();
+	})
 }
 
 /* File operation context menu */
@@ -4343,33 +4495,36 @@ async function openConfigLocation() {
   resetEverything();
 }
 
-async function confirmPopup(message = "Nothing to see here!", type = PopupType.CONTINUE) {
+async function confirmPopup(
+  message = "Nothing to see here!",
+  type = PopupType.CONTINUE,
+) {
   let confirmationButton = "";
   switch (type) {
     case PopupType.CONTINUE:
-    confirmationButton = `
+      confirmationButton = `
       <button class="icon-button">
       <div class="button-icon"><i class="fa-solid fa-check"></i></div>
       Confirm
       </button>
       `;
-    break;
+      break;
     case PopupType.EXTRACT:
-    confirmationButton = `
+      confirmationButton = `
       <button class="icon-button">
       <div class="button-icon"><i class="fa-solid fa-maximize"></i></div>
       Extract
       </button>
       `;
-    break;
+      break;
     case PopupType.DELETE:
-    confirmationButton = `
+      confirmationButton = `
       <button class="icon-button delete-button">
       <div class="button-icon"><i class="fa-solid fa-trash"></i></div>
       Delete
       </button>
       `;
-    break;
+      break;
   }
   let popup = document.createElement("div");
   popup.className = "uni-popup confirm-popup";
@@ -4397,10 +4552,11 @@ async function confirmPopup(message = "Nothing to see here!", type = PopupType.C
   $(".popup-background").css("display", "block");
   setTimeout(() => $(".popup-background").css("opacity", "1")); // Workaround to trigger opacity transition
   return new Promise((resolve) => {
-    document.querySelector(".confirm-popup button:first-child").onclick = () => {
-      closeConfirmPopup();
-      resolve(false);
-    };
+    document.querySelector(".confirm-popup button:first-child").onclick =
+      () => {
+        closeConfirmPopup();
+        resolve(false);
+      };
     document.querySelector(".confirm-popup button:last-child").onclick = () => {
       closeConfirmPopup();
       resolve(true);
@@ -4418,14 +4574,16 @@ function closeConfirmPopup() {
 function resetContextMenu() {
   // Disabled access to "open with" context menu
   $(".c-item-openwith").css("pointer-events", "none");
-  new Set(ContextMenu.children).forEach(children => {
+  new Set(ContextMenu.children).forEach((children) => {
     if (
-      !(children.classList.contains("context-with-dropdown") && children.children[0].innerHTML === "Extras") &&
+      !(
+        children.classList.contains("context-with-dropdown") &&
+        children.children[0].innerHTML === "Extras"
+      ) &&
       !children.classList.contains("c-item-newfile") &&
       !children.classList.contains("c-item-newfolder") &&
       !children.classList.contains("c-item-openinterminal")
-    )
-    {
+    ) {
       children.setAttribute("disabled", "true");
       children.classList.add("c-item-disabled");
     }
@@ -4433,7 +4591,11 @@ function resetContextMenu() {
 }
 
 async function setupItemContextMenu(item, e) {
-  if (ArrSelectedItems.length == 1 && (IsCtrlDown === false && Platform != "darwin" || Platform == "darwin" && IsMetaDown === false)) {
+  if (
+    ArrSelectedItems.length == 1 &&
+    ((IsCtrlDown === false && Platform != "darwin") ||
+      (Platform == "darwin" && IsMetaDown === false))
+  ) {
     await unSelectAllItems();
   }
   if (!ArrSelectedItems.includes(item)) {
@@ -4453,7 +4615,10 @@ async function setupItemContextMenu(item, e) {
           newItem.className = "context-item";
           newItem.setAttribute("appname", app[0].split(".")[0]);
           newItem.setAttribute("apppath", app[1]);
-          newItem.setAttribute("onclick", `open_with('${item.getAttribute("itempath")}', '${app[1]}')`);
+          newItem.setAttribute(
+            "onclick",
+            `open_with('${item.getAttribute("itempath")}', '${app[1]}')`,
+          );
           appsCMenu.appendChild(newItem);
         }
       });
@@ -4462,12 +4627,12 @@ async function setupItemContextMenu(item, e) {
     }
 
     // Reset so that the commands are not triggered multiple times
-    new Set(ContextMenu.children).forEach(children => {
+    new Set(ContextMenu.children).forEach((children) => {
       children.replaceWith(children.cloneNode(true));
     });
 
     // Enable all items
-    new Set(ContextMenu.children).forEach(children => {
+    new Set(ContextMenu.children).forEach((children) => {
       if (children.classList.contains("c-item-paste")) {
         if (ArrCopyItems.length > 0) {
           children.removeAttribute("disabled");
@@ -4490,23 +4655,39 @@ async function setupItemContextMenu(item, e) {
       extension != ".br" &&
       extension != ".bz2"
     ) {
-      document.querySelector(".c-item-extract").setAttribute("disabled", "true");
-      document.querySelector(".c-item-extract").classList.add("c-item-disabled");
+      document
+        .querySelector(".c-item-extract")
+        .setAttribute("disabled", "true");
+      document
+        .querySelector(".c-item-extract")
+        .classList.add("c-item-disabled");
     } else {
       document.querySelector(".c-item-extract").removeAttribute("disabled");
-      document.querySelector(".c-item-extract").classList.remove("c-item-disabled");
+      document
+        .querySelector(".c-item-extract")
+        .classList.remove("c-item-disabled");
       // Disable another compression
-      document.querySelector(".c-item-compress").setAttribute("disabled", "true");
-      document.querySelector(".c-item-compress").classList.add("c-item-disabled");
+      document
+        .querySelector(".c-item-compress")
+        .setAttribute("disabled", "true");
+      document
+        .querySelector(".c-item-compress")
+        .classList.add("c-item-disabled");
     }
 
     // Check if item can be searched through for duplicates
     if (item.getAttribute("itemisdir") == "1") {
       document.querySelector(".c-item-duplicates").removeAttribute("disabled");
-      document.querySelector(".c-item-duplicates").classList.remove("c-item-disabled");
+      document
+        .querySelector(".c-item-duplicates")
+        .classList.remove("c-item-disabled");
     } else {
-      document.querySelector(".c-item-duplicates").setAttribute("disabled", "true");
-      document.querySelector(".c-item-duplicates").classList.add("c-item-disabled");
+      document
+        .querySelector(".c-item-duplicates")
+        .setAttribute("disabled", "true");
+      document
+        .querySelector(".c-item-duplicates")
+        .classList.add("c-item-disabled");
     }
 
     document.querySelector(".c-item-delete").addEventListener(
@@ -4612,13 +4793,15 @@ function closeCustomContextMenu() {
 }
 
 function unmountNetworkDrive(networkDrive) {
-  invoke("unmount_network_drive", { path: networkDrive.path }).then(() => {
-    insertSiteNavButtons();
-  });
+  invoke("unmount_network_drive", { path: networkDrive.path });
+}
+
+function unmountDrive(disk) {
+  invoke("unmount_drive", { path: disk.path });
 }
 
 async function configBackButton(path = "") {
-  let button = document.querySelector(".go-back-button")
+  let button = document.querySelector(".go-back-button");
   button.setAttribute("itempath", path);
   button.ondragover = (e) => {
     button.style.opacity = "0.5";
@@ -4635,6 +4818,16 @@ function resetBackButton() {
   let button = document.querySelector(".go-back-button");
   button.style.opacity = "1";
   button.style.border = "1px solid transparent";
+}
+
+listen("fs-mount-changed", async (event) => {
+	await setTimeout(async () => {
+		await handleMountChanges();
+	}, 500);
+});
+
+async function handleMountChanges() {
+  await insertSiteNavButtons();
 }
 
 (async () => {

@@ -7,25 +7,26 @@ use delete::{delete_file, rapid_delete_dir_all};
 use flate2::read::GzDecoder;
 #[cfg(target_os = "macos")]
 use icns::{IconFamily, IconType};
+use notify::{Event, RecursiveMode, Watcher};
 use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
-use sevenz_rust::nt_time::time::format_description::parse;
-use tauri::api::dialog;
 use std::fs::{self, read_dir, remove_dir};
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
 use std::io::{BufReader, BufWriter, Read, Write};
+use std::path::Path;
 use std::process::{Command, Stdio};
-use std::thread::current;
+use std::sync::OnceLock;
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_file, File},
     path::PathBuf,
 };
 use stopwatch::Stopwatch;
+use tauri::api::dialog;
 use tauri::{
     api::path::{
         app_config_dir, audio_dir, config_dir, desktop_dir, document_dir, download_dir, home_dir,
@@ -55,6 +56,8 @@ mod applications;
 use applications::{get_apps, open_file_with};
 use archiver_rs::Compressed;
 mod rdpfs;
+use notify::event::{CreateKind, RemoveKind};
+use notify::EventKind::{Create, Remove};
 use substring::Substring;
 
 // static mut LAST_DIR: String = String::new();
@@ -71,7 +74,23 @@ const ASSET_LOCATION: &str = "https://asset.localhost/";
 #[cfg(not(target_os = "windows"))]
 const ASSET_LOCATION: &str = "asset://localhost/";
 
+static WINDOW: OnceLock<Window> = OnceLock::new();
+
 fn main() {
+    let mut file_system_watcher =
+        notify::recommended_watcher(handle_fs_change).expect("error creating file watcher");
+
+    // Watch for disk and custom sshfs drive mounts
+    file_system_watcher
+        .watch(Path::new("/Volumes"), RecursiveMode::NonRecursive)
+        .expect("error watching folder");
+    file_system_watcher
+        .watch(
+            Path::new("/tmp/codriver-sshfs-mount"),
+            RecursiveMode::NonRecursive,
+        )
+        .expect("error watching folder");
+
     tauri::Builder::default()
         .setup(|app| {
             let win = app.get_window("main").unwrap();
@@ -82,6 +101,9 @@ fn main() {
             let _ = win.center();
             #[cfg(not(target_os = "macos"))]
             let _ = win.set_decorations(false);
+
+            let _ = WINDOW.set(win).unwrap();
+
             Ok(())
         })
         .on_window_event(|e| match e.event() {
@@ -144,10 +166,25 @@ fn main() {
             get_config_location,
             get_sshfs_mounts,
             unmount_network_drive,
+            unmount_drive,
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn handle_fs_change(event: notify::Result<notify::Event>) {
+    match event {
+        Ok(event) => {
+            // Handle file system change event
+            if event.kind == Create(CreateKind::Folder) || event.kind == Remove(RemoveKind::Folder)
+            {
+                println!("Event => {:?}", event);
+                let _ = WINDOW.get().unwrap().emit("fs-mount-changed", event);
+            }
+        }
+        Err(e) => println!("Watch error => {:?}", e),
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -265,8 +302,7 @@ async fn check_app_config() -> AppConfig {
                     .unwrap()
                     .join("com.codriver.dev/app_config.json")
                     .to_str()
-                    .unwrap()
-                    .to_string(),
+                    .unwrap(),
             )
             .unwrap(),
             &app_config_json,
@@ -283,7 +319,7 @@ async fn check_app_config() -> AppConfig {
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
 
     let default_vec: Vec<Value> = vec![];
-    return AppConfig {
+    AppConfig {
         view_mode: app_config["view_mode"].to_string().replace('"', ""),
         last_modified: app_config["last_modified"].to_string().replace('"', ""),
         configured_path_one: app_config["configured_path_one"]
@@ -314,12 +350,12 @@ async fn check_app_config() -> AppConfig {
         is_select_mode: app_config["is_select_mode"].to_string().replace('"', ""),
         arr_favorites: app_config["arr_favorites"]
             .as_array()
-            .unwrap_or_else(|| &default_vec)
+            .unwrap_or(&default_vec)
             .iter()
             .map(|x| x.to_string().replace('"', ""))
             .collect(),
         current_theme: app_config["current_theme"].to_string().replace('"', ""),
-    };
+    }
 }
 
 #[tauri::command]
@@ -413,7 +449,7 @@ async fn list_disks() -> Vec<DisksInfo> {
             });
         }
     }
-    return ls_disks;
+    ls_disks
 }
 
 #[tauri::command]
@@ -441,7 +477,7 @@ async fn get_sshfs_mounts() -> Vec<DisksInfo> {
         }
         return ls_disks;
     }
-    return vec![];
+    vec![]
 }
 
 #[tauri::command]
@@ -450,7 +486,7 @@ async fn switch_to_directory(current_dir: String) {
         format!("Switching to directory: {}", &current_dir),
         dbg!("").into(),
     );
-    let _ = set_dir(current_dir.into()).await;
+    let _ = set_dir(current_dir).await;
 }
 #[tauri::command]
 async fn switch_view(view_mode: String) -> Vec<FDir> {
@@ -469,8 +505,7 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
                 .unwrap()
                 .join("com.codriver.dev/app_config.json")
                 .to_str()
-                .unwrap()
-                .to_string(),
+                .unwrap(),
         )
         .unwrap(),
         &app_config,
@@ -479,18 +514,18 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         format!("View-style switched to: {}", view_mode),
         dbg!("").into(),
     );
-    return list_dirs().await;
+    list_dirs().await
 }
 
 #[tauri::command]
 async fn get_current_dir() -> String {
-    return current_dir()
+    current_dir()
         .unwrap()
         .as_path()
         .to_str()
         .unwrap()
         .to_string()
-        .replace("\\", "/");
+        .replace("\\", "/")
 }
 
 #[tauri::command]
@@ -501,16 +536,20 @@ async fn set_dir(current_dir: String) -> bool {
         return false;
     }
     let _ = set_current_dir(&current_dir);
-    return true;
+    true
 }
 
 #[tauri::command]
 async fn list_dirs() -> Vec<FDir> {
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_dir_path = current_dir();
-    if current_dir_path.is_err() { return vec![]; }
+    if current_dir_path.is_err() {
+        return vec![];
+    }
     let current_dir = fs::read_dir(current_dir_path.unwrap());
-    if current_dir.is_err() { return vec![]; }
+    if current_dir.is_err() {
+        return vec![];
+    }
     for item in current_dir.unwrap() {
         match item {
             Ok(temp_item) => {
@@ -522,18 +561,18 @@ async fn list_dirs() -> Vec<FDir> {
                     .to_string()
                     .replace("\\", "/");
                 let file_ext = ".".to_string().to_owned()
-                    + &path
+                    + path
                         .split(".")
                         .nth(&path.split(".").count() - 1)
                         .unwrap_or("");
-                let file_data = fs::metadata(&temp_item.path());
+                let file_data = fs::metadata(temp_item.path());
                 let file_date: String;
                 let size = temp_item.metadata().unwrap().len();
                 match file_data {
                     Ok(file_data) => {
-                        let dt: DateTime<Local> = file_data.modified().unwrap().clone().into();
+                        let dt: DateTime<Local> = file_data.modified().unwrap().into();
                         file_date = dt.to_string();
-                    },
+                    }
                     Err(_) => file_date = "-".into(),
                 }
                 let is_dir_int = match temp_item.path().is_dir() {
@@ -546,15 +585,15 @@ async fn list_dirs() -> Vec<FDir> {
                     path: String::from(path),
                     extension: file_ext,
                     size: size.to_string(),
-                    last_modified: file_date.split(".").nth(0).unwrap().into(),
+                    last_modified: file_date.split(".").next().unwrap().into(),
                 });
-            },
+            }
             _ => continue,
         }
     }
     // Standard sort them by name
     dir_list.sort_by_key(|a| a.name.to_lowercase());
-    return dir_list;
+    dir_list
 }
 
 #[tauri::command]
@@ -563,20 +602,20 @@ async fn open_dir(path: String) -> bool {
     dbg_log(format!("Opening dir: {}", &path), dbg!("").into());
     match md {
         Ok(_) => {
-            let _ = set_dir(path.clone().into()).await;
+            let _ = set_dir(path.clone()).await;
             unsafe {
                 PATH_HISTORY.push(path);
             }
-            return true;
+            true
         }
         Err(_) => {
             dbg_log(
                 format!("Failed to open dir: {} | {}", &path, md.err().unwrap()),
                 dbg!("").into(),
             );
-            return false;
+            false
         }
-    };
+    }
 }
 
 #[tauri::command]
@@ -611,7 +650,7 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
             PATH_HISTORY.push(current_dir().unwrap().to_string_lossy().to_string());
         }
     }
-    return list_dirs().await;
+    list_dirs().await
 }
 
 // :ftp
@@ -667,7 +706,7 @@ async fn mount_sshfs(
             String::from_utf8_lossy(&output.stderr),
         ));
     }
-    return Ok(mount_point);
+    Ok(mount_point)
 }
 
 #[tauri::command]
@@ -705,7 +744,7 @@ async fn open_in_terminal(path: String) -> bool {
 
     #[cfg(target_os = "macos")]
     return Command::new("open")
-        .args(&["-na", "Terminal", &path])
+        .args(["-na", "Terminal", &path])
         .spawn()
         .is_ok();
 
@@ -769,7 +808,7 @@ async fn search_for(
         dbg!("").into(),
     );
     let temp_file_name = String::from(&file_name);
-    if temp_file_name.split(".").nth(0).unwrap().contains("*") {
+    if temp_file_name.split(".").next().unwrap().contains("*") {
         file_name = temp_file_name.trim().replace("*", "");
     }
 
@@ -780,13 +819,13 @@ async fn search_for(
             .unwrap_or("");
 
     let mut v_exts: Vec<String> = vec![];
-    if file_ext != "" {
+    if !file_ext.is_empty() {
         v_exts.push(file_ext.to_lowercase());
     }
 
     let sw = Stopwatch::start_new();
 
-    let _ = DirWalker::new().set_ext(v_exts).search(
+    DirWalker::new().set_ext(v_exts).search(
         current_dir().unwrap().to_str().unwrap(),
         search_depth as u32,
         file_name,
@@ -797,7 +836,7 @@ async fn search_for(
             unsafe {
                 COUNT_CALLED_BACK += 1;
             }
-            let _ = app_window
+            app_window
                 .emit_all(
                     "addSingleItem",
                     serde_json::to_string(&item).unwrap().to_string(),
@@ -825,7 +864,6 @@ async fn search_for(
         .eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
     let _ = app_window.eval("stopFullSearch()");
     dbg_log(format!("Search took: {:?}", sw.elapsed()), dbg!("").into());
-    return;
 }
 
 #[tauri::command]
@@ -836,7 +874,7 @@ async fn copy_paste(
     is_for_dual_pane: String,
     mut copy_to_path: String,
 ) {
-    if copy_to_path.clone().len() == 0 {
+    if copy_to_path.clone().is_empty() {
         wng_log("No destination path provided. Defaulting to current dir".into());
         copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
     }
@@ -868,13 +906,14 @@ async fn copy_paste(
     let item_md = fs::metadata(&from_path);
     match item_md {
         Ok(md) => {
-            if md.len() < 100000000 { // 100 mb
+            if md.len() < 100000000 {
+                // 100 mb
                 let _ = copy(from_path, final_filename);
             } else {
-                let _ = copy_to(&app_window, final_filename, from_path);
+                copy_to(&app_window, final_filename, from_path);
             }
-        },
-        _ => return
+        }
+        _ => return,
     }
 
     dbg_log(
@@ -891,7 +930,7 @@ async fn arr_copy_paste(
     is_for_dual_pane: String,
     mut copy_to_path: String,
 ) {
-    if &copy_to_path.len() == &0 {
+    if copy_to_path.is_empty() {
         wng_log("No destination path provided. Defaulting to current dir".into());
         copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
     }
@@ -943,7 +982,7 @@ async fn get_final_filename(
     copy_to_path: String,
 ) -> String {
     let file = fs::metadata(&from_path);
-    if &file.is_ok() != &true {
+    if file.is_err() {
         err_log("File could not be copied".into());
         return "".into();
     }
@@ -957,7 +996,7 @@ async fn get_final_filename(
             .unwrap()
             .to_string();
     }
-    let temp_file_ext: String;
+
     let mut file_ext: String;
     let mut temp_filename: String = String::new();
 
@@ -965,12 +1004,12 @@ async fn get_final_filename(
         temp_filename += file_name.split(".").nth(i).unwrap();
     }
 
-    temp_file_ext = file_name
+    let temp_file_ext: String = file_name
         .split(".")
         .nth(file_name.split(".").count() - 1)
         .unwrap()
         .to_string();
-    file_ext = ".".to_string().to_owned() + &temp_file_ext.as_str();
+    file_ext = ".".to_string().to_owned() + temp_file_ext.as_str();
 
     if temp_file_ext == file_name {
         file_ext = "".to_string();
@@ -990,7 +1029,7 @@ async fn get_final_filename(
         counter += 1;
     }
     final_filename = final_filename.replace("\\", "/");
-    return final_filename;
+    final_filename
 }
 
 #[tauri::command]
@@ -1016,14 +1055,12 @@ async fn delete_item(act_file_name: String) {
         is_dir = file.unwrap().metadata().unwrap().is_dir();
     }
     if is_dir {
-        let _ = rapid_delete_dir_all(&act_file_name.replace("\\", "/"), None, None)
+        rapid_delete_dir_all(&act_file_name.replace("\\", "/"), None, None)
             .await
             .expect("Failed to delete dir");
     } else {
         let file_deletion = delete_file(&act_file_name.replace("\\", "/"));
-        if file_deletion.is_err() {
-            return;
-        }
+        if file_deletion.is_err() {}
     }
 }
 
@@ -1058,7 +1095,7 @@ async fn extract_item(from_path: String, app_window: Window) {
     let sw = Stopwatch::start_new();
     if file_ext == ".zip" {
         let file = PathBuf::from(&from_path);
-        let _ = create_dir(&from_path.strip_suffix(&file_ext).unwrap());
+        let _ = create_dir(from_path.strip_suffix(&file_ext).unwrap());
         let new_dir = PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap());
         let extract = zip_extract(&file, &new_dir);
         if extract.is_err() {
@@ -1086,7 +1123,7 @@ async fn extract_item(from_path: String, app_window: Window) {
         }
     } else if file_ext == ".7z" {
         let _ =
-            sevenz_rust::decompress_file(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
+            sevenz_rust::decompress_file(&from_path, from_path.strip_suffix(&file_ext).unwrap());
     } else if file_ext == ".tar" {
         unpack_tar(File::open(&from_path).unwrap());
     } else if file_ext == ".gz" {
@@ -1094,17 +1131,17 @@ async fn extract_item(from_path: String, app_window: Window) {
         let mut archive = GzDecoder::new(file);
         let mut buffer = Vec::new();
         let _ = archive.read_to_end(&mut buffer).unwrap();
-        let _ = File::create(&from_path.strip_suffix(&file_ext).unwrap())
+        let _ = File::create(from_path.strip_suffix(&file_ext).unwrap())
             .unwrap()
             .write_all(&buffer);
-        unpack_tar(File::open(&from_path.strip_suffix(&file_ext).unwrap()).unwrap());
-        let _ = remove_file(&from_path.strip_suffix(&file_ext).unwrap());
+        unpack_tar(File::open(from_path.strip_suffix(&file_ext).unwrap()).unwrap());
+        let _ = remove_file(from_path.strip_suffix(&file_ext).unwrap());
     } else if file_ext == ".bz2" {
         let mut file = archiver_rs::Bzip2::open(&PathBuf::from(&from_path)).unwrap();
         file.decompress(&PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap()))
             .unwrap();
-        unpack_tar(File::open(&from_path.strip_suffix(&file_ext).unwrap()).unwrap());
-        let _ = remove_file(&from_path.strip_suffix(&file_ext).unwrap());
+        unpack_tar(File::open(from_path.strip_suffix(&file_ext).unwrap()).unwrap());
+        let _ = remove_file(from_path.strip_suffix(&file_ext).unwrap());
     } else {
         err_log("Unsupported file type".into());
         return;
@@ -1308,8 +1345,8 @@ async fn create_file(file_name: String) {
 #[tauri::command]
 async fn rename_element(path: String, new_name: String, app_window: Window) -> Vec<FDir> {
     let renamed = fs::rename(
-        current_dir().unwrap().join(&path.replace("\\", "/")),
-        current_dir().unwrap().join(&new_name.replace("\\", "/")),
+        current_dir().unwrap().join(path.replace("\\", "/")),
+        current_dir().unwrap().join(new_name.replace("\\", "/")),
     );
     if renamed.is_err() {
         err_log("Failed to rename element".into());
@@ -1322,7 +1359,7 @@ async fn rename_element(path: String, new_name: String, app_window: Window) -> V
             dbg!("").into(),
         );
     }
-    return list_dirs().await;
+    list_dirs().await
 }
 
 #[tauri::command]
@@ -1391,8 +1428,8 @@ async fn rename_elements_with_format(
     let mut counter = start_at;
     for element in arr_elements {
         let mut item_ext: String = ext.to_string();
-        if element.split(".").last().unwrap().len() > 0 && ext.len() == 0 {
-            item_ext = format!("{}", ".".to_string() + element.split(".").last().unwrap());
+        if !element.split(".").last().unwrap().is_empty() && ext.is_empty() {
+            item_ext = ".".to_string() + element.split(".").last().unwrap();
         }
         let _ = fs::rename(
             &element,
@@ -1424,7 +1461,7 @@ async fn add_favorite(arr_favorites: Vec<String>) {
     app_config["arr_favorites"] = arr_favorites
         .clone()
         .into_iter()
-        .map(|x| Value::String(x))
+        .map(Value::String)
         .collect();
     let _ = serde_json::to_writer_pretty(
         File::create(
@@ -1432,8 +1469,7 @@ async fn add_favorite(arr_favorites: Vec<String>) {
                 .unwrap()
                 .join("com.codriver.dev/app_config.json")
                 .to_str()
-                .unwrap()
-                .to_string(),
+                .unwrap(),
         )
         .unwrap(),
         &app_config,
@@ -1451,7 +1487,7 @@ async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
     for app in list_apps {
         arr_apps.push((app.name.clone(), app.app_path_exe));
     }
-    return arr_apps;
+    arr_apps
 }
 
 #[tauri::command]
@@ -1475,14 +1511,13 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
     let mut duplicates: Vec<Vec<DirWalkerEntry>> = Vec::new();
     for item in files.into_par_iter().collect::<Vec<DirWalkerEntry>>() {
         let seen_item = seen_items.par_iter().find_any(|x| {
-            x.is_file == true
+            x.is_file
                 && x.size == item.size
                 && x.size > 0
-                && x.name
-                    .contains(&item.name.substring(0, item.name.len() - 3))
+                && x.name.contains(item.name.substring(0, item.name.len() - 3))
         });
-        if *&seen_item.is_some() {
-            if duplicates.len() == 0 {
+        if seen_item.is_some() {
+            if duplicates.is_empty() {
                 duplicates.push(vec![seen_item.unwrap().clone(), item.clone()]);
             } else {
                 let collection = duplicates.par_iter_mut().find_any(|x| {
@@ -1490,9 +1525,9 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
                         && x[0].size > 0
                         && x[0]
                             .name
-                            .contains(&item.name.substring(0, item.name.len() - 3))
+                            .contains(item.name.substring(0, item.name.len() - 3))
                 });
-                if *&collection.is_some() {
+                if collection.is_some() {
                     collection.unwrap().push(item.clone());
                 } else {
                     duplicates.push(vec![item.clone(), seen_item.unwrap().clone()]);
@@ -1610,7 +1645,7 @@ async fn cancel_operation() {
 
 #[tauri::command]
 async fn get_df_dir(number: u8) -> String {
-    return match number {
+    match number {
         0 => desktop_dir()
             .unwrap_or_default()
             .to_string_lossy()
@@ -1636,7 +1671,7 @@ async fn get_df_dir(number: u8) -> String {
             .to_string_lossy()
             .to_string(),
         _ => current_dir().unwrap().to_string_lossy().to_string(),
-    };
+    }
 }
 
 #[tauri::command]
@@ -1832,9 +1867,9 @@ async fn get_app_icns(_path: String) -> String {
                 );
             }
 
-            return new_img_path;
+            new_img_path
         } else {
-            return String::from("");
+            String::from("")
         }
     }
 }
@@ -1885,7 +1920,7 @@ async fn get_thumbnail(image_path: String) -> String {
         dbg!("").into(),
     );
 
-    let _ = thumbnail
+    thumbnail
         .save_with_format(
             &new_thumbnail_path,
             image::ImageFormat::from_extension(image_path.split(".").last().unwrap())
@@ -1901,7 +1936,9 @@ async fn get_simple_dir_info(
     app_window: Window,
     class_to_fill: String,
 ) -> SimpleDirInfo {
-    unsafe { CALCED_SIZE = 0; }
+    unsafe {
+        CALCED_SIZE = 0;
+    }
     dir_info(path, &app_window, class_to_fill)
 }
 
@@ -1950,7 +1987,14 @@ fn dir_info(path: String, app_window: &Window, class_to_fill: String) -> SimpleD
                 .size;
                 size += dir_size;
             }
-            if entry.file_name().to_string_lossy().to_string().starts_with(".") { continue; }
+            if entry
+                .file_name()
+                .to_string_lossy()
+                .to_string()
+                .starts_with(".")
+            {
+                continue;
+            }
             count_elements += 1;
         }
     }
@@ -1969,7 +2013,7 @@ async fn get_file_content(path: String) -> String {
         let json_string_pretty = serde_json::to_string_pretty(&json).unwrap();
         return json_string_pretty;
     }
-    return content;
+    content
 }
 
 #[tauri::command]
@@ -2025,4 +2069,15 @@ async fn unmount_network_drive(path: String) {
         }
     }
     dbg_log(format!("Removed: {}", path), dbg!("").into());
+}
+
+#[tauri::command]
+async fn unmount_drive(path: String) {
+    #[cfg(target_os = "macos")]
+    let _ = Command::new("diskutil")
+        .arg("unmountDisk")
+        .arg(path)
+        .spawn();
+    #[cfg(target_os = "linux")]
+    let _ = Command::new("umount").arg(path).spawn();
 }
