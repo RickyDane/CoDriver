@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use color_print::cprintln;
 use regex::Regex;
 use serde::Serialize;
+use tauri::api::dialog;
 use std::fs::OpenOptions;
 use std::{
     ffi::OsStr,
@@ -17,7 +18,7 @@ use tauri::Window;
 
 #[allow(unused_imports)]
 use crate::ISCANCELED;
-use crate::{COUNT_CALLED_BACK, IS_SEARCHING};
+use crate::{COUNT_CALLED_BACK, IS_SEARCHING, WINDOW};
 
 pub static mut COPY_COUNTER: f32 = 0.0;
 pub static mut TO_COPY_COUNTER: f32 = 0.0;
@@ -46,7 +47,7 @@ pub fn err_log(msg: String) {
 }
 
 pub fn log(msg: String) {
-    let log = format!("[{}] {}\n", chrono::Local::now().format("%H:%M:%S"), msg);
+    let log = format!("\n[{}] {}", chrono::Local::now().format("%H:%M:%S"), msg);
     let log_file_path = config_dir()
         .unwrap()
         .join("com.codriver.dev")
@@ -57,7 +58,6 @@ pub fn log(msg: String) {
 
     // Write text to logfile
     let mut file = OpenOptions::new()
-        
         .append(true)
         .open(&log_file_path)
         .unwrap();
@@ -75,9 +75,9 @@ pub fn log(msg: String) {
 pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
     let file = fs::metadata(&from_path).unwrap();
     if file.is_file() {
-        // Kopieren der Datei
+        // Prepare to copy file
         let mut fr = BufReader::new(File::open(&from_path).unwrap());
-        let mut buf = vec![0; 10_000_000];
+        let mut buf = vec![0; 1_000_000]; // Copy in 1 mb chunks
         let new_file = File::create(&final_filename).unwrap();
         let file_size = fs::metadata(&from_path).unwrap().len() as f32;
         let mut fw = BufWriter::new(new_file);
@@ -100,21 +100,26 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                     if ds == 0 {
                         break;
                     }
-                    fw.write_all(&buf[..ds]).unwrap();
-                    // Calculate transfer speed and progres
-                    speed = calc_transfer_speed(s as f64, sw.elapsed_ms() as f64 / 1000.0);
-                    if speed.is_infinite() {
-                        speed = 0.0
+                    match fw.write_all(&buf[..ds]) {
+                        Ok(_) => {
+                            // Calculate transfer speed and progres
+                            speed = calc_transfer_speed(s, sw.elapsed_ms());
+                            if speed.is_infinite() { speed = 0.0 }
+                            progress = (100.0 / file_size) * s as f32;
+                            unsafe {
+                                update_progressbar(
+                                    app_window,
+                                    progress,
+                                    format!("{}/{}", COPY_COUNTER, TO_COPY_COUNTER).as_str(),
+                                    speed,
+                                );
+                            };
+                        },
+                        Err(err) => {
+                            dialog::message(WINDOW.get(), "Info", format!("{:?}", err.to_string()));
+                            break;
+                        },
                     }
-                    progress = (100.0 / file_size) * s as f32;
-                    unsafe {
-                        update_progressbar(
-                            app_window,
-                            progress,
-                            format!("{}/{}", COPY_COUNTER, TO_COPY_COUNTER).as_str(),
-                            speed,
-                        );
-                    };
                 }
                 Err(e) => {
                     err_log(format!("Error copying: {}", e));
@@ -212,8 +217,8 @@ pub fn update_progressbar_2(app_window: &Window, progress: f32, file_name: &str)
     );
 }
 
-pub fn calc_transfer_speed(file_size: f64, time: f64) -> f64 {
-    (file_size / time) / 1024.0 / 1024.0
+pub fn calc_transfer_speed(file_size: u64, time: i64) -> f64 {
+    (file_size as f64 / (time as f64 / 1000.0)) / 1024.0 / 1024.0
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -333,7 +338,11 @@ impl DirWalker {
 
         if !self.exts.is_empty() {
             reg_exp = Regex::new(format!("(?i){}", file_name).as_str()).unwrap();
-            println!("Searching with file extension: {} | regex: {}", self.exts.first().unwrap(), reg_exp.as_str());
+            println!(
+                "Searching with file extension: {} | regex: {}",
+                self.exts.first().unwrap(),
+                reg_exp.as_str()
+            );
         } else {
             reg_exp = Regex::new(format!("(?i){}.*", file_name).as_str()).unwrap();
         }
@@ -362,7 +371,9 @@ impl DirWalker {
                 }
             }
 
-            if entry.is_err() { continue; }
+            if entry.is_err() {
+                continue;
+            }
 
             let entry = entry.unwrap();
 
@@ -380,7 +391,9 @@ impl DirWalker {
             ));
 
             // Exclude onedrive so the file explorer doesn't download stuff from it => TODO: Make it configurable in the future
-            if item_path.contains("onedrive") { continue; }
+            if item_path.contains("onedrive") {
+                continue;
+            }
 
             let item_ext = ".".to_owned()
                 + &item_path
@@ -391,11 +404,15 @@ impl DirWalker {
                     .to_lowercase();
 
             let file_metadata = fs::metadata(&path);
-            if file_metadata.is_err() { return; }
+            if file_metadata.is_err() {
+                return;
+            }
 
             let last_mod: DateTime<Utc> = file_metadata.unwrap().modified().unwrap().into();
 
-            if !reg_exp.is_match(&name) { continue; }
+            if !reg_exp.is_match(&name) {
+                continue;
+            }
 
             app_window
                 .eval(

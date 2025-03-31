@@ -80,16 +80,19 @@ fn main() {
     let mut file_system_watcher =
         notify::recommended_watcher(handle_fs_change).expect("error creating file watcher");
 
+    #[cfg(target_os = "macos")]
     // Watch for disk and custom sshfs drive mounts
     file_system_watcher
         .watch(Path::new("/Volumes"), RecursiveMode::NonRecursive)
         .expect("error watching folder");
-    file_system_watcher
-        .watch(
-            Path::new("/tmp/codriver-sshfs-mount"),
-            RecursiveMode::NonRecursive,
-        )
-        .expect("error watching folder");
+    if PathBuf::from("/tmp/codriver-sshfs-mount").exists() {
+        file_system_watcher
+            .watch(
+                Path::new("/tmp/codriver-sshfs-mount"),
+                RecursiveMode::NonRecursive,
+            )
+            .expect("error watching folder");
+    }
 
     tauri::Builder::default()
         .setup(|app| {
@@ -1024,7 +1027,7 @@ async fn get_final_filename(
     let mut final_filename: String = format!("{}{}", &temp_filename, file_ext);
 
     while is_file_existing {
-        final_filename = format!("{}_{}{}", &temp_filename, counter, file_ext);
+        final_filename = format!("{} ({}){}", &temp_filename, counter, file_ext);
         is_file_existing = fs::metadata(&final_filename).is_ok();
         counter += 1;
     }
@@ -1717,18 +1720,18 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
     let video_info = video.get_basic_info().await.unwrap();
     let mut file = File::create(video_info.video_details.title.to_owned() + ".mp4").unwrap();
     let total_size = stream.content_length() as f32;
-    let mut downloaded: f64 = 0.0;
+    let mut downloaded: u64 = 0;
     let sw = Stopwatch::start_new();
 
     while let Some(chunk) = stream.chunk().await.unwrap_or_default() {
         file.write_all(&chunk).unwrap();
-        downloaded += chunk.len() as f64;
-        let speed = calc_transfer_speed(downloaded, sw.elapsed_ms() as f64 / 1000.0);
+        downloaded += chunk.len() as u64;
+        let speed = calc_transfer_speed(downloaded, sw.elapsed_ms());
         update_progressbar_2(&app_window, 0.0, &video_info.video_details.title);
         update_progressbar(
             &app_window,
             100.0 / total_size * downloaded as f32,
-            &format_bytes(downloaded as u64),
+            &format_bytes(downloaded),
             speed,
         );
     }

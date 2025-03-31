@@ -45,7 +45,7 @@
     --siteBarColor: rgb(59, 59, 70);
     --navBarColor: rgba(36, 36, 44, 0.5);
     --selectColor: rgba(69, 69, 69, 0.144);
-    --selectColor2: rgba(11, 100, 253, 0.657);
+    --selectColor2: rgba(11, 100, 253, 0.75);
 }
 
 html {
@@ -77,7 +77,7 @@ body {
     border: 1px solid var(--tertiaryColor);
     line-height: 21px;
     color: var(--textColor);
-    box-shadow: 0px 0px 5px 2px var(--tertiaryColor);
+    box-shadow: 0px 0px 5px 2px var(--transparentColorActive);
 }
 
 .explorer-container {
@@ -282,6 +282,14 @@ body {
 
 .site-nav-bar-button:hover {
     background-color: var(--transparentColorActive) !important;
+}
+
+.disk-site-nav-button {
+    border: 1px solid var(--tertiaryColor) !important;
+}
+.disk-site-nav-button:hover {
+    background-color: red;
+    border: 1px solid var(--transparentColorActive) !important;
 }
 
 .active-actions-container {
@@ -1512,7 +1520,6 @@ button > svg {
     transition: 0.1s ease-out;
     font-size: var(--fontSize);
     border: none;
-    /* display: ; */
 }
 
 .context-item:hover {

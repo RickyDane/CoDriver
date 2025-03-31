@@ -2,13 +2,14 @@
 <html>
 
 <head>
-    <script src="jquery.js" async></script>
-    <script src="font-awesome/js/all.min.js" async></script>
-    <script src="ds.min.js" async></script>
-    <script src="utils.js" async></script>
+    <script src="jquery.js"></script>
+    <script src="font-awesome/js/all.min.js"></script>
+    <script src="ds.min.js"></script>
+    <script src="utils.js"></script>
+    <script src="contextmenu.js"></script>
     <script src="file_extensions.js" async></script>
-    <script src="models.js" async defer></script>
-    <script src="main_logic.js" async defer></script>
+    <script src="models.js" defer></script>
+    <script src="main_logic.js" defer></script>
     <link rel="stylesheet" href="font-awesome/css/all.min.css" />
     <link rel="stylesheet" href="style.css" />
     <meta charset="utf-8" />
@@ -27,7 +28,7 @@
     <input class="instant-search-input text-input" type="text" placeholder="Start typing ..." disabled />
 
     <div style="display: flex; width: 100%; height: 100vh;">
-        <div data-tauri-drag-region class="site-nav-bar">
+        <div class="site-nav-bar">
             <div class="codriver-name">CoDriver</div>
             <div class="active-actions-container"></div>
         </div>
