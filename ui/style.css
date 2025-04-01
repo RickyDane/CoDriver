@@ -46,6 +46,7 @@
     --navBarColor: rgba(36, 36, 44, 0.5);
     --selectColor: rgba(69, 69, 69, 0.144);
     --selectColor2: rgba(11, 100, 253, 0.75);
+    --selectColor3: rgba(11, 100, 253, 0.25);
 }
 
 html {
@@ -54,7 +55,6 @@ html {
     border: none;
     overflow: hidden;
     border-radius: 10px;
-    border: 1px solid var(--primaryColor);
 }
 
 body {
@@ -64,6 +64,7 @@ body {
     border: none;
     border-radius: 10px;
     transition: 0.3s ease-out;
+    background-color: transparent;
 }
 
 .codriver-name {
@@ -267,7 +268,7 @@ body {
     gap: 8px;
     font-size: small;
     transition: 0.1s ease-out;
-    color: var(--textColor);
+    color: white;
 }
 
 .site-nav-bar-button > p {
@@ -277,7 +278,7 @@ body {
 }
 
 .site-nav-bar-button > svg {
-    color: var(--textColor);
+    color: white;
 }
 
 .site-nav-bar-button:hover {
@@ -285,11 +286,12 @@ body {
 }
 
 .disk-site-nav-button {
-    border: 1px solid var(--tertiaryColor) !important;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.75);
+    border: 1px solid var(--transparentColor) !important;
 }
 .disk-site-nav-button:hover {
-    background-color: red;
-    border: 1px solid var(--transparentColorActive) !important;
+    background-color: var(--selectColor3) !important;
+    border: 1px solid var(--selectColor2) !important;
 }
 
 .active-actions-container {

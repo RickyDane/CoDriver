@@ -12,6 +12,7 @@ use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
+use window_vibrancy::apply_vibrancy;
 use std::fs::{self, read_dir, remove_dir};
 #[allow(unused)]
 use std::io::Error;
@@ -101,7 +102,13 @@ fn main() {
             win.set_transparent_titlebar(true);
             #[cfg(target_os = "macos")]
             win.position_traffic_lights(25.0, 28.0);
+            #[cfg(target_os = "macos")]
+            let _ = apply_vibrancy(&win, window_vibrancy::NSVisualEffectMaterial::HudWindow, None, None);
+
             let _ = win.center();
+
+            #[cfg(not(target_os = "macos"))]
+            let _ = apply_blur(&win, Some((18, 18, 18, 125)));
             #[cfg(not(target_os = "macos"))]
             let _ = win.set_decorations(false);
 

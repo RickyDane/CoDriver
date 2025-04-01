@@ -55,6 +55,7 @@ delete = "1.0.1"
 remove_dir_all = "0.8.3"
 copy_dir = "0.1.3"
 notify = { version = "8.0.0", features = ["serde"] }
+window-vibrancy = "0.4.0"
 # rar = "0.2.0"
 # dateparser = "0.2.0"
 # fs_extra = "1.3.0"

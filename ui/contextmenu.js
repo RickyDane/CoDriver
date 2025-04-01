@@ -109,11 +109,14 @@ class CDContextMenu {
   setupItems() {
     this.menu.innerHTML = "";
     this.items.forEach((item) => {
+      let isDisabled = this.checkDisabled(item);
       const button = document.createElement("button");
       button.className = "context-item";
-      button.innerHTML = `<span class="context-label" style="color: ${this.checkDisabled(item) ? ("var(--transparentColorActive)" ?? "var(--color-primary)") : (item.color ?? "var(--color-primary)")}">${item.label}</span><i style="color: ${this.checkDisabled(item) ? ("var(--transparentColorActive)" ?? "var(--color-primary)") : (item.color ?? "var(--color-primary)")}" class="${item.icon}"></i>`;
+      button.innerHTML = `<span class="context-label" style="color: ${isDisabled ? ("var(--transparentColorActive)" ?? "var(--color-primary)") : (item.color ?? "var(--color-primary)")}">${item.label}</span><i style="color: ${isDisabled ? ("var(--transparentColorActive)" ?? "var(--color-primary)") : (item.color ?? "var(--color-primary)")}" class="${item.icon}"></i>`;
       button.onclick = () => {
-        item.action();
+        if (!isDisabled) {
+          item.action();
+        }
         this.hide();
       };
       this.menu.appendChild(button);
@@ -122,7 +125,11 @@ class CDContextMenu {
 
   checkDisabled(item) {
     if (item.label == "Extract") {
-      return !endsWith(this.selectedItem?.getAttribute("itempath"), ".", ["zip", "rar", "7z"]);
+      return !endsWith(this.selectedItem?.getAttribute("itempath"), ".", [
+        "zip",
+        "rar",
+        "7z",
+      ]);
     } else if (item.label == "Paste") {
       return ArrCopyItems.length === 0;
     }

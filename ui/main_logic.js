@@ -910,11 +910,14 @@ document
 // Main function to handle directory visualization
 async function showItems(items, dualPaneSide = "", millerCol = 1) {
   await cancelSearch();
+
+  // Reenable miller column view when navigating out from disk view
   if (IsShowDisks == true && ViewMode == "miller") {
     $(".miller-container")?.css("display", "flex");
     $(".non-dual-pane-container")?.css("display", "none");
     $(".explorer-container")?.css("padding", "10px 10px 0 10px");
   }
+
   IsShowDisks = false;
 
   if (items.length > 1000) {
@@ -4411,13 +4414,13 @@ async function insertSiteNavButtons() {
       button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
       button.ondragover = (e) => {
         button.style.border = "1px solid var(--tertiaryColor)";
-        button.style.backgroundColor = "var(--secondaryColor)";
+        button.style.backgroundColor = "var(--transparentColor)";
         DraggedOverElement = button;
         MousePos = [e.clientX, e.clientY];
       };
       button.ondragleave = () => {
         button.style.border = "1px solid transparent";
-        button.style.backgroundColor = "var(--siteBarColor)";
+        button.style.backgroundColor = "transparent";
       };
       document.querySelector(".site-nav-bar").append(button);
     }
@@ -4441,14 +4444,19 @@ async function insertSiteNavButtons() {
       disks.forEach((mount) => {
         let diskButton = document.createElement("button");
         diskButton.className = "site-nav-bar-button disk-site-nav-button";
-        diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i><p style="width: 100%;">${mount.name != "" ? mount.name : "/"} <div style="float: right; font-size: x-small; color: var(--textColor)">${(100 - ((100 / mount.capacity) * mount.avail)).toFixed(2)}%</span></p>`;
+        diskButton.innerHTML = `
+          <i class="fa-solid fa-hard-drive"></i>
+          <p style="width: 100%;">
+            ${mount.name != "" ? mount.name : "/"}
+            <div style="float: right; font-size: x-small; color: var(--textColor2)">${(100 - ((100 / mount.capacity) * mount.avail)).toFixed(2)}%</div>
+          </p>`;
         diskButton.onclick = async () => {
           await openDirAndSwitch(mount.path);
           await listDirectories();
         };
         // Show space left with gradient
         diskButton.style.background =
-          `linear-gradient(to right, var(--tertiaryColor) ${100 - ((100 / mount.capacity) * mount.avail)}%, transparent 0)`;
+          `linear-gradient(to right, var(--tertiaryColor) ${(100 - ((100 / mount.capacity) * mount.avail)).toFixed(2)}%, var(--transparentColor), transparent)`;
         diskButton.style.backgroundRepeat = "no-repeat";
         if (mount.format.includes("SSHFS") || mount.is_removable == true) {
           diskButton.oncontextmenu = (e) => {

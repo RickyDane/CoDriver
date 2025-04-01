@@ -361,6 +361,7 @@ impl DirWalker {
         {
             count_of_checked_items += 1;
 
+            // End searching if interrupted through esc-key
             unsafe {
                 if !IS_SEARCHING && COUNT_CALLED_BACK < max_items {
                     dbg_log("Interrupted searching".into(), dbg!("").into());
@@ -380,8 +381,6 @@ impl DirWalker {
             let name = entry.file_name().to_str().unwrap_or("").to_string();
             let path = entry.path();
             let item_path = entry.file_name().to_str().unwrap_or("").to_lowercase();
-
-            println!("Checking: {}", item_path);
 
             // Show how many files have already been checked
             let _ = app_window.eval(&format!(
