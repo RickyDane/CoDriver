@@ -132,7 +132,7 @@
     },
     "windows": [
       {
-        "decorations": true,
+        "decorations": false,
         "fullscreen": false,
         "transparent": true,
         "height": 650,
