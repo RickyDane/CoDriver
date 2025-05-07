@@ -14,6 +14,7 @@ use serde::Serialize;
 use serde_json::Value;
 #[cfg(target_os = "macos")]
 use window_vibrancy::apply_vibrancy;
+#[cfg(not(target_os = "macos"))]
 use window_vibrancy::{apply_acrylic, apply_blur};
 use std::fs::{self, read_dir, remove_dir};
 #[allow(unused)]
