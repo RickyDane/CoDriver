@@ -12,7 +12,9 @@ use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
+#[cfg(target_os = "macos")]
 use window_vibrancy::apply_vibrancy;
+use window_vibrancy::{apply_acrylic, apply_blur};
 use std::fs::{self, read_dir, remove_dir};
 #[allow(unused)]
 use std::io::Error;
@@ -108,7 +110,7 @@ fn main() {
             let _ = win.center();
 
             #[cfg(not(target_os = "macos"))]
-            let _ = apply_blur(&win, Some((18, 18, 18, 125)));
+            let _ = apply_acrylic(&win, Some((18, 18, 18, 125)));
             #[cfg(not(target_os = "macos"))]
             let _ = win.set_decorations(false);
 
