@@ -3,6 +3,7 @@ const { listen } = window.__TAURI__.event;
 // Initialize here to be accessable from anywhere
 let ArrSelectedItems = [];
 let ArrCopyItems = [];
+let Applications = [];
 
 /* Drag and drop files into file explorer */
 // TODO: Make it simpler and not so shitty
@@ -196,14 +197,11 @@ function endsWith(text, divider = ".", ends = []) {
   let endedWithIt = false;
   if (!text) return; false;
   let textEnd = text.split(divider)[text.split(divider).length - 1];
-  console.log(textEnd);
   ends.forEach(end => {
     if (textEnd == end) {
       endedWithIt = true;
       return true;
     }
-    console.log("1", textEnd);
-    console.log("2", end);
   });
   return endedWithIt;
 }

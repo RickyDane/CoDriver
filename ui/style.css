@@ -1588,6 +1588,12 @@ button > svg {
     color: red;
 }
 
+.context-submenu {
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 .input-dialog {
     position: fixed;
     top: 0;

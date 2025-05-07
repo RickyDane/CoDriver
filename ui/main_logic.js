@@ -56,7 +56,6 @@ let ViewMode = "wrap";
 let OrgViewMode = "wrap";
 
 let DirectoryList;
-let Applications = [];
 let ArrDirectoryItems = [];
 let ArrActiveActions = [];
 let ContextMenu = document.querySelector(".context-menu");
@@ -309,6 +308,7 @@ async function resetEverything() {
   CurrentQuickSearch = "";
   resetQuickSearch();
   cdCtMenu.hide();
+  cdCtMenu.hideSubMenu();
 }
 
 // Close context menu or new folder input dialog when click elsewhere
@@ -345,6 +345,7 @@ document.addEventListener("mousedown", (e) => {
   ) {
     ContextMenu.style.display = "none";
     cdCtMenu.hide();
+    cdCtMenu.hideSubMenu();
     $(".extra-c-menu")?.remove();
 
     // Reset context menu
@@ -2734,6 +2735,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 async function selectItem(element, dualPaneSide = "", isNotReset = false) {
   ContextMenu.style.display = "none";
   cdCtMenu.hide();
+  cdCtMenu.hideSubMenu();
   let path = element?.getAttribute("itempath");
   let index = element?.getAttribute("itemindex");
 
@@ -4857,8 +4859,8 @@ function resetBackButton() {
   button.style.border = "1px solid transparent";
 }
 
-listen("fs-mount-changed", async (event) => {
-  await setTimeout(async () => {
+listen("fs-mount-changed", (event) => {
+  setTimeout(async () => {
     await handleMountChanges();
   }, 500);
 });
@@ -4871,4 +4873,5 @@ async function handleMountChanges() {
   await getSetInstalledApplications();
   await checkAppConfig();
   await insertSiteNavButtons();
+  cdCtMenu.setupItems();
 })();
