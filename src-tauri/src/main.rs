@@ -7,16 +7,17 @@ use delete::{delete_file, rapid_delete_dir_all};
 use flate2::read::GzDecoder;
 #[cfg(target_os = "macos")]
 use icns::{IconFamily, IconType};
-use notify::{Event, RecursiveMode, Watcher};
+use image::codecs::jpeg::JpegEncoder;
+use image::codecs::png::{CompressionType, FilterType, PngEncoder};
+use image::ImageReader;
+use notify::{RecursiveMode, Watcher};
 use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
-#[cfg(target_os = "macos")]
-use window_vibrancy::apply_vibrancy;
-#[cfg(not(target_os = "macos"))]
-use window_vibrancy::{apply_acrylic, apply_blur};
+use std::fmt::format;
 use std::fs::{self, read_dir, remove_dir};
+use std::io::Cursor;
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
@@ -41,6 +42,10 @@ use tauri::{
 #[allow(unused)]
 use tauri::{Manager, Window, WindowEvent};
 use unrar::Archive;
+#[cfg(target_os = "macos")]
+use window_vibrancy::apply_vibrancy;
+#[cfg(not(target_os = "macos"))]
+use window_vibrancy::{apply_acrylic, apply_blur};
 use zip::write::FileOptions;
 use zip_extensions::*;
 mod utils;
@@ -63,6 +68,8 @@ mod rdpfs;
 use notify::event::{CreateKind, RemoveKind};
 use notify::EventKind::{Create, Remove};
 use substring::Substring;
+
+use crate::utils::convert_file_src;
 
 // static mut LAST_DIR: String = String::new();
 static mut ISCANCELED: bool = false;
@@ -106,7 +113,12 @@ fn main() {
             #[cfg(target_os = "macos")]
             win.position_traffic_lights(25.0, 28.0);
             #[cfg(target_os = "macos")]
-            let _ = apply_vibrancy(&win, window_vibrancy::NSVisualEffectMaterial::HudWindow, None, None);
+            let _ = apply_vibrancy(
+                &win,
+                window_vibrancy::NSVisualEffectMaterial::HudWindow,
+                None,
+                None,
+            );
 
             let _ = win.center();
 
@@ -180,6 +192,7 @@ fn main() {
             get_sshfs_mounts,
             unmount_network_drive,
             unmount_drive,
+            load_item_image
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -2093,4 +2106,27 @@ async fn unmount_drive(path: String) {
         .spawn();
     #[cfg(target_os = "linux")]
     let _ = Command::new("umount").arg(path).spawn();
+}
+
+#[tauri::command]
+async fn load_item_image(image_id: String, image_url: String) {
+    println!("Loading image: {}", image_url);
+    match ImageReader::open(image_url) {
+        Ok(image) => {
+            let image = image.decode().unwrap();
+            let mut bytes: Vec<u8> = Vec::new();
+            image
+                .thumbnail(100, 100)
+                .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
+                .unwrap();
+            let base64 = base64::encode(&bytes);
+            let _ = WINDOW.get().unwrap().eval(&format!(
+                "document.getElementById('{}').src = 'data:image/png;base64,{}'",
+                image_id, base64
+            ));
+        }
+        Err(err) => {
+            dbg_log(format!("Failed to load image: {}", err), dbg!("").into());
+        }
+    }
 }

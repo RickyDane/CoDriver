@@ -551,3 +551,12 @@ pub fn create_new_action(
 pub fn remove_action(app_window: Window, action_id: String) {
     let _ = app_window.eval(format!("removeAction('{}')", action_id).as_str());
 }
+
+pub fn convert_file_src(file_path: &str, protocol: &str) -> String {
+    let urlencoded_path = urlencoding::encode(file_path);
+    if cfg!(windows) {
+        format!("http://{}.localhost/{}", protocol, urlencoded_path)
+    } else {
+        format!("{}://{}", protocol, urlencoded_path)
+    }
+}
