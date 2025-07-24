@@ -2,7 +2,6 @@ use chrono::prelude::*;
 use color_print::cprintln;
 use regex::Regex;
 use serde::Serialize;
-use tauri::api::dialog;
 use std::fs::OpenOptions;
 use std::{
     ffi::OsStr,
@@ -13,6 +12,7 @@ use std::{
 use stopwatch::Stopwatch;
 use sysinfo::System;
 use tar::Archive as TarArchive;
+use tauri::api::dialog;
 use tauri::api::path::config_dir;
 use tauri::Window;
 
@@ -23,7 +23,15 @@ use crate::{COUNT_CALLED_BACK, IS_SEARCHING, WINDOW};
 pub static mut COPY_COUNTER: f32 = 0.0;
 pub static mut TO_COPY_COUNTER: f32 = 0.0;
 
-pub fn dbg_log(msg: String, _line_no: String) {
+pub fn success_log(msg: String) {
+    cprintln!(
+        "[<white>{:?}</white> <green>SUC</green>] {}",
+        Local::now().format("%H:%M:%S").to_string(),
+        msg
+    );
+}
+
+pub fn dbg_log(msg: String) {
     cprintln!(
         "[<white>{:?}</white> DBG] {}",
         Local::now().format("%H:%M:%S").to_string(),
@@ -63,14 +71,11 @@ pub fn log(msg: String) {
         .unwrap();
     let _ = file.write_all(log.as_bytes());
 
-    dbg_log(
-        format!(
-            "Written to: {} Log: {}",
-            log_file_path.to_str().unwrap(),
-            log
-        ),
-        dbg!("").into(),
-    );
+    dbg_log(format!(
+        "Written to: {} Log: {}",
+        log_file_path.to_str().unwrap(),
+        log
+    ));
 }
 pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
     let file = fs::metadata(&from_path).unwrap();
@@ -104,7 +109,9 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                         Ok(_) => {
                             // Calculate transfer speed and progres
                             speed = calc_transfer_speed(s, sw.elapsed_ms());
-                            if speed.is_infinite() { speed = 0.0 }
+                            if speed.is_infinite() {
+                                speed = 0.0
+                            }
                             progress = (100.0 / file_size) * s as f32;
                             unsafe {
                                 update_progressbar(
@@ -114,11 +121,11 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                                     speed,
                                 );
                             };
-                        },
+                        }
                         Err(err) => {
                             dialog::message(WINDOW.get(), "Info", format!("{:?}", err.to_string()));
                             break;
-                        },
+                        }
                     }
                 }
                 Err(e) => {
@@ -364,7 +371,7 @@ impl DirWalker {
             // End searching if interrupted through esc-key
             unsafe {
                 if !IS_SEARCHING && COUNT_CALLED_BACK < max_items {
-                    dbg_log("Interrupted searching".into(), dbg!("").into());
+                    dbg_log("Interrupted searching".into());
                     return;
                 }
                 if COUNT_CALLED_BACK >= max_items || !IS_SEARCHING {
@@ -435,10 +442,7 @@ impl DirWalker {
                     let content = fs::read_to_string(&path).unwrap_or_else(|_| "".into());
                     // => TODO: Extend with line number of text occurence later on
                     if content.contains(&file_content) {
-                        dbg_log(
-                            format!("File found with file_content: {}", &name),
-                            dbg!("").into(),
-                        );
+                        dbg_log(format!("File found with file_content: {}", &name));
                         callback(DirWalkerEntry {
                             name,
                             path: path.to_string_lossy().to_string(),
@@ -452,7 +456,7 @@ impl DirWalker {
                     }
                 } else {
                     // Search w/o file content
-                    dbg_log(format!("File found: {}", &name), dbg!("").into());
+                    dbg_log(format!("File found: {}", &name));
                     callback(DirWalkerEntry {
                         name,
                         path: path.to_string_lossy().to_string(),

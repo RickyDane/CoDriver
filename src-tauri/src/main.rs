@@ -69,7 +69,7 @@ use notify::event::{CreateKind, RemoveKind};
 use notify::EventKind::{Create, Remove};
 use substring::Substring;
 
-use crate::utils::convert_file_src;
+use crate::utils::{convert_file_src, success_log};
 
 // static mut LAST_DIR: String = String::new();
 static mut ISCANCELED: bool = false;
@@ -432,7 +432,7 @@ async fn list_disks() -> Vec<DisksInfo> {
     let mut ls_disks: Vec<DisksInfo> = vec![];
     let disks = Disks::new_with_refreshed_list();
     for disk in &disks {
-        dbg_log(format!("{:?}", &disk), dbg!("").into());
+        dbg_log(format!("{:?}", &disk));
         ls_disks.push(DisksInfo {
             name: format!("{:?}", disk.mount_point())
                 .split("/")
@@ -455,10 +455,7 @@ async fn list_disks() -> Vec<DisksInfo> {
         let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
         for mount in ls_sshfs_mounts {
             let mount = mount.unwrap();
-            dbg_log(
-                format!("{:?} | {:?}", mount.file_name(), mount.path()),
-                dbg!("").into(),
-            );
+            dbg_log(format!("{:?} | {:?}", mount.file_name(), mount.path()));
             ls_disks.push(DisksInfo {
                 name: format!("{:?}", mount.file_name())
                     .split("/")
@@ -508,10 +505,7 @@ async fn get_sshfs_mounts() -> Vec<DisksInfo> {
 
 #[tauri::command]
 async fn switch_to_directory(current_dir: String) {
-    dbg_log(
-        format!("Switching to directory: {}", &current_dir),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Switching to directory: {}", &current_dir));
     let _ = set_dir(current_dir).await;
 }
 #[tauri::command]
@@ -536,10 +530,7 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         .unwrap(),
         &app_config,
     );
-    dbg_log(
-        format!("View-style switched to: {}", view_mode),
-        dbg!("").into(),
-    );
+    dbg_log(format!("View-style switched to: {}", view_mode));
     list_dirs().await
 }
 
@@ -556,7 +547,7 @@ async fn get_current_dir() -> String {
 
 #[tauri::command]
 async fn set_dir(current_dir: String) -> bool {
-    dbg_log(format!("Current dir: {}", &current_dir), dbg!("").into());
+    dbg_log(format!("Current dir: {}", &current_dir));
     let md = fs::metadata(&current_dir);
     if md.is_err() {
         return false;
@@ -625,7 +616,7 @@ async fn list_dirs() -> Vec<FDir> {
 #[tauri::command]
 async fn open_dir(path: String) -> bool {
     let md = fs::read_dir(&path);
-    dbg_log(format!("Opening dir: {}", &path), dbg!("").into());
+    dbg_log(format!("Opening dir: {}", &path));
     match md {
         Ok(_) => {
             let _ = set_dir(path.clone()).await;
@@ -635,10 +626,11 @@ async fn open_dir(path: String) -> bool {
             true
         }
         Err(_) => {
-            dbg_log(
-                format!("Failed to open dir: {} | {}", &path, md.err().unwrap()),
-                dbg!("").into(),
-            );
+            dbg_log(format!(
+                "Failed to open dir: {} | {}",
+                &path,
+                md.err().unwrap()
+            ));
             false
         }
     }
@@ -649,7 +641,7 @@ async fn go_back(is_dual_pane: bool) {
     unsafe {
         if PATH_HISTORY.len() > 1 && !is_dual_pane {
             let last_path = &PATH_HISTORY[PATH_HISTORY.len() - 2];
-            dbg_log(format!("Went back to: {}", last_path), dbg!("").into());
+            dbg_log(format!("Went back to: {}", last_path));
             let _ = set_dir(last_path.into()).await;
             PATH_HISTORY.pop();
         } else {
@@ -711,7 +703,7 @@ async fn mount_sshfs(
     let mut child = child.unwrap();
 
     // Write the password to stdin of the sshfs process
-    dbg_log(format!("Connecting to {}", remote_address), dbg!("").into());
+    dbg_log(format!("Connecting to {}", remote_address));
     let stdin = child.stdin.as_mut().expect("Failed to open stdin");
     stdin
         .write_all(password.as_bytes())
@@ -722,10 +714,7 @@ async fn mount_sshfs(
         .expect("Failed to read sshfs output");
 
     if output.status.success() {
-        dbg_log(
-            format!("Mounted {} to {}", remote_address, mount_point),
-            dbg!("").into(),
-        );
+        dbg_log(format!("Mounted {} to {}", remote_address, mount_point));
     } else {
         wng_log(format!(
             "Failed to mount: {}",
@@ -791,10 +780,7 @@ async fn go_home() {
 
 #[tauri::command]
 async fn stop_searching() {
-    dbg_log(
-        format!("Stopped searching: {}", unsafe { IS_SEARCHING }),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Stopped searching: {}", unsafe { IS_SEARCHING }));
     unsafe {
         IS_SEARCHING = false;
         COUNT_CALLED_BACK = 0;
@@ -822,17 +808,14 @@ async fn search_for(
         "$('.file-searching-file-count').html('{} items found')",
         unsafe { COUNT_CALLED_BACK }
     ));
-    dbg_log(
-        format!(
-            "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}",
-            &file_name,
-            search_depth,
-            max_items,
-            &file_content,
-            num_cpus::get()
-        ),
-        dbg!("").into(),
-    );
+    dbg_log(format!(
+        "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}",
+        &file_name,
+        search_depth,
+        max_items,
+        &file_content,
+        num_cpus::get()
+    ));
     let temp_file_name = String::from(&file_name);
     if temp_file_name.split(".").next().unwrap().contains("*") {
         file_name = temp_file_name.trim().replace("*", "");
@@ -889,7 +872,7 @@ async fn search_for(
     let _ = app_window
         .eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
     let _ = app_window.eval("stopFullSearch()");
-    dbg_log(format!("Search took: {:?}", sw.elapsed()), dbg!("").into());
+    dbg_log(format!("Search took: {:?}", sw.elapsed()));
 }
 
 #[tauri::command]
@@ -909,7 +892,7 @@ async fn copy_paste(
     }
     let _ = &app_window
         .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
-    dbg_log(format!("Copying: {} ...", &act_file_name), dbg!("").into());
+    dbg_log(format!("Copying: {} ...", &act_file_name));
     let final_filename = get_final_filename(
         act_file_name,
         from_path.clone(),
@@ -942,10 +925,7 @@ async fn copy_paste(
         _ => return,
     }
 
-    dbg_log(
-        format!("Copy-Paste time: {:?}", sw.elapsed()),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
     app_window.eval("resetProgressBar()").unwrap();
 }
 
@@ -992,10 +972,7 @@ async fn arr_copy_paste(
         // Execute the copy process for either a dir or file
         copy_to(&app_window, final_filename, item_path);
     }
-    dbg_log(
-        format!("Copy-Paste time: {:?}", sw.elapsed()),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
     app_window.eval("resetProgressBar()").unwrap();
     // app_window.eval("listDirectories(true)").unwrap();
 }
@@ -1060,10 +1037,7 @@ async fn get_final_filename(
 
 #[tauri::command]
 async fn delete_item(act_file_name: String) {
-    dbg_log(
-        format!("Deleting: {}", String::from(&act_file_name)),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
 
     #[cfg(target_os = "windows")]
     let dir_remove = remove_dir_all(&act_file_name.replace("\\", "/"));
@@ -1112,10 +1086,7 @@ async fn extract_item(from_path: String, app_window: Window) {
             .nth(from_path.split(".").count() - 1)
             .unwrap_or("");
 
-    dbg_log(
-        format!("Start unpacking {} - {}", &file_ext, &from_path),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Start unpacking {} - {}", &file_ext, &from_path));
 
     // zip, 7z or rar unpack
     let sw = Stopwatch::start_new();
@@ -1133,14 +1104,11 @@ async fn extract_item(from_path: String, app_window: Window) {
     } else if file_ext == ".rar" {
         let mut archive = Archive::new(&from_path).open_for_processing().unwrap();
         while let Some(header) = archive.read_header().unwrap() {
-            dbg_log(
-                format!(
-                    "{} bytes: {}",
-                    header.entry().unpacked_size,
-                    header.entry().filename.to_string_lossy()
-                ),
-                dbg!("").into(),
-            );
+            dbg_log(format!(
+                "{} bytes: {}",
+                header.entry().unpacked_size,
+                header.entry().filename.to_string_lossy()
+            ));
             archive = if header.entry().is_file() {
                 header.extract().unwrap()
             } else {
@@ -1173,13 +1141,13 @@ async fn extract_item(from_path: String, app_window: Window) {
         return;
     }
 
-    dbg_log(format!("Unpack time: {:?}", sw.elapsed()), dbg!("").into());
+    dbg_log(format!("Unpack time: {:?}", sw.elapsed()));
     remove_action(app_window, action_id);
 }
 
 #[tauri::command]
 async fn open_item(path: String) {
-    dbg_log(format!("Opening: {}", &path), dbg!("").into());
+    dbg_log(format!("Opening: {}", &path));
     let _ = open::that_detached(path);
 }
 
@@ -1203,14 +1171,11 @@ async fn compress_item(
         &from_path,
     );
     let sw = Stopwatch::start_new();
-    dbg_log(
-        format!(
-            "Compression of '{}' started with compression level: {}",
-            &from_path.split("/").last().unwrap(),
-            &compression_level
-        ),
-        dbg!("").into(),
-    );
+    dbg_log(format!(
+        "Compression of '{}' started with compression level: {}",
+        &from_path.split("/").last().unwrap(),
+        &compression_level
+    ));
     let file_ext = ".".to_string().to_owned()
         + from_path
             .split("/")
@@ -1227,7 +1192,7 @@ async fn compress_item(
             + ".zip",
     )
     .unwrap();
-    dbg_log(format!("Created file: {:?}", created_file), dbg!("").into());
+    dbg_log(format!("Created file: {:?}", created_file));
     let source: PathBuf;
     let archive = PathBuf::from(
         path_to_zip
@@ -1239,7 +1204,7 @@ async fn compress_item(
             .to_owned()
             + ".zip",
     );
-    dbg_log(format!("Archive: {:?}", archive), dbg!("").into());
+    dbg_log(format!("Archive: {:?}", archive));
     if fs::metadata(&from_path).unwrap().is_dir() {
         source = PathBuf::from(&from_path);
     } else {
@@ -1287,10 +1252,7 @@ async fn compress_item(
             .to_string(),
     );
     remove_action(app_window, action_id);
-    dbg_log(
-        format!("Compression time: {:?}", sw.elapsed()),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Compression time: {:?}", sw.elapsed()));
 }
 
 #[tauri::command]
@@ -1380,10 +1342,7 @@ async fn rename_element(path: String, new_name: String, app_window: Window) -> V
             .eval("alert('Failed to rename element')")
             .unwrap();
     } else {
-        dbg_log(
-            format!("Renamed from {} to {}", path, new_name),
-            dbg!("").into(),
-        );
+        dbg_log(format!("Renamed from {} to {}", path, new_name));
     }
     list_dirs().await
 }
@@ -1436,10 +1395,7 @@ async fn save_config(
         .unwrap()
         .to_string();
     let _ = serde_json::to_writer_pretty(File::create(&config_dir).unwrap(), &app_config_json);
-    dbg_log(
-        format!("app_config was saved to {}", config_dir),
-        dbg!("").into(),
-    );
+    dbg_log(format!("app_config was saved to {}", config_dir));
 }
 
 #[tauri::command]
@@ -1461,14 +1417,11 @@ async fn rename_elements_with_format(
             &element,
             format!("{}{:0>n_digits$}{}", new_name, counter, item_ext),
         );
-        dbg_log(
-            format!(
-                "Renamed from {} to {}",
-                element,
-                format!("{}{:0>n_digits$}{}", new_name, counter, item_ext)
-            ),
-            dbg!("").into(),
-        );
+        dbg_log(format!(
+            "Renamed from {} to {}",
+            element,
+            format!("{}{:0>n_digits$}{}", new_name, counter, item_ext)
+        ));
         counter += step_by;
     }
 }
@@ -1500,10 +1453,7 @@ async fn add_favorite(arr_favorites: Vec<String>) {
         .unwrap(),
         &app_config,
     );
-    dbg_log(
-        format!("Saved favorites: {:?}", arr_favorites),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Saved favorites: {:?}", arr_favorites));
 }
 
 #[tauri::command]
@@ -1708,10 +1658,7 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
         url.clone(),
         &"".into(),
     );
-    dbg_log(
-        format!("Downloading {} as {}", url, quality),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Downloading {} as {}", url, quality));
     let chosen_quality = match quality.as_str() {
         "lowestvideo" => VideoQuality::LowestVideo,
         "lowestaudio" => VideoQuality::LowestAudio,
@@ -1720,10 +1667,7 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
         _ => VideoQuality::HighestVideo,
     };
 
-    dbg_log(
-        format!("Chosen quality: {:?}", chosen_quality),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Chosen quality: {:?}", chosen_quality));
 
     let video_options = VideoOptions {
         quality: chosen_quality,
@@ -1887,10 +1831,7 @@ async fn get_app_icns(_path: String) -> String {
                 let file = file.unwrap();
                 BufWriter::new(&file);
                 image.write_png(file).unwrap();
-                dbg_log(
-                    format!("Writing image to: {}", new_img_path),
-                    dbg!("").into(),
-                );
+                dbg_log(format!("Writing image to: {}", new_img_path));
             }
 
             new_img_path
@@ -1902,10 +1843,7 @@ async fn get_app_icns(_path: String) -> String {
 
 #[tauri::command]
 async fn get_thumbnail(image_path: String) -> String {
-    dbg_log(
-        format!("Getting thumbnail for: {}", image_path),
-        dbg!("").into(),
-    );
+    dbg_log(format!("Getting thumbnail for: {}", image_path));
 
     let thumbnails_dir = config_dir()
         .unwrap()
@@ -1925,26 +1863,20 @@ async fn get_thumbnail(image_path: String) -> String {
     let item = image::open(&image_path);
 
     if item.is_err() {
-        dbg_log(
-            format!(
-                "Couldn't load image for thumbnail: {}",
-                &image_path.split("/").last().unwrap()
-            ),
-            dbg!("").into(),
-        );
+        dbg_log(format!(
+            "Couldn't load image for thumbnail: {}",
+            &image_path.split("/").last().unwrap()
+        ));
         return image_path;
     }
     let item = item.unwrap();
 
     let thumbnail = item.thumbnail(50, 25);
 
-    dbg_log(
-        format!(
-            "Saving thumbnail for: {}",
-            image_path.split("/").last().unwrap()
-        ),
-        dbg!("").into(),
-    );
+    dbg_log(format!(
+        "Saving thumbnail for: {}",
+        image_path.split("/").last().unwrap()
+    ));
 
     thumbnail
         .save_with_format(
@@ -2065,36 +1997,27 @@ async fn log(log: String) {
 #[tauri::command]
 async fn unmount_network_drive(path: String) {
     let _ = Command::new("umount").arg(&path).spawn();
-    dbg_log(format!("Unmounted: {}", path), dbg!("").into());
+    dbg_log(format!("Unmounted: {}", path));
     let remove = remove_dir(&path);
     if remove.is_err() {
-        dbg_log(
-            format!("Failed to remove: {} | Trying again in 0.5s", path),
-            dbg!("").into(),
-        );
+        dbg_log(format!("Failed to remove: {} | Trying again in 0.5s", path));
         std::thread::sleep(std::time::Duration::from_millis(500));
         let remove2 = remove_dir(&path);
         if remove2.is_err() {
-            dbg_log(
-                format!("Failed to remove: {} | Trying again in 1s", path),
-                dbg!("").into(),
-            );
+            dbg_log(format!("Failed to remove: {} | Trying again in 1s", path));
             std::thread::sleep(std::time::Duration::from_millis(1000));
             let remove3 = remove_dir(&path);
             if remove3.is_err() {
-                dbg_log(
-                    format!(
-                        "Failed to remove: {} | Err: {}",
-                        path,
-                        remove3.err().unwrap()
-                    ),
-                    dbg!("").into(),
-                );
+                dbg_log(format!(
+                    "Failed to remove: {} | Err: {}",
+                    path,
+                    remove3.err().unwrap()
+                ));
                 return;
             }
         }
     }
-    dbg_log(format!("Removed: {}", path), dbg!("").into());
+    success_log(format!("Removed: {}", path));
 }
 
 #[tauri::command]
@@ -2109,24 +2032,72 @@ async fn unmount_drive(path: String) {
 }
 
 #[tauri::command]
-async fn load_item_image(image_id: String, image_url: String) {
-    println!("Loading image: {}", image_url);
+async fn load_item_image(
+    image_id: String,
+    image_url: String,
+    image_type: String,
+) -> Result<(), String> {
+    dbg_log(format!("Loading image: {}", image_url));
     match ImageReader::open(image_url) {
         Ok(image) => {
             let image = image.decode().unwrap();
             let mut bytes: Vec<u8> = Vec::new();
-            image
-                .thumbnail(100, 100)
-                .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
-                .unwrap();
+            if image_type == String::from("png") {
+                image
+                    .thumbnail(100, 100)
+                    .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
+                    .unwrap();
+            } else if image_type == String::from("gif") {
+                image
+                    .thumbnail(100, 100)
+                    .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Gif)
+                    .unwrap();
+            } else if image_type == String::from("webp") {
+                image
+                    .thumbnail(100, 100)
+                    .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::WebP)
+                    .unwrap();
+            } else if image_type == String::from("jpg") || image_type == String::from("jpeg") {
+                image
+                    .thumbnail(100, 100)
+                    .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Jpeg)
+                    .unwrap();
+            } else if image_type == String::from("tiff") {
+                image
+                    .thumbnail(100, 100)
+                    .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Tiff)
+                    .unwrap();
+            } else if image_type == String::from("ico") {
+                image
+                    .thumbnail(100, 100)
+                    .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Ico)
+                    .unwrap();
+            } else if image_type == String::from("avif") {
+                image
+                    .thumbnail(100, 100)
+                    .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Avif)
+                    .unwrap();
+            } else if image_type == String::from("bmp") {
+                image
+                    .thumbnail(100, 100)
+                    .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Bmp)
+                    .unwrap();
+            } else {
+                return Err("Unsupported image type".into());
+            }
             let base64 = base64::encode(&bytes);
-            let _ = WINDOW.get().unwrap().eval(&format!(
-                "document.getElementById('{}').src = 'data:image/png;base64,{}'",
-                image_id, base64
-            ));
+            let _ = WINDOW.get().unwrap().emit(
+                "loaded-item-image",
+                format!(
+                    "{{\"base64\": \"{}\", \"imageId\": \"{}\"}}",
+                    base64, image_id
+                ),
+            );
+            Ok(())
         }
         Err(err) => {
-            dbg_log(format!("Failed to load image: {}", err), dbg!("").into());
+            err_log(format!("Failed to load image: {}", err));
+            Err(err.to_string())
         }
     }
 }
