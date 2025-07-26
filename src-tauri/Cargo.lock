@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "CoDriver"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "archiver-rs",
  "base64 0.22.1",
@@ -13,11 +13,11 @@ dependencies = [
  "color-print",
  "copy_dir",
  "delete",
- "dunce",
  "flate2",
  "icns",
  "image 0.25.6",
  "jwalk 0.8.1",
+ "lazy_static",
  "notify",
  "num_cpus",
  "objc",
@@ -37,7 +37,6 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-drag",
  "unrar",
- "urlencoding",
  "uuid",
  "walkdir",
  "widestring",

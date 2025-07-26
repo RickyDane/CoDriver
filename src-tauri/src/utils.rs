@@ -2,8 +2,8 @@ use chrono::prelude::*;
 use color_print::cprintln;
 use regex::Regex;
 use serde::Serialize;
+use tauri::async_runtime::Mutex;
 use std::fs::OpenOptions;
-use std::sync::OnceLock;
 use std::{
     ffi::OsStr,
     fmt::Debug,
@@ -16,13 +16,16 @@ use tar::Archive as TarArchive;
 use tauri::api::dialog;
 use tauri::api::path::config_dir;
 use tauri::Window;
+use lazy_static::lazy_static;
 
 #[allow(unused_imports)]
 use crate::ISCANCELED;
 use crate::{COUNT_CALLED_BACK, IS_SEARCHING, WINDOW};
 
-pub static COPY_COUNTER: OnceLock<f32> = OnceLock::new();
-pub static TO_COPY_COUNTER: OnceLock<f32> = OnceLock::new();
+lazy_static! {
+    pub static ref COPY_COUNTER: Mutex<f32> = Mutex::new(0.0);
+    pub static ref TO_COPY_COUNTER: Mutex<f32> = Mutex::new(0.0);
+}
 
 pub fn success_log(msg: String) {
     cprintln!(
@@ -79,7 +82,7 @@ pub fn log(msg: String) {
         log
     ));
 }
-pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
+pub async fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
     let file = fs::metadata(&from_path).unwrap();
     if file.is_file() {
         // Prepare to copy file
@@ -92,12 +95,13 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
         let mut speed: f64;
         let sw = Stopwatch::start_new();
         let mut progress: f32;
+        let mut copy_counter = COPY_COUNTER.lock().await;
         update_progressbar_2(
             app_window,
-            (100.0 / TO_COPY_COUNTER.get().unwrap()) * COPY_COUNTER.get().unwrap(),
+            (100.0 / *TO_COPY_COUNTER.lock().await) * *copy_counter,
             final_filename.split("/").last().unwrap(),
         );
-        let _ = COPY_COUNTER.set(COPY_COUNTER.get().unwrap() + 1.0);
+        *copy_counter += 1.0;
         loop {
             match fr.read(&mut buf) {
                 Ok(ds) => {
@@ -118,8 +122,8 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                                 progress,
                                 format!(
                                     "{}/{}",
-                                    COPY_COUNTER.get().unwrap(),
-                                    TO_COPY_COUNTER.get().unwrap()
+                                    COPY_COUNTER.lock().await,
+                                    TO_COPY_COUNTER.lock().await
                                 )
                                 .as_str(),
                                 speed,
@@ -145,7 +149,7 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
             let path = entry.path();
             let relative_path = path.strip_prefix(&from_path).unwrap();
             let dest_file = final_filename.clone() + "/" + relative_path.to_str().unwrap();
-            copy_to(app_window, dest_file, path.to_str().unwrap().to_string());
+            copy_to(app_window, dest_file, path.to_str().unwrap().to_string()).await;
         }
     } else {
         wng_log(format!("Unsupported file type: {}", from_path));
@@ -333,7 +337,7 @@ impl DirWalker {
         }
     }
 
-    pub fn search(
+    pub async fn search(
         &mut self,
         path: &str,
         depth: u32,
@@ -372,11 +376,11 @@ impl DirWalker {
             count_of_checked_items += 1;
 
             // End searching if interrupted through esc-key
-            if !IS_SEARCHING.get().unwrap() && COUNT_CALLED_BACK.get().unwrap() < &max_items {
-                dbg_log("Interrupted searching");
+            if *IS_SEARCHING.lock().await == false && *COUNT_CALLED_BACK.lock().await < max_items {
+                dbg_log(format!("Interrupted searching | {} items checked | {} items found | is searching: {}", count_of_checked_items, *COUNT_CALLED_BACK.lock().await, *IS_SEARCHING.lock().await));
                 return;
             }
-            if COUNT_CALLED_BACK.get().unwrap() >= &max_items || !IS_SEARCHING.get().unwrap() {
+            if *COUNT_CALLED_BACK.lock().await >= max_items || *IS_SEARCHING.lock().await == false {
                 return;
             }
 
@@ -393,7 +397,7 @@ impl DirWalker {
             // Show how many files have already been checked
             let _ = app_window.eval(&format!(
                 "$('.file-searching-file-count').html('{} items found<br/><br/>{} items checked')",
-                COUNT_CALLED_BACK.get().unwrap(),
+                *COUNT_CALLED_BACK.lock().await,
                 count_of_checked_items
             ));
 
@@ -443,7 +447,6 @@ impl DirWalker {
                     let content = fs::read_to_string(&path).unwrap_or_else(|_| "".into());
                     // => TODO: Extend with line number of text occurence later on
                     if content.contains(&file_content) {
-                        dbg_log(format!("File found with file_content: {}", &name));
                         callback(DirWalkerEntry {
                             name,
                             path: path.to_string_lossy().to_string(),
@@ -457,7 +460,6 @@ impl DirWalker {
                     }
                 } else {
                     // Search w/o file content
-                    dbg_log(format!("File found: {}", &name));
                     callback(DirWalkerEntry {
                         name,
                         path: path.to_string_lossy().to_string(),
