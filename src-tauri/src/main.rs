@@ -649,12 +649,13 @@ async fn open_dir(path: String) -> bool {
 
 #[tauri::command]
 async fn go_back(is_dual_pane: bool) {
+    let path_history = (PATH_HISTORY.lock().await).clone();
     dbg_log(format!(
         "Current path history: {:?}",
-        PATH_HISTORY.lock().await
+        path_history
     ));
-    if PATH_HISTORY.lock().await.len() > 1 && !is_dual_pane {
-        let last_path = PATH_HISTORY.lock().await[PATH_HISTORY.lock().await.len() - 2].clone();
+    if path_history.len() > 1 && !is_dual_pane {
+        let last_path = path_history[path_history.len() - 2].clone();
         dbg_log(format!("Went back to: {}", last_path));
         let _ = set_dir(last_path.into());
         pop_history().await;
