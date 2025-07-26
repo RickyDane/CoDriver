@@ -149,7 +149,7 @@ pub async fn copy_to(app_window: &Window, final_filename: String, from_path: Str
             let path = entry.path();
             let relative_path = path.strip_prefix(&from_path).unwrap();
             let dest_file = final_filename.clone() + "/" + relative_path.to_str().unwrap();
-            copy_to(app_window, dest_file, path.to_str().unwrap().to_string()).await;
+            Box::pin(copy_to(app_window, dest_file, path.to_str().unwrap().to_string())).await;
         }
     } else {
         wng_log(format!("Unsupported file type: {}", from_path));

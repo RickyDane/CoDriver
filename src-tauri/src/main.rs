@@ -657,7 +657,7 @@ async fn go_back(is_dual_pane: bool) {
         let last_path = PATH_HISTORY.lock().await[PATH_HISTORY.lock().await.len() - 2].clone();
         dbg_log(format!("Went back to: {}", last_path));
         let _ = set_dir(last_path.into());
-        pop_history();
+        pop_history().await;
     } else {
         let _ = set_dir("./../".into());
     }
@@ -677,7 +677,7 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
     if !wanted_directory {
         err_log("Not a valid directory".into());
     } else {
-        push_history(current_dir().unwrap().to_string_lossy().to_string());
+        push_history(current_dir().unwrap().to_string_lossy().to_string()).await;
     }
     list_dirs().await
 }
@@ -784,7 +784,7 @@ async fn open_in_terminal(path: String) -> bool {
 #[tauri::command]
 async fn go_home() {
     let _ = set_dir(home_dir().unwrap().to_str().unwrap().into());
-    push_history(home_dir().unwrap().to_string_lossy().to_string());
+    push_history(home_dir().unwrap().to_string_lossy().to_string()).await;
 }
 
 #[tauri::command]
