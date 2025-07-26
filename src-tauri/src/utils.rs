@@ -3,6 +3,7 @@ use color_print::cprintln;
 use regex::Regex;
 use serde::Serialize;
 use std::fs::OpenOptions;
+use std::sync::OnceLock;
 use std::{
     ffi::OsStr,
     fmt::Debug,
@@ -20,8 +21,8 @@ use tauri::Window;
 use crate::ISCANCELED;
 use crate::{COUNT_CALLED_BACK, IS_SEARCHING, WINDOW};
 
-pub static mut COPY_COUNTER: f32 = 0.0;
-pub static mut TO_COPY_COUNTER: f32 = 0.0;
+pub static COPY_COUNTER: OnceLock<f32> = OnceLock::new();
+pub static TO_COPY_COUNTER: OnceLock<f32> = OnceLock::new();
 
 pub fn success_log(msg: String) {
     cprintln!(
@@ -31,7 +32,8 @@ pub fn success_log(msg: String) {
     );
 }
 
-pub fn dbg_log(msg: String) {
+pub fn dbg_log<S: Into<String>>(msg: S) {
+    let msg = msg.into();
     cprintln!(
         "[<white>{:?}</white> DBG] {}",
         Local::now().format("%H:%M:%S").to_string(),
@@ -90,14 +92,12 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
         let mut speed: f64;
         let sw = Stopwatch::start_new();
         let mut progress: f32;
-        unsafe {
-            update_progressbar_2(
-                app_window,
-                (100.0 / TO_COPY_COUNTER) * COPY_COUNTER,
-                final_filename.split("/").last().unwrap(),
-            );
-            COPY_COUNTER += 1.0;
-        }
+        update_progressbar_2(
+            app_window,
+            (100.0 / TO_COPY_COUNTER.get().unwrap()) * COPY_COUNTER.get().unwrap(),
+            final_filename.split("/").last().unwrap(),
+        );
+        let _ = COPY_COUNTER.set(COPY_COUNTER.get().unwrap() + 1.0);
         loop {
             match fr.read(&mut buf) {
                 Ok(ds) => {
@@ -113,14 +113,17 @@ pub fn copy_to(app_window: &Window, final_filename: String, from_path: String) {
                                 speed = 0.0
                             }
                             progress = (100.0 / file_size) * s as f32;
-                            unsafe {
-                                update_progressbar(
-                                    app_window,
-                                    progress,
-                                    format!("{}/{}", COPY_COUNTER, TO_COPY_COUNTER).as_str(),
-                                    speed,
-                                );
-                            };
+                            update_progressbar(
+                                app_window,
+                                progress,
+                                format!(
+                                    "{}/{}",
+                                    COPY_COUNTER.get().unwrap(),
+                                    TO_COPY_COUNTER.get().unwrap()
+                                )
+                                .as_str(),
+                                speed,
+                            );
                         }
                         Err(err) => {
                             dialog::message(WINDOW.get(), "Info", format!("{:?}", err.to_string()));
@@ -369,14 +372,12 @@ impl DirWalker {
             count_of_checked_items += 1;
 
             // End searching if interrupted through esc-key
-            unsafe {
-                if !IS_SEARCHING && COUNT_CALLED_BACK < max_items {
-                    dbg_log("Interrupted searching".into());
-                    return;
-                }
-                if COUNT_CALLED_BACK >= max_items || !IS_SEARCHING {
-                    return;
-                }
+            if !IS_SEARCHING.get().unwrap() && COUNT_CALLED_BACK.get().unwrap() < &max_items {
+                dbg_log("Interrupted searching");
+                return;
+            }
+            if COUNT_CALLED_BACK.get().unwrap() >= &max_items || !IS_SEARCHING.get().unwrap() {
+                return;
             }
 
             if entry.is_err() {
@@ -392,7 +393,7 @@ impl DirWalker {
             // Show how many files have already been checked
             let _ = app_window.eval(&format!(
                 "$('.file-searching-file-count').html('{} items found<br/><br/>{} items checked')",
-                unsafe { COUNT_CALLED_BACK },
+                COUNT_CALLED_BACK.get().unwrap(),
                 count_of_checked_items
             ));
 
@@ -554,13 +555,4 @@ pub fn create_new_action(
 
 pub fn remove_action(app_window: Window, action_id: String) {
     let _ = app_window.eval(format!("removeAction('{}')", action_id).as_str());
-}
-
-pub fn convert_file_src(file_path: &str, protocol: &str) -> String {
-    let urlencoded_path = urlencoding::encode(file_path);
-    if cfg!(windows) {
-        format!("http://{}.localhost/{}", protocol, urlencoded_path)
-    } else {
-        format!("{}://{}", protocol, urlencoded_path)
-    }
 }

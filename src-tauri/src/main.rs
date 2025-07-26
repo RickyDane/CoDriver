@@ -1,5 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use chrono::prelude::DateTime;
 use chrono::Local;
 #[allow(unused)]
@@ -7,15 +9,12 @@ use delete::{delete_file, rapid_delete_dir_all};
 use flate2::read::GzDecoder;
 #[cfg(target_os = "macos")]
 use icns::{IconFamily, IconType};
-use image::codecs::jpeg::JpegEncoder;
-use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 use image::ImageReader;
 use notify::{RecursiveMode, Watcher};
 use remove_dir_all::remove_dir_all;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
-use std::fmt::format;
 use std::fs::{self, read_dir, remove_dir};
 use std::io::Cursor;
 #[allow(unused)]
@@ -69,11 +68,13 @@ use notify::event::{CreateKind, RemoveKind};
 use notify::EventKind::{Create, Remove};
 use substring::Substring;
 
-use crate::utils::{convert_file_src, success_log};
+use crate::utils::success_log;
 
-// static mut LAST_DIR: String = String::new();
-static mut ISCANCELED: bool = false;
-static mut PATH_HISTORY: Vec<String> = vec![];
+// Global variables
+static IS_SEARCHING: OnceLock<bool> = OnceLock::new();
+static COUNT_CALLED_BACK: OnceLock<i32> = OnceLock::new();
+static ISCANCELED: OnceLock<bool> = OnceLock::new();
+static PATH_HISTORY: OnceLock<Vec<String>> = OnceLock::new();
 
 // #[cfg(target_os = "windows")]
 // const SLASH: &str = "\\";
@@ -88,6 +89,14 @@ const ASSET_LOCATION: &str = "asset://localhost/";
 static WINDOW: OnceLock<Window> = OnceLock::new();
 
 fn main() {
+    // Initialize GLobals
+    let _ = IS_SEARCHING.set(false).unwrap();
+    let _ = COUNT_CALLED_BACK.set(0).unwrap();
+    let _ = ISCANCELED.set(false).unwrap();
+    let _ = PATH_HISTORY.set(vec![]).unwrap();
+    let _ = COPY_COUNTER.set(0.0).unwrap();
+    let _ = TO_COPY_COUNTER.set(0.0).unwrap();
+
     let mut file_system_watcher =
         notify::recommended_watcher(handle_fs_change).expect("error creating file watcher");
 
@@ -506,7 +515,7 @@ async fn get_sshfs_mounts() -> Vec<DisksInfo> {
 #[tauri::command]
 async fn switch_to_directory(current_dir: String) {
     dbg_log(format!("Switching to directory: {}", &current_dir));
-    let _ = set_dir(current_dir).await;
+    let _ = set_dir(current_dir);
 }
 #[tauri::command]
 async fn switch_view(view_mode: String) -> Vec<FDir> {
@@ -546,7 +555,7 @@ async fn get_current_dir() -> String {
 }
 
 #[tauri::command]
-async fn set_dir(current_dir: String) -> bool {
+fn set_dir(current_dir: String) -> bool {
     dbg_log(format!("Current dir: {}", &current_dir));
     let md = fs::metadata(&current_dir);
     if md.is_err() {
@@ -613,16 +622,26 @@ async fn list_dirs() -> Vec<FDir> {
     dir_list
 }
 
+fn push_history(path: String) {
+    let mut history = PATH_HISTORY.get().unwrap().clone();
+    history.push(path);
+    let _ = PATH_HISTORY.set(history);
+}
+
+fn pop_history() {
+    let mut history = PATH_HISTORY.get().unwrap().clone();
+    history.pop();
+    let _ = PATH_HISTORY.set(history);
+}
+
 #[tauri::command]
 async fn open_dir(path: String) -> bool {
     let md = fs::read_dir(&path);
     dbg_log(format!("Opening dir: {}", &path));
     match md {
         Ok(_) => {
-            let _ = set_dir(path.clone()).await;
-            unsafe {
-                PATH_HISTORY.push(path);
-            }
+            let _ = set_dir(path.clone());
+            push_history(path);
             true
         }
         Err(_) => {
@@ -637,36 +656,32 @@ async fn open_dir(path: String) -> bool {
 }
 
 #[tauri::command]
-async fn go_back(is_dual_pane: bool) {
-    unsafe {
-        if PATH_HISTORY.len() > 1 && !is_dual_pane {
-            let last_path = &PATH_HISTORY[PATH_HISTORY.len() - 2];
-            dbg_log(format!("Went back to: {}", last_path));
-            let _ = set_dir(last_path.into()).await;
-            PATH_HISTORY.pop();
-        } else {
-            let _ = set_dir("./../".into()).await;
-        }
+fn go_back(is_dual_pane: bool) {
+    if PATH_HISTORY.get().unwrap().len() > 1 && !is_dual_pane {
+        let last_path = PATH_HISTORY.get().unwrap()[PATH_HISTORY.get().unwrap().len() - 2].clone();
+        dbg_log(format!("Went back to: {}", last_path));
+        let _ = set_dir(last_path.into());
+        pop_history();
+    } else {
+        let _ = set_dir("./../".into());
     }
 }
 
 #[tauri::command]
 async fn go_to_dir(directory: u8) -> Vec<FDir> {
     let wanted_directory = match directory {
-        0 => set_dir(desktop_dir().unwrap_or_default().to_str().unwrap().into()).await,
-        1 => set_dir(download_dir().unwrap_or_default().to_str().unwrap().into()).await,
-        2 => set_dir(document_dir().unwrap_or_default().to_str().unwrap().into()).await,
-        3 => set_dir(picture_dir().unwrap_or_default().to_str().unwrap().into()).await,
-        4 => set_dir(video_dir().unwrap_or_default().to_str().unwrap().into()).await,
-        5 => set_dir(audio_dir().unwrap_or_default().to_str().unwrap().into()).await,
-        _ => set_dir(current_dir().unwrap().to_str().unwrap().into()).await,
+        0 => set_dir(desktop_dir().unwrap_or_default().to_str().unwrap().into()),
+        1 => set_dir(download_dir().unwrap_or_default().to_str().unwrap().into()),
+        2 => set_dir(document_dir().unwrap_or_default().to_str().unwrap().into()),
+        3 => set_dir(picture_dir().unwrap_or_default().to_str().unwrap().into()),
+        4 => set_dir(video_dir().unwrap_or_default().to_str().unwrap().into()),
+        5 => set_dir(audio_dir().unwrap_or_default().to_str().unwrap().into()),
+        _ => set_dir(current_dir().unwrap().to_str().unwrap().into()),
     };
     if !wanted_directory {
         err_log("Not a valid directory".into());
     } else {
-        unsafe {
-            PATH_HISTORY.push(current_dir().unwrap().to_string_lossy().to_string());
-        }
+        push_history(current_dir().unwrap().to_string_lossy().to_string());
     }
     list_dirs().await
 }
@@ -772,23 +787,20 @@ async fn open_in_terminal(path: String) -> bool {
 
 #[tauri::command]
 async fn go_home() {
-    let _ = set_dir(home_dir().unwrap().to_str().unwrap().into()).await;
-    unsafe {
-        PATH_HISTORY.push(home_dir().unwrap().to_string_lossy().to_string());
-    }
+    let _ = set_dir(home_dir().unwrap().to_str().unwrap().into());
+    push_history(home_dir().unwrap().to_string_lossy().to_string());
 }
 
 #[tauri::command]
 async fn stop_searching() {
-    dbg_log(format!("Stopped searching: {}", unsafe { IS_SEARCHING }));
-    unsafe {
-        IS_SEARCHING = false;
-        COUNT_CALLED_BACK = 0;
-    }
+    dbg_log(format!(
+        "Stopped searching: {}",
+        IS_SEARCHING.get().unwrap()
+    ));
+    let _ = IS_SEARCHING.set(false);
+    let _ = COUNT_CALLED_BACK.set(0);
 }
 
-static mut IS_SEARCHING: bool = false;
-static mut COUNT_CALLED_BACK: i32 = 0;
 #[tauri::command]
 async fn search_for(
     mut file_name: String,
@@ -798,15 +810,13 @@ async fn search_for(
     app_window: Window,
     is_quick_search: bool,
 ) {
-    unsafe {
-        IS_SEARCHING = true;
-        COUNT_CALLED_BACK = 0;
-    }
+    let _ = IS_SEARCHING.set(true);
+    let _ = COUNT_CALLED_BACK.set(0);
     let _ = app_window.eval("$('.file-searching-file-count').css('display', 'block')");
     let _ = app_window.eval("$('.searching-info-container').css('display', 'block')");
     let _ = app_window.eval(&format!(
         "$('.file-searching-file-count').html('{} items found')",
-        unsafe { COUNT_CALLED_BACK }
+        COUNT_CALLED_BACK.get().unwrap()
     ));
     dbg_log(format!(
         "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}",
@@ -842,9 +852,7 @@ async fn search_for(
         is_quick_search,
         file_content,
         &|item: DirWalkerEntry| {
-            unsafe {
-                COUNT_CALLED_BACK += 1;
-            }
+            let _ = COUNT_CALLED_BACK.set(COUNT_CALLED_BACK.get().unwrap() + 1);
             app_window
                 .emit_all(
                     "addSingleItem",
@@ -853,15 +861,13 @@ async fn search_for(
                 .expect("Failed to emit");
             let _ = app_window.eval(&format!(
                 "$('.file-searching-file-count').html('{} items found')",
-                unsafe { COUNT_CALLED_BACK }
+                COUNT_CALLED_BACK.get().unwrap()
             ));
         },
         &app_window,
     );
 
-    unsafe {
-        IS_SEARCHING = false;
-    }
+    let _ = IS_SEARCHING.set(false);
     let _ = app_window.eval("$('.file-searching-done').css('display', 'block')");
     let _ = app_window.eval("$('.is-file-searching').css('display', 'none')");
     let _ = app_window.eval(&format!(
@@ -887,9 +893,7 @@ async fn copy_paste(
         wng_log("No destination path provided. Defaulting to current dir".into());
         copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
     }
-    unsafe {
-        COPY_COUNTER = 0.0;
-    }
+    let _ = COPY_COUNTER.set(0.0);
     let _ = &app_window
         .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
     dbg_log(format!("Copying: {} ...", &act_file_name));
@@ -901,14 +905,11 @@ async fn copy_paste(
     )
     .await;
 
-    unsafe {
-        TO_COPY_COUNTER = count_entries(&from_path).unwrap();
-        if TO_COPY_COUNTER == 1.0 {
-            let _ =
-                app_window.eval("document.querySelector('.progress-bar-2').style.display = 'none'");
-        } else {
-            show_progressbar(&app_window);
-        }
+    let _ = TO_COPY_COUNTER.set(count_entries(&from_path).unwrap());
+    if TO_COPY_COUNTER.get().unwrap() == &1.0 {
+        let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'none'");
+    } else {
+        show_progressbar(&app_window);
     }
     let sw = Stopwatch::start_new();
 
@@ -940,18 +941,17 @@ async fn arr_copy_paste(
         wng_log("No destination path provided. Defaulting to current dir".into());
         copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
     }
-    unsafe {
-        COPY_COUNTER = 0.0;
-        TO_COPY_COUNTER = 0.0
-    }
+
+    let _ = COPY_COUNTER.set(0.0);
+    let _ = TO_COPY_COUNTER.set(0.0);
+
     let _ = &app_window
         .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
     let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
     let mut filename: String;
     for item in arr_items.clone() {
-        unsafe {
-            TO_COPY_COUNTER += count_entries(&item.path).unwrap();
-        }
+        let _ = TO_COPY_COUNTER
+            .set(TO_COPY_COUNTER.get().unwrap() + count_entries(&item.path).unwrap());
     }
     let sw = Stopwatch::start_new();
     for item in arr_items {
@@ -1614,9 +1614,7 @@ async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Ve
 
 #[tauri::command]
 async fn cancel_operation() {
-    unsafe {
-        ISCANCELED = true;
-    }
+    let _ = ISCANCELED.set(true).unwrap();
 }
 
 #[tauri::command]
@@ -2037,55 +2035,56 @@ async fn load_item_image(
     image_url: String,
     image_type: String,
 ) -> Result<(), String> {
+    let thumbnail_size = 50;
     dbg_log(format!("Loading image: {}", image_url));
-    match ImageReader::open(image_url) {
+    match ImageReader::open(&image_url) {
         Ok(image) => {
             let image = image.decode().unwrap();
             let mut bytes: Vec<u8> = Vec::new();
             if image_type == String::from("png") {
                 image
-                    .thumbnail(100, 100)
+                    .thumbnail(thumbnail_size, thumbnail_size)
                     .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
                     .unwrap();
             } else if image_type == String::from("gif") {
                 image
-                    .thumbnail(100, 100)
+                    .thumbnail(thumbnail_size, thumbnail_size)
                     .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Gif)
                     .unwrap();
             } else if image_type == String::from("webp") {
                 image
-                    .thumbnail(100, 100)
+                    .thumbnail(thumbnail_size, thumbnail_size)
                     .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::WebP)
                     .unwrap();
             } else if image_type == String::from("jpg") || image_type == String::from("jpeg") {
                 image
-                    .thumbnail(100, 100)
+                    .thumbnail(thumbnail_size, thumbnail_size)
                     .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Jpeg)
                     .unwrap();
             } else if image_type == String::from("tiff") {
                 image
-                    .thumbnail(100, 100)
+                    .thumbnail(thumbnail_size, thumbnail_size)
                     .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Tiff)
                     .unwrap();
             } else if image_type == String::from("ico") {
                 image
-                    .thumbnail(100, 100)
+                    .thumbnail(thumbnail_size, thumbnail_size)
                     .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Ico)
                     .unwrap();
             } else if image_type == String::from("avif") {
                 image
-                    .thumbnail(100, 100)
+                    .thumbnail(thumbnail_size, thumbnail_size)
                     .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Avif)
                     .unwrap();
             } else if image_type == String::from("bmp") {
                 image
-                    .thumbnail(100, 100)
+                    .thumbnail(thumbnail_size, thumbnail_size)
                     .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Bmp)
                     .unwrap();
             } else {
-                return Err("Unsupported image type".into());
+                return Err(format!("Image type not recognized: {}", image_type));
             }
-            let base64 = base64::encode(&bytes);
+            let base64 = BASE64_STANDARD.encode(&bytes);
             let _ = WINDOW.get().unwrap().emit(
                 "loaded-item-image",
                 format!(
@@ -2096,7 +2095,14 @@ async fn load_item_image(
             Ok(())
         }
         Err(err) => {
-            err_log(format!("Failed to load image: {}", err));
+            err_log(format!(
+                "Failed to load image: {}. Using default image.",
+                err
+            ));
+            let _ = WINDOW.get().unwrap().eval(&format!(
+                "document.getElementById('{}').src = '{}",
+                image_id, image_url
+            ));
             Err(err.to_string())
         }
     }
