@@ -57,6 +57,7 @@ notify = { version = "8.0.0", features = ["serde"] }
 window-vibrancy = "0.4.0"
 base64 = "0.22.1"
 lazy_static = "1.5.0"
+tokio = "1.47.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"
