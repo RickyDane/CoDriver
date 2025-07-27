@@ -854,12 +854,8 @@ async fn search_for(
                         serde_json::to_string(&item).unwrap().to_string(),
                     )
                     .expect("Failed to emit");
-                let _ = app_window.eval(&format!(
-                    "$('.file-searching-file-count').html('{} items found')",
-                    *count_called_back
-                ));
             },
-            &count_called_back,
+            &mut count_called_back,
         )
         .await;
 
@@ -2054,8 +2050,7 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
 
             // Skip loading the image when the image dir is not the current directory
             // => Means that the user switched directories in the meantime
-            if (item.image_url.starts_with("resources/") || image_dir != &get_current_dir().await)
-                && !is_single
+            if item.image_url.starts_with("resources/") || (image_dir != &get_current_dir().await && !is_single)
             {
                 wng_log(format!("Skipped image: {}", item.image_url));
                 return;

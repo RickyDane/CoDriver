@@ -341,7 +341,7 @@ impl DirWalker {
         is_quick_search: bool,
         file_content: String,
         callback: &impl Fn(DirWalkerEntry),
-        count_called_back: &MutexGuard<'_, i32>,
+        count_called_back: &mut MutexGuard<'_, i32>,
     ) {
         let app_window = WINDOW.get().unwrap();
         let reg_exp: Regex;
@@ -390,12 +390,6 @@ impl DirWalker {
             let name = entry.file_name().to_str().unwrap_or("").to_string();
             let path = entry.path();
             let item_path = entry.file_name().to_str().unwrap_or("").to_lowercase();
-
-            // Show how many files have already been checked
-            let _ = app_window.eval(&format!(
-                "$('.file-searching-file-count').html('{} items found<br/><br/>{} items checked')",
-                **count_called_back, count_of_checked_items
-            ));
 
             // Exclude onedrive so the file explorer doesn't download stuff from it => TODO: Make it configurable in the future
             if item_path.contains("onedrive") {
@@ -453,6 +447,7 @@ impl DirWalker {
                             last_modified: format!("{:?}", last_mod),
                             size: fs::metadata(&path).unwrap().len(),
                         });
+                        **count_called_back += 1;
                     }
                 } else {
                     // Search w/o file content
@@ -466,8 +461,15 @@ impl DirWalker {
                         last_modified: format!("{:?}", last_mod),
                         size: fs::metadata(&path).unwrap().len(),
                     });
+                    **count_called_back += 1;
                 }
             }
+
+            // Show how many files have already been checked
+            let _ = app_window.eval(&format!(
+                "$('.file-searching-file-count').html('{} items found<br/><br/>{} items checked')",
+                **count_called_back, count_of_checked_items
+            ));
         }
     }
 
