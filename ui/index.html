@@ -2,13 +2,14 @@
 <html>
 
 <head>
-    <script src="jquery.js" async></script>
-    <script src="font-awesome/js/all.min.js" async></script>
-    <script src="ds.min.js" async></script>
-    <script src="utils.js" async></script>
+    <script src="jquery.js"></script>
+    <script src="font-awesome/js/all.min.js"></script>
+    <script src="ds.min.js"></script>
+    <script src="utils.js"></script>
+    <script src="contextmenu.js"></script>
     <script src="file_extensions.js" async></script>
-    <script src="models.js" async defer></script>
-    <script src="main_logic.js" async defer></script>
+    <script src="models.js" defer></script>
+    <script src="main_logic.js" defer></script>
     <link rel="stylesheet" href="font-awesome/css/all.min.css" />
     <link rel="stylesheet" href="style.css" />
     <meta charset="utf-8" />
@@ -24,10 +25,10 @@
     <div class="popup-background"></div>
 
     <!-- :instant-search | Instant Search -->
-    <input class="instant-search-input text-input" type="text" placeholder="Start typing ..." disabled/>
+    <input class="instant-search-input text-input" type="text" placeholder="Start typing ..." disabled />
 
     <div style="display: flex; width: 100%; height: 100vh;">
-        <div data-tauri-drag-region class="site-nav-bar">
+        <div class="site-nav-bar">
             <div class="codriver-name">CoDriver</div>
             <div class="active-actions-container"></div>
         </div>
@@ -47,18 +48,21 @@
                     <button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
                     <div class="preloader-small-invert is-file-searching"></div>
                 </div>
-                <div data-tauri-drag-region class="header-nav-right-container" style="display: flex; flex-flow: row; gap: 10px; justify-content: flex-end; align-items: center; width: 100%;">
+                <div data-tauri-drag-region class="header-nav-right-container"
+                    style="display: flex; flex-flow: row; gap: 10px; justify-content: flex-end; align-items: center; width: 100%;">
                     <div class="file-searchbar">
                         <input class="search-bar-input text-input" type="text" placeholder="Cmd / Ctrl + F" />
-                        <button class="search-button" onclick="searchFor($('.search-bar-input').val())"><i class="fa-solid fa-magnifying-glass"></i></button>
-                        <button class="cancel-search-button" onclick="cancelSearch()"><i class="fa-solid fa-xmark"></i></button>
+                        <button class="search-button" onclick="searchFor($('.search-bar-input').val())"><i
+                                class="fa-solid fa-magnifying-glass"></i></button>
+                        <button class="cancel-search-button" onclick="cancelSearch()"><i
+                                class="fa-solid fa-xmark"></i></button>
                     </div>
                     <button onclick="switchView()" class="header-nav-button switch-view-button"></button>
-					<div class="windows-linux-titlebar-buttons">
+                    <div class="windows-linux-titlebar-buttons">
                         <button class="minimize-button"><i class="fa-solid fa-minus"></i></button>
-						<button class="maximize-button"><i class="fa-regular fa-window-maximize"></i></button>
-						<button class="close-button"><i class="fa-solid fa-xmark"></i></button>
-					</div>
+                        <button class="maximize-button"><i class="fa-regular fa-window-maximize"></i></button>
+                        <button class="close-button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
                 </div>
             </div>
 
@@ -81,6 +85,22 @@
                     <!-- Directory will be displayed in here -->
                 </div>
                 <div class="dual-pane-container">
+                    <div class="dual-pane-toolbar">
+                        <div class="dual-pane-disk-dropdown left">
+                            <i class="fa-solid fa-hdd" style="font-size: 12px; color: var(--textColor);"></i>
+                            <select class="left-disk-dropdown" onchange="navigateToDisk(this.value, 'left')">
+                                <option value="1">Disk 1</option>
+                                <option value="2">Disk 2</option>
+                            </select>
+                        </div>
+                        <div class="dual-pane-disk-dropdown right">
+                            <i class="fa-solid fa-hdd" style="font-size: 12px; color: var(--textColor);"></i>
+                            <select class="right-disk-dropdown" onchange="navigateToDisk(this.value, 'right')">
+                                <option value="1">Disk 1</option>
+                                <option value="2">Disk 2</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="dual-pane-left"></div>
                     <div class="dual-pane-right"></div>
                 </div>
@@ -101,22 +121,27 @@
                 <button class="context-item c-item-extract">Extract<i class="fa-solid fa-box-open"></i></button>
                 <button class="context-item c-item-compress">Compress<i class="fa-solid fa-box"></i></button>
                 <button class="context-item c-item-copy">Copy<i class="fa-solid fa-copy"></i></button>
-                <button class="context-item c-item-paste" onclick="pasteItem()">Paste<i class="fa-solid fa-paste"></i></button>
+                <button class="context-item c-item-paste" onclick="pasteItem()">Paste<i
+                        class="fa-solid fa-paste"></i></button>
                 <button class="context-item c-item-moveto">Move to<i class="fa-solid fa-arrow-right"></i></button>
                 <button class="context-item c-item-newfile">New file<i class="fa-solid fa-file"></i></button>
-                <button class="context-item c-item-newfolder" onclick="createFolderInputPrompt()">New folder<i class="fa-solid fa-folder-plus"></i></button>
+                <button class="context-item c-item-newfolder" onclick="createFolderInputPrompt()">New folder<i
+                        class="fa-solid fa-folder-plus"></i></button>
                 <button class="context-item c-item-rename">Rename<i class="fa-solid fa-file-signature"></i></button>
                 <div class="context-item context-with-dropdown">
                     <span>Extras</span>
                     <i class="fa-solid fa-chevron-right"></i>
                     <div class="context-dropdown">
-                        <button class="context-item c-item-duplicates">Duplicates<i class="fa-solid fa-magnifying-glass"></i></button>
-                        <button class="context-item c-item-ytdownload">YT-Download<i class="fa-solid fa-video"></i></button>
+                        <button class="context-item c-item-duplicates">Duplicates<i
+                                class="fa-solid fa-magnifying-glass"></i></button>
+                        <!-- <button class="context-item c-item-ytdownload">YT-Download<i
+                                class="fa-solid fa-video"></i></button> -->
                     </div>
                 </div>
                 <button class="context-item c-item-properties">Properties<i
                         class="fa-solid fa-info-circle"></i></button>
-                <button class="context-item c-item-openinterminal" onclick="openInTerminal()">Open in Terminal<i class="fa-solid fa-terminal"></i></button>
+                <button class="context-item c-item-openinterminal" onclick="openInTerminal()">Open in Terminal<i
+                        class="fa-solid fa-terminal"></i></button>
             </div>
 
             <!-- :settings | Settings UI -->
@@ -133,14 +158,15 @@
                         <h3 class="settings-ui-headline">Theme</h3>
                         <div class="popup-body-row-section">
                             <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig(true)"></i>
-                            <select style="min-width: 0 !important;" class="select theme-select" onchange="saveConfig(true, true)"></select>
+                            <select style="min-width: 0 !important;" class="select theme-select"
+                                onchange="saveConfig(true, true)"></select>
                             <button class="open-config-button icon-button" onclick="openConfigLocation()">
                                 <span class="button-icon"><i class="fa-solid fa-folder"></i></span>
                                 Open config location
                             </button>
                         </div>
                     </div>
-                    <br/>
+                    <br />
                     <h3 class="settings-ui-headline">Shortcuts</h3>
                     <p>Configure up to 3 paths to switch to in an instant (Alt + 1, 2, 3)</p>
                     <input type="text" class="settings-ui-input text-input configured-path-one-input"
@@ -152,11 +178,11 @@
                     <br />
                     <h3 class="settings-ui-headline">Search settings</h3>
                     <p>Search depth (higher = slower) | Standard: 10</p>
-                    <input style="width: 100px;" type="number" class="text-input settings-input number-input search-depth-input"
-                        placeholder="0 = off" />
+                    <input style="width: 100px;" type="number"
+                        class="text-input settings-input number-input search-depth-input" placeholder="0 = off" />
                     <p>Max count of items to find (higher = slower) | Standard: 1000</p>
-                    <input style="width: 100px;" type="number" class="text-input settings-input number-input max-items-input"
-                        placeholder="0 = off" />
+                    <input style="width: 100px;" type="number"
+                        class="text-input settings-input number-input max-items-input" placeholder="0 = off" />
                     <p>Path to launch at start</p>
                     <input type="text" class="settings-ui-input text-input launch-path-input" placeholder="/home" />
                     <br />
@@ -178,8 +204,10 @@
                     </span>
                 </div>
                 <div class="popup-controls" style="border-top: 1px solid var(--tertiaryColor)">
-                    <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i class="fa-solid fa-xmark"></i></span>Close</button>
-                    <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i class="fa-solid fa-floppy-disk"></span></i>Save</button>
+                    <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i
+                                class="fa-solid fa-xmark"></i></span>Close</button>
+                    <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i
+                                class="fa-solid fa-floppy-disk"></span></i>Save</button>
                 </div>
             </div>
 
@@ -206,8 +234,7 @@
                     </div>
                     <div class="popup-body-col-section">
                         <p class="text-2">File content</p>
-                        <input
-                            class="full-dualpane-search-file-content-input trigger-for-full-search text-input"
+                        <input class="full-dualpane-search-file-content-input trigger-for-full-search text-input"
                             type="text" placeholder="A long, long time ago in a galaxy far far away..." />
                     </div>
                     <div class="popup-body-col-section">

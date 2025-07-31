@@ -1,4 +1,3 @@
-use objc::{msg_send, sel, sel_impl};
 use tauri::{Runtime, Window};
 
 pub trait WindowExt {
@@ -29,7 +28,6 @@ impl<R: Runtime> WindowExt for Window<R> {
     fn position_traffic_lights(&self, x: f64, y: f64) {
         use cocoa::appkit::{NSView, NSWindow, NSWindowButton};
         use cocoa::foundation::NSRect;
-        use objc::msg_send;
 
         let window = self.ns_window().unwrap() as cocoa::base::id;
 
@@ -41,14 +39,80 @@ impl<R: Runtime> WindowExt for Window<R> {
 
             let title_bar_container_view = close.superview().superview();
 
-            let close_rect: NSRect = msg_send![close, frame];
+            let close_rect: NSRect = {
+                let sel = {
+                    {
+                        #[allow(deprecated)]
+                        #[inline(always)]
+                        fn register_sel(name: &str) -> objc::runtime::Sel {
+                            unsafe {
+                                static SEL: ::std::sync::atomic::AtomicUsize =
+                                    ::std::sync::atomic::ATOMIC_USIZE_INIT;
+                                let ptr = SEL.load(::std::sync::atomic::Ordering::Relaxed)
+                                    as *const ::std::os::raw::c_void;
+                                if ptr.is_null() {
+                                    let sel =
+                                        objc::runtime::sel_registerName(name.as_ptr() as *const _);
+                                    SEL.store(
+                                        sel.as_ptr() as usize,
+                                        ::std::sync::atomic::Ordering::Relaxed,
+                                    );
+                                    sel
+                                } else {
+                                    objc::runtime::Sel::from_ptr(ptr)
+                                }
+                            }
+                        }
+                        register_sel(concat!(stringify!(frame), '\0'))
+                    }
+                };
+                let result;
+                match objc::__send_message(&*close, sel, ()) {
+                    Err(s) => panic!("{}", s),
+                    Ok(r) => result = r,
+                }
+                result
+            };
             let button_height = close_rect.size.height;
 
             let title_bar_frame_height = button_height + y;
             let mut title_bar_rect = NSView::frame(title_bar_container_view);
             title_bar_rect.size.height = title_bar_frame_height;
             title_bar_rect.origin.y = NSView::frame(window).size.height - title_bar_frame_height;
-            let _: () = msg_send![title_bar_container_view, setFrame: title_bar_rect];
+            let _: () = {
+                let sel = {
+                    {
+                        #[allow(deprecated)]
+                        #[inline(always)]
+                        fn register_sel(name: &str) -> objc::runtime::Sel {
+                            unsafe {
+                                static SEL: ::std::sync::atomic::AtomicUsize =
+                                    ::std::sync::atomic::ATOMIC_USIZE_INIT;
+                                let ptr = SEL.load(::std::sync::atomic::Ordering::Relaxed)
+                                    as *const ::std::os::raw::c_void;
+                                if ptr.is_null() {
+                                    let sel =
+                                        objc::runtime::sel_registerName(name.as_ptr() as *const _);
+                                    SEL.store(
+                                        sel.as_ptr() as usize,
+                                        ::std::sync::atomic::Ordering::Relaxed,
+                                    );
+                                    sel
+                                } else {
+                                    objc::runtime::Sel::from_ptr(ptr)
+                                }
+                            }
+                        }
+                        register_sel(concat!(stringify!(setFrame), ':', '\0'))
+                    }
+                };
+                let result;
+                match objc::__send_message(&*title_bar_container_view, sel, (title_bar_rect,)) {
+                    Err(s) => panic!("{}", s),
+                    Ok(r) => result = r,
+                }
+                result
+            };
 
             let window_buttons = vec![close, miniaturize, zoom];
             let space_between = NSView::frame(miniaturize).origin.x - NSView::frame(close).origin.x;

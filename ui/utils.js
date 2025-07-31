@@ -1,5 +1,10 @@
 const { listen } = window.__TAURI__.event;
 
+// Initialize here to be accessable from anywhere
+let ArrSelectedItems = [];
+let ArrCopyItems = [];
+let Applications = [];
+
 /* Drag and drop files into file explorer */
 // TODO: Make it simpler and not so shitty
 listen("tauri://file-drop", async (event) => {
@@ -23,9 +28,7 @@ listen("tauri://file-drop", async (event) => {
           await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
           await listDirectories();
         } else if (operation == "move") {
-          IsCopyToCut = true;
-          await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
-          IsCopyToCut = false;
+          await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "", true);
           await listDirectories();
         }
       } else {
@@ -41,9 +44,7 @@ listen("tauri://file-drop", async (event) => {
         await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
         await listDirectories();
       } else if (operation == "move") {
-        IsCopyToCut = true;
-        await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
-        IsCopyToCut = false;
+        await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "", true);
         await listDirectories();
       }
       CopyFileName = "";
@@ -141,6 +142,7 @@ function formatBytes(bytes, decimals = 2) {
 
 async function writeLog(log) {
   await invoke("log", { log: JSON.stringify(log) });
+  console.log(log);
 }
 
 function isImage(fileExt) {
@@ -189,4 +191,17 @@ function removeAction(actionId) {
   setTimeout(() => {
     $(`.active-action-${actionId}`).remove();
   }, 300);
+}
+
+function endsWith(text, divider = ".", ends = []) {
+  let endedWithIt = false;
+  if (!text) return; false;
+  let textEnd = text.split(divider)[text.split(divider).length - 1];
+  ends.forEach(end => {
+    if (textEnd == end) {
+      endedWithIt = true;
+      return true;
+    }
+  });
+  return endedWithIt;
 }
