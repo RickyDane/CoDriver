@@ -146,13 +146,10 @@ async function writeLog(log) {
 }
 
 function isImage(fileExt) {
-  switch (fileExt) {
+  switch (fileExt.toLowerCase()) {
     case ".png":
-    case ".PNG":
     case ".jpg":
-    case ".JPG":
     case ".jpeg":
-    case ".JPEG":
     case ".gif":
     case ".svg":
     case ".bmp":
@@ -162,6 +159,7 @@ function isImage(fileExt) {
     case ".webp":
     case ".jfif":
     case ".tiff":
+    case ".bmp":
       return true;
     default:
       return false;
