@@ -287,8 +287,9 @@ body {
 }
 
 .disk-site-nav-button {
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.75);
-    border: 1px solid var(--transparentColor) !important;
+    color: var(--textColor2);
+    /*text-shadow: 0 0 5px rgba(0, 0, 0, 0.75);*/
+    /*border: 1px solid var(--transparentColor) !important;*/
 }
 .disk-site-nav-button:hover {
     background-color: var(--selectColor3) !important;

@@ -4532,7 +4532,7 @@ async function insertSiteNavButtons() {
         await listDirectories();
       };
       // Show space left with gradient
-      diskButton.style.background = `linear-gradient(to right, var(--tertiaryColor) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
+      diskButton.style.background = `linear-gradient(to right, var(--selectColor3) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
       diskButton.style.backgroundRepeat = "no-repeat";
       if (mount.format.includes("SSHFS") || mount.is_removable == true) {
         diskButton.oncontextmenu = (e) => {
