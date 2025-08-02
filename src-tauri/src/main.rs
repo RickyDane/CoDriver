@@ -652,7 +652,6 @@ async fn open_dir(path: String) -> bool {
 #[tauri::command]
 async fn go_back(is_dual_pane: bool) {
     let path_history = (PATH_HISTORY.lock().await).clone();
-    dbg_log(format!("Current path history: {:?}", path_history));
     if path_history.len() > 1 && !is_dual_pane {
         let last_path = path_history[path_history.len() - 2].clone();
         dbg_log(format!("Went back to: {}", last_path));
@@ -825,14 +824,15 @@ async fn search_for(
         file_name = temp_file_name.trim().replace("*", "");
     }
 
-    let file_ext = ".".to_string().to_owned()
-        + file_name
-            .split(".")
-            .nth(file_name.split(".").count() - 1)
-            .unwrap_or("");
+    let mut file_ext: String = String::from("");
+    if file_name.split(".").count() >= 2 {
+        if let Some(splitted) = file_name.split(".").last() {
+            file_ext = ".".to_owned() + splitted;
+        }
+    }
 
     let mut v_exts: Vec<String> = vec![];
-    if !file_ext.is_empty() {
+    if !file_ext.is_empty() || file_ext == ".".to_string() {
         v_exts.push(file_ext.to_lowercase());
     }
 

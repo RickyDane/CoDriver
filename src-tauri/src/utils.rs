@@ -1,8 +1,11 @@
 use chrono::prelude::*;
+use cocoa::appkit::NSPasteboardTypeMultipleTextSelection;
 use color_print::cprintln;
 use regex::Regex;
 use serde::Serialize;
+use std::env::current_dir;
 use std::fs::OpenOptions;
+use std::path::Path;
 use std::{
     ffi::OsStr,
     fmt::Debug,
@@ -344,24 +347,26 @@ impl DirWalker {
         count_called_back: &mut MutexGuard<'_, i32>,
     ) {
         let app_window = WINDOW.get().unwrap();
-        let reg_exp: Regex;
+        // let reg_exp: Regex;
         let mut count_of_checked_items: usize = 0;
 
-        if !self.exts.is_empty() {
-            reg_exp = Regex::new(format!("(?i){}", file_name).as_str()).unwrap();
-            println!(
-                "Searching with file extension: {} | regex: {}",
-                self.exts.first().unwrap(),
-                reg_exp.as_str()
-            );
-        } else {
-            reg_exp = Regex::new(format!("(?i){}.*", file_name).as_str()).unwrap();
-        }
+        // if !self.exts.is_empty() {
+        //     reg_exp = Regex::new(format!("(?i){}", file_name.replace(" ", ".")).as_str()).unwrap();
+        //     println!(
+        //         "Searching with file extension: {} | regex: {}",
+        //         self.exts.first().unwrap(),
+        //         reg_exp.as_str()
+        //     );
+        // } else {
+        //     reg_exp = Regex::new(format!("(?i){}", file_name.replace(" ", ".")).as_str()).unwrap();
+        //     println!(
+        //         "Searching with regex: {}",
+        //         reg_exp.as_str()
+        //     );
+        // }
 
         for entry in jwalk::WalkDir::new(path)
-            .parallelism(jwalk::Parallelism::RayonNewPool(
-                System::new().physical_core_count().unwrap_or(4) - 1,
-            ))
+            .parallelism(jwalk::Parallelism::RayonNewPool(num_cpus::get() - 1))
             .sort(true)
             .min_depth(0)
             .max_depth(depth as usize)
@@ -369,6 +374,45 @@ impl DirWalker {
             .follow_links(true)
         {
             count_of_checked_items += 1;
+
+            if entry.is_err() {
+                wng_log(format!("Skipped: {}", entry.err().unwrap()));
+                continue;
+            }
+
+            let entry = entry.unwrap();
+            let item_path = entry.file_name().to_str().unwrap_or("").to_lowercase();
+            let name = entry.file_name().to_str().unwrap_or("").to_string();
+            let path = entry.path();
+
+            let item_ext = ".".to_owned()
+                + &item_path
+                    .split(".")
+                    .last()
+                    .unwrap()
+                    .to_string()
+                    .to_lowercase();
+
+            // Exclude some stuff
+            if item_path.contains("onedrive")
+                || name
+                    == current_dir()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_string()
+                        .split("/")
+                        .last()
+                        .unwrap()
+                        .to_string()
+                || item_ext == ".declarations"
+                || item_ext == ".declarations_content"
+                || item_ext == ".resolved"
+                || item_ext == ".unlinked2"
+                || item_ext == ".linked"
+            {
+                continue;
+            }
 
             unsafe {
                 // End searching if interrupted through esc-key
@@ -381,39 +425,12 @@ impl DirWalker {
                 }
             }
 
-            if entry.is_err() {
-                continue;
-            }
-
-            let entry = entry.unwrap();
-
-            let name = entry.file_name().to_str().unwrap_or("").to_string();
-            let path = entry.path();
-            let item_path = entry.file_name().to_str().unwrap_or("").to_lowercase();
-
-            // Exclude onedrive so the file explorer doesn't download stuff from it => TODO: Make it configurable in the future
-            if item_path.contains("onedrive") {
-                continue;
-            }
-
-            let item_ext = ".".to_owned()
-                + &item_path
-                    .split(".")
-                    .last()
-                    .unwrap()
-                    .to_string()
-                    .to_lowercase();
-
             let file_metadata = fs::metadata(&path);
             if file_metadata.is_err() {
                 return;
             }
 
             let last_mod: DateTime<Local> = file_metadata.unwrap().modified().unwrap().into();
-
-            if !reg_exp.is_match(&name) {
-                continue;
-            }
 
             app_window
                 .eval(
@@ -426,12 +443,13 @@ impl DirWalker {
                 )
                 .unwrap();
 
-            let is_match = reg_exp.is_match(&name);
             let is_with_exts = !self.exts.is_empty() && self.exts.contains(&item_ext);
             let is_file = path.is_file();
             let is_quick_search = is_quick_search;
 
-            if is_match && ((is_with_exts && is_file) || is_quick_search) {
+            let is_match = is_match_file(&name, &file_name, &is_with_exts);
+
+            if is_match {
                 // Search for file content
                 if !file_content.is_empty() {
                     let content = fs::read_to_string(&path).unwrap_or_else(|_| "".into());
@@ -502,6 +520,29 @@ impl DirWalker {
 
     pub fn get_items(&self) -> Vec<DirWalkerEntry> {
         (*self.items).to_vec()
+    }
+}
+
+fn is_match_file(file_name: &str, search_input: &str, is_with_ext: &bool) -> bool {
+    let file_name_lower = file_name.to_lowercase();
+
+    let search = search_input.to_lowercase();
+    let terms = search
+        .split_whitespace()
+        .filter(|term| !term.is_empty())
+        .collect::<Vec<&str>>();
+
+    if !is_with_ext {
+        return terms.iter().all(|term| file_name_lower.contains(term));
+    } else {
+        let ext = Path::new(file_name)
+            .extension()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_lowercase();
+        return terms
+            .iter()
+            .all(|term| file_name_lower.contains(term) && file_name_lower.contains(&ext));
     }
 }
 

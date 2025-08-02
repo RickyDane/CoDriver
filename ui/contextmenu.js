@@ -157,6 +157,7 @@ class CDContextMenu {
         subItemButton.innerHTML = `<span class="context-label">${app[0]}</span>`;
         subItemButton.onclick = () => {
           open_with(this.selectedItem.getAttribute("itempath"), app[1]);
+          this.hideSubMenu();
         };
         this.subMenu.appendChild(subItemButton);
       });
@@ -190,6 +191,9 @@ class CDContextMenu {
         "zip",
         "rar",
         "7z",
+		"tar",
+		"tar.gz",
+		"tar.bz2"
       ]);
     } else if (item.label == "Paste") {
       return ArrCopyItems.length === 0;
