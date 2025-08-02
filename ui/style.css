@@ -282,7 +282,8 @@ body {
 }
 
 .site-nav-bar-button:hover {
-    background-color: var(--transparentColorActive) !important;
+    background-color: var(--selectColor3) !important;
+    border: 1px solid var(--selectColor3) !important;
 }
 
 .disk-site-nav-button {
@@ -842,7 +843,7 @@ button > svg {
 }
 
 .selected-item-min {
-    background-color: var(--selectColor2);
+    background-color: var(--selectColor3);
     color: white;
 }
 
@@ -1071,9 +1072,9 @@ button > svg {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--transparentColorActive);
+    background-color: var(--selectColor3);
     z-index: 2;
-    border-right: 2px solid var(--transparentColorActive);
+    border-right: 2px solid var(--selectColor2);
     margin: 1px;
     border-radius: 2px 0px 0px 2px;
 }
@@ -1956,14 +1957,13 @@ button > svg {
     width: 100%;
     padding: 7.5px 10px;
     cursor: pointer;
-    color: var(--textColor2);
     font-weight: 300;
 }
 
 .list-item {
     width: 100%;
     padding: 7.5px 10px;
-    color: var(--textColor2);
+    color: var(--textColor);
     font-size: var(--fontSize);
     font-weight: 300;
     border-bottom: 1px solid var(--secondaryColor);
@@ -2064,6 +2064,11 @@ button > svg {
 .text-2 {
     font-size: var(--fontSize);
     color: var(--textColor2);
+    font-weight: 300;
+}
+.text-small {
+    font-size: var(--fontSize);
+    color: var(--textColor);
     font-weight: 300;
 }
 

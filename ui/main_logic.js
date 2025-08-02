@@ -1601,17 +1601,17 @@ async function addSingleItem(
       case ".jfif":
       case ".avif":
       case ".icns":
-      if (IsImagePreview) {
-        if (item.size < 50000000) {
-          // ~50 mb
-          fileIcon = item.path;
+        if (IsImagePreview) {
+          if (item.size < 50000000) {
+            // ~50 mb
+            fileIcon = item.path;
+          } else {
+            fileIcon = "resources/img-file.png";
+          }
         } else {
           fileIcon = "resources/img-file.png";
         }
-      } else {
-        fileIcon = "resources/img-file.png";
-      }
-      break;
+        break;
         break;
       case ".pdf":
         fileIcon = "resources/pdf-file.png";
@@ -3697,7 +3697,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     showToast("Settings have been saved", ToastType.INFO);
   }
   if (isToReload == true) {
-    checkAppConfig();
+    await checkAppConfig();
   }
 }
 
@@ -3902,28 +3902,28 @@ function showMultiRenamePopup() {
     </h3>
     <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
   		<h4 class="text">Options</h4>
-  		<p class="text-2">If no extension is supplied the extension won't be changed</p>
+  		<p class="text-small">If no extension is supplied the extension won't be changed</p>
     </div>
     <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
     <div style="display: flex; flex-flow: row; gap: 10px;">
   		<div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
-  		<p class="text-2">New name</p>
+  		<p class="text-small">New name</p>
   		<input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
   		</div>
   		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-2">Start at</p>
+  		<p class="text-small">Start at</p>
   		<input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
   		</div>
   		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-2">Step by</p>
+  		<p class="text-small">Step by</p>
   		<input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
   		</div>
   		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-2">Digits</p>
+  		<p class="text-small">Digits</p>
   		<input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
   		</div>
   		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-2">Extension</p>
+  		<p class="text-small">Extension</p>
 		  <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
   		</div>
   		</div>
@@ -3937,7 +3937,6 @@ function showMultiRenamePopup() {
     let item = document.createElement("div");
     item.className = "list-item";
     item.innerHTML = `${arrItemsToRename[i].getAttribute("itemname")}`;
-    item.style.fontSize = "var(--fontSize)";
     list.append(item);
   }
   popup.append(list);
@@ -4425,139 +4424,134 @@ async function getDir(number) {
 }
 
 async function insertSiteNavButtons() {
-  return new Promise(async (resolve, reject) => {
-    // Clear current stack of nav buttons
-    $(".site-nav-bar-button").remove();
-    new Set(document.querySelector(".site-nav-bar").children).forEach(
-      (item) => {
-        if (item.className == "horizontal-seperator") item.remove();
-      },
-    );
+  // Clear current stack of nav buttons
+  $(".site-nav-bar-button").remove();
+  new Set(document.querySelector(".site-nav-bar").children).forEach((item) => {
+    if (item.className == "horizontal-seperator") item.remove();
+  });
 
-    let disks = await invoke("list_disks");
-    let siteNavButtons = [
-      Platform.includes("darwin")
-        ? [
-            "Applications",
-            "/Applications",
-            "fa-solid fa-rocket",
-            async () => await openDirAndSwitch("/Applications"),
-          ]
-        : [],
-      [
-        "Desktop",
-        await getDir(0),
-        "fa-solid fa-desktop",
-        async () => await goToDir(0),
-      ],
-      [
-        "Downloads",
-        await getDir(1),
-        "fa-solid fa-download",
-        async () => await goToDir(1),
-      ],
-      [
-        "Documents",
-        await getDir(2),
-        "fa-solid fa-file",
-        async () => await goToDir(2),
-      ],
-      [
-        "Pictures",
-        await getDir(3),
-        "fa-solid fa-image",
-        async () => await goToDir(3),
-      ],
-      [
-        "Videos",
-        await getDir(4),
-        "fa-solid fa-video",
-        async () => await goToDir(4),
-      ],
-      [
-        "Music",
-        await getDir(5),
-        "fa-solid fa-music",
-        async () => await goToDir(5),
-      ],
-      // No sshfs implemenation for windows *yet*
-      Platform.includes("win") && Platform != "darwin"
-        ? []
-        : ["FTP", "", "fa-solid fa-circle-nodes", showFtpConfig],
-    ];
+  let disks = await invoke("list_disks");
+  let siteNavButtons = [
+    Platform.includes("darwin")
+      ? [
+          "Applications",
+          "/Applications",
+          "fa-solid fa-rocket",
+          async () => await openDirAndSwitch("/Applications"),
+        ]
+      : [],
+    [
+      "Desktop",
+      await getDir(0),
+      "fa-solid fa-desktop",
+      async () => await goToDir(0),
+    ],
+    [
+      "Downloads",
+      await getDir(1),
+      "fa-solid fa-download",
+      async () => await goToDir(1),
+    ],
+    [
+      "Documents",
+      await getDir(2),
+      "fa-solid fa-file",
+      async () => await goToDir(2),
+    ],
+    [
+      "Pictures",
+      await getDir(3),
+      "fa-solid fa-image",
+      async () => await goToDir(3),
+    ],
+    [
+      "Videos",
+      await getDir(4),
+      "fa-solid fa-video",
+      async () => await goToDir(4),
+    ],
+    [
+      "Music",
+      await getDir(5),
+      "fa-solid fa-music",
+      async () => await goToDir(5),
+    ],
+    // No sshfs implemenation for windows *yet*
+    Platform.includes("win") && Platform != "darwin"
+      ? []
+      : ["FTP", "", "fa-solid fa-circle-nodes", showFtpConfig],
+  ];
 
-    for (let i = 0; i < siteNavButtons.length; i++) {
-      if (siteNavButtons[i].length == 0) continue;
-      let button = document.createElement("button");
-      button.className = "site-nav-bar-button";
-      button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
-      button.setAttribute("itempath", siteNavButtons[i][1]);
-      button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
-      button.ondragover = (e) => {
-        button.style.border = "1px solid var(--tertiaryColor)";
-        button.style.backgroundColor = "var(--transparentColor)";
-        DraggedOverElement = button;
-        MousePos = [e.clientX, e.clientY];
-      };
-      button.ondragleave = () => {
-        button.style.border = "1px solid transparent";
-        button.style.backgroundColor = "transparent";
-      };
-      document.querySelector(".site-nav-bar").append(button);
-    }
+  for (let i = 0; i < siteNavButtons.length; i++) {
+    if (siteNavButtons[i].length == 0) continue;
+    let button = document.createElement("button");
+    button.className = "site-nav-bar-button";
+    button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
+    button.setAttribute("itempath", siteNavButtons[i][1]);
+    button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
+    button.ondragover = (e) => {
+      button.style.border = "1px solid var(--tertiaryColor)";
+      button.style.backgroundColor = "var(--transparentColor)";
+      DraggedOverElement = button;
+      MousePos = [e.clientX, e.clientY];
+    };
+    button.ondragleave = () => {
+      button.style.border = "1px solid transparent";
+      button.style.backgroundColor = "transparent";
+    };
+    document.querySelector(".site-nav-bar").append(button);
+  }
 
-    let seperator = document.createElement("div");
-    seperator.className = "horizontal-seperator";
-    document.querySelector(".site-nav-bar").append(seperator);
+  let seperator = document.createElement("div");
+  seperator.className = "horizontal-seperator";
+  document.querySelector(".site-nav-bar").append(seperator);
 
-    // Available disks as site nav buttons
-    let diskButton = document.createElement("button");
-    diskButton.className = "site-nav-bar-button";
-    diskButton.onclick = () => listDisks();
-    diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Disks`;
-    document.querySelector(".site-nav-bar").append(diskButton);
+  // Available disks as site nav buttons
+  let diskButton = document.createElement("button");
+  diskButton.className = "site-nav-bar-button";
+  diskButton.onclick = () => listDisks();
+  diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Disks`;
+  document.querySelector(".site-nav-bar").append(diskButton);
 
-    if (disks.length > 0) {
-      let seperator2 = document.createElement("div");
-      seperator2.className = "horizontal-seperator";
-      document.querySelector(".site-nav-bar").append(seperator2);
+  if (disks.length > 0) {
+    let seperator2 = document.createElement("div");
+    seperator2.className = "horizontal-seperator";
+    document.querySelector(".site-nav-bar").append(seperator2);
 
-      disks.forEach((mount) => {
-        let diskButton = document.createElement("button");
-        diskButton.className = "site-nav-bar-button disk-site-nav-button";
-        diskButton.innerHTML = `
+    disks.forEach((mount) => {
+      let diskButton = document.createElement("button");
+      diskButton.className = "site-nav-bar-button disk-site-nav-button";
+      diskButton.innerHTML = `
           <i class="fa-solid fa-hard-drive"></i>
           <p style="width: 100%;">
             ${mount.name != "" ? mount.name : "/"}
             <div style="float: right; font-size: x-small; color: var(--textColor2)">${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%</div>
           </p>`;
-        diskButton.onclick = async () => {
-          await openDirAndSwitch(mount.path);
-          await listDirectories();
+      diskButton.onclick = async () => {
+        await openDirAndSwitch(mount.path);
+        await listDirectories();
+      };
+      // Show space left with gradient
+      diskButton.style.background = `linear-gradient(to right, var(--tertiaryColor) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
+      diskButton.style.backgroundRepeat = "no-repeat";
+      if (mount.format.includes("SSHFS") || mount.is_removable == true) {
+        diskButton.oncontextmenu = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showCustomContextMenu(e, [
+            {
+              name: "Unmont",
+              onclick: () =>
+                mount.format.includes("SSHFS")
+                  ? unmountNetworkDrive(mount)
+                  : unmountDrive(mount),
+            },
+          ]);
         };
-        // Show space left with gradient
-        diskButton.style.background = `linear-gradient(to right, var(--tertiaryColor) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
-        diskButton.style.backgroundRepeat = "no-repeat";
-        if (mount.format.includes("SSHFS") || mount.is_removable == true) {
-          diskButton.oncontextmenu = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            showCustomContextMenu(e, [
-              {
-                name: "Unmont",
-                onclick: () =>
-                  mount.format.includes("SSHFS")
-                    ? unmountNetworkDrive(mount)
-                    : unmountDrive(mount),
-              },
-            ]);
-          };
-        }
-        document.querySelector(".site-nav-bar").append(diskButton);
-      });
-    }
-    resolve();
-  });
+      }
+      document.querySelector(".site-nav-bar").append(diskButton);
+    });
+  }
 }
 
 /* File operation context menu */
@@ -4732,7 +4726,7 @@ function closeCustomContextMenu() {
 
 async function unmountNetworkDrive(networkDrive) {
   await invoke("unmount_network_drive", { path: networkDrive.path });
-  insertSiteNavButtons();
+  await insertSiteNavButtons();
 }
 
 function unmountDrive(disk) {
