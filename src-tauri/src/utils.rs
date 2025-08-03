@@ -350,21 +350,6 @@ impl DirWalker {
         // let reg_exp: Regex;
         let mut count_of_checked_items: usize = 0;
 
-        // if !self.exts.is_empty() {
-        //     reg_exp = Regex::new(format!("(?i){}", file_name.replace(" ", ".")).as_str()).unwrap();
-        //     println!(
-        //         "Searching with file extension: {} | regex: {}",
-        //         self.exts.first().unwrap(),
-        //         reg_exp.as_str()
-        //     );
-        // } else {
-        //     reg_exp = Regex::new(format!("(?i){}", file_name.replace(" ", ".")).as_str()).unwrap();
-        //     println!(
-        //         "Searching with regex: {}",
-        //         reg_exp.as_str()
-        //     );
-        // }
-
         for entry in jwalk::WalkDir::new(path)
             .parallelism(jwalk::Parallelism::RayonNewPool(num_cpus::get() - 1))
             .sort(true)
@@ -432,20 +417,9 @@ impl DirWalker {
 
             let last_mod: DateTime<Local> = file_metadata.unwrap().modified().unwrap().into();
 
-            app_window
-                .eval(
-                    format!(
-                        "document.querySelector('.fullsearch-current-file').innerHTML = '{} ({})'",
-                        name,
-                        format_bytes(fs::metadata(&path).unwrap().len())
-                    )
-                    .as_str(),
-                )
-                .unwrap();
+            let _ = app_window.emit("set-filesearch-currentfile", format!("{} ({})", name, format_bytes(fs::metadata(&path).unwrap().len())));
 
             let is_with_exts = !self.exts.is_empty() && self.exts.contains(&item_ext);
-            let is_file = path.is_file();
-            let is_quick_search = is_quick_search;
 
             let is_match = is_match_file(&name, &file_name, &is_with_exts);
 
@@ -483,11 +457,7 @@ impl DirWalker {
                 }
             }
 
-            // Show how many files have already been checked
-            let _ = app_window.eval(&format!(
-                "$('.file-searching-file-count').html('{} items found<br/><br/>{} items checked')",
-                **count_called_back, count_of_checked_items
-            ));
+            let _ = app_window.emit("set-filesearch-count", **count_called_back);
         }
     }
 

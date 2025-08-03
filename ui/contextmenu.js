@@ -121,6 +121,9 @@ class CDContextMenu {
     this.menu.innerHTML = "";
     this.items.forEach((item) => {
       let isDisabled = this.checkDisabled(item);
+      if (isDisabled == true) {
+        return;
+      }
       const button = document.createElement("button");
       button.className = "context-item";
       button.innerHTML = `
@@ -135,7 +138,7 @@ class CDContextMenu {
         }
         this.hide();
       };
-      button.onmouseover = (e) => {
+      button.onmouseenter = (e) => {
         if (!isDisabled && item.subItems) {
           this.showSubMenuItems(item, e);
         } else {
@@ -150,7 +153,6 @@ class CDContextMenu {
     this.subMenu.innerHTML = "";
 
     if (item.label == "Open with") {
-      console.log("Open with", Applications);
       Applications.forEach((app) => {
         const subItemButton = document.createElement("button");
         subItemButton.className = "context-item";
@@ -186,17 +188,31 @@ class CDContextMenu {
   }
 
   checkDisabled(item) {
-    if (item.label == "Extract") {
-      return !endsWith(this.selectedItem?.getAttribute("itempath"), ".", [
-        "zip",
-        "rar",
-        "7z",
-		"tar",
-		"tar.gz",
-		"tar.bz2"
-      ]);
-    } else if (item.label == "Paste") {
-      return ArrCopyItems.length === 0;
+    if (!this.selectedItem) {
+      if (
+        ["Paste", "New file", "New folder", "Open terminal", "Properties"].includes(
+          item.label,
+        )
+      ) {
+        if (item.label == "Paste") {
+          return ArrCopyItems.length === 0;
+        }
+        return false;
+      }
+      return true;
+    } else {
+      if (item.label == "Extract") {
+        return !endsWith(this.selectedItem?.getAttribute("itempath"), ".", [
+          "zip",
+          "rar",
+          "7z",
+          "tar",
+          "tar.gz",
+          "tar.bz2",
+        ]);
+      } else if (item.label == "Paste") {
+        return ArrCopyItems.length === 0;
+      }
     }
   }
 }

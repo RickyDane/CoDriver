@@ -50,7 +50,7 @@ use zip::write::FileOptions;
 use zip_extensions::*;
 mod utils;
 use rayon::prelude::*;
-use sysinfo::Disks;
+use sysinfo::{Disk, Disks};
 use utils::{
     calc_transfer_speed, copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes,
     remove_action, show_progressbar, success_log, unpack_tar, update_progressbar,
@@ -197,7 +197,8 @@ fn main() {
             get_sshfs_mounts,
             unmount_network_drive,
             unmount_drive,
-            load_item_image
+            load_item_image,
+            get_disk_info
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -439,15 +440,9 @@ async fn list_disks() -> Vec<DisksInfo> {
     for disk in &disks {
         dbg_log(format!("{:?}", &disk));
         ls_disks.push(DisksInfo {
-            name: format!("{:?}", disk.mount_point())
-                .split("/")
-                .last()
-                .unwrap_or("/")
-                .to_string()
-                .replace("\"", "")
-                .replace("\\", ""),
-            dev: format!("{:?}", disk.name()),
-            format: format!("{:?}", disk.file_system().to_string_lossy()),
+            name: disk.name().to_string_lossy().to_string(),
+            dev: disk.name().to_string_lossy().to_string(),
+            format: disk.file_system().to_string_lossy().to_string(),
             path: format!("{:?}", disk.mount_point()).replace("\"", ""),
             avail: format!("{:?}", disk.available_space()),
             capacity: format!("{:?}", disk.total_space()),
@@ -805,12 +800,7 @@ async fn search_for(
     unsafe { IS_SEARCHING = true };
     let mut count_called_back = COUNT_CALLED_BACK.lock().await;
     *count_called_back = 0;
-    let _ = app_window.eval("$('.file-searching-file-count').css('display', 'block')");
-    let _ = app_window.eval("$('.searching-info-container').css('display', 'block')");
-    let _ = app_window.eval(&format!(
-        "$('.file-searching-file-count').html('{} items found')",
-        count_called_back
-    ));
+
     dbg_log(format!(
         "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}",
         &file_name,
@@ -862,16 +852,12 @@ async fn search_for(
     unsafe {
         IS_SEARCHING = false;
     }
-    let _ = app_window.eval("$('.file-searching-done').css('display', 'block')");
-    let _ = app_window.eval("$('.is-file-searching').css('display', 'none')");
-    let _ = app_window.eval(&format!(
-        "$('.file-searching-done').html('Searching done in: {:.2} sec.!')",
-        sw.elapsed().as_millis() as f64 / 1000.0
-    ));
-    let _ = app_window.eval("setTimeout(() => $('.file-searching-done').html(''), 1500)");
-    let _ = app_window
-        .eval("setTimeout(() => $('.searching-info-container').css('display', 'none'), 1500)");
-    let _ = app_window.eval("stopFullSearch()");
+
+    let _ = app_window.emit(
+        "hide-filesearch-count",
+        sw.elapsed().as_millis() as f64 / 1000.0,
+    );
+
     dbg_log(format!("Search took: {:?}", sw.elapsed()));
 }
 
@@ -2050,7 +2036,8 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
 
             // Skip loading the image when the image dir is not the current directory
             // => Means that the user switched directories in the meantime
-            if item.image_url.starts_with("resources/") || (image_dir != &get_current_dir().await && !is_single)
+            if item.image_url.starts_with("resources/")
+                || (image_dir != &get_current_dir().await && !is_single)
             {
                 wng_log(format!("Skipped image: {}", item.image_url));
                 return;
@@ -2146,4 +2133,24 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
             }
         });
     }
+}
+
+#[tauri::command]
+async fn get_disk_info(path: String) -> Result<DisksInfo, String> {
+    dbg_log(format!("Get information about disk: {}", path));
+    let disks = Disks::new_with_refreshed_list();
+    for disk in disks.iter() {
+        if disk.mount_point().to_str().unwrap_or("") == path {
+            return Ok(DisksInfo {
+                name: format!("{:?}", disk.name()),
+                dev: format!("{:?}", disk.name()),
+                format: format!("{:?}", disk.file_system().to_string_lossy()),
+                path: format!("{:?}", disk.mount_point()).replace("\"", ""),
+                avail: format!("{:?}", disk.available_space()),
+                capacity: format!("{:?}", disk.total_space()),
+                is_removable: disk.is_removable(),
+            });
+        }
+    }
+    Err("Disk not found".to_string())
 }

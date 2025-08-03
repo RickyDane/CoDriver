@@ -222,7 +222,7 @@ document.addEventListener("keydown", async (e) => {
     await resetEverything();
     $(".search-bar-input").blur();
     // Close all popups etc.
-    ContextMenu.style.display = "none";
+    // ContextMenu.style.display = "none";
     if (DraggedOverElement != null) {
       DraggedOverElement.style.opacity = "1";
     }
@@ -342,7 +342,7 @@ document.addEventListener("mousedown", (e) => {
     !e.target.classList.contains("item-preview-copy-path-button") &&
     !e.target.classList.contains("context-label")
   ) {
-    ContextMenu.style.display = "none";
+    // ContextMenu.style.display = "none";
     cdCtMenu.hide();
     cdCtMenu.hideSubMenu();
     $(".extra-c-menu")?.remove();
@@ -350,12 +350,12 @@ document.addEventListener("mousedown", (e) => {
     // Reset context menu
     resetContextMenu();
 
-    document
-      .querySelector(".c-item-duplicates")
-      .setAttribute("disabled", "true");
-    document
-      .querySelector(".c-item-duplicates")
-      .classList.add("c-item-disabled");
+    // document
+    //   .querySelector(".c-item-duplicates")
+    //   .setAttribute("disabled", "true");
+    // document
+    //   .querySelector(".c-item-duplicates")
+    //   .classList.add("c-item-disabled");
     unSelectAllItems();
     if (DraggedOverElement != null) {
       DraggedOverElement.style.filter = "none";
@@ -1288,7 +1288,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     });
     // :item_right_click :context_menu / showItems()
     // Open context menu when right-clicking on file/folder
-    item.addEventListener("contextmenu", async (e) => {
+    item.addEventListener("contextmenu", (e) => {
       cdCtMenu.setSelectedItem(item);
       cdCtMenu.show(e);
     });
@@ -1349,42 +1349,6 @@ async function arrLoadItemImage(arrItems, isSingle = false) {
   });
 }
 
-listen("setItemImage", (event) => {
-  let payload = JSON.parse(event.payload);
-
-  let base64 = payload.data;
-  let imageId = payload.id;
-  let imageUrl = payload.url;
-
-  let element = document.getElementById(imageId);
-  let loader = document.querySelector(".preloader-" + imageId);
-
-  if (element && loader && base64) {
-    element.style.display = "block";
-    element.src = `data:image/${payload.url.split(".").pop()};base64,${base64}`;
-    loader.style.display = "none";
-  }
-
-  writeToLocalStorage(imageUrl, base64);
-});
-
-listen("set_default_image", (event) => {
-  let payload = event.payload;
-  let imageId = payload[0];
-  let image = payload[1];
-
-  let element = document.getElementById(imageId);
-  let loader = document.querySelector(".preloader-" + imageId);
-
-  if (element && loader) {
-    element.style.display = "block";
-    element.src = convertFileSrc(image);
-    loader.style.display = "none";
-  }
-  console.log("Loaded default image");
-  writeToLocalStorage(imageId, image);
-});
-
 function writeToLocalStorage(key, value) {
   try {
     localStorage.setItem(key, value);
@@ -1400,36 +1364,6 @@ function readFromLocalStorage(key) {
     console.error("Error reading image from local storage:", error);
   }
 }
-
-listen("try_load_cached_image", async (event) => {
-  let imageId = event.payload[0];
-  let imageType = event.payload[1];
-  let imageUrl = event.payload[2];
-
-  let data = readFromLocalStorage(imageUrl);
-
-  let element = document.getElementById(imageId);
-  let loader = document.querySelector(".preloader-" + imageId);
-
-  if (element && loader && data) {
-    element.style.display = "block";
-    element.src = `data:image/${imageType};base64,${data}`;
-    loader.style.display = "none";
-    console.log("Loaded cached image: " + imageId);
-  }
-});
-
-listen("addSingleItem", async (item) => {
-  item = JSON.parse(item.payload);
-  // We need to wait here, otherwise the function won't be triggered
-  setTimeout(async () => {
-    if (IsDualPaneEnabled == true) {
-      await addSingleItem(item, SelectedItemPaneSide);
-    } else {
-      await addSingleItem(item);
-    }
-  }, 5);
-});
 
 async function addSingleItem(
   item,
@@ -1759,7 +1693,7 @@ async function addSingleItem(
   });
   // :item_right_click :context_menu | addSingleItem()
   // Open context menu when right-clicking on file/folder
-  itemLink.addEventListener("contextmenu", async (e) => {
+  itemLink.addEventListener("contextmenu", (e) => {
     cdCtMenu.setSelectedItem(itemLink);
     cdCtMenu.show(e);
   });
@@ -1892,7 +1826,7 @@ function updateCurrentPath(currentDir, dualPaneSide) {
 }
 
 async function deleteItems() {
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   let msg = "Do you really want to delete:<br/><br/>";
   for (let i = 0; i < ArrSelectedItems.length; i++) {
     if (i == 0) {
@@ -1949,7 +1883,7 @@ async function copyItem(item, toCut = false, fromInternal = false) {
       item.style.filter = "blur(2px)";
     }
   }
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   await writeText(CopyFilePath);
   if (toCut == true) {
     IsCopyToCut = true;
@@ -1963,13 +1897,13 @@ async function extractItem(item) {
   let compressFileName = compressFilePath
     .split("/")
     [compressFilePath.split("/").length - 1].replace("'", "");
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   let isExtracting = await confirmPopup(
     "Do you want to extract " + compressFileName + "?",
     PopupType.EXTRACT,
   );
   if (isExtracting == true) {
-    ContextMenu.style.display = "none";
+    // ContextMenu.style.display = "none";
     let extractFilePath = item.getAttribute("itempath");
     let extractFileName = item.getAttribute("itemname");
     if (extractFileName != "") {
@@ -1983,7 +1917,7 @@ async function extractItem(item) {
 
 async function showCompressPopup(item) {
   IsPopUpOpen = true;
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   let arrCompressItems = ArrSelectedItems;
   if (ArrSelectedItems.length > 1) {
     arrCompressItems = ArrSelectedItems;
@@ -2060,7 +1994,7 @@ async function showCompressPopup(item) {
 async function compressItem(arrItems, compressionLevel = 3) {
   closeCompressPopup();
   if (arrItems.length > 1) {
-    ContextMenu.style.display = "none";
+    // ContextMenu.style.display = "none";
     await invoke("arr_compress_items", {
       arrItems: arrItems.map((item) => item.getAttribute("itempath")),
       compressionLevel: parseInt(compressionLevel),
@@ -2074,7 +2008,7 @@ async function compressItem(arrItems, compressionLevel = 3) {
     let compressFileName = item.getAttribute("itemname");
     if (compressFileName != "") {
       // open compressing... popup
-      ContextMenu.style.display = "none";
+      // ContextMenu.style.display = "none";
       SelectedItemPaneSide = item.getAttribute("itempaneside");
       await invoke("compress_item", {
         fromPath: compressFilePath,
@@ -2142,7 +2076,7 @@ function closeInputPopup() {
 }
 
 async function itemMoveTo(isForDualPane = false) {
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   let selectedPath = "";
   if (isForDualPane == false) {
     selectedPath = await open({ multiple: false, directory: true });
@@ -2204,7 +2138,7 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
     extension: item.getAttribute("itemext") ?? "",
   }));
 
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   if (IsDualPaneEnabled == true) {
     if (SelectedItemPaneSide == "left") {
       await invoke("set_dir", { currentDir: RightDualPanePath });
@@ -2227,7 +2161,7 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
       isForDualPane: "0",
       copyToPath,
     });
-    ContextMenu.style.display = "none";
+    // ContextMenu.style.display = "none";
   }
   if (isCopyToCut == true) {
     arr = arr.map((element) => element.path);
@@ -2273,7 +2207,7 @@ function createFolderInputPrompt() {
     <input class="text-input" type="text" placeholder="New folder" autofocus>
     `;
   document.querySelector("body").append(nameInput);
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   nameInput.children[1].focus();
   IsInputFocused = true;
   IsDisableShortcuts = true;
@@ -2303,7 +2237,7 @@ function createFileInputPrompt(e) {
     <input class="text-input" type="text" placeholder="New document" autofocus>
     `;
   document.querySelector("body").append(nameInput);
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   nameInput.children[1].focus();
   IsInputFocused = true;
   IsDisableShortcuts = true;
@@ -2347,7 +2281,7 @@ function renameElementInputPrompt(item) {
     `;
 
   document.querySelector("body").append(nameInput);
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   IsDisableShortcuts = true;
   IsPopUpOpen = true;
   nameInput.children[1].focus();
@@ -2613,7 +2547,6 @@ async function listDisks() {
   document
     .querySelector(".tab-container-" + CurrentActiveTab)
     .append(DirectoryList);
-  insertSiteNavButtons();
 }
 
 async function listDirectories(fromDualPaneCopy = false) {
@@ -2808,7 +2741,9 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
 }
 
 async function selectItem(element, dualPaneSide = "", isNotReset = false) {
-  ContextMenu.style.display = "none";
+  if (element == null || element == undefined) {
+    return;
+  }
   cdCtMenu.hide();
   cdCtMenu.hideSubMenu();
   let path = element?.getAttribute("itempath");
@@ -3310,7 +3245,7 @@ async function openInTerminal() {
     }
   }
 
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
 }
 
 async function searchFor(
@@ -3726,7 +3661,7 @@ async function showProperties(item) {
     let ext = item.getAttribute("itemext");
     let extension_description = getExtDescription(ext); // undefined if it's unknown or a directory
     let modifiedAt = item.getAttribute("itemmodified");
-    ContextMenu.style.display = "none";
+
     let popup = document.createElement("div");
     popup.className = "uni-popup item-properties-popup";
     popup.innerHTML = `
@@ -4260,7 +4195,7 @@ function closeFindDuplicatesPopup() {
 async function findDuplicates(item, depth) {
   showLoadingPopup("Searching for duplicates ...");
   document.querySelector(".list").innerHTML = "";
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   IsPopUpOpen = true;
   await invoke("find_duplicates", {
     appWindow: appWindow,
@@ -4271,7 +4206,7 @@ async function findDuplicates(item, depth) {
 }
 
 async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   IsPopUpOpen = true;
   let popup = document.createElement("div");
   popup.className = "uni-popup yt-download-popup";
@@ -4520,6 +4455,7 @@ async function insertSiteNavButtons() {
 
     disks.forEach((mount) => {
       let diskButton = document.createElement("button");
+      diskButton.dataset.itempath = mount.path;
       diskButton.className = "site-nav-bar-button disk-site-nav-button";
       diskButton.innerHTML = `
           <i class="fa-solid fa-hard-drive"></i>
@@ -4540,7 +4476,7 @@ async function insertSiteNavButtons() {
           e.stopPropagation();
           showCustomContextMenu(e, [
             {
-              name: "Unmont",
+              name: "Unmount",
               onclick: () =>
                 mount.format.includes("SSHFS")
                   ? unmountNetworkDrive(mount)
@@ -4683,22 +4619,9 @@ function closeConfirmPopup() {
 }
 
 function resetContextMenu() {
-  // Disabled access to "open with" context menu
-  $(".c-item-openwith").css("pointer-events", "none");
-  new Set(ContextMenu.children).forEach((children) => {
-    if (
-      !(
-        children.classList.contains("context-with-dropdown") &&
-        children.children[0].innerHTML === "Extras"
-      ) &&
-      !children.classList.contains("c-item-newfile") &&
-      !children.classList.contains("c-item-newfolder") &&
-      !children.classList.contains("c-item-openinterminal")
-    ) {
-      children.setAttribute("disabled", "true");
-      children.classList.add("c-item-disabled");
-    }
-  });
+  cdCtMenu.setSelectedItem(null);
+  cdCtMenu.hide();
+  cdCtMenu.hideSubMenu();
 }
 
 function showCustomContextMenu(e, contextMenuItems = [{}]) {
@@ -4753,14 +4676,52 @@ function resetBackButton() {
   button.style.border = "1px solid transparent";
 }
 
-listen("fs-mount-changed", (event) => {
-  setTimeout(async () => {
-    await handleMountChanges();
-  }, 500);
-});
-
 async function handleMountChanges() {
   await insertSiteNavButtons();
+}
+
+async function addNewMount(payload) {
+  let path = payload.paths[0];
+  let name = path.split("/")[path.split("/").length - 1];
+  let diskButton = document.createElement("button");
+
+  let mount = await invoke("get_disk_info", { path });
+
+  diskButton.dataset.itempath = path;
+  diskButton.className = "site-nav-bar-button disk-site-nav-button";
+  diskButton.innerHTML = `
+      <i class="fa-solid fa-hard-drive"></i>
+      <p style="width: 100%;">
+        ${path != "" ? name : "/"}
+        <div style="float: right; font-size: x-small; color: var(--textColor2)">${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%</div>
+      </p>`;
+  diskButton.onclick = async () => {
+    await openDirAndSwitch(path);
+    await listDirectories();
+  };
+  // Show space left with gradient
+  diskButton.style.background = `linear-gradient(to right, var(--selectColor3) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
+  diskButton.style.backgroundRepeat = "no-repeat";
+  diskButton.oncontextmenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showCustomContextMenu(e, [
+      {
+        name: "Unmount",
+        onclick: () => unmountDrive(mount),
+      },
+    ]);
+  };
+  document.querySelector(".site-nav-bar").append(diskButton);
+}
+
+async function removeMount(mount) {
+  let path = mount.paths[0];
+  let diskButton = document.querySelector(
+    `.disk-site-nav-button[data-itempath="${path}"]`,
+  );
+  if (!diskButton) return;
+  diskButton.remove();
 }
 
 (async () => {
