@@ -1,7 +1,5 @@
 use chrono::prelude::*;
-use cocoa::appkit::NSPasteboardTypeMultipleTextSelection;
 use color_print::cprintln;
-use regex::Regex;
 use serde::Serialize;
 use std::env::current_dir;
 use std::fs::OpenOptions;
@@ -13,7 +11,6 @@ use std::{
     io::{BufReader, BufWriter, Read, Write},
 };
 use stopwatch::Stopwatch;
-use sysinfo::System;
 use tar::Archive as TarArchive;
 use tauri::api::dialog;
 use tauri::api::path::config_dir;
@@ -341,7 +338,7 @@ impl DirWalker {
         depth: u32,
         file_name: String,
         max_items: i32,
-        is_quick_search: bool,
+        _: bool,
         file_content: String,
         callback: &impl Fn(DirWalkerEntry),
         count_called_back: &mut MutexGuard<'_, i32>,

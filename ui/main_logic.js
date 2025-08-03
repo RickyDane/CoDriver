@@ -751,9 +751,9 @@ document.onkeydown = async (e) => {
         e.key == "x" &&
         IsInputFocused == false
       ) {
-        copyItem(SelectedElement, true);
         e.preventDefault();
         e.stopPropagation();
+        await copyItem(SelectedElement, true);
       }
       // check if cmd / ctrl + v is pressed
       if (
@@ -761,27 +761,27 @@ document.onkeydown = async (e) => {
         e.key == "v" &&
         IsInputFocused == false
       ) {
-        pasteItem();
         e.preventDefault();
         e.stopPropagation();
+        pasteItem();
       }
       // check if cmd / ctrl + g is pressed | Path input
       if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
-        showInputPopup("Input path to jump to");
         e.preventDefault();
         e.stopPropagation();
+        showInputPopup("Input path to jump to");
       }
       // New folder input prompt when f7 is pressed
       if (e.key == "F7") {
-        createFolderInputPrompt();
         e.preventDefault();
         e.stopPropagation();
+        createFolderInputPrompt();
       }
       // New file input prompt when f6 is pressed
       if (e.keyCode == 117) {
-        createFileInputPrompt();
         e.preventDefault();
         e.stopPropagation();
+        createFileInputPrompt();
       }
       // Disabled for instant quick search
       // check if cmd / ctrl + s is pressed
@@ -2163,7 +2163,7 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
     });
     // ContextMenu.style.display = "none";
   }
-  if (isCopyToCut == true) {
+  if (isCopyToCut == true || IsCopyToCut == true) {
     arr = arr.map((element) => element.path);
     if (arr.includes(copyToPath)) {
       alert("Cannot copy to the same directory");
@@ -2174,6 +2174,7 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
       arrItems: arr,
     });
     ArrCopyItems = [];
+    IsCopyToCut = false;
     if (IsDualPaneEnabled === true) {
       refreshBothViews(SelectedItemPaneSide);
     }

@@ -50,7 +50,7 @@ use zip::write::FileOptions;
 use zip_extensions::*;
 mod utils;
 use rayon::prelude::*;
-use sysinfo::{Disk, Disks};
+use sysinfo::Disks;
 use utils::{
     calc_transfer_speed, copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes,
     remove_action, show_progressbar, success_log, unpack_tar, update_progressbar,
