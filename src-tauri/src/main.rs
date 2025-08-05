@@ -23,7 +23,7 @@ use std::io::Error;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 use std::{
     env::{current_dir, set_current_dir},
     fs::{copy, create_dir, remove_file, File},
@@ -76,9 +76,10 @@ lazy_static! {
     static ref PATH_HISTORY: Mutex<Vec<String>> = Mutex::new(Vec::new());
     static ref COPY_COUNTER: Mutex<f32> = Mutex::new(0.0);
     static ref TO_COPY_COUNTER: Mutex<f32> = Mutex::new(0.0);
+    static ref IS_SEARCHING: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 }
 
-static mut IS_SEARCHING: bool = false;
+// static mut IS_SEARCHING: bool = false;
 
 // #[cfg(target_os = "windows")]
 // const SLASH: &str = "\\";
@@ -784,7 +785,7 @@ async fn go_home() {
 
 #[tauri::command]
 async fn stop_searching() {
-    unsafe { IS_SEARCHING = false };
+    *(IS_SEARCHING.lock().await) = false;
     dbg_log(format!("Stopped searching"));
 }
 
@@ -797,7 +798,7 @@ async fn search_for(
     is_quick_search: bool,
 ) {
     let app_window = WINDOW.get().unwrap();
-    unsafe { IS_SEARCHING = true };
+    *(IS_SEARCHING.lock().await) = true;
     let mut count_called_back = COUNT_CALLED_BACK.lock().await;
     *count_called_back = 0;
 
@@ -849,9 +850,7 @@ async fn search_for(
         )
         .await;
 
-    unsafe {
-        IS_SEARCHING = false;
-    }
+    *(IS_SEARCHING.lock().await) = false;
 
     let _ = app_window.emit(
         "hide-filesearch-count",

@@ -396,15 +396,13 @@ impl DirWalker {
                 continue;
             }
 
-            unsafe {
-                // End searching if interrupted through esc-key
-                if IS_SEARCHING == false && **count_called_back < max_items {
-                    dbg_log(format!("Interrupted searching | {} items checked | {} items found | is searching: {}", count_of_checked_items, **count_called_back, IS_SEARCHING));
-                    return;
-                }
-                if **count_called_back >= max_items || IS_SEARCHING == false {
-                    return;
-                }
+            // End searching if interrupted through esc-key
+            if *IS_SEARCHING.lock().await == false && **count_called_back < max_items {
+                dbg_log(format!("Interrupted searching | {} items checked | {} items found | is searching: {}", count_of_checked_items, **count_called_back, IS_SEARCHING.lock().await));
+                return;
+            }
+            if **count_called_back >= max_items || *IS_SEARCHING.lock().await == false {
+                return;
             }
 
             let file_metadata = fs::metadata(&path);
