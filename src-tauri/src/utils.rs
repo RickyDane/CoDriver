@@ -1,7 +1,5 @@
 use chrono::prelude::*;
-use cocoa::appkit::NSPasteboardTypeMultipleTextSelection;
 use color_print::cprintln;
-use regex::Regex;
 use serde::Serialize;
 use std::env::current_dir;
 use std::fs::OpenOptions;
@@ -13,7 +11,6 @@ use std::{
     io::{BufReader, BufWriter, Read, Write},
 };
 use stopwatch::Stopwatch;
-use sysinfo::System;
 use tar::Archive as TarArchive;
 use tauri::api::dialog;
 use tauri::api::path::config_dir;
@@ -341,7 +338,7 @@ impl DirWalker {
         depth: u32,
         file_name: String,
         max_items: i32,
-        is_quick_search: bool,
+        _: bool,
         file_content: String,
         callback: &impl Fn(DirWalkerEntry),
         count_called_back: &mut MutexGuard<'_, i32>,
@@ -349,21 +346,6 @@ impl DirWalker {
         let app_window = WINDOW.get().unwrap();
         // let reg_exp: Regex;
         let mut count_of_checked_items: usize = 0;
-
-        // if !self.exts.is_empty() {
-        //     reg_exp = Regex::new(format!("(?i){}", file_name.replace(" ", ".")).as_str()).unwrap();
-        //     println!(
-        //         "Searching with file extension: {} | regex: {}",
-        //         self.exts.first().unwrap(),
-        //         reg_exp.as_str()
-        //     );
-        // } else {
-        //     reg_exp = Regex::new(format!("(?i){}", file_name.replace(" ", ".")).as_str()).unwrap();
-        //     println!(
-        //         "Searching with regex: {}",
-        //         reg_exp.as_str()
-        //     );
-        // }
 
         for entry in jwalk::WalkDir::new(path)
             .parallelism(jwalk::Parallelism::RayonNewPool(num_cpus::get() - 1))
@@ -414,15 +396,13 @@ impl DirWalker {
                 continue;
             }
 
-            unsafe {
-                // End searching if interrupted through esc-key
-                if IS_SEARCHING == false && **count_called_back < max_items {
-                    dbg_log(format!("Interrupted searching | {} items checked | {} items found | is searching: {}", count_of_checked_items, **count_called_back, IS_SEARCHING));
-                    return;
-                }
-                if **count_called_back >= max_items || IS_SEARCHING == false {
-                    return;
-                }
+            // End searching if interrupted through esc-key
+            if *IS_SEARCHING.lock().await == false && **count_called_back < max_items {
+                dbg_log(format!("Interrupted searching | {} items checked | {} items found | is searching: {}", count_of_checked_items, **count_called_back, IS_SEARCHING.lock().await));
+                return;
+            }
+            if **count_called_back >= max_items || *IS_SEARCHING.lock().await == false {
+                return;
             }
 
             let file_metadata = fs::metadata(&path);
@@ -432,20 +412,9 @@ impl DirWalker {
 
             let last_mod: DateTime<Local> = file_metadata.unwrap().modified().unwrap().into();
 
-            app_window
-                .eval(
-                    format!(
-                        "document.querySelector('.fullsearch-current-file').innerHTML = '{} ({})'",
-                        name,
-                        format_bytes(fs::metadata(&path).unwrap().len())
-                    )
-                    .as_str(),
-                )
-                .unwrap();
+            let _ = app_window.emit("set-filesearch-currentfile", format!("{} ({})", name, format_bytes(fs::metadata(&path).unwrap().len())));
 
             let is_with_exts = !self.exts.is_empty() && self.exts.contains(&item_ext);
-            let is_file = path.is_file();
-            let is_quick_search = is_quick_search;
 
             let is_match = is_match_file(&name, &file_name, &is_with_exts);
 
@@ -483,11 +452,7 @@ impl DirWalker {
                 }
             }
 
-            // Show how many files have already been checked
-            let _ = app_window.eval(&format!(
-                "$('.file-searching-file-count').html('{} items found<br/><br/>{} items checked')",
-                **count_called_back, count_of_checked_items
-            ));
+            let _ = app_window.emit("set-filesearch-count", **count_called_back);
         }
     }
 

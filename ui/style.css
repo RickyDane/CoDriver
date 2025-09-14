@@ -267,7 +267,7 @@ body {
     align-items: center;
     gap: 8px;
     font-size: small;
-    transition: 0.1s ease-out;
+    /*transition: 0.1s ease-out;*/
     color: white;
 }
 
@@ -287,8 +287,9 @@ body {
 }
 
 .disk-site-nav-button {
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.75);
-    border: 1px solid var(--transparentColor) !important;
+    color: var(--textColor2);
+    /*text-shadow: 0 0 5px rgba(0, 0, 0, 0.75);*/
+    /*border: 1px solid var(--transparentColor) !important;*/
 }
 .disk-site-nav-button:hover {
     background-color: var(--selectColor3) !important;
@@ -1984,6 +1985,7 @@ button > svg {
     flex-flow: column;
     gap: 10px;
     z-index: 999;
+    backdrop-filter: blur(10px);
 }
 
 .toast {
@@ -2005,7 +2007,6 @@ button > svg {
     color: var(--textColor);
     background-color: var(--siteBarColor) !important;
     padding: 5px;
-    /* border: 1px solid var(--secondaryColor); */
 }
 
 .toast-icon {
@@ -2050,11 +2051,13 @@ button > svg {
 .searching-info-container {
     display: none;
     padding: 10px;
-    background-color: var(--primaryColor);
     border-radius: 10px;
     border: 1px solid var(--tertiaryColor);
+    border-radius: 10px;
+    overflow: hidden;
     color: var(--textColor);
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
+    backdrop-filter: blur(10px);
 }
 
 /* Text styles */
