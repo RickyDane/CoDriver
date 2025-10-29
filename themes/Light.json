@@ -4,10 +4,10 @@
   "secondary_color": "white",
   "tertiary_color": "lightgray",
   "text_color": "rgb(75, 75, 75)",
-  "text_color2": "rgb(0, 0, 0, 0.6",
+  "text_color2": "rgb(255, 255, 255)",
   "text_color3": "rgb(35, 35, 35)",
   "transparent_color": "rgba(200, 200, 200, 0.35)",
   "transparent_color_active": "rgba(200, 200, 200, 0.75)",
-  "site_bar_color": "rgb(225, 225, 225)",
+  "site_bar_color": "rgba(255, 255, 255, 0.1)",
   "nav_bar_color": "rgba(240, 240, 240, 0.5)"
 }

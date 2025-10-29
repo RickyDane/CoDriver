@@ -31,6 +31,7 @@
 :root {
     --primaryColor: #3f4352;
     --secondaryColor: rgba(56, 59, 71, 1);
+    --secondaryColorActive: rgba(46, 49, 61, 1);
     --tertiaryColor: #474b5c;
     --transparentColor: rgba(0, 0, 0, 0.1);
     --transparentColorActive: rgba(0, 0, 0, 0.25);
@@ -44,7 +45,8 @@
     --siteBarColor: rgb(59, 59, 70);
     --navBarColor: rgba(36, 36, 44, 0.5);
     --selectColor: rgba(69, 69, 69, 0.144);
-    --selectColor2: rgba(11, 100, 253, 0.657);
+    --selectColor2: rgba(11, 100, 253, 0.75);
+    --selectColor3: rgba(11, 100, 253, 0.25);
 }
 
 html {
@@ -53,7 +55,6 @@ html {
     border: none;
     overflow: hidden;
     border-radius: 10px;
-    border: 1px solid var(--primaryColor);
 }
 
 body {
@@ -63,6 +64,7 @@ body {
     border: none;
     border-radius: 10px;
     transition: 0.3s ease-out;
+    background-color: transparent;
 }
 
 .codriver-name {
@@ -76,7 +78,7 @@ body {
     border: 1px solid var(--tertiaryColor);
     line-height: 21px;
     color: var(--textColor);
-    box-shadow: 3px 3px 5px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 0px 5px 2px var(--transparentColorActive);
 }
 
 .explorer-container {
@@ -265,8 +267,8 @@ body {
     align-items: center;
     gap: 8px;
     font-size: small;
-    transition: 0.1s ease-out;
-    color: var(--textColor);
+    /*transition: 0.1s ease-out;*/
+    color: white;
 }
 
 .site-nav-bar-button > p {
@@ -276,11 +278,22 @@ body {
 }
 
 .site-nav-bar-button > svg {
-    color: var(--textColor);
+    color: white;
 }
 
 .site-nav-bar-button:hover {
-    background-color: var(--transparentColorActive);
+    background-color: var(--selectColor3) !important;
+    border: 1px solid var(--selectColor3) !important;
+}
+
+.disk-site-nav-button {
+    color: var(--textColor2);
+    /*text-shadow: 0 0 5px rgba(0, 0, 0, 0.75);*/
+    /*border: 1px solid var(--transparentColor) !important;*/
+}
+.disk-site-nav-button:hover {
+    background-color: var(--selectColor3) !important;
+    border: 1px solid var(--selectColor2) !important;
 }
 
 .active-actions-container {
@@ -479,8 +492,8 @@ body {
     color: var(--textColor);
     padding: 5px;
     background-color: var(--transparentColor);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     z-index: 1;
     border-bottom: 1px solid var(--tertiaryColor);
     box-shadow: 0px 0px 5px 0px var(--transparentColorActive);
@@ -498,6 +511,7 @@ body {
     width: 100px !important;
     cursor: pointer;
     padding: 5px;
+	margin: 0 20px;
     border-radius: 10px;
     text-align: center;
     color: var(--textColor);
@@ -830,7 +844,7 @@ button > svg {
 }
 
 .selected-item-min {
-    background-color: var(--selectColor2);
+    background-color: var(--selectColor3);
     color: white;
 }
 
@@ -914,7 +928,7 @@ button > svg {
     gap: 5px;
     align-items: center;
     cursor: pointer;
-    padding: 5px 10px 5px 5px;
+    padding: 5px;
     max-height: 40px;
     font-size: small;
     width: 100%;
@@ -947,6 +961,12 @@ button > svg {
 .item-button-list > .item-icon {
     height: 24px;
     width: 24px;
+}
+
+.item-size-box {
+	padding: 5px 10px;
+	border-radius: 8px;
+	background-color: var(--transparentColor);
 }
 
 .dual-pane-list-item {
@@ -1053,9 +1073,9 @@ button > svg {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--transparentColorActive);
+    background-color: var(--selectColor3);
     z-index: 2;
-    border-right: 2px solid var(--transparentColorActive);
+    border-right: 2px solid var(--selectColor2);
     margin: 1px;
     border-radius: 2px 0px 0px 2px;
 }
@@ -1072,7 +1092,6 @@ button > svg {
     overflow: hidden;
     gap: 5px;
     padding-right: 20px;
-    padding-left: 5px;
     border: 1px solid var(--tertiaryColor);
     color: var(--textColor);
     font-size: var(--fontSize);
@@ -1093,14 +1112,13 @@ button > svg {
     align-items: center;
     height: 32px;
     width: 32px;
-    margin-top: 2px;
     transition: 0.1s ease-out;
     /* background-color: var(--transparentColor); */
     border-radius: 10px 0px 0px 5px;
 }
 
 .icon-button:hover > .button-icon {
-    background-color: var(--secondaryColorActive);
+    background-color: var(--transparentColor);
 }
 
 /* Menu buttons */
@@ -1173,7 +1191,7 @@ button > svg {
     border-radius: 10px;
     overflow: hidden;
     margin: 0 auto;
-    transition: 0.2s ease;
+    transition: 0.2s ease-out;
 }
 
 .file-searchbar > input {
@@ -1370,7 +1388,7 @@ button > svg {
 }
 
 .path-item:hover {
-    background-color: var(--transparentColorActive);
+    background-color: var(--transparentColorActive) !important;
 }
 
 .directory-list {
@@ -1506,7 +1524,6 @@ button > svg {
     transition: 0.1s ease-out;
     font-size: var(--fontSize);
     border: none;
-    /* display: ; */
 }
 
 .context-item:hover {
@@ -1573,6 +1590,12 @@ button > svg {
     color: red;
 }
 
+.context-submenu {
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 .input-dialog {
     position: fixed;
     top: 0;
@@ -1593,6 +1616,7 @@ button > svg {
     border-radius: 10px;
     max-width: 300px;
     border: 1px solid var(--tertiaryColor);
+    z-index: 3;
 }
 
 .input-dialog > h4 {
@@ -1934,14 +1958,13 @@ button > svg {
     width: 100%;
     padding: 7.5px 10px;
     cursor: pointer;
-    color: var(--textColor2);
     font-weight: 300;
 }
 
 .list-item {
     width: 100%;
     padding: 7.5px 10px;
-    color: var(--textColor2);
+    color: var(--textColor);
     font-size: var(--fontSize);
     font-weight: 300;
     border-bottom: 1px solid var(--secondaryColor);
@@ -1962,6 +1985,7 @@ button > svg {
     flex-flow: column;
     gap: 10px;
     z-index: 999;
+    backdrop-filter: blur(10px);
 }
 
 .toast {
@@ -1975,7 +1999,7 @@ button > svg {
     color: var(--textColor);
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
     border: 1px solid var(--tertiaryColor);
-    /* -webkit-backdrop-filter: blur(10px); */
+    background-color: var(--siteBarColor);
 }
 
 .toast-content {
@@ -1983,7 +2007,6 @@ button > svg {
     color: var(--textColor);
     background-color: var(--siteBarColor) !important;
     padding: 5px;
-    /* border: 1px solid var(--secondaryColor); */
 }
 
 .toast-icon {
@@ -2028,11 +2051,13 @@ button > svg {
 .searching-info-container {
     display: none;
     padding: 10px;
-    background-color: var(--primaryColor);
     border-radius: 10px;
     border: 1px solid var(--tertiaryColor);
+    border-radius: 10px;
+    overflow: hidden;
     color: var(--textColor);
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
+    backdrop-filter: blur(10px);
 }
 
 /* Text styles */
@@ -2042,6 +2067,11 @@ button > svg {
 .text-2 {
     font-size: var(--fontSize);
     color: var(--textColor2);
+    font-weight: 300;
+}
+.text-small {
+    font-size: var(--fontSize);
+    color: var(--textColor);
     font-weight: 300;
 }
 
@@ -2081,7 +2111,6 @@ button > svg {
     height: 100%;
     background-color: var(--successColor);
     border-right: 1px solid var(--secondaryColorActive);
-    transition: width 0.05s ease-out;
 }
 
 .progress-bar-text {

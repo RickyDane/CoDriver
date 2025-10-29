@@ -2,15 +2,18 @@
 <html>
 
 <head>
-    <script src="jquery.js" async></script>
-    <script src="font-awesome/js/all.min.js" async></script>
-    <script src="ds.min.js" async></script>
-    <script src="utils.js" async></script>
+    <script src="jquery.js"></script>
+    <script src="font-awesome/js/all.min.js"></script>
+    <script src="ds.min.js"></script>
+    <script src="utils.js"></script>
+    <script src="contextmenu.js"></script>
     <script src="file_extensions.js" async></script>
-    <script src="models.js" async defer></script>
-    <script src="main_logic.js" async defer></script>
+    <script src="models.js" defer></script>
+    <script src="main_logic.js" defer></script>
+    <script src="events.js" defer></script>
     <link rel="stylesheet" href="font-awesome/css/all.min.css" />
     <link rel="stylesheet" href="style.css" />
+    <!-- <script src="DialogService.ts" defer></script> -->
     <meta charset="utf-8" />
 </head>
 
@@ -27,7 +30,7 @@
     <input class="instant-search-input text-input" type="text" placeholder="Start typing ..." disabled />
 
     <div style="display: flex; width: 100%; height: 100vh;">
-        <div data-tauri-drag-region class="site-nav-bar">
+        <div class="site-nav-bar">
             <div class="codriver-name">CoDriver</div>
             <div class="active-actions-container"></div>
         </div>
@@ -110,7 +113,7 @@
             </div>
 
             <!-- :contextmenu | Context menu -->
-            <div class="context-menu" style="display: none;">
+            <!-- <div class="context-menu" style="display: none;">
                 <button class="context-item c-item-delete">Delete<i class="fa-solid fa-trash"></i></button>
                 <div class="context-item c-item-openwith context-with-dropdown">
                     Open with
@@ -141,7 +144,7 @@
                         class="fa-solid fa-info-circle"></i></button>
                 <button class="context-item c-item-openinterminal" onclick="openInTerminal()">Open in Terminal<i
                         class="fa-solid fa-terminal"></i></button>
-            </div>
+            </div> -->
 
             <!-- :settings | Settings UI -->
             <div class="settings-ui">
@@ -227,23 +230,23 @@
                 </div>
                 <div class="popup-body">
                     <div class="popup-body-col-section">
-                        <p class="text-2">Search input</p>
+                        <p class="text-small">Search input</p>
                         <input class="full-dualpane-search-input trigger-for-full-search text-input" type="text"
                             placeholder="example.txt" />
                     </div>
                     <div class="popup-body-col-section">
-                        <p class="text-2">File content</p>
+                        <p class="text-small">File content</p>
                         <input class="full-dualpane-search-file-content-input trigger-for-full-search text-input"
                             type="text" placeholder="A long, long time ago in a galaxy far far away..." />
                     </div>
                     <div class="popup-body-col-section">
-                        <p class="text-2">Max count of search results (0 = off)</p>
+                        <p class="text-small">Max count of search results (0 = off)</p>
                         <input style="width: 100px;" type="number"
                             class="number-input trigger-for-full-search full-search-max-items-input" placeholder="1000"
                             value="1000" />
                     </div>
                     <div class="popup-body-col-section">
-                        <p class="text-2">Search depth (0 = off)</p>
+                        <p class="text-small">Search depth (0 = off)</p>
                         <input style="width: 100px;" type="number"
                             class="number-input trigger-for-full-search full-search-search-depth-input" placeholder="10"
                             value="10" />
