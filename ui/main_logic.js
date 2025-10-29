@@ -41,8 +41,16 @@ const ds = new DragSelect({
   immediateDrag: false,
 })
 
+// :drag / Selec items via dragging
+
 ds.subscribe('DS:select', async (payload) => {
-  if (payload.item == SelectedElement || IsShiftDown === true || IsCtrlDown === true || IsMetaDown === true) return;
+  if (payload.item == SelectedElement
+    || IsShiftDown === true
+    || IsCtrlDown === true
+    || IsMetaDown === true
+    || ArrSelectedItems.find((itemOfArray) => itemOfArray.getAttribute("itempath") == item.getAttribute("itempath")) == null) {
+      return;
+    }
   selectItem(payload.item, "", true);
 });
 ds.subscribe('DS:unselect', async (payload) => {
@@ -1697,7 +1705,7 @@ function updateCurrentPath(currentDir, dualPaneSide) {
     divider.className = "fa fa-chevron-right";
     divider.style.color = "var(--textColor)";
     divider.style.fontSize = "10px";
-    if (counter > 0) { 
+    if (counter > 0) {
       currentDirContainer.appendChild(divider);
     }
     currentDirContainer.appendChild(pathItem);
