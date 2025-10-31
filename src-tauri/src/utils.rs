@@ -1,8 +1,15 @@
 use chrono::prelude::*;
 use color_print::cprintln;
+use density_rs::algorithms::chameleon::chameleon::Chameleon;
+use density_rs::algorithms::cheetah::cheetah::Cheetah;
+use density_rs::algorithms::lion::lion::Lion;
+use density_rs::codec::codec::Codec;
+use jwalk::WalkDir;
 use serde::Serialize;
 use std::env::current_dir;
-use std::fs::OpenOptions;
+use std::fs::{Metadata, OpenOptions};
+use std::io::{self, Error};
+use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::{
     ffi::OsStr,
@@ -15,7 +22,10 @@ use tar::Archive as TarArchive;
 use tauri::api::dialog;
 use tauri::api::path::config_dir;
 use tauri::Window;
-use tokio::sync::MutexGuard;
+use tokio::sync::{MutexGuard};
+use tokio::task;
+use zip::write::FileOptions;
+use zip::{ZipWriter};
 
 #[allow(unused_imports)]
 use crate::ISCANCELED;
@@ -398,7 +408,12 @@ impl DirWalker {
 
             // End searching if interrupted through esc-key
             if *IS_SEARCHING.lock().await == false && **count_called_back < max_items {
-                dbg_log(format!("Interrupted searching | {} items checked | {} items found | is searching: {}", count_of_checked_items, **count_called_back, IS_SEARCHING.lock().await));
+                dbg_log(format!(
+                    "Interrupted searching | {} items checked | {} items found | is searching: {}",
+                    count_of_checked_items,
+                    **count_called_back,
+                    IS_SEARCHING.lock().await
+                ));
                 return;
             }
             if **count_called_back >= max_items || *IS_SEARCHING.lock().await == false {
@@ -412,7 +427,14 @@ impl DirWalker {
 
             let last_mod: DateTime<Local> = file_metadata.unwrap().modified().unwrap().into();
 
-            let _ = app_window.emit("set-filesearch-currentfile", format!("{} ({})", name, format_bytes(fs::metadata(&path).unwrap().len())));
+            let _ = app_window.emit(
+                "set-filesearch-currentfile",
+                format!(
+                    "{} ({})",
+                    name,
+                    format_bytes(fs::metadata(&path).unwrap().len())
+                ),
+            );
 
             let is_with_exts = !self.exts.is_empty() && self.exts.contains(&item_ext);
 
@@ -527,9 +549,11 @@ pub fn format_bytes(size: u64) -> String {
     format!("{:.2} {}", size, UNITS[unit_index])
 }
 
-pub fn unpack_tar(file: File) {
+pub fn unpack_tar(file: File, path: String) {
     let mut archive = TarArchive::new(file);
-    let _ = fs::create_dir("Unpacked_Archive");
+    let _ = fs::create_dir(&path);
+
+    let _ = WINDOW.get().unwrap().emit("refreshView", ());
 
     for file in archive.entries().unwrap() {
         // Make sure there wasn't an I/O error
@@ -538,7 +562,7 @@ pub fn unpack_tar(file: File) {
         }
         // Unwrap the file
         let mut file = file.unwrap();
-        let _ = file.unpack_in("Unpacked_Archive").unwrap_or_default();
+        let _ = file.unpack_in(path.clone()).unwrap_or_default();
     }
 }
 
@@ -559,6 +583,305 @@ pub fn create_new_action(
     id
 }
 
-pub fn remove_action(app_window: Window, action_id: String) {
-    let _ = app_window.eval(format!("removeAction('{}')", action_id).as_str());
+pub fn remove_action(action_id: String) {
+    let _ = WINDOW
+        .get()
+        .unwrap()
+        .eval(format!("removeAction('{}')", action_id).as_str());
+}
+
+#[allow(unused)]
+pub fn update_list_item_data<S: Into<String> + Clone + Serialize>(path: S, metadata: Metadata) {
+    let _ = WINDOW
+        .get()
+        .unwrap()
+        .emit("updateItemMetadata", (path.clone(), metadata.size()));
+}
+
+/// Converts a human-readable size string (e.g., "1.66 GB", "1 KiB", "42MB") to bytes (u64).
+///
+/// Supports:
+/// - Decimal: K/KB (10^3), M/MB (10^6), G/GB (10^9), T/TB (10^12), etc.
+/// - Binary: Ki/KiB/KIB (2^10), Mi/MiB (2^20), Gi/GiB (2^30), etc.
+/// - Fractions: "1.5 GB" → 1_500_000_000
+/// - Case insensitive, ignores whitespace.
+///
+/// # Errors
+/// - Invalid number, unknown unit, too large (> u64::MAX), too precise (>20 decimals).
+///
+/// # Examples
+/// ```
+/// let bytes = human_to_bytes("1.66 GB").unwrap();
+/// assert_eq!(bytes, 1_660_000_000);
+///
+/// let bytes = human_to_bytes("1.66 GiB").unwrap();
+/// assert_eq!(bytes, 1_783_287_424); // 1.66 * 1024^3
+///
+/// let bytes = human_to_bytes("0.5 KB").unwrap();
+/// assert_eq!(bytes, 500);
+/// ```
+pub fn human_to_bytes<S: Into<String>>(input: S) -> Result<u64, String> {
+    let input = input.into();
+    let trimmed = input.trim().to_uppercase();
+    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+
+    let (num_str, unit) = if parts.len() == 2 {
+        (parts[0], parts[1])
+    } else if parts.len() == 1 {
+        // Assume bytes if no unit
+        let num: f64 = parts[0].parse().map_err(|_| "Invalid number")?;
+        return Ok(num.round() as u64);
+    } else {
+        return Err("Invalid format: expected 'number unit' like '1.66 GB'".to_string());
+    };
+
+    let num: f64 = num_str.parse().map_err(|_| "Invalid number")?;
+
+    let multiplier = match unit {
+        "B" => 1.0,
+        "KB" => 1_000.0,
+        "MB" => 1_000_000.0,
+        "GB" => 1_000_000_000.0,
+        "TB" => 1_000_000_000_000.0,
+        "PB" => 1_000_000_000_000_000.0,
+        _ => return Err("Unknown unit: supported B, KB, MB, GB, TB, PB".to_string()),
+    };
+
+    let bytes_f64 = num * multiplier;
+    if bytes_f64 > u64::MAX as f64 {
+        return Err("Value too large for u64".to_string());
+    }
+    Ok(bytes_f64.round() as u64)
+}
+
+pub async fn compress_items<P: AsRef<Path>, I: IntoIterator<Item = P> + Clone>(
+    output_path: impl AsRef<Path>,
+    input_paths: I,
+    compression_level: i32,
+    compression_format: &str,
+    strip_prefix: Option<&Path>, // Optional: strip common prefix from paths
+) -> io::Result<()> {
+    let output_path = output_path.as_ref();
+    let stop_watch = Stopwatch::start_new();
+
+    if compression_format == "density" {
+        for input_path in input_paths {
+            let path = input_path.as_ref();
+            compress_to_density(path.to_str().unwrap(), output_path.to_str().unwrap(), compression_level)?;
+        }
+        Ok(())
+        // Implement density compression logic here
+    } else {
+        // Collect all files to compress
+        let mut files_to_compress = Vec::new();
+        for input_path in input_paths {
+            let path = input_path.as_ref();
+            if path.is_file() {
+                files_to_compress.push((path.to_path_buf(), path.to_path_buf()));
+            } else if path.is_dir() {
+                for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+                    let entry_path = entry.path();
+                    if entry_path.is_file() {
+                        files_to_compress.push((entry_path.to_path_buf(), path.to_path_buf()));
+                    }
+                }
+            }
+        }
+
+        // Open ZIP file
+        let zip_file = File::create(output_path)?;
+        let _ = WINDOW.get().unwrap().emit("refreshView", ());
+        let mut zip = ZipWriter::new(zip_file);
+
+        let options = FileOptions::default()
+            .compression_method(if compression_format == "zstd" {
+                zip::CompressionMethod::Zstd
+            } else {
+                zip::CompressionMethod::Deflated
+            })
+            .large_file(true)
+            .compression_level(Some(compression_level))
+            .unix_permissions(0o644);
+
+        // Channel to send file data to writer
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<(String, Vec<u8>)>(32);
+
+        // Writer task
+        let writer_handle = task::spawn(async move {
+            while let Some((name, data)) = rx.recv().await {
+                dbg_log(format!("Received file: {}", name));
+                zip.start_file(&name, options)?;
+                // Async write data to zip file
+                zip.write_all(&data).unwrap();
+                dbg_log(format!("Finished writing file: {}", name));
+            }
+            zip.finish().map(|_| ())
+        });
+
+        // Read files in parallel
+        let mut handles = Vec::new();
+        for (full_path, base_path) in files_to_compress.clone() {
+            let tx = tx.clone();
+            let strip = strip_prefix.map(|p| p.to_path_buf());
+
+            // let output_value = output_search_path.clone();
+            let handle = task::spawn(async move {
+                if let Ok(data) = read_file_async(&full_path).await {
+                    // Compute relative path inside ZIP
+                    let zip_path = if let Some(strip) = strip {
+                        full_path.strip_prefix(strip).unwrap_or(&full_path)
+                    } else {
+                        full_path
+                            .strip_prefix(&base_path.parent().unwrap_or(&base_path))
+                            .unwrap_or(&full_path)
+                    };
+
+                    let zip_name = zip_path.to_string_lossy().replace("\\", "/");
+                    let _ = tx.send((zip_name.clone(), data)).await;
+                }
+            });
+            handles.push(handle);
+        }
+
+        for h in handles {
+            h.await?;
+        }
+
+        drop(tx); // Close channel
+        writer_handle.await??; // Propagate errors
+
+        let _ = WINDOW.get().unwrap().eval(&format!(
+            "showToast('Compression done in {:?}', ToastType.INFO);",
+            stop_watch.elapsed()
+        ));
+
+        Ok(())
+    }
+}
+
+/// Helper: Asynchronously read an entire file into memory
+async fn read_file_async(path: &Path) -> io::Result<Vec<u8>> {
+    let mut file = File::open(path)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    Ok(buffer)
+}
+
+pub fn extract_zst_archive(archive_path: &Path, output_dir: &Path) -> Result<(), Error> {
+    let mut output: String = output_dir.to_string_lossy().to_string();
+    if output.ends_with(".tar") {
+        output = output.strip_suffix(".tar").unwrap().to_string();
+    }
+
+    // Create the output directory if it doesn't exist
+    fs::create_dir_all(Path::new(&output).with_extension(""))?;
+
+    let _ = WINDOW.get().unwrap().emit("refreshView", ());
+
+    // Open the .zst file
+    let file = File::open(archive_path)?;
+
+    // Wrap in a buffered reader for efficiency
+    let reader = BufReader::new(file);
+
+    // Create a Zstandard decoder
+    let mut decoder = zstd::Decoder::new(reader)?;
+
+    // Create a tar archive reader from the decoder
+    let mut archive = tar::Archive::new(&mut decoder);
+
+    // Unpack the archive to the output directory
+    archive.unpack(Path::new(&output).with_extension(""))?;
+
+    Ok(())
+}
+
+#[allow(unused)]
+pub fn get_items_size<I: IntoIterator<Item = String>>(items: I) -> u64 {
+    let items = items.into_iter().map(|item| fs::metadata(item));
+    items.into_iter().map(|item| item.unwrap().size()).sum()
+}
+
+pub fn compress_to_density(input_path: &str, output_path: &str, compression_level: i32) -> Result<(), std::io::Error> {
+    let mut output_file = File::create(output_path)?;
+    let _ = WINDOW.get().unwrap().emit("refreshView", ());
+
+    // Read the input file into memory
+    let input_data: Vec<u8>;
+    if fs::metadata(&input_path).unwrap().is_file() {
+        input_data = std::fs::read(input_path)?;
+    } else {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Directories are not supported"));
+    }
+    println!("Read {} bytes from {}", input_data.len(), input_path);
+
+    // Allocate a buffer for the compressed data
+    let max_compressed_size: usize;
+    match compression_level {
+        1 => max_compressed_size = Chameleon::safe_encode_buffer_size(input_data.len()),
+        2 => max_compressed_size = Cheetah::safe_encode_buffer_size(input_data.len()),
+        3 => max_compressed_size = Lion::safe_encode_buffer_size(input_data.len()),
+        _ => max_compressed_size = Cheetah::safe_encode_buffer_size(input_data.len()),
+    }
+    let mut compressed_data = vec![0u8; max_compressed_size];
+
+    // Compress the data
+    let compressed_size: usize;
+    match compression_level {
+        1 => compressed_size = Chameleon::encode(&input_data, &mut compressed_data).unwrap(),
+        2 => compressed_size = Cheetah::encode(&input_data, &mut compressed_data).unwrap(),
+        3 => compressed_size = Lion::encode(&input_data, &mut compressed_data).unwrap(),
+        _ => compressed_size = Cheetah::encode(&input_data, &mut compressed_data).unwrap(),
+    }
+    let mut output = Vec::with_capacity(8 + compressed_size as usize);
+
+    // Prepend original size as little-endian u64
+    output.extend_from_slice(&input_data.len().to_le_bytes());
+    // Append compressed data
+    output.extend_from_slice(&compressed_data[0..compressed_size]);
+
+    println!("Compressed to {} bytes (ratio: {:.2}%)", compressed_size, (compressed_size as f64 / input_data.len() as f64) * 100.0);
+
+    // Write to output file
+    output_file.write_all(&output)?;
+
+    println!("Compressed archive written to {}", output_path);
+    Ok(())
+}
+
+pub fn extract_from_density(input_path: &str, output_path: &str) -> Result<(), String> {
+    // Read the entire compressed archive
+    let mut input_file = File::open(input_path).unwrap();
+    let mut input_data = Vec::new();
+    input_file.read_to_end(&mut input_data).unwrap();
+
+    if input_data.len() < 8 {
+        return Err("Invalid archive: too short for header".into());
+    }
+
+    // Extract original size from first 8 bytes (little-endian u64)
+    let original_size_bytes: [u8; 8] = input_data[0..8].try_into().unwrap();
+    let original_size = u64::from_le_bytes(original_size_bytes) as usize;
+
+    // Compressed data is the rest
+    let compressed_data = &input_data[8..];
+    println!("Original size from header: {} bytes", original_size);
+    println!("Compressed data size: {} bytes", compressed_data.len());
+
+    // Allocate output buffer of exact original size
+    let mut output_data = vec![0u8; original_size];
+
+    // Decompress
+    let decoded_size = Chameleon::decode(compressed_data, &mut output_data).unwrap();
+    if decoded_size != original_size {
+        return Err(format!("Decode mismatch: expected {}, got {}", original_size, decoded_size).into());
+    }
+    println!("Successfully decompressed {} bytes", decoded_size);
+
+    // Write to output file
+    let mut output_file = File::create(output_path).unwrap();
+    output_file.write_all(&output_data).unwrap();
+
+    println!("Decompressed file written to {}", output_path);
+    Ok(())
 }

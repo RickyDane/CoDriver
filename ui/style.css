@@ -54,7 +54,7 @@ html {
     background-color: transparent;
     border: none;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: 15px !important;
 }
 
 body {
@@ -62,7 +62,7 @@ body {
     overflow: hidden;
     outline: none;
     border: none;
-    border-radius: 10px;
+    border-radius: 15px !important;
     transition: 0.3s ease-out;
     background-color: transparent;
 }
@@ -230,8 +230,8 @@ body {
     border-bottom: 1px solid var(--tertiaryColor);
     color: var(--textColor);
     background-color: var(--navBarColor);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    webkit-backdrop-filter: blur(10px);
     transition: 0.3s ease-out;
 }
 
@@ -267,8 +267,8 @@ body {
     align-items: center;
     gap: 8px;
     font-size: small;
-    /*transition: 0.1s ease-out;*/
-    color: white;
+    color: var(--textColor2);
+    transition: 0.2s ease;
 }
 
 .site-nav-bar-button > p {
@@ -278,22 +278,42 @@ body {
 }
 
 .site-nav-bar-button > svg {
-    color: white;
+    color: var(--textColor2);
 }
 
 .site-nav-bar-button:hover {
     background-color: var(--selectColor3) !important;
-    border: 1px solid var(--selectColor3) !important;
+    color: white;
+    scale: 1.025;
 }
 
 .disk-site-nav-button {
+    height: 35px;
+    min-height: 35px;
     color: var(--textColor2);
     /*text-shadow: 0 0 5px rgba(0, 0, 0, 0.75);*/
-    /*border: 1px solid var(--transparentColor) !important;*/
+    border: 1px solid transparent important;
+    box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.1);
 }
 .disk-site-nav-button:hover {
     background-color: var(--selectColor3) !important;
-    border: 1px solid var(--selectColor2) !important;
+}
+
+.disk-container {
+    display: flex;
+    flex-flow: column;
+    width: 100%;
+    padding: 5px;
+    margin-top: 5px;
+    gap: 2px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: inset 0px 0px 10px 5px rgba(100, 100, 100, 0.1), 0px 0px 5px 2px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+.disk-container::-webkit-scrollbar {
+    padding: 5px;
+    background-color: var(--transparentColor);
 }
 
 .active-actions-container {
@@ -771,7 +791,6 @@ button > svg {
     background-color: var(--secondaryColor);
     border: 1px solid var(--tertiaryColor);
     border-radius: 10px;
-    min-width: 110%;
     cursor: pointer;
     color: var(--textColor);
 }
@@ -939,6 +958,7 @@ button > svg {
     border-radius: 10px;
     margin: 1px 0px;
     border: 1px solid transparent;
+    transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .item-button-list > p {
@@ -947,6 +967,7 @@ button > svg {
 }
 
 .item-button-list:hover {
+    scale: 1.005;
     background-color: var(--transparentColor);
 }
 
@@ -1118,7 +1139,7 @@ button > svg {
 }
 
 .icon-button:hover > .button-icon {
-    background-color: var(--transparentColor);
+    /*background-color: var(--transparentColor);*/
 }
 
 /* Menu buttons */
@@ -1130,11 +1151,12 @@ button > svg {
     cursor: pointer;
     padding: 10px 17.5px;
     border-radius: 10px;
+    border: 1px solid transparent;
     transition: 0.1s ease-out;
 }
 
 .go-back-button:hover {
-    background-color: var(--transparentColor);
+    background-color: var(--transparentColor) !important;
 }
 
 .go-back-button:active {
@@ -1191,7 +1213,7 @@ button > svg {
     border-radius: 10px;
     overflow: hidden;
     margin: 0 auto;
-    transition: 0.2s ease-out;
+    transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .file-searchbar > input {
@@ -1385,6 +1407,7 @@ button > svg {
     cursor: pointer;
     border: 1px solid transparent;
     color: var(--textColor);
+    transition: 0.2s ease;
 }
 
 .path-item:hover {
@@ -1894,7 +1917,7 @@ button > svg {
 .popup-body-row-section {
     display: flex;
     flex-flow: row;
-    align-items: center;
+    align-items: flex-end;
     gap: 10px;
     padding: 5px;
 }

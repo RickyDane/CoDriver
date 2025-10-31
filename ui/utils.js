@@ -28,7 +28,10 @@ listen("tauri://file-drop", async (event) => {
           await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
           await listDirectories();
         } else if (operation == "move") {
-          await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "", true);
+          await pasteItem(
+            DraggedOverElement.getAttribute("itempath") ?? "",
+            true,
+          );
           await listDirectories();
         }
       } else {
@@ -44,7 +47,10 @@ listen("tauri://file-drop", async (event) => {
         await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
         await listDirectories();
       } else if (operation == "move") {
-        await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "", true);
+        await pasteItem(
+          DraggedOverElement.getAttribute("itempath") ?? "",
+          true,
+        );
         await listDirectories();
       }
       CopyFileName = "";
@@ -193,13 +199,228 @@ function removeAction(actionId) {
 
 function endsWith(text, divider = ".", ends = []) {
   let endedWithIt = false;
-  if (!text) return; false;
+  if (!text) return;
+  false;
   let textEnd = text.split(divider)[text.split(divider).length - 1];
-  ends.forEach(end => {
+  ends.forEach((end) => {
     if (textEnd == end) {
       endedWithIt = true;
       return true;
     }
   });
   return endedWithIt;
+}
+
+listen("updateItemMetadata", (event) => {
+  updateItemMetadata(event.payload);
+});
+
+async function updateItemMetadata(data) {
+  let path = data[0];
+  let size = data[1];
+  let itemSize = document.getElementById(`size-${path}`);
+
+  itemSize.textContent = formatBytes(parseInt(size), 2);
+}
+
+function getIconForFile(item, itemsCount) {
+  let fileIcon = "";
+  if (item.is_dir == 1) {
+    fileIcon = "resources/folder-icon.png";
+    // Check for dir name to apply custom icons
+    switch (item.name.toLowerCase()) {
+      case "downloads":
+        fileIcon = "resources/folder-downloads.png";
+        break;
+      case "desktop":
+      case "schreibtisch":
+        fileIcon = "resources/folder-desktop.png";
+        break;
+      case "dokumente":
+      case "doks":
+      case "documents":
+      case "docs":
+        fileIcon = "resources/folder-docs.png";
+        break;
+      case "musik":
+      case "music":
+      case "audio":
+        fileIcon = "resources/folder-music.png";
+        break;
+      case "bilder":
+      case "fotos":
+      case "photos":
+      case "pictures":
+      case "images":
+        fileIcon = "resources/folder-images.png";
+        break;
+      case "videos":
+      case "video":
+      case "movies":
+      case "movie":
+      case "films":
+      case "filme":
+        fileIcon = "resources/folder-videos.png";
+        break;
+      case "coding":
+      case "programming":
+      case "programmieren":
+      case "code":
+        fileIcon = "resources/folder-coding.png";
+        break;
+      case "werkzeuge":
+      case "tools":
+        fileIcon = "resources/folder-tools.png";
+        break;
+      case "public":
+      case "öffentlich":
+      case "shared":
+      case "geteilt":
+        fileIcon = "resources/folder-public.png";
+        break;
+      case "games":
+      case "gaming":
+      case "spiele":
+        fileIcon = "resources/folder-games.png";
+        break;
+      case "developer":
+      case "entwickler":
+      case "entwicklung":
+      case "development":
+        fileIcon = "resources/folder-development.png";
+        break;
+      case "applications":
+      case "programme":
+        fileIcon = "resources/folder-applications.png";
+        break;
+      case "sdk":
+      case "sdks":
+        fileIcon = "resources/folder-sdk.png";
+      default:
+        fileIcon = "resources/folder-icon.png";
+        break;
+    }
+  } else {
+    switch (item.extension.toLowerCase()) {
+      case ".rs":
+        fileIcon = "resources/rust-file.png";
+        break;
+        case ".dart":
+          fileIcon = "resources/dart-file.png";
+          break;
+      case ".js":
+      case ".jsx":
+        fileIcon = "resources/javascript-file.png";
+        break;
+      case ".css":
+      case ".scss":
+        fileIcon = "resources/css-file.png";
+        break;
+      case ".sql":
+      case ".db":
+        fileIcon = "resources/sql-file.png";
+        break;
+      case ".go":
+        fileIcon = "resources/go-file.png";
+        break;
+      case ".md":
+        fileIcon = "resources/markdown-file.png";
+        break;
+      case ".bin":
+        fileIcon = "resources/bin-file.png";
+        break;
+      case ".json":
+      case ".cs":
+      case ".c":
+      case ".xml":
+      case ".htm":
+      case ".html":
+      case ".php":
+      case ".py":
+      case ".ts":
+      case ".tsx":
+        fileIcon = "resources/code-file.png";
+        break;
+      case ".png":
+      case ".jpg":
+      case ".jpeg":
+      case ".gif":
+      case ".webp":
+      case ".svg":
+      case ".ico":
+      case ".bmp":
+      case ".tiff":
+      case ".tif":
+      case ".jfif":
+      case ".avif":
+      case ".icns":
+        if (IsImagePreview) {
+          if (item.size < 50000000 && itemsCount < 1000) {
+            // ~50 mb
+            fileIcon = item.path;
+          } else {
+            fileIcon = "resources/img-file.png";
+          }
+        } else {
+          fileIcon = "resources/img-file.png";
+        }
+        break;
+      case ".pdf":
+        fileIcon = "resources/pdf-file.png";
+        break;
+      case ".txt":
+      case ".rtf":
+        fileIcon = "resources/text-file.png";
+        break;
+      case ".docx":
+      case ".doc":
+        fileIcon = "resources/word-file.png";
+        break;
+      case ".zip":
+      case ".rar":
+      case ".tar":
+      case ".zst":
+      case ".7z":
+      case ".gz":
+      case ".xz":
+      case ".bz2":
+      case ".lz":
+      case ".lz4":
+      case ".lzma":
+      case ".lzo":
+      case ".z":
+      case ".zstd":
+      case ".br":
+        fileIcon = "resources/zip-file.png";
+        break;
+      case ".xlsx":
+        fileIcon = "resources/spreadsheet-file.png";
+        break;
+      case ".appimage":
+        fileIcon = "resources/appimage-file.png";
+        break;
+      case ".mp4":
+      case ".mkv":
+      case ".avi":
+      case ".mov":
+      case ".wmv":
+      case ".flv":
+      case ".webm":
+        fileIcon = "resources/video-file.png";
+        break;
+      case ".mp3":
+      case ".wav":
+      case ".ogg":
+      case ".opus":
+        fileIcon = "resources/audio-file.png";
+        break;
+      case ".iso":
+        fileIcon = "resources/iso-file.png";
+        break;
+      default:
+        fileIcon = "resources/file-icon.png";
+        break;
+    }
+  }
+  return fileIcon;
 }
