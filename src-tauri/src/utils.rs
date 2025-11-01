@@ -5,6 +5,10 @@ use density_rs::algorithms::cheetah::cheetah::Cheetah;
 use density_rs::algorithms::lion::lion::Lion;
 use density_rs::codec::codec::Codec;
 use jwalk::WalkDir;
+use notify::event::{CreateKind, ModifyKind, RemoveKind};
+use notify::EventKind::{Create, Modify, Remove};
+use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+#[cfg(target_os = "macos")]
 use serde::Serialize;
 use std::env::current_dir;
 use std::fs::{Metadata, OpenOptions};
@@ -22,14 +26,14 @@ use tar::Archive as TarArchive;
 use tauri::api::dialog;
 use tauri::api::path::config_dir;
 use tauri::Window;
-use tokio::sync::{MutexGuard};
+use tokio::sync::MutexGuard;
 use tokio::task;
 use zip::write::FileOptions;
-use zip::{ZipWriter};
+use zip::ZipWriter;
 
 #[allow(unused_imports)]
 use crate::ISCANCELED;
-use crate::{COPY_COUNTER, IS_SEARCHING, TO_COPY_COUNTER, WINDOW};
+use crate::{COPY_COUNTER, IS_SEARCHING, TOTAL_BYTES_COPIED, WINDOW};
 
 pub fn success_log<S: Into<String>>(msg: S) {
     let msg = msg.into();
@@ -90,13 +94,14 @@ pub fn log<S: Into<String>>(msg: S) {
         log
     ));
 }
-pub async fn copy_to(final_filename: String, from_path: String) {
-    let app_window = WINDOW.get().unwrap();
+pub async fn copy_to(final_filename: String, from_path: String, total_size: f32, count_to_copy: f32) {
+    // let app_window = WINDOW.get().unwrap();
     let file = fs::metadata(&from_path).unwrap();
+    let total_size = total_size;
     if file.is_file() {
         // Prepare to copy file
         let mut fr = BufReader::new(File::open(&from_path).unwrap());
-        let mut buf = vec![0; 1_000_000]; // Copy in 1 mb chunks
+        let mut buf = vec![0; 16_777_216]; // Copying in 16 mb chunks
         let new_file = File::create(&final_filename).unwrap();
         let file_size = fs::metadata(&from_path).unwrap().len() as f32;
         let mut fw = BufWriter::new(new_file);
@@ -105,17 +110,14 @@ pub async fn copy_to(final_filename: String, from_path: String) {
         let sw = Stopwatch::start_new();
         let mut progress: f32;
         let mut copy_counter = COPY_COUNTER.lock().await;
-        let to_copy_counter = TO_COPY_COUNTER.lock().await;
-        update_progressbar_2(
-            app_window,
-            (100.0 / *to_copy_counter) * *copy_counter,
-            final_filename.split("/").last().unwrap(),
-        );
         *copy_counter += 1.0;
+        println!("Copying file...");
+        let copy_counter = copy_counter.clone();
         loop {
             match fr.read(&mut buf) {
                 Ok(ds) => {
                     s += ds as u64;
+                    *(TOTAL_BYTES_COPIED.lock().await) += ds as f32;
                     if ds == 0 {
                         break;
                     }
@@ -127,12 +129,20 @@ pub async fn copy_to(final_filename: String, from_path: String) {
                                 speed = 0.0
                             }
                             progress = (100.0 / file_size) * s as f32;
-                            update_progressbar(
-                                app_window,
-                                progress,
-                                format!("{}/{}", *copy_counter, *to_copy_counter).as_str(),
-                                speed,
-                            );
+                            // Clear console
+                            println!("\x1B[2J\x1B[1;1H");
+                            println!("Progress: {:.0}% | Total size: {} | Bytes copied: {} | Speed: {:.0} MB/s", progress, format_bytes(total_size as u64), format_bytes(*(TOTAL_BYTES_COPIED.lock().await) as u64), speed);
+                            // Only update the progressbar every 5%
+                            // if progress % 5.0 < 1.0 {
+                                update_progressbar(
+                                    progress,
+                                    (100.0 / total_size) * *(TOTAL_BYTES_COPIED.lock().await),
+                                    count_to_copy,
+                                    copy_counter,
+                                    final_filename.split("/").last().unwrap(),
+                                    speed,
+                                );
+                            // }
                         }
                         Err(err) => {
                             dialog::message(WINDOW.get(), "Info", format!("{:?}", err.to_string()));
@@ -154,7 +164,7 @@ pub async fn copy_to(final_filename: String, from_path: String) {
             let path = entry.path();
             let relative_path = path.strip_prefix(&from_path).unwrap();
             let dest_file = final_filename.clone() + "/" + relative_path.to_str().unwrap();
-            Box::pin(copy_to(dest_file, path.to_str().unwrap().to_string())).await;
+            Box::pin(copy_to(dest_file, path.to_str().unwrap().to_string(), total_size.clone(), count_to_copy.clone())).await;
         }
     } else {
         wng_log(format!("Unsupported file type: {}", from_path));
@@ -185,55 +195,39 @@ pub fn count_entries(path: &str) -> Result<f32, std::io::Error> {
 }
 
 pub fn show_progressbar(app_window: &Window) {
-    let _ = &app_window
-        .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
-    let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
+    let _ = app_window.emit("show-progressbar", ());
 }
 
 pub fn update_progressbar(
-    app_window: &Window,
     progress: f32,
-    items_count_text: &str,
+    elements_progress: f32,
+    items_count: f32,
+    current_element_count: f32,
+    file_name: &str,
     mb_per_sec: f64,
 ) {
-    let _ = app_window.eval(
-        format!(
-            "document.querySelector('.progress-bar-fill').style.width = '{}%'",
-            &progress
-        )
-        .as_str(),
+    let _ = WINDOW.get().unwrap().emit(
+        "update-progress-bar",
+        (
+            progress,
+            elements_progress,
+            items_count,
+            current_element_count,
+            file_name,
+            mb_per_sec,
+        ),
     );
-    let _ = app_window.eval(
-        format!(
-            "document.querySelector('.progress-bar-text').innerText = '{:.2} %'",
-            progress
-        )
-        .as_str(),
-    );
-    let _ = app_window.eval(
-        format!(
-            "document.querySelector('.progress-bar-text-2').innerText = '{:.2} MB/s | {}'",
-            mb_per_sec, items_count_text
-        )
-        .as_str(),
-    );
-}
-
-pub fn update_progressbar_2(app_window: &Window, progress: f32, file_name: &str) {
-    let _ = app_window.eval(
-        format!(
-            "document.querySelector('.progress-bar-2-fill').style.width = '{}%'",
-            progress
-        )
-        .as_str(),
-    );
-    let _ = app_window.eval(
-        format!(
-            "document.querySelector('.progress-bar-item-text').innerText = '{}'",
-            file_name
-        )
-        .as_str(),
-    );
+    // let file_ext = file_name.split('.').last().unwrap_or("unknown");
+    // let _ = app_window.eval(&format!(
+    //     "
+    //         document.querySelector('.progress-bar-main-percentage').innerText = `{progress:.0}%`;
+    //         document.querySelector('.progress-bar-detail-info').innerText = `{current_element_count} of {items_count} - {mb_per_sec:.0} MB/s`;
+    //         document.querySelector('.progress-bar-current-file-text').innerText = `{file_name}`;
+    //         document.querySelector('.progress-bar-current-file-ext').innerText = `(.{file_ext})`;
+    //         document.querySelector('.progress-bar-main-progress-fill').style.width = `{progress:.0}%`;
+    //     ",
+    // ));
+    // progress, items_count, current_element_count, mb_per_sec, file_name, progress,
 }
 
 pub fn calc_transfer_speed(file_size: u64, time: i64) -> f64 {
@@ -667,7 +661,11 @@ pub async fn compress_items<P: AsRef<Path>, I: IntoIterator<Item = P> + Clone>(
     if compression_format == "density" {
         for input_path in input_paths {
             let path = input_path.as_ref();
-            compress_to_density(path.to_str().unwrap(), output_path.to_str().unwrap(), compression_level)?;
+            compress_to_density(
+                path.to_str().unwrap(),
+                output_path.to_str().unwrap(),
+                compression_level,
+            )?;
         }
         Ok(())
         // Implement density compression logic here
@@ -802,7 +800,11 @@ pub fn get_items_size<I: IntoIterator<Item = String>>(items: I) -> u64 {
     items.into_iter().map(|item| item.unwrap().size()).sum()
 }
 
-pub fn compress_to_density(input_path: &str, output_path: &str, compression_level: i32) -> Result<(), std::io::Error> {
+pub fn compress_to_density(
+    input_path: &str,
+    output_path: &str,
+    compression_level: i32,
+) -> Result<(), std::io::Error> {
     let mut output_file = File::create(output_path)?;
     let _ = WINDOW.get().unwrap().emit("refreshView", ());
 
@@ -811,7 +813,10 @@ pub fn compress_to_density(input_path: &str, output_path: &str, compression_leve
     if fs::metadata(&input_path).unwrap().is_file() {
         input_data = std::fs::read(input_path)?;
     } else {
-        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Directories are not supported"));
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Directories are not supported",
+        ));
     }
     println!("Read {} bytes from {}", input_data.len(), input_path);
 
@@ -840,7 +845,11 @@ pub fn compress_to_density(input_path: &str, output_path: &str, compression_leve
     // Append compressed data
     output.extend_from_slice(&compressed_data[0..compressed_size]);
 
-    println!("Compressed to {} bytes (ratio: {:.2}%)", compressed_size, (compressed_size as f64 / input_data.len() as f64) * 100.0);
+    println!(
+        "Compressed to {} bytes (ratio: {:.2}%)",
+        compressed_size,
+        (compressed_size as f64 / input_data.len() as f64) * 100.0
+    );
 
     // Write to output file
     output_file.write_all(&output)?;
@@ -874,7 +883,11 @@ pub fn extract_from_density(input_path: &str, output_path: &str) -> Result<(), S
     // Decompress
     let decoded_size = Chameleon::decode(compressed_data, &mut output_data).unwrap();
     if decoded_size != original_size {
-        return Err(format!("Decode mismatch: expected {}, got {}", original_size, decoded_size).into());
+        return Err(format!(
+            "Decode mismatch: expected {}, got {}",
+            original_size, decoded_size
+        )
+        .into());
     }
     println!("Successfully decompressed {} bytes", decoded_size);
 
@@ -884,4 +897,69 @@ pub fn extract_from_density(input_path: &str, output_path: &str) -> Result<(), S
 
     println!("Decompressed file written to {}", output_path);
     Ok(())
+}
+
+pub fn setup_fs_watcher() {
+    dbg_log("Setting up the file system watcher ...");
+    watch("/").expect("error watching folder");
+}
+
+fn watch<P: AsRef<Path>>(_path: P) -> notify::Result<()> {
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    // Automatically select the best implementation for your platform.
+    // You can also access each implementation directly e.g. INotifyWatcher.
+    let mut watcher = RecommendedWatcher::new(tx, notify::Config::default())?;
+
+    // Add a path to be watched. All files and directories at that path and
+    // below will be monitored for changes.
+    watcher.watch(Path::new("/"), RecursiveMode::Recursive)?;
+    // watcher.watch(Path::new("/Volumes"), RecursiveMode::Recursive)?;
+    // watcher.watch(Path::new("/Users"), RecursiveMode::Recursive)?;
+    // watcher.watch(Path::new("/Library"), RecursiveMode::Recursive)?;
+    // watcher.watch(Path::new("/Applications"), RecursiveMode::Recursive)?;
+    // watcher.watch(Path::new("/System"), RecursiveMode::Recursive)?;
+
+    for res in rx {
+        match res {
+            Ok(event) => handle_fs_change(event),
+            Err(error) => err_log(format!("Error: {error:?}")),
+        }
+    }
+
+    Ok(())
+}
+
+fn handle_fs_change(event: notify::Event) {
+    if (event.kind == Create(CreateKind::Folder) || event.kind == Remove(RemoveKind::Folder))
+        && event.paths.len() == 1
+        && event.paths[0].starts_with("/Volumes")
+    {
+        // Check mounts
+        dbg_log(format!("Mount event => {:?}", event));
+        let _ = WINDOW.get().unwrap().emit("fs-mount-changed", event.clone());
+        let _ = WINDOW.get().unwrap().emit("watcher-event", event);
+    } else {
+        // Check if the event path is within the current directory
+        let event_path = event.paths[0].to_str().unwrap();
+        let trimmed_event_path = event_path.trim_end_matches(event_path.split("/").last().unwrap());
+        let current_dir = current_dir().unwrap().to_string_lossy().to_string() + "/";
+
+        if current_dir == trimmed_event_path {
+            // Check entire file system events
+            dbg_log(format!("Event => {:?}", event));
+            if event.kind == Create(CreateKind::File)
+                || event.kind == Create(CreateKind::Folder)
+                || event.kind == Remove(RemoveKind::File)
+                || event.kind == Remove(RemoveKind::Folder)
+                || event.kind == Modify(ModifyKind::Data(notify::event::DataChange::Size))
+                || event.kind == Modify(ModifyKind::Data(notify::event::DataChange::Content))
+                || event.kind == Modify(ModifyKind::Metadata(notify::event::MetadataKind::Any))
+                || event.kind == Modify(ModifyKind::Name(notify::event::RenameMode::To))
+                || event.kind == Modify(ModifyKind::Name(notify::event::RenameMode::Any))
+            {
+                let _ = WINDOW.get().unwrap().emit("watcher-event", event);
+            }
+        }
+    }
 }

@@ -10,12 +10,11 @@ use flate2::read::GzDecoder;
 #[cfg(target_os = "macos")]
 use icns::{IconFamily, IconType};
 use image::ImageReader;
-use notify::{RecursiveMode, Watcher};
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
 use std::fs::{self, read_dir, remove_dir};
-use std::io::{Cursor};
+use std::io::Cursor;
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
@@ -51,8 +50,7 @@ use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
     calc_transfer_speed, copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes,
-    remove_action, show_progressbar, success_log, unpack_tar, update_progressbar,
-    update_progressbar_2, wng_log, DirWalker, DirWalkerEntry,
+    remove_action, show_progressbar, success_log, unpack_tar, wng_log, DirWalker, DirWalkerEntry,
 };
 #[cfg(target_os = "macos")]
 mod window_tauri_ext;
@@ -63,11 +61,12 @@ mod applications;
 use applications::{get_apps, open_file_with};
 use archiver_rs::Compressed;
 use lazy_static::lazy_static;
-use notify::event::{CreateKind, RemoveKind};
-use notify::EventKind::{Create, Remove};
 use substring::Substring;
 
-use crate::utils::{compress_items, extract_from_density, extract_zst_archive, human_to_bytes};
+use crate::utils::{
+    compress_items, extract_from_density, extract_zst_archive, get_items_size, human_to_bytes,
+    setup_fs_watcher,
+};
 
 // Global variables
 lazy_static! {
@@ -76,6 +75,7 @@ lazy_static! {
     static ref PATH_HISTORY: Mutex<Vec<String>> = Mutex::new(Vec::new());
     static ref COPY_COUNTER: Mutex<f32> = Mutex::new(0.0);
     static ref TO_COPY_COUNTER: Mutex<f32> = Mutex::new(0.0);
+    static ref TOTAL_BYTES_COPIED: Arc<Mutex<f32>> = Arc::new(Mutex::new(0.0));
     static ref IS_SEARCHING: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 }
 
@@ -94,30 +94,13 @@ const ASSET_LOCATION: &str = "asset://localhost/";
 static WINDOW: OnceLock<Window> = OnceLock::new();
 
 fn main() {
-    let mut file_system_watcher =
-        notify::recommended_watcher(handle_fs_change).expect("error creating file watcher");
-
-    #[cfg(target_os = "macos")]
-    // Watch for disk and custom sshfs drive mounts
-    file_system_watcher
-        .watch(Path::new("/Volumes"), RecursiveMode::NonRecursive)
-        .expect("error watching folder");
-    if PathBuf::from("/tmp/codriver-sshfs-mount").exists() {
-        file_system_watcher
-            .watch(
-                Path::new("/tmp/codriver-sshfs-mount"),
-                RecursiveMode::NonRecursive,
-            )
-            .expect("error watching folder");
-    }
-
     tauri::Builder::default()
         .setup(|app| {
             let win = app.get_window("main").unwrap();
             #[cfg(target_os = "macos")]
             win.set_transparent_titlebar(true);
             #[cfg(target_os = "macos")]
-            win.position_traffic_lights(25.0, 28.0);
+            win.position_traffic_lights(25.0, 32.0);
             #[cfg(target_os = "macos")]
             let _ = apply_vibrancy(
                 &win,
@@ -133,7 +116,14 @@ fn main() {
             #[cfg(not(target_os = "macos"))]
             let _ = win.set_decorations(false);
 
+            // Set window to be accessible everywhere
             let _ = WINDOW.set(win).unwrap();
+
+            // Listen for file system changes
+            #[cfg(target_os = "macos")]
+            std::thread::spawn(|| {
+                setup_fs_watcher();
+            });
 
             Ok(())
         })
@@ -141,7 +131,8 @@ fn main() {
             #[cfg(target_os = "macos")]
             WindowEvent::Resized { .. } => {
                 let win = e.window();
-                win.position_traffic_lights(25.0, 28.0);
+                win.position_traffic_lights(25.0, 32.0);
+                std::thread::sleep(std::time::Duration::from_millis(1));
             }
             // Fixes sluggish window resizing on Windows
             // See https://github.com/tauri-apps/tauri/issues/6322#issuecomment-1448141495
@@ -206,20 +197,6 @@ fn main() {
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-fn handle_fs_change(event: notify::Result<notify::Event>) {
-    match event {
-        Ok(event) => {
-            // Handle file system change event
-            if event.kind == Create(CreateKind::Folder) || event.kind == Remove(RemoveKind::Folder)
-            {
-                println!("Event => {:?}", event);
-                let _ = WINDOW.get().unwrap().emit("fs-mount-changed", event);
-            }
-        }
-        Err(e) => println!("Watch error => {:?}", e),
-    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -874,11 +851,9 @@ async fn copy_paste(
         wng_log("No destination path provided. Defaulting to current dir");
         copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
     }
-    let mut copy_counter = COPY_COUNTER.lock().await;
-    *copy_counter = 0.0;
-    let _ = app_window
-        .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
+
     dbg_log(format!("Copying: {} ...", &act_file_name));
+
     let final_filename = get_final_filename(
         act_file_name,
         from_path.clone(),
@@ -889,11 +864,10 @@ async fn copy_paste(
 
     let mut to_copy_counter = TO_COPY_COUNTER.lock().await;
     *to_copy_counter = count_entries(&from_path).unwrap();
-    if *to_copy_counter == 1.0 {
-        let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'none'");
-    } else {
-        show_progressbar(&app_window);
-    }
+    let total_bytes_to_copy = get_items_size([from_path.clone()]) as f32;
+
+    show_progressbar(&app_window);
+
     let sw = Stopwatch::start_new();
 
     let item_md = fs::metadata(&from_path);
@@ -903,14 +877,21 @@ async fn copy_paste(
                 // 100 mb
                 let _ = copy(from_path, final_filename);
             } else {
-                copy_to(final_filename, from_path).await;
+                println!("Copying {} to {}", from_path, final_filename);
+                copy_to(
+                    final_filename,
+                    from_path,
+                    total_bytes_to_copy,
+                    to_copy_counter.clone(),
+                )
+                .await;
             }
         }
         _ => return,
     }
 
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
-    app_window.eval("resetProgressBar()").unwrap();
+    let _ = app_window.emit("finish-progress-bar", ());
 }
 
 #[tauri::command]
@@ -921,18 +902,20 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
         copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
     }
 
+    // Reset counter
     *(COPY_COUNTER.lock().await) = 0.0;
-    *(TO_COPY_COUNTER.lock().await) = 0.0;
+    *(TOTAL_BYTES_COPIED.lock().await) = 0.0;
 
-    let _ = app_window
-        .eval("document.querySelector('.progress-bar-container-popup').style.display = 'flex'");
-    let _ = app_window.eval("document.querySelector('.progress-bar-2').style.display = 'block'");
+    show_progressbar(app_window);
+
     let mut filename: String;
     let mut counter = 0.0;
+    let mut total_bytes = 0.0;
     for item in arr_items.clone() {
         counter += count_entries(&item.path).unwrap();
+        total_bytes += dir_info(item.path.clone()).size as f32;
     }
-    *(TO_COPY_COUNTER.lock().await) = counter;
+
     let sw = Stopwatch::start_new();
     for item in arr_items {
         let item_path = item.path;
@@ -950,11 +933,10 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
         )
         .await;
         // Execute the copy process for either a dir or file
-        copy_to(final_filename, item_path).await;
+        copy_to(final_filename, item_path, total_bytes, counter).await;
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
-    app_window.eval("resetProgressBar()").unwrap();
-    // app_window.eval("listDirectories(true)").unwrap();
+    let _ = app_window.emit("finish-progress-bar", ());
 }
 
 #[tauri::command]
@@ -1074,7 +1056,10 @@ async fn extract_item(from_path: String, app_window: Window) {
     if file_ext == ".density" {
         let _ = extract_from_density(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     } else if from_path.ends_with(".tar.zst") || from_path.ends_with(".tar.zstd") {
-        let _ = extract_zst_archive(PathBuf::from(&from_path).as_path(), PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap()).as_path());
+        let _ = extract_zst_archive(
+            PathBuf::from(&from_path).as_path(),
+            PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap()).as_path(),
+        );
     } else if file_ext == ".zip" || file_ext == ".zst" || file_ext == ".zstd" {
         let file = PathBuf::from(&from_path);
         let output = Path::new(from_path.strip_suffix(&file_ext).unwrap()).with_extension("");
@@ -1107,7 +1092,10 @@ async fn extract_item(from_path: String, app_window: Window) {
         let _ =
             sevenz_rust::decompress_file(&from_path, from_path.strip_suffix(&file_ext).unwrap());
     } else if file_ext == ".tar" {
-        unpack_tar(File::open(&from_path).unwrap(), from_path.strip_suffix(&file_ext).unwrap().to_string());
+        unpack_tar(
+            File::open(&from_path).unwrap(),
+            from_path.strip_suffix(&file_ext).unwrap().to_string(),
+        );
     } else if file_ext == ".gz" {
         let file = File::open(&from_path).unwrap();
         let mut archive = GzDecoder::new(file);
@@ -1116,12 +1104,18 @@ async fn extract_item(from_path: String, app_window: Window) {
         let _ = File::create(from_path.strip_suffix(&file_ext).unwrap())
             .unwrap()
             .write_all(&buffer);
-        unpack_tar(File::open(from_path.strip_suffix(&file_ext).unwrap()).unwrap(), from_path.strip_suffix(&file_ext).unwrap().to_string());
+        unpack_tar(
+            File::open(from_path.strip_suffix(&file_ext).unwrap()).unwrap(),
+            from_path.strip_suffix(&file_ext).unwrap().to_string(),
+        );
     } else if file_ext == ".bz2" {
         let mut file = archiver_rs::Bzip2::open(&PathBuf::from(&from_path)).unwrap();
         file.decompress(&PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap()))
             .unwrap();
-        unpack_tar(File::open(from_path.strip_suffix(&file_ext).unwrap()).unwrap(), from_path.strip_suffix(&file_ext).unwrap().to_string());
+        unpack_tar(
+            File::open(from_path.strip_suffix(&file_ext).unwrap()).unwrap(),
+            from_path.strip_suffix(&file_ext).unwrap().to_string(),
+        );
     } else {
         err_log("Unsupported file type");
         return;
@@ -1156,13 +1150,33 @@ async fn compress_item(
             .to_string(),
         &from_path,
     );
-    let output = format!("{}.{}", current_dir().unwrap().join(path_to_zip).to_string_lossy().to_string(), compression_type);
-    compress_items(output, [&from_path], compression_level, &compression_type, None).await.unwrap();
+    let output = format!(
+        "{}.{}",
+        current_dir()
+            .unwrap()
+            .join(path_to_zip)
+            .to_string_lossy()
+            .to_string(),
+        compression_type
+    );
+    compress_items(
+        output,
+        [&from_path],
+        compression_level,
+        &compression_type,
+        None,
+    )
+    .await
+    .unwrap();
     remove_action(action_id);
 }
 
 #[tauri::command]
-async fn arr_compress_items(arr_items: Vec<String>, compression_level: i32, compression_type: String) {
+async fn arr_compress_items(
+    arr_items: Vec<String>,
+    compression_level: i32,
+    compression_type: String,
+) {
     let action_id = create_new_action(
         &WINDOW.get().unwrap(),
         "Compressing ...".into(),
@@ -1174,8 +1188,24 @@ async fn arr_compress_items(arr_items: Vec<String>, compression_level: i32, comp
         .join("compressed_items_archive")
         .to_string_lossy()
         .to_string();
-    let output = format!("{}.{}", current_dir().unwrap().join(path_to_zip).to_string_lossy().to_string(), compression_type);
-    compress_items(output, arr_items, compression_level, &compression_type, None).await.unwrap();
+    let output = format!(
+        "{}.{}",
+        current_dir()
+            .unwrap()
+            .join(path_to_zip)
+            .to_string_lossy()
+            .to_string(),
+        compression_type
+    );
+    compress_items(
+        output,
+        arr_items,
+        compression_level,
+        &compression_type,
+        None,
+    )
+    .await
+    .unwrap();
     remove_action(action_id);
 }
 
@@ -1545,21 +1575,14 @@ async fn download_yt_video(app_window: Window, url: String, quality: String) {
     let stream = stream.unwrap();
     let video_info = video.get_basic_info().await.unwrap();
     let mut file = File::create(video_info.video_details.title.to_owned() + ".mp4").unwrap();
-    let total_size = stream.content_length() as f32;
+    let _total_size = stream.content_length() as f32;
     let mut downloaded: u64 = 0;
     let sw = Stopwatch::start_new();
 
     while let Some(chunk) = stream.chunk().await.unwrap_or_default() {
         file.write_all(&chunk).unwrap();
         downloaded += chunk.len() as u64;
-        let speed = calc_transfer_speed(downloaded, sw.elapsed_ms());
-        update_progressbar_2(&app_window, 0.0, &video_info.video_details.title);
-        update_progressbar(
-            &app_window,
-            100.0 / total_size * downloaded as f32,
-            &format_bytes(downloaded),
-            speed,
-        );
+        let _speed = calc_transfer_speed(downloaded, sw.elapsed_ms());
     }
     remove_action(action_id);
 }
@@ -1750,13 +1773,13 @@ async fn get_thumbnail(image_path: String) -> String {
 #[tauri::command]
 async fn get_simple_dir_info(
     path: String,
-    app_window: Window,
-    class_to_fill: String,
+    _app_window: Window,
+    _class_to_fill: String,
 ) -> SimpleDirInfo {
     unsafe {
         CALCED_SIZE = 0;
     }
-    dir_info(path, &app_window, class_to_fill)
+    dir_info(path)
 }
 
 #[derive(Debug, Serialize)]
@@ -1767,7 +1790,7 @@ struct SimpleDirInfo {
 
 static mut CALCED_SIZE: u64 = 0; // Currently unused -> Coming implementation for showing progress
 
-fn dir_info(path: String, app_window: &Window, class_to_fill: String) -> SimpleDirInfo {
+fn dir_info(path: String) -> SimpleDirInfo {
     if PathBuf::from(&path).is_file() {
         return SimpleDirInfo {
             size: PathBuf::from(&path).metadata().unwrap().len(),
@@ -1796,12 +1819,7 @@ fn dir_info(path: String, app_window: &Window, class_to_fill: String) -> SimpleD
                 };
                 size += file_size;
             } else if entry.file_type().unwrap().is_dir() {
-                let dir_size = dir_info(
-                    entry.path().to_string_lossy().to_string(),
-                    app_window,
-                    class_to_fill.clone(),
-                )
-                .size;
+                let dir_size = dir_info(entry.path().to_string_lossy().to_string()).size;
                 size += dir_size;
             }
             if entry
@@ -2044,7 +2062,7 @@ async fn get_machine_bytes(size_string: String) -> u64 {
             dbg_log(err);
             0
         }
-    }
+    };
 }
 
 #[tauri::command]
@@ -2052,8 +2070,14 @@ async fn get_single_item_info(path: String) -> Result<FDir, String> {
     let metadata = match fs::metadata(&path) {
         Ok(metadata) => metadata,
         Err(err) => {
-            dbg_log(format!("Failed to get metadata for path '{}': {}", path, err));
-            return Err(format!("Failed to get metadata for path '{}': {}", path, err));
+            dbg_log(format!(
+                "Failed to get metadata for path '{}': {}",
+                path, err
+            ));
+            return Err(format!(
+                "Failed to get metadata for path '{}': {}",
+                path, err
+            ));
         }
     };
 

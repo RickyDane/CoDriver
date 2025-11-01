@@ -60,6 +60,7 @@ lazy_static = "1.5.0"
 tokio = "1.47.0"
 zstd = "0.13.3"
 density-rs = "0.16.6"
+futures = "0.3.31"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"

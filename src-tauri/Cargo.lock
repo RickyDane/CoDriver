@@ -15,6 +15,7 @@ dependencies = [
  "delete",
  "density-rs",
  "flate2",
+ "futures",
  "icns",
  "image 0.25.8",
  "jwalk 0.8.1",
