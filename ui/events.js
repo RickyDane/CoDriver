@@ -104,3 +104,25 @@ listen("fs-mount-changed", (event) => {
     }
   }, 500);
 });
+
+listen("watcher-event", (event) => {
+  setTimeout(async () => {
+    if (event.payload.type == "create") { refreshView(); console.log("FS-Event: File was created")}
+    if (event.payload.type == "remove") { refreshView(); console.log("FS-Event: File was removed")}
+    if (event.payload.type == "rename") { refreshView(); console.log("FS-Event: File was renamed")}
+    if (event.payload.type == "modify") { refreshView(); console.log("FS-Event: File was modified")}
+  }, 100);
+});
+
+listen("refreshView", () => refreshView());
+
+listen("show-progressbar", () => showProgressbar());
+
+listen("update-progress-bar", (event) => {
+  let data = event.payload;
+  updateProgressBar(data[0], data[1], data[2], data[3], data[4], data[5]);
+});
+
+listen("finish-progress-bar", () => {
+  finishProgressBar();
+});

@@ -293,7 +293,7 @@ async function resetEverything() {
   closeCompressPopup();
   closeYtDownloadPopup();
   closeInfoProperties();
-  resetProgressBar();
+  finishProgressBar();
   closeInputDialogs();
   unSelectAllItems();
   closeConfirmPopup();
@@ -1492,7 +1492,9 @@ async function deleteItems() {
       await invoke("delete_item", { actFileName });
     }
     IsCopyToCut = false;
-    await listDirectories();
+    if (Platform != "darwin") {
+      await listDirectories();
+    }
     ArrSelectedItems = [];
     showToast("Deletion of items is done", ToastType.INFO);
     removeAction(actionId);
@@ -1600,7 +1602,7 @@ async function showCompressPopup(item) {
             <select class="select compression-popup-type-select">
               <option value="zstd">Zstd (Level 1 - 22)</option>
               <option value="zip">Zip (Level 1 - 9)</option>
-              ${arrCompressItems.length == 1 && arrCompressItems[0].getAttribute("itemisdir") != "1" ? '<option value="density">Density (Level 1 - 3)</option>' : ''}
+              ${arrCompressItems.length == 1 && arrCompressItems[0].getAttribute("itemisdir") != "1" ? '<option value="density">Density (Level 1 - 3)</option>' : ""}
             </select>
           </div>
         </div>
@@ -1876,23 +1878,18 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
     if (IsDualPaneEnabled === true) {
       refreshBothViews(SelectedItemPaneSide);
     }
-    await listDirectories();
+    if (Platform != "darwin") {
+      await listDirectories();
+    }
   } else {
     await unSelectAllItems();
-    await listDirectories(true);
+    if (Platform != "darwin") {
+      await listDirectories(true);
+    }
   }
-  if (arr.length >= 1) {
-    showToast("Done copying some files", ToastType.SUCCESS);
-  }
-}
-
-function resetProgressBar() {
-  document.querySelector(".progress-bar-text").textContent = "";
-  document.querySelector(".progress-bar-item-text").textContent = "";
-  document.querySelector(".progress-bar-fill").style.width = "0px";
-  document.querySelector(".progress-bar-container-popup").style.display =
-    "none";
-  document.querySelector(".progress-bar-2-fill").style.width = "0px";
+  // if (arr.length >= 1) {
+  //   showToast("Done copying some files", ToastType.INFO);
+  // }
 }
 
 function createFolderInputPrompt() {
@@ -2275,8 +2272,6 @@ async function listDirectories(fromDualPaneCopy = false) {
     });
   }, 500);
 }
-
-listen("refreshView", () => refreshView());
 
 async function refreshView() {
   await listDirectories();
@@ -3977,7 +3972,7 @@ async function startYtDownload(
 ) {
   closeYtDownloadPopup();
   await invoke("download_yt_video", { appWindow, url, quality });
-  resetProgressBar();
+  finishProgressBar();
   await listDirectories();
 }
 
@@ -4412,7 +4407,7 @@ async function addNewMount(payload) {
   diskButton.innerHTML = `
       <i class="fa-solid fa-hard-drive"></i>
       <div style="width: 100%; display: flex; flex-flow: column;">
-      <p style="width: 90%; font-size: x-small; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mount.name != "" ? mount.name : "/"}</p>
+      <p style="width: 90%; font-size: x-small; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mount.name != "" ? mount.name.replaceAll('"', "") : "/"}</p>
         <div style="float: right; font-size: x-small; color: var(--textColor2)">${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%</div>
       </div>`;
   diskButton.onclick = async () => {
@@ -4449,4 +4444,5 @@ async function removeMount(mount) {
   await checkAppConfig();
   await insertSiteNavButtons();
   cdCtMenu.setupItems();
+  updateProgressBar(50, 25, 100, 50, "Anhang für Mietswohnung_R. Perlick, A. Hegemann.pdf", 10);
 })();

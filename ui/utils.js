@@ -424,3 +424,36 @@ function getIconForFile(item, itemsCount) {
   }
   return fileIcon;
 }
+
+function showProgressbar() {
+  let progressBarContainer = document.querySelector(".progress-bar-container-popup");
+  progressBarContainer.style.display = "block";
+  progressBarContainer.style.scale = "1";
+  progressBarContainer.style.opacity = "1";
+  progressBarContainer.style.height = "fit-content";
+}
+
+function updateProgressBar(totalPercentage, elementsPercentage, countElements, currentElementNumber, currentFile, currentSpeed) {
+  if (countElements == 1) {
+    document.querySelector('.progress-bar-main-percentage').innerHTML = `${totalPercentage.toFixed(0)}%`;
+  } else {
+    document.querySelector('.progress-bar-main-percentage').innerHTML = `
+      <span>${elementsPercentage.toFixed(0)}%</span>
+      <span style="font-size: x-small">${totalPercentage.toFixed(0)}%</span>
+    `;
+  }
+  document.querySelector('.progress-bar-detail-info').innerText = `${currentElementNumber} of ${countElements} - ${currentSpeed.toFixed(0)} MB/s`;
+  document.querySelector('.progress-bar-current-file-text').innerText = `${currentFile}`;
+  document.querySelector('.progress-bar-current-file-ext').innerText = `(.${currentFile.split('.')[currentFile.split('.').length - 1]})`;
+  document.querySelector('.progress-bar-main-progress-fill').style.width = `${totalPercentage}%`;
+}
+
+function finishProgressBar() {
+  document.querySelector('.progress-bar-main-percentage').innerHTML = `<i class="fas fa-check" style="color: green; width: 24px; height: 24px;"></i>`;
+  let progressBarContainer = document.querySelector(".progress-bar-container-popup");
+  setTimeout(() => {
+    progressBarContainer.style.scale = "0";
+    progressBarContainer.style.opacity = "0";
+    progressBarContainer.style.height= "0";
+  }, 2000);
+}

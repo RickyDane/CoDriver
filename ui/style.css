@@ -243,7 +243,7 @@ body {
     flex-flow: column;
     align-items: center;
     padding: 10px;
-    z-index: 2;
+    z-index: 3;
     gap: 2px;
     border-right: 1px solid var(--tertiaryColor);
     border-radius: 0px;
@@ -325,25 +325,30 @@ body {
     flex-flow: column;
     justify-content: center;
     align-items: center;
-    width: calc(150px);
+    width: 150px;
     padding: 5px;
 }
 .active-action {
+    position: absolute;
+    left: 5px;
+    bottom: 5px;
     display: flex;
     flex-flow: column;
     align-items: center;
     justify-content: flex-start;
     gap: 10px;
-    border-radius: 10px;
+    border-radius: 15px;
     background-color: var(--primaryColor);
     cursor: pointer;
     margin-top: 5px;
     padding: 10px;
-    max-height: 35px;
-    width: 100%;
+    height: 35px;
+    width: calc(100% - 10px);
     overflow: hidden;
     overflow-y: clip;
-    transition: 0.3s ease;
+    z-index: 3 !important;
+    box-shadow: 0px 0px 5px 2px rgba(0, 0, 0, 0.25);
+    /*transition: 0.3s ease;*/
 }
 .active-action-header {
     width: 100%;
@@ -355,7 +360,8 @@ body {
     align-items: center;
 }
 .active-action:hover {
-    max-height: 100px;
+    height: 75px;
+    width: 175%;
 }
 .active-action > div {
     overflow: hidden;
@@ -2002,33 +2008,35 @@ button > svg {
 
 .toast-container {
     position: fixed;
-    bottom: 55px;
-    right: 35px;
+    bottom: 40px;
+    right: 10px;
     display: flex;
-    flex-flow: column;
+    flex-flow: column-reverse;
+    justify-content: flex-start;
+    align-items: flex-end;
     gap: 10px;
     z-index: 999;
-    backdrop-filter: blur(10px);
 }
 
 .toast {
     border-radius: 10px;
     width: fit-content;
     max-width: 400px;
-    transition: 0.3s ease-out;
     display: flex;
     flex-flow: row;
     overflow: hidden;
     color: var(--textColor);
     box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
     border: 1px solid var(--tertiaryColor);
-    background-color: var(--siteBarColor);
+    background-color: var(--transparentColor);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: 0.3s ease-out;
 }
 
 .toast-content {
     border-radius: 0px 10px 10px 0px;
     color: var(--textColor);
-    background-color: var(--siteBarColor) !important;
     padding: 5px;
 }
 
@@ -2100,73 +2108,76 @@ button > svg {
 
 /* Progressbar */
 .progress-bar-container-popup {
-    display: none;
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 25px;
+    display: block;
+    scale: 0;
+    opacity: 0;
     margin: auto;
     width: 300px;
-    height: fit-content;
-    padding: 5px;
-    border-radius: 10px;
+    height: 0;
+    padding: 0 5px;
+    border-radius: 15px;
     border: 1px solid var(--tertiaryColor);
-    background-color: var(--primaryColor);
+    background-color: var(--transparentColor);
     box-shadow: 0px 0px 10px 1px var(--transparentColor);
     flex-flow: column;
     justify-content: center;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     z-index: 3;
+    transition: all 0.3s ease-in-out;
 }
 
-.progress-bar {
-    width: 100%;
-    height: 25px;
-    border-radius: 10px;
+.progress-bar-main-percentage {
+    display: flex;
+    justify-content: center;
+    flex-flow: column;
+    align-items: center;
+    justify-content: enter;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    border-radius: 24px;
+    background-color: var(--primaryColor);
+    color: var(--textColor2);
+}
+
+.progress-bar-detail-info {
+    font-size: var(--fontSize);
+    color: var(--textColor2);
+}
+
+.progress-bar-current-file-text {
+    max-width: 175px;
+}
+
+.progress-bar-current-file-ext {
+    max-width: 50px;
+}
+
+.progress-bar-current-file-text, .progress-bar-current-file-ext {
+    font-size: var(--fontSize2);
+    color: var(--textColor);
     overflow: hidden;
-    border: 1px solid var(--tertiaryColor);
-    background-color: var(--secondaryColor);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.progress-bar-fill {
-    width: 0%;
-    height: 100%;
-    background-color: var(--successColor);
-    border-right: 1px solid var(--secondaryColorActive);
-}
-
-.progress-bar-text {
-    position: absolute;
-    padding: 5px;
-    margin: auto;
-    color: var(--textColor2);
-    font-size: var(--fontSize);
-    font-weight: bolder !important;
-    text-shadow: 0px 0px 15px black;
-}
-
-.progress-bar-text-2 {
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    margin: auto;
-    font-size: var(--fontSize);
-    color: var(--textColor2);
-    width: 100%;
-    padding: 10px;
-    text-align: right;
-    text-shadow: 0px 0px 15px black;
-}
-
-.progress-bar-2 {
+.progress-bar-main-progress {
+    margin: 0px 5px 5px 5px;
+    width: calc(100% - 10px);
     height: 5px;
+    border-radius: 5px;
+    background-color: var(--transparentColor);
 }
 
-.progress-bar-2-fill {
-    width: 0px;
-    transition: none;
+.progress-bar-main-progress-fill {
+    width: 45%;
+    height: 100%;
+    border-radius: 5px;
+    background-color: var(--selectColor2);
 }
 
 .ds-selector {
@@ -2280,4 +2291,12 @@ button > svg {
 }
 .warbing-text {
     animation: warbing-text-anim 1.5s infinite;
+}
+
+.bounce {
+    transition: 0.3s cubic-bezier(0.175, 1, 0.32, 1.275);
+}
+
+.reverse-bounce {
+    transition: 0.3s cubic-bezier(1.275, 0.32, 1, 0.175);
 }
