@@ -463,3 +463,29 @@ function finishProgressBar(time = 0) {
     progressBarContainer.style.height= "0";
   }, 3000);
 }
+
+function tryLoadCachedImage(imageId, imageType, imageUrl) {
+  let data = readFromLocalStorage(imageUrl);
+
+  let element = document.getElementById(imageId);
+  let loader = document.querySelector(".preloader-" + imageId);
+
+  if (element && loader && data) {
+    element.style.display = "block";
+    element.src = `data:image/${imageType};base64,${data}`;
+    loader.style.display = "none";
+  }
+}
+
+function setItemImage(base64, imageId, imageUrl) {
+  let element = document.getElementById(imageId);
+  let loader = document.querySelector(".preloader-" + imageId);
+
+  if (element && loader && base64) {
+    element.style.display = "block";
+    element.src = `data:image/${imageUrl.split(".").pop()};base64,${base64}`;
+    loader.style.display = "none";
+  }
+
+  writeToLocalStorage(imageUrl, base64);
+}

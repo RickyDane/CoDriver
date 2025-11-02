@@ -1,3 +1,4 @@
+use brotlic::{CompressorWriter, DecompressorReader};
 use bzip2::read::{MultiBzDecoder};
 use chrono::prelude::*;
 use color_print::cprintln;
@@ -12,7 +13,7 @@ use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 #[cfg(target_os = "macos")]
 use serde::Serialize;
 use std::env::current_dir;
-use std::fs::{Metadata, OpenOptions};
+use std::fs::{Metadata, OpenOptions, create_dir_all};
 use std::io::{self, Error};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
@@ -648,9 +649,9 @@ pub fn human_to_bytes<S: Into<String>>(input: S) -> Result<u64, String> {
     Ok(bytes_f64.round() as u64)
 }
 
-pub async fn compress_items<P: AsRef<Path>, I: IntoIterator<Item = P> + Clone>(
+pub async fn compress_items(
     output_path: impl AsRef<Path>,
-    input_paths: I,
+    input_paths: Vec<String>,
     compression_level: i32,
     compression_format: &str,
     strip_prefix: Option<&Path>, // Optional: strip common prefix from paths
@@ -660,20 +661,20 @@ pub async fn compress_items<P: AsRef<Path>, I: IntoIterator<Item = P> + Clone>(
 
     if compression_format == "density" {
         for input_path in input_paths {
-            let path = input_path.as_ref();
             compress_to_density(
-                path.to_str().unwrap(),
+                &input_path,
                 output_path.to_str().unwrap(),
                 compression_level,
             )?;
         }
-        Ok(())
         // Implement density compression logic here
+    } else if compression_format == "br" {
+      let _ = compress_files_to_brotli_tar(output_path.with_extension("tar").with_added_extension("br"), input_paths);
     } else {
         // Collect all files to compress
         let mut files_to_compress = Vec::new();
         for input_path in input_paths {
-            let path = input_path.as_ref();
+            let path = Path::new(&input_path);
             if path.is_file() {
                 files_to_compress.push((path.to_path_buf(), path.to_path_buf()));
             } else if path.is_dir() {
@@ -750,9 +751,8 @@ pub async fn compress_items<P: AsRef<Path>, I: IntoIterator<Item = P> + Clone>(
             "showToast('Compression done in {:?}', ToastType.INFO);",
             stop_watch.elapsed()
         ));
-
-        Ok(())
     }
+    Ok(())
 }
 
 /// Helper: Asynchronously read an entire file into memory
@@ -1002,6 +1002,62 @@ pub fn extract_tar_bz2(archive_path: &Path, output_dir: &Path) -> io::Result<()>
                 // Ignore symlinks, hardlinks etc.
             }
         }
+    }
+
+    Ok(())
+}
+
+pub fn compress_files_to_brotli_tar<P>(output_path: P, files: Vec<impl AsRef<Path>>) -> io::Result<()>
+where
+    P: AsRef<Path>,
+{
+    let output_file = File::create(output_path.as_ref())?;
+    let compressor = CompressorWriter::new(output_file);
+    let mut tar_builder = tar::Builder::new(compressor);
+
+    for file_path in files {
+        let file_name = file_path.as_ref()
+            .file_name()
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "File path has no basename",
+                )
+            })?;
+        let archive_name = Path::new(file_name);
+        tar_builder.append_path_with_name(&file_path, archive_name)?;
+    }
+
+    tar_builder.finish()?;
+    Ok(())
+}
+
+pub fn extract_brotli_tar<P, Q>(archive_path: P, output_dir: Q) -> io::Result<()>
+where
+    P: AsRef<Path>,
+    Q: AsRef<Path>,
+{
+    let archive_file = std::fs::File::open(archive_path.as_ref())?;
+    let decompressor = DecompressorReader::new(BufReader::new(archive_file));
+    let mut archive = tar::Archive::new(decompressor);
+
+    let output_path = output_dir.as_ref().to_path_buf();
+    create_dir_all(&output_path)?;
+
+    for entry in archive.entries()? {
+        let mut entry = entry?;
+        let header = entry.header();
+        let entry_path = header.path()?;
+        let full_path = output_path.join(entry_path);
+
+        // Ensure the parent directory exists
+        if let Some(parent) = full_path.parent() {
+            create_dir_all(parent)?;
+        }
+
+        // Extract the file
+        let mut file = std::fs::File::create(&full_path)?;
+        std::io::copy(&mut entry, &mut file)?;
     }
 
     Ok(())

@@ -211,7 +211,8 @@ class CDContextMenu {
           "tar",
           "gz",
           "bz2",
-          "density"
+          "density",
+          "br"
         ]);
       } else if (item.label == "Paste") {
         return ArrCopyItems.length === 0;

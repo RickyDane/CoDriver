@@ -29,7 +29,7 @@ listen("set-filesearch-currentfile", (event) => {
   }
 });
 
-listen("setItemImage", (event) => {
+listen("set-item-image", (event) => {
   let payload = JSON.parse(event.payload);
 
   let base64 = payload.data;
@@ -61,26 +61,15 @@ listen("set_default_image", (event) => {
     element.src = convertFileSrc(image);
     loader.style.display = "none";
   }
-  console.log("Loaded default image");
-  writeToLocalStorage(imageId, image);
+
+  writeToLocalStorage(image, image);
 });
 
 listen("try_load_cached_image", async (event) => {
   let imageId = event.payload[0];
   let imageType = event.payload[1];
   let imageUrl = event.payload[2];
-
-  let data = readFromLocalStorage(imageUrl);
-
-  let element = document.getElementById(imageId);
-  let loader = document.querySelector(".preloader-" + imageId);
-
-  if (element && loader && data) {
-    element.style.display = "block";
-    element.src = `data:image/${imageType};base64,${data}`;
-    loader.style.display = "none";
-    console.log("Loaded cached image: " + imageId);
-  }
+  tryLoadCachedImage(imageId, imageType, imageUrl);
 });
 
 listen("addSingleItem", async (item) => {

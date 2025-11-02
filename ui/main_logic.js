@@ -1153,10 +1153,10 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
 
   // Load all the item images after items were added to the view to avoid lag / frozen application
   let arrItems = document.querySelectorAll("#item-link");
-  await arrLoadItemImage(arrItems);
+  arrLoadItemImage(arrItems);
 }
 
-async function arrLoadItemImage(arrItems, isSingle = false) {
+function arrLoadItemImage(arrItems, isSingle = false) {
   let arr = Array.from(arrItems).map((item) => {
     return {
       image_id: item.getAttribute("itemiconid"),
@@ -1164,7 +1164,7 @@ async function arrLoadItemImage(arrItems, isSingle = false) {
       image_type: item.getAttribute("itemext").replace(".", "").toLowerCase(),
     };
   });
-  await invoke("load_item_image", {
+  invoke("load_item_image", {
     arrItems: arr,
     isSingle: isSingle,
   });
@@ -1264,13 +1264,16 @@ async function addSingleItem(
     var itemButtonList = document.createElement("div");
     itemButtonList.innerHTML = `
       <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
-      <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
-      <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
-      <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+        <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+        <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
+        <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
       </span>
       <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
-      <p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
-      <p class="item-button-list-text" style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+        <p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
+        <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
+     			<span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
+     			<i class="fa-solid fa-cube"></i>
+    		</div>
       </span>
       `;
     if (dualPaneSide != null && dualPaneSide != "") {
@@ -1353,7 +1356,7 @@ async function addSingleItem(
   ArrDirectoryItems.push(itemLink);
 
   // Load the item image after it was added to the view to avoid lag / frozen application
-  await arrLoadItemImage([itemLink], true);
+  arrLoadItemImage([itemLink], true);
 }
 
 async function getCurrentDir() {
@@ -1566,18 +1569,18 @@ async function showCompressPopup(item) {
   } else {
     arrCompressItems = [item];
   }
-  let compressFileName = "";
+  let compressFileNames = "";
   if (arrCompressItems.length > 1) {
     for (let i = 0; i < arrCompressItems.length; i++) {
-      compressFileName +=
+      compressFileNames +=
         "<h5 style='max-width: 50vw; overflow-x: hidden; padding-right: 5px; text-overflow: ellipsis'>" +
         arrCompressItems[i].getAttribute("itemname") +
         "</h5>";
     }
   } else {
-    compressFileName = item.getAttribute("itemname");
+    compressFileNames = item.getAttribute("itemname");
   }
-  if (compressFileName != "") {
+  if (compressFileNames != "") {
     let popup = document.createElement("div");
     popup.className = "uni-popup compression-popup";
     popup.innerHTML = `
@@ -1589,7 +1592,7 @@ async function showCompressPopup(item) {
         <p class="text-2">Selected item(s)</p>
         <br/>
         <div style="max-height: 50vh; max-width: 80vw; overflow-y: auto; overflow-x: hidden;">
-          ${compressFileName}
+          ${compressFileNames}
         </div>
         <br/>
       </div>
@@ -1603,6 +1606,7 @@ async function showCompressPopup(item) {
               <option value="zstd">Zstd (Level 1 - 22)</option>
               <option value="zip">Zip (Level 1 - 9)</option>
               ${arrCompressItems.length == 1 && arrCompressItems[0].getAttribute("itemisdir") != "1" ? '<option value="density">Density (Level 1 - 3)</option>' : ""}
+              <option value="br">Brotli (Level 1)</option>
             </select>
           </div>
         </div>
@@ -1664,6 +1668,9 @@ async function compressItem(
   ) {
     alert("Compression level must be between 1 and 22");
     return;
+  } else if (compressionType == "br" && compressionLevel != 1) {
+    alert("Compression level must be 1");
+    return;
   }
   closeCompressPopup();
 
@@ -1674,7 +1681,10 @@ async function compressItem(
         CurrentDir + "/compressed_items_archive." + compressionType;
     } else {
       var filePath =
-        arrItems[0].getAttribute("itempath") + "." + compressionType;
+        arrItems[0].getAttribute("itempath") +
+        (compressionType == "br" ? ".tar" : "") +
+        "." +
+        compressionType;
     }
     let isCompressingDone = false;
     let intervalId = setInterval(async () => {
@@ -4474,5 +4484,12 @@ async function removeMount(mount) {
   await checkAppConfig();
   await insertSiteNavButtons();
   cdCtMenu.setupItems();
-  updateProgressBar(50, 25, 100, 50, "Anhang für Mietswohnung_R. Perlick, A. Hegemann.pdf", 10);
+  updateProgressBar(
+    50,
+    25,
+    100,
+    50,
+    "Anhang für Mietswohnung_R. Perlick, A. Hegemann.pdf",
+    10,
+  );
 })();

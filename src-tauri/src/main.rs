@@ -62,7 +62,7 @@ use lazy_static::lazy_static;
 use substring::Substring;
 
 use crate::utils::{
-    compress_items, extract_from_density, extract_tar_bz2, extract_zst_archive, get_items_size, human_to_bytes, setup_fs_watcher
+    compress_items, extract_brotli_tar, extract_from_density, extract_tar_bz2, extract_zst_archive, get_items_size, human_to_bytes, setup_fs_watcher
 };
 
 // Global variables
@@ -415,6 +415,9 @@ async fn list_disks() -> Vec<DisksInfo> {
     let mut ls_disks: Vec<DisksInfo> = vec![];
     let disks = Disks::new_with_refreshed_list();
     for disk in &disks {
+        if ls_disks.iter().find(|&ls_disk| ls_disk.name == disk.name().to_string_lossy().to_string() && ls_disk.avail == format!("{:?}", disk.available_space())).is_some() {
+            continue;
+        }
         ls_disks.push(DisksInfo {
             name: disk.name().to_string_lossy().to_string(),
             dev: disk.name().to_string_lossy().to_string(),
@@ -1041,7 +1044,10 @@ async fn extract_item(from_path: String, app_window: Window) {
     // zip, 7z, zstd, tar, tar.gz, tar.bz2, rar unpack
     let sw = Stopwatch::start_new();
 
-    if file_ext == ".density" {
+    if file_ext == ".br" {
+        let stripped_path = from_path.strip_suffix(&file_ext).unwrap().strip_suffix(".tar").unwrap();
+        let _ = extract_brotli_tar(&from_path, &stripped_path.strip_suffix(&(".".to_string()+stripped_path.split(".").last().unwrap())).unwrap());
+    } else if file_ext == ".density" {
         let _ = extract_from_density(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     } else if from_path.ends_with(".tar.zst") || from_path.ends_with(".tar.zstd") {
         let _ = extract_zst_archive(
@@ -1139,7 +1145,7 @@ async fn compress_item(
     );
     compress_items(
         output,
-        [&from_path],
+        vec![from_path],
         compression_level,
         &compression_type,
         None,
@@ -1895,16 +1901,20 @@ struct ImageItem {
 
 #[tauri::command]
 async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
+    let app_window = WINDOW.get().unwrap();
+
     // First: Try to get image from local storage
     for item in &arr_items {
-        let _ = WINDOW.get().unwrap().emit(
+        let _ = &app_window.emit(
             "try_load_cached_image",
             (&item.image_id, &item.image_type, &item.image_url),
-        );
+        ).unwrap();
     }
 
+    let mut handles = Vec::new();
+
     for item in arr_items {
-        std::thread::spawn(async move || {
+        let handle = tokio::task::spawn(async move {
             // Second: Get actual image data
             let image_dir = item
                 .image_url
@@ -1913,7 +1923,7 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
             // Skip loading the image when the image dir is not the current directory
             // => Means that the user switched directories in the meantime
             if item.image_url.starts_with("resources/")
-                || (image_dir != &get_current_dir().await && !is_single)
+                || (image_dir != current_dir().unwrap().to_str().unwrap() && !is_single)
             {
                 // Skipped loading the image
                 return;
@@ -1990,13 +2000,15 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
                         }
                     }
                     let data = BASE64_STANDARD.encode(&bytes);
-                    let _ = WINDOW.get().unwrap().emit(
-                        "setItemImage",
-                        format!(
-                            "{{\"data\": \"{}\", \"id\": \"{}\", \"url\": \"{}\" }}",
-                            data, item.image_id, item.image_url
-                        ),
-                    );
+                    // let _ = &app_window.eval(&format!("tryLoadCachedImage({}, {}, {})", &item.image_id, &item.image_type, &item.image_url));
+                    let _ = &app_window.eval(&format!("setItemImage('{}', '{}', '{}')", data, &item.image_id, &item.image_url));
+                    // let _ = WINDOW.get().unwrap().emit(
+                    //     "set-item-image",
+                    //     format!(
+                    //         "{{\"data\": \"{}\", \"id\": \"{}\", \"url\": \"{}\" }}",
+                    //         data, item.image_id, item.image_url
+                    //     ),
+                    // );
                 }
                 Err(err) => {
                     let _ = WINDOW
@@ -2007,6 +2019,7 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
                 }
             }
         });
+        handles.push(handle);
     }
 }
 
