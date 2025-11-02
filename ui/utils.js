@@ -444,16 +444,22 @@ function updateProgressBar(totalPercentage, elementsPercentage, countElements, c
   }
   document.querySelector('.progress-bar-detail-info').innerText = `${currentElementNumber} of ${countElements} - ${currentSpeed.toFixed(0)} MB/s`;
   document.querySelector('.progress-bar-current-file-text').innerText = `${currentFile}`;
-  document.querySelector('.progress-bar-current-file-ext').innerText = `(.${currentFile.split('.')[currentFile.split('.').length - 1]})`;
+  if (currentFile.split('.').length > 1) {
+    document.querySelector('.progress-bar-current-file-ext').innerText = `(.${currentFile.split('.')[currentFile.split('.').length - 1]})`;
+  } else {
+    document.querySelector('.progress-bar-current-file-ext').innerText = ``;
+  }
   document.querySelector('.progress-bar-main-progress-fill').style.width = `${totalPercentage}%`;
 }
 
-function finishProgressBar() {
+function finishProgressBar(time = 0) {
+  console.log(time);
+  document.querySelector('.progress-bar-detail-info').innerText += ` - in ${time.toFixed(2)} seconds`;
   document.querySelector('.progress-bar-main-percentage').innerHTML = `<i class="fas fa-check" style="color: green; width: 24px; height: 24px;"></i>`;
   let progressBarContainer = document.querySelector(".progress-bar-container-popup");
   setTimeout(() => {
     progressBarContainer.style.scale = "0";
     progressBarContainer.style.opacity = "0";
     progressBarContainer.style.height= "0";
-  }, 2000);
+  }, 3000);
 }

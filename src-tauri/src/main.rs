@@ -13,8 +13,8 @@ use image::ImageReader;
 use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
-use std::fs::{self, read_dir, remove_dir};
-use std::io::Cursor;
+use std::fs::{self, read_dir, remove_dir, remove_file};
+use std::io::{Cursor};
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
@@ -39,7 +39,6 @@ use tauri::{
 };
 #[allow(unused)]
 use tauri::{Manager, Window, WindowEvent};
-use unrar::Archive;
 #[cfg(target_os = "macos")]
 use window_vibrancy::apply_vibrancy;
 #[cfg(not(target_os = "macos"))]
@@ -59,13 +58,11 @@ use window_tauri_ext::WindowExt;
 mod applications;
 #[allow(unused)]
 use applications::{get_apps, open_file_with};
-use archiver_rs::Compressed;
 use lazy_static::lazy_static;
 use substring::Substring;
 
 use crate::utils::{
-    compress_items, extract_from_density, extract_zst_archive, get_items_size, human_to_bytes,
-    setup_fs_watcher,
+    compress_items, extract_from_density, extract_tar_bz2, extract_zst_archive, get_items_size, human_to_bytes, setup_fs_watcher
 };
 
 // Global variables
@@ -418,7 +415,6 @@ async fn list_disks() -> Vec<DisksInfo> {
     let mut ls_disks: Vec<DisksInfo> = vec![];
     let disks = Disks::new_with_refreshed_list();
     for disk in &disks {
-        dbg_log(format!("{:?}", &disk));
         ls_disks.push(DisksInfo {
             name: disk.name().to_string_lossy().to_string(),
             dev: disk.name().to_string_lossy().to_string(),
@@ -435,7 +431,6 @@ async fn list_disks() -> Vec<DisksInfo> {
         let ls_sshfs_mounts = ls_sshfs_mounts.unwrap();
         for mount in ls_sshfs_mounts {
             let mount = mount.unwrap();
-            dbg_log(format!("{:?} | {:?}", mount.file_name(), mount.path()));
             ls_disks.push(DisksInfo {
                 name: format!("{:?}", mount.file_name())
                     .split("/")
@@ -485,7 +480,6 @@ async fn get_sshfs_mounts() -> Vec<DisksInfo> {
 
 #[tauri::command]
 async fn switch_to_directory(current_dir: String) {
-    dbg_log(format!("Switching to directory: {}", &current_dir));
     let _ = set_dir(current_dir);
 }
 #[tauri::command]
@@ -510,7 +504,6 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
         .unwrap(),
         &app_config,
     );
-    dbg_log(format!("View-style switched to: {}", view_mode));
     list_dirs().await
 }
 
@@ -606,7 +599,6 @@ async fn pop_history() {
 #[tauri::command]
 async fn open_dir(path: String) -> bool {
     let md = fs::read_dir(&path);
-    dbg_log(format!("Opening dir: {}", &path));
     match md {
         Ok(_) => {
             let _ = set_dir(path.clone());
@@ -614,7 +606,7 @@ async fn open_dir(path: String) -> bool {
             true
         }
         Err(_) => {
-            dbg_log(format!(
+            err_log(format!(
                 "Failed to open dir: {} | {}",
                 &path,
                 md.err().unwrap()
@@ -629,7 +621,6 @@ async fn go_back(is_dual_pane: bool) {
     let path_history = (PATH_HISTORY.lock().await).clone();
     if path_history.len() > 1 && !is_dual_pane {
         let last_path = path_history[path_history.len() - 2].clone();
-        dbg_log(format!("Went back to: {}", last_path));
         let _ = set_dir(last_path.into());
         pop_history().await;
     } else {
@@ -639,7 +630,6 @@ async fn go_back(is_dual_pane: bool) {
 
 #[tauri::command]
 async fn go_to_dir(directory: u8) -> Vec<FDir> {
-    dbg_log(format!("Going to directory: {}", directory));
     let wanted_directory = match directory {
         0 => set_dir(desktop_dir().unwrap_or_default().to_str().unwrap().into()),
         1 => set_dir(download_dir().unwrap_or_default().to_str().unwrap().into()),
@@ -852,8 +842,6 @@ async fn copy_paste(
         copy_to_path = current_dir().unwrap().to_string_lossy().to_string();
     }
 
-    dbg_log(format!("Copying: {} ...", &act_file_name));
-
     let final_filename = get_final_filename(
         act_file_name,
         from_path.clone(),
@@ -935,8 +923,8 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
         // Execute the copy process for either a dir or file
         copy_to(final_filename, item_path, total_bytes, counter).await;
     }
-    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed()));
-    let _ = app_window.emit("finish-progress-bar", ());
+    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed().as_secs_f32()));
+    let _ = app_window.emit("finish-progress-bar", sw.elapsed().as_secs_f32());
 }
 
 #[tauri::command]
@@ -1074,14 +1062,9 @@ async fn extract_item(from_path: String, app_window: Window) {
             return;
         }
     } else if file_ext == ".rar" {
-        let mut archive = Archive::new(&from_path).open_for_processing().unwrap();
+        let mut archive = unrar::Archive::new(&from_path).open_for_processing().unwrap();
         let _ = WINDOW.get().unwrap().emit("refreshView", ());
         while let Some(header) = archive.read_header().unwrap() {
-            dbg_log(format!(
-                "{} bytes: {}",
-                header.entry().unpacked_size,
-                header.entry().filename.to_string_lossy()
-            ));
             archive = if header.entry().is_file() {
                 header.extract().unwrap()
             } else {
@@ -1094,7 +1077,7 @@ async fn extract_item(from_path: String, app_window: Window) {
     } else if file_ext == ".tar" {
         unpack_tar(
             File::open(&from_path).unwrap(),
-            from_path.strip_suffix(&file_ext).unwrap().to_string(),
+            Path::new(&from_path).with_extension("").to_str().unwrap().to_string()
         );
     } else if file_ext == ".gz" {
         let file = File::open(&from_path).unwrap();
@@ -1108,14 +1091,9 @@ async fn extract_item(from_path: String, app_window: Window) {
             File::open(from_path.strip_suffix(&file_ext).unwrap()).unwrap(),
             from_path.strip_suffix(&file_ext).unwrap().to_string(),
         );
+        let _ = remove_file(from_path.strip_suffix(&file_ext).unwrap());
     } else if file_ext == ".bz2" {
-        let mut file = archiver_rs::Bzip2::open(&PathBuf::from(&from_path)).unwrap();
-        file.decompress(&PathBuf::from(&from_path.strip_suffix(&file_ext).unwrap()))
-            .unwrap();
-        unpack_tar(
-            File::open(from_path.strip_suffix(&file_ext).unwrap()).unwrap(),
-            from_path.strip_suffix(&file_ext).unwrap().to_string(),
-        );
+        let _ = extract_tar_bz2(Path::new(&from_path), Path::new(from_path.trim_end_matches(".tar.bz2").trim_end_matches(&(".".to_string()+from_path.trim_end_matches(".tar.bz2").split(".").last().unwrap()))));
     } else {
         err_log("Unsupported file type");
         return;
@@ -1926,22 +1904,20 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
     }
 
     for item in arr_items {
-        tokio::spawn(async move {
+        std::thread::spawn(async move || {
             // Second: Get actual image data
             let image_dir = item
                 .image_url
                 .trim_end_matches(&("/".to_owned() + item.image_url.split("/").last().unwrap()));
-            dbg_log(format!("Image dir: {}", image_dir));
 
             // Skip loading the image when the image dir is not the current directory
             // => Means that the user switched directories in the meantime
             if item.image_url.starts_with("resources/")
                 || (image_dir != &get_current_dir().await && !is_single)
             {
-                wng_log(format!("Skipped image: {}", item.image_url));
+                // Skipped loading the image
                 return;
             }
-            dbg_log(format!("Loading image: {}", item.image_url));
             let thumbnail_size = 50;
             let mut bytes = Vec::new();
             match ImageReader::open(&item.image_url) {
@@ -2036,7 +2012,6 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
 
 #[tauri::command]
 async fn get_disk_info(path: String) -> Result<DisksInfo, String> {
-    dbg_log(format!("Get information about disk: {}", path));
     let disks = Disks::new_with_refreshed_list();
     for disk in disks.iter() {
         if disk.mount_point().to_str().unwrap_or("") == path {
@@ -2070,7 +2045,7 @@ async fn get_single_item_info(path: String) -> Result<FDir, String> {
     let metadata = match fs::metadata(&path) {
         Ok(metadata) => metadata,
         Err(err) => {
-            dbg_log(format!(
+            err_log(format!(
                 "Failed to get metadata for path '{}': {}",
                 path, err
             ));

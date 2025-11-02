@@ -2021,7 +2021,37 @@ async function showAppInfo() {
     Tauri version: ${await getTauriVersion()}
     Architecture: ${await arch()}
     Developer: Ricky Dane
-    `);
+
+
+    Shortcuts:
+
+    Navigation & General
+    Esc – Close pop-up windows.
+    Ctrl / Cmd + G – Jump to a directory by entering a path.
+    Space – Quick preview of a selected file (supported formats: images, PDF, MP4, JSON, TXT, HTML).
+
+    File & Folder Operations
+    F6 – Create a new file.
+    F7 – Create a new folder.
+    Ctrl / Cmd + LShift + M – Start multi-rename on selected items.
+    Ctrl / Cmd + Return – Execute the multi-rename operation.
+
+    Sorting & Filtering
+    Start typing – Instantly filter directory entries (instant navigation).
+    View & Layout
+    F8 – Search for files.
+
+    Dual-Pane Mode
+    F5 – Copy the currently selected item to the other pane.
+    LShift + F5 – Move the currently selected item to the other pane.
+
+    Directory Navigation
+    LAlt + 1 / 2 / 3 (macOS: Option + 1 / 2 / 3) – Navigate to a pre-configured directory (set in Settings).
+
+    Multi-Rename
+    Ctrl / Cmd + LShift + M – Initiate multi-rename.
+    Ctrl / Cmd + Return – Run the multi-rename.
+  `);
 }
 
 async function checkAppConfig() {

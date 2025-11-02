@@ -1,3 +1,4 @@
+use bzip2::read::{MultiBzDecoder};
 use chrono::prelude::*;
 use color_print::cprintln;
 use density_rs::algorithms::chameleon::chameleon::Chameleon;
@@ -101,7 +102,7 @@ pub async fn copy_to(final_filename: String, from_path: String, total_size: f32,
     if file.is_file() {
         // Prepare to copy file
         let mut fr = BufReader::new(File::open(&from_path).unwrap());
-        let mut buf = vec![0; 16_777_216]; // Copying in 16 mb chunks
+        let mut buf = vec![0; 1_048_576]; // Copying in 1 MB chunks
         let new_file = File::create(&final_filename).unwrap();
         let file_size = fs::metadata(&from_path).unwrap().len() as f32;
         let mut fw = BufWriter::new(new_file);
@@ -544,10 +545,9 @@ pub fn format_bytes(size: u64) -> String {
 }
 
 pub fn unpack_tar(file: File, path: String) {
+    let path = Path::new(&path).with_extension("").to_str().unwrap().to_string();
     let mut archive = TarArchive::new(file);
     let _ = fs::create_dir(&path);
-
-    let _ = WINDOW.get().unwrap().emit("refreshView", ());
 
     for file in archive.entries().unwrap() {
         // Make sure there wasn't an I/O error
@@ -707,11 +707,9 @@ pub async fn compress_items<P: AsRef<Path>, I: IntoIterator<Item = P> + Clone>(
         // Writer task
         let writer_handle = task::spawn(async move {
             while let Some((name, data)) = rx.recv().await {
-                dbg_log(format!("Received file: {}", name));
                 zip.start_file(&name, options)?;
                 // Async write data to zip file
                 zip.write_all(&data).unwrap();
-                dbg_log(format!("Finished writing file: {}", name));
             }
             zip.finish().map(|_| ())
         });
@@ -947,7 +945,6 @@ fn handle_fs_change(event: notify::Event) {
 
         if current_dir == trimmed_event_path {
             // Check entire file system events
-            dbg_log(format!("Event => {:?}", event));
             if event.kind == Create(CreateKind::File)
                 || event.kind == Create(CreateKind::Folder)
                 || event.kind == Remove(RemoveKind::File)
@@ -955,6 +952,7 @@ fn handle_fs_change(event: notify::Event) {
                 || event.kind == Modify(ModifyKind::Data(notify::event::DataChange::Size))
                 || event.kind == Modify(ModifyKind::Data(notify::event::DataChange::Content))
                 || event.kind == Modify(ModifyKind::Metadata(notify::event::MetadataKind::Any))
+                || event.kind == Modify(ModifyKind::Metadata(notify::event::MetadataKind::WriteTime))
                 || event.kind == Modify(ModifyKind::Name(notify::event::RenameMode::To))
                 || event.kind == Modify(ModifyKind::Name(notify::event::RenameMode::Any))
             {
@@ -962,4 +960,49 @@ fn handle_fs_change(event: notify::Event) {
             }
         }
     }
+}
+
+pub fn extract_tar_bz2(archive_path: &Path, output_dir: &Path) -> io::Result<()> {
+    // Create output dir
+    fs::create_dir_all(output_dir)?;
+
+    // Open archive
+    let file = File::open(archive_path)?;
+
+    // Decompress data
+    let decompressed = MultiBzDecoder::new(file);
+
+    // Open tar archive
+    let mut archive = tar::Archive::new(decompressed);
+
+    // Iterate over entries
+    for entry in archive.entries()? {
+        let mut entry = entry?;
+        let header = entry.header();
+        let path = header.path()?;
+
+        // Final path for entry
+        let output_path = output_dir.join(path.clone());
+
+        // Check existence
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        match entry.header().entry_type() {
+            tar::EntryType::Regular => {
+                // Extract data (streamed)
+                let mut file = File::create(&output_path)?;
+                io::copy(&mut entry, &mut file)?;
+            }
+            tar::EntryType::Directory => {
+                fs::create_dir_all(&output_path)?;
+            }
+            _ => {
+                // Ignore symlinks, hardlinks etc.
+            }
+        }
+    }
+
+    Ok(())
 }
