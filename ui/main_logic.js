@@ -469,6 +469,8 @@ function positionContextMenu(e) {
 function isShortcut(key) {
   if (
     key == "Meta" ||
+    key == "Super" ||
+    key == "Compose" ||
     key == "Control" ||
     key == "Shift" ||
     key == "Alt" ||
@@ -1674,6 +1676,17 @@ async function compressItem(
   }
   closeCompressPopup();
 
+  let actionId = crypto.randomUUID();
+
+  createNewAction(
+    actionId,
+    arrItems.length == 1 ? arrItems[0].getAttribute("itemname") : "Archive",
+    arrItems.length == 1
+      ? "into " + compressionType + " with level " + compressionLevel
+      : "Archive",
+    arrItems.length == 1 ? arrItems[0].getAttribute("itempath") : null,
+  );
+
   // Update the file size info of the file which is being compressed
   setTimeout(() => {
     if (arrItems.length > 1) {
@@ -1696,6 +1709,8 @@ async function compressItem(
         } catch (error) {
           console.error(error);
           isCompressingDone = true;
+          showToast("Compression canceled", ToastType.ERROR);
+          removeAction(actionId);
           return;
         }
         let itemSize = document.getElementById(`size-${filePath}`);
@@ -1730,6 +1745,7 @@ async function compressItem(
     }
   }
   isCompressingDone = true;
+  removeAction(actionId);
 }
 
 async function closeCompressPopup() {
