@@ -14,7 +14,7 @@ use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
 use std::fs::{self, read_dir, remove_dir, remove_file};
-use std::io::{Cursor};
+use std::io::Cursor;
 #[allow(unused)]
 use std::io::Error;
 #[allow(unused)]
@@ -41,8 +41,6 @@ use tauri::{
 use tauri::{Manager, Window, WindowEvent};
 #[cfg(target_os = "macos")]
 use window_vibrancy::apply_vibrancy;
-#[cfg(not(target_os = "macos"))]
-use window_vibrancy::{apply_acrylic, apply_blur};
 use zip_extensions::*;
 mod utils;
 use rayon::prelude::*;
@@ -62,7 +60,8 @@ use lazy_static::lazy_static;
 use substring::Substring;
 
 use crate::utils::{
-    compress_items, extract_brotli_tar, extract_from_density, extract_tar_bz2, extract_zst_archive, get_items_size, human_to_bytes, setup_fs_watcher
+    compress_items, extract_brotli_tar, extract_from_density, extract_tar_bz2, extract_zst_archive,
+    get_items_size, human_to_bytes, setup_fs_watcher,
 };
 
 // Global variables
@@ -108,16 +107,15 @@ fn main() {
 
             let _ = win.center();
 
-            #[cfg(not(target_os = "macos"))]
-            let _ = apply_acrylic(&win, Some((18, 18, 18, 125)));
-            #[cfg(not(target_os = "macos"))]
-            let _ = win.set_decorations(false);
+            // #[cfg(not(target_os = "macos"))]
+            // let _ = apply_acrylic(&win, Some((18, 18, 18, 125)));
+            // #[cfg(not(target_os = "macos"))]
+            // let _ = win.set_decorations(false);
 
             // Set window to be accessible everywhere
             let _ = WINDOW.set(win).unwrap();
 
             // Listen for file system changes
-            #[cfg(target_os = "macos")]
             std::thread::spawn(|| {
                 setup_fs_watcher();
             });
@@ -415,7 +413,14 @@ async fn list_disks() -> Vec<DisksInfo> {
     let mut ls_disks: Vec<DisksInfo> = vec![];
     let disks = Disks::new_with_refreshed_list();
     for disk in &disks {
-        if ls_disks.iter().find(|&ls_disk| ls_disk.name == disk.name().to_string_lossy().to_string() && ls_disk.avail == format!("{:?}", disk.available_space())).is_some() {
+        if ls_disks
+            .iter()
+            .find(|&ls_disk| {
+                ls_disk.name == disk.name().to_string_lossy().to_string()
+                    && ls_disk.avail == format!("{:?}", disk.available_space())
+            })
+            .is_some()
+        {
             continue;
         }
         ls_disks.push(DisksInfo {
@@ -1045,8 +1050,17 @@ async fn extract_item(from_path: String, app_window: Window) {
     let sw = Stopwatch::start_new();
 
     if file_ext == ".br" {
-        let stripped_path = from_path.strip_suffix(&file_ext).unwrap().strip_suffix(".tar").unwrap();
-        let _ = extract_brotli_tar(&from_path, &stripped_path.strip_suffix(&(".".to_string()+stripped_path.split(".").last().unwrap())).unwrap());
+        let stripped_path = from_path
+            .strip_suffix(&file_ext)
+            .unwrap()
+            .strip_suffix(".tar")
+            .unwrap();
+        let _ = extract_brotli_tar(
+            &from_path,
+            &stripped_path
+                .strip_suffix(&(".".to_string() + stripped_path.split(".").last().unwrap()))
+                .unwrap(),
+        );
     } else if file_ext == ".density" {
         let _ = extract_from_density(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     } else if from_path.ends_with(".tar.zst") || from_path.ends_with(".tar.zstd") {
@@ -1068,7 +1082,9 @@ async fn extract_item(from_path: String, app_window: Window) {
             return;
         }
     } else if file_ext == ".rar" {
-        let mut archive = unrar::Archive::new(&from_path).open_for_processing().unwrap();
+        let mut archive = unrar::Archive::new(&from_path)
+            .open_for_processing()
+            .unwrap();
         let _ = WINDOW.get().unwrap().emit("refreshView", ());
         while let Some(header) = archive.read_header().unwrap() {
             archive = if header.entry().is_file() {
@@ -1083,7 +1099,11 @@ async fn extract_item(from_path: String, app_window: Window) {
     } else if file_ext == ".tar" {
         unpack_tar(
             File::open(&from_path).unwrap(),
-            Path::new(&from_path).with_extension("").to_str().unwrap().to_string()
+            Path::new(&from_path)
+                .with_extension("")
+                .to_str()
+                .unwrap()
+                .to_string(),
         );
     } else if file_ext == ".gz" {
         let file = File::open(&from_path).unwrap();
@@ -1099,7 +1119,19 @@ async fn extract_item(from_path: String, app_window: Window) {
         );
         let _ = remove_file(from_path.strip_suffix(&file_ext).unwrap());
     } else if file_ext == ".bz2" {
-        let _ = extract_tar_bz2(Path::new(&from_path), Path::new(from_path.trim_end_matches(".tar.bz2").trim_end_matches(&(".".to_string()+from_path.trim_end_matches(".tar.bz2").split(".").last().unwrap()))));
+        let _ = extract_tar_bz2(
+            Path::new(&from_path),
+            Path::new(
+                from_path.trim_end_matches(".tar.bz2").trim_end_matches(
+                    &(".".to_string()
+                        + from_path
+                            .trim_end_matches(".tar.bz2")
+                            .split(".")
+                            .last()
+                            .unwrap()),
+                ),
+            ),
+        );
     } else {
         err_log("Unsupported file type");
         return;
@@ -1122,18 +1154,6 @@ async fn compress_item(
     path_to_zip: String,
     compression_type: String,
 ) {
-    let action_id = create_new_action(
-        &WINDOW.get().unwrap(),
-        "Compressing ...".into(),
-        from_path
-            .clone()
-            .replace("'", "")
-            .split("/")
-            .last()
-            .unwrap()
-            .to_string(),
-        &from_path,
-    );
     let output = format!(
         "{}.{}",
         current_dir()
@@ -1152,7 +1172,6 @@ async fn compress_item(
     )
     .await
     .unwrap();
-    remove_action(action_id);
 }
 
 #[tauri::command]
@@ -1161,12 +1180,6 @@ async fn arr_compress_items(
     compression_level: i32,
     compression_type: String,
 ) {
-    let action_id = create_new_action(
-        &WINDOW.get().unwrap(),
-        "Compressing ...".into(),
-        "New archive".into(),
-        &arr_items.iter().nth(0).unwrap(),
-    );
     let path_to_zip = current_dir()
         .unwrap()
         .join("compressed_items_archive")
@@ -1190,7 +1203,6 @@ async fn arr_compress_items(
     )
     .await
     .unwrap();
-    remove_action(action_id);
 }
 
 #[tauri::command]
@@ -1905,10 +1917,12 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
 
     // First: Try to get image from local storage
     for item in &arr_items {
-        let _ = &app_window.emit(
-            "try_load_cached_image",
-            (&item.image_id, &item.image_type, &item.image_url),
-        ).unwrap();
+        let _ = &app_window
+            .emit(
+                "try_load_cached_image",
+                (&item.image_id, &item.image_type, &item.image_url),
+            )
+            .unwrap();
     }
 
     let mut handles = Vec::new();
@@ -2001,7 +2015,10 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
                     }
                     let data = BASE64_STANDARD.encode(&bytes);
                     // let _ = &app_window.eval(&format!("tryLoadCachedImage({}, {}, {})", &item.image_id, &item.image_type, &item.image_url));
-                    let _ = &app_window.eval(&format!("setItemImage('{}', '{}', '{}')", data, &item.image_id, &item.image_url));
+                    let _ = &app_window.eval(&format!(
+                        "setItemImage('{}', '{}', '{}')",
+                        data, &item.image_id, &item.image_url
+                    ));
                     // let _ = WINDOW.get().unwrap().emit(
                     //     "set-item-image",
                     //     format!(
@@ -2039,7 +2056,19 @@ async fn get_disk_info(path: String) -> Result<DisksInfo, String> {
             });
         }
     }
-    Err("Disk not found".to_string())
+
+    match fs::metadata(&path) {
+        Ok(metadata) => Ok(DisksInfo {
+            name: format!("{:?}", &path.split("/").last().unwrap()),
+            dev: format!("{:?}", &path.split("/").last().unwrap()),
+            format: format!("{:?}", metadata.file_type()),
+            path: format!("{:?}", &path),
+            avail: format!("{:?}", metadata.len()),
+            capacity: format!("{:?}", metadata.len()),
+            is_removable: true,
+        }),
+        Err(err) => Err(format!("Failed to get disk info: {}", err)),
+    }
 }
 
 #[tauri::command]

@@ -1,5 +1,5 @@
 use brotlic::{CompressorWriter, DecompressorReader};
-use bzip2::read::{MultiBzDecoder};
+use bzip2::read::MultiBzDecoder;
 use chrono::prelude::*;
 use color_print::cprintln;
 use density_rs::algorithms::chameleon::chameleon::Chameleon;
@@ -10,10 +10,9 @@ use jwalk::WalkDir;
 use notify::event::{CreateKind, ModifyKind, RemoveKind};
 use notify::EventKind::{Create, Modify, Remove};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
-#[cfg(target_os = "macos")]
 use serde::Serialize;
 use std::env::current_dir;
-use std::fs::{Metadata, OpenOptions, create_dir_all};
+use std::fs::{create_dir_all, Metadata, OpenOptions};
 use std::io::{self, Error};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
@@ -98,7 +97,12 @@ pub fn log<S: Into<String>>(msg: S) {
         log
     ));
 }
-pub async fn copy_to(final_filename: String, from_path: String, total_size: f32, count_to_copy: f32) {
+pub async fn copy_to(
+    final_filename: String,
+    from_path: String,
+    total_size: f32,
+    count_to_copy: f32,
+) {
     // let app_window = WINDOW.get().unwrap();
     let file = fs::metadata(&from_path).unwrap();
     let total_size = total_size;
@@ -138,14 +142,14 @@ pub async fn copy_to(final_filename: String, from_path: String, total_size: f32,
                             println!("Progress: {:.0}% | Total size: {} | Bytes copied: {} | Speed: {:.0} MB/s", progress, format_bytes(total_size as u64), format_bytes(*(TOTAL_BYTES_COPIED.lock().await) as u64), speed);
                             // Only update the progressbar every 5%
                             // if progress % 5.0 < 1.0 {
-                                update_progressbar(
-                                    progress,
-                                    (100.0 / total_size) * *(TOTAL_BYTES_COPIED.lock().await),
-                                    count_to_copy,
-                                    copy_counter,
-                                    final_filename.split("/").last().unwrap(),
-                                    speed,
-                                );
+                            update_progressbar(
+                                progress,
+                                (100.0 / total_size) * *(TOTAL_BYTES_COPIED.lock().await),
+                                count_to_copy,
+                                copy_counter,
+                                final_filename.split("/").last().unwrap(),
+                                speed,
+                            );
                             // }
                         }
                         Err(err) => {
@@ -168,7 +172,13 @@ pub async fn copy_to(final_filename: String, from_path: String, total_size: f32,
             let path = entry.path();
             let relative_path = path.strip_prefix(&from_path).unwrap();
             let dest_file = final_filename.clone() + "/" + relative_path.to_str().unwrap();
-            Box::pin(copy_to(dest_file, path.to_str().unwrap().to_string(), total_size.clone(), count_to_copy.clone())).await;
+            Box::pin(copy_to(
+                dest_file,
+                path.to_str().unwrap().to_string(),
+                total_size.clone(),
+                count_to_copy.clone(),
+            ))
+            .await;
         }
     } else {
         wng_log(format!("Unsupported file type: {}", from_path));
@@ -548,7 +558,11 @@ pub fn format_bytes(size: u64) -> String {
 }
 
 pub fn unpack_tar(file: File, path: String) {
-    let path = Path::new(&path).with_extension("").to_str().unwrap().to_string();
+    let path = Path::new(&path)
+        .with_extension("")
+        .to_str()
+        .unwrap()
+        .to_string();
     let mut archive = TarArchive::new(file);
     let _ = fs::create_dir(&path);
 
@@ -671,7 +685,10 @@ pub async fn compress_items(
         }
         // Implement density compression logic here
     } else if compression_format == "br" {
-      let _ = compress_files_to_brotli_tar(output_path.with_extension("tar").with_added_extension("br"), input_paths);
+        let _ = compress_files_to_brotli_tar(
+            output_path.with_extension("tar").with_added_extension("br"),
+            input_paths,
+        );
     } else {
         // Collect all files to compress
         let mut files_to_compress = Vec::new();
@@ -945,7 +962,14 @@ fn watch<P: AsRef<Path>>(_path: P) -> notify::Result<()> {
 
     // Add a path to be watched. All files and directories at that path and
     // below will be monitored for changes.
+    #[cfg(target_os = "macos")]
     watcher.watch(Path::new("/"), RecursiveMode::Recursive)?;
+    #[cfg(target_os = "linux")]
+    watcher.watch(Path::new("/dev"), RecursiveMode::Recursive)?;
+    watcher.watch(Path::new("/mnt"), RecursiveMode::Recursive)?;
+    watcher.watch(Path::new("/media"), RecursiveMode::Recursive)?;
+    watcher.watch(Path::new("/run/media"), RecursiveMode::Recursive)?;
+    watcher.watch(Path::new("/home"), RecursiveMode::Recursive)?;
     // watcher.watch(Path::new("/Volumes"), RecursiveMode::Recursive)?;
     // watcher.watch(Path::new("/Users"), RecursiveMode::Recursive)?;
     // watcher.watch(Path::new("/Library"), RecursiveMode::Recursive)?;
@@ -965,11 +989,16 @@ fn watch<P: AsRef<Path>>(_path: P) -> notify::Result<()> {
 fn handle_fs_change(event: notify::Event) {
     if (event.kind == Create(CreateKind::Folder) || event.kind == Remove(RemoveKind::Folder))
         && event.paths.len() == 1
-        && event.paths[0].starts_with("/Volumes")
+        && (event.paths[0].starts_with("/Volumes")
+            || event.paths[0].to_str().unwrap().contains("/run/media")
+            || event.paths[0].to_str().unwrap().contains("/mnt"))
     {
         // Check mounts
         dbg_log(format!("Mount event => {:?}", event));
-        let _ = WINDOW.get().unwrap().emit("fs-mount-changed", event.clone());
+        let _ = WINDOW
+            .get()
+            .unwrap()
+            .emit("fs-mount-changed", event.clone());
         let _ = WINDOW.get().unwrap().emit("watcher-event", event);
     } else {
         // Check if the event path is within the current directory
@@ -986,7 +1015,8 @@ fn handle_fs_change(event: notify::Event) {
                 || event.kind == Modify(ModifyKind::Data(notify::event::DataChange::Size))
                 || event.kind == Modify(ModifyKind::Data(notify::event::DataChange::Content))
                 || event.kind == Modify(ModifyKind::Metadata(notify::event::MetadataKind::Any))
-                || event.kind == Modify(ModifyKind::Metadata(notify::event::MetadataKind::WriteTime))
+                || event.kind
+                    == Modify(ModifyKind::Metadata(notify::event::MetadataKind::WriteTime))
                 || event.kind == Modify(ModifyKind::Name(notify::event::RenameMode::To))
                 || event.kind == Modify(ModifyKind::Name(notify::event::RenameMode::Any))
             {
@@ -1041,7 +1071,10 @@ pub fn extract_tar_bz2(archive_path: &Path, output_dir: &Path) -> io::Result<()>
     Ok(())
 }
 
-pub fn compress_files_to_brotli_tar<P>(output_path: P, files: Vec<impl AsRef<Path>>) -> io::Result<()>
+pub fn compress_files_to_brotli_tar<P>(
+    output_path: P,
+    files: Vec<impl AsRef<Path>>,
+) -> io::Result<()>
 where
     P: AsRef<Path>,
 {
@@ -1050,14 +1083,9 @@ where
     let mut tar_builder = tar::Builder::new(compressor);
 
     for file_path in files {
-        let file_name = file_path.as_ref()
-            .file_name()
-            .ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "File path has no basename",
-                )
-            })?;
+        let file_name = file_path.as_ref().file_name().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "File path has no basename")
+        })?;
         let archive_name = Path::new(file_name);
         tar_builder.append_path_with_name(&file_path, archive_name)?;
     }
