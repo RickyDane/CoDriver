@@ -37,6 +37,8 @@ use zip::ZipWriter;
 use crate::ISCANCELED;
 use crate::{COPY_COUNTER, IS_SEARCHING, TOTAL_BYTES_COPIED, WINDOW};
 
+const CHUNK_SIZE: usize = 4 * 1024;
+
 pub fn success_log<S: Into<String>>(msg: S) {
     let msg = msg.into();
     cprintln!(
@@ -703,7 +705,7 @@ pub async fn compress_items(
             .unix_permissions(0o644);
 
         // Channel to send file data to writer
-        let (tx, mut rx) = tokio::sync::mpsc::channel::<(String, Vec<u8>)>(32);
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<(String, Vec<u8>)>(4096);
 
         // Writer task
         let writer_handle = task::spawn(async move {
@@ -722,19 +724,50 @@ pub async fn compress_items(
             let strip = strip_prefix.map(|p| p.to_path_buf());
 
             // let output_value = output_search_path.clone();
-            let handle = task::spawn(async move {
-                if let Ok(data) = read_file_async(&full_path).await {
-                    // Compute relative path inside ZIP
-                    let zip_path = if let Some(strip) = strip {
-                        full_path.strip_prefix(strip).unwrap_or(&full_path)
-                    } else {
-                        full_path
-                            .strip_prefix(&base_path.parent().unwrap_or(&base_path))
-                            .unwrap_or(&full_path)
-                    };
 
-                    let zip_name = zip_path.to_string_lossy().replace("\\", "/");
-                    let _ = tx.send((zip_name.clone(), data)).await;
+            let handle = task::spawn(async move {
+                // Pfad-Berechnung bleibt unverändert
+                let zip_path = if let Some(strip) = strip {
+                    full_path.strip_prefix(strip).unwrap_or(&full_path)
+                } else {
+                    full_path
+                        .strip_prefix(&base_path.parent().unwrap_or(&base_path))
+                        .unwrap_or(&full_path)
+                };
+                let zip_name = zip_path.to_string_lossy().replace("\\", "/");
+
+                // 1. Datei asynchron öffnen
+                let file_open_result = File::open(&full_path);
+
+                if let Ok(mut file) = file_open_result {
+                    loop {
+                        // 2. Buffer für den nächsten Chunk erstellen
+                        let mut buffer = vec![0; CHUNK_SIZE];
+
+                        // 3. Asynchron lesen
+                        match file.read(&mut buffer) {
+                            Ok(0) => {
+                                // Ende der Datei erreicht
+                                // Senden eines "Ende der Datei"-Signals an den Empfänger (falls nötig)
+                                // let _ = tx.send((zip_name.clone(), None)).await;
+                                break;
+                            }
+                            Ok(n) => {
+                                // Nur die gelesenen Bytes behalten
+                                buffer.truncate(n);
+
+                                // 4. Chunk asynchron senden
+                                // **ACHTUNG:** Der Empfänger (tx) muss auf (zip_name, Vec<u8>) oder ähnlich warten
+                                let _ = tx.send((zip_name.clone(), buffer)).await;
+                            }
+                            Err(e) => {
+                                eprintln!("Fehler beim Lesen der Datei {}: {}", full_path.display(), e);
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    eprintln!("Fehler beim Öffnen der Datei {}", full_path.display());
                 }
             });
             handles.push(handle);
@@ -748,14 +781,15 @@ pub async fn compress_items(
         writer_handle.await??; // Propagate errors
 
         let _ = WINDOW.get().unwrap().eval(&format!(
-            "showToast('Compression done in {:?}', ToastType.INFO);",
+            "showToast('Compression done in parseFloat('{:?}').toFixed(2)', ToastType.INFO);",
             stop_watch.elapsed()
         ));
     }
     Ok(())
 }
 
-/// Helper: Asynchronously read an entire file into memory
+/// Helper: Read an entire file into memory
+#[allow(unused)]
 async fn read_file_async(path: &Path) -> io::Result<Vec<u8>> {
     let mut file = File::open(path)?;
     let mut buffer = Vec::new();

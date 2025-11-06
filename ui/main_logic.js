@@ -1694,8 +1694,11 @@ async function compressItem(
             path: filePath,
           });
         } catch (error) {
-          console.error(error);
+          console.log(error);
           isCompressingDone = true;
+          showToast("Compressing stopped", ToastType.ERROR);
+          console.log(parseFloat(toString(intervalId)).toFixed(2));
+          clearInterval(intervalId);
           return;
         }
         let itemSize = document.getElementById(`size-${filePath}`);
