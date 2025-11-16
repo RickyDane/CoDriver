@@ -8,6 +8,6 @@
   "text_color3": "rgb(255, 255, 255)",
   "transparent_color": "rgba(0, 0, 0, 0.15)",
   "transparent_color_active": "rgba(0, 0, 0, 0.5)",
-  "site_bar_color": "rgba(25, 25, 25, 0.25)",
+  "site_bar_color": "rgba(25, 25, 25, 0.75)",
   "nav_bar_color": "rgba(0, 0, 0, 0.5)"
 }
