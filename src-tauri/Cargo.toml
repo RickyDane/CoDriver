@@ -1,13 +1,20 @@
 [package]
 name = "CoDriver"
-version = "0.6.0"
+version = "0.6.5"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "BSD-2-Clause license"
 repository = "https://github.com/RickyDane/CoDriver"
 default-run = "CoDriver"
 edition = "2021"
-rust-version = "1.88.0"
+rust-version = "1.91.0"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = "symbols"
+split-debuginfo = "unpacked"
 
 [build-dependencies]
 tauri-build = { version = "1.5.2", features = [] }
@@ -43,7 +50,7 @@ walkdir = "2.4.0"
 substring = "1.4.5"
 tar = "0.4.40"
 archiver-rs = "0.5.1"
-rusty_ytdl = "0.7.2"
+# rusty_ytdl = "0.7.2"
 icns = "0.3.1"
 image = "0.25.1"
 regex = "1.10.6"
@@ -58,6 +65,11 @@ window-vibrancy = "0.4.0"
 base64 = "0.22.1"
 lazy_static = "1.5.0"
 tokio = "1.47.0"
+zstd = "0.13.3"
+density-rs = "0.16.6"
+futures = "0.3.31"
+bzip2 = "0.6.1"
+brotlic = "0.8.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"

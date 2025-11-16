@@ -1,0 +1,35 @@
+// Project-local debug tasks
+//
+// For more documentation on how to configure debug tasks,
+// see: https://zed.dev/docs/debugger
+[
+  {
+    "adapter": "CodeLLDB",
+    "label": "cargo tauri dev",
+    "build": {
+      "label": "cargo tauri dev",
+      "command": "cargo",
+      "args": [
+        "build",
+        "--package",
+        "CoDriver"
+      ],
+      "env": {
+        "RUSTC_TOOLCHAIN": "/Users/rickyperlick/.rustup/toolchains/nightly-aarch64-apple-darwin"
+      },
+      "cwd": "/Users/rickyperlick/Coding/CoDriver/src-tauri",
+      "use_new_terminal": false,
+      "allow_concurrent_runs": false,
+      "reveal": "always",
+      "reveal_target": "dock",
+      "hide": "never",
+      "tags": [],
+      "shell": "system",
+      "show_summary": false,
+      "show_command": false
+    },
+    "sourceLanguages": [
+      "rust"
+    ]
+  }
+]

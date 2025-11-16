@@ -12,3 +12,4 @@ worker.js
 target/
 .idea
 AuthKey*
+.zed

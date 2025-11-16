@@ -206,9 +206,13 @@ class CDContextMenu {
           "zip",
           "rar",
           "7z",
+          "zst",
+          "zstd",
           "tar",
-          "tar.gz",
-          "tar.bz2",
+          "gz",
+          "bz2",
+          "density",
+          "br"
         ]);
       } else if (item.label == "Paste") {
         return ArrCopyItems.length === 0;

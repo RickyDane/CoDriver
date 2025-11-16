@@ -29,7 +29,7 @@ listen("set-filesearch-currentfile", (event) => {
   }
 });
 
-listen("setItemImage", (event) => {
+listen("set-item-image", (event) => {
   let payload = JSON.parse(event.payload);
 
   let base64 = payload.data;
@@ -61,26 +61,15 @@ listen("set_default_image", (event) => {
     element.src = convertFileSrc(image);
     loader.style.display = "none";
   }
-  console.log("Loaded default image");
-  writeToLocalStorage(imageId, image);
+
+  writeToLocalStorage(image, image);
 });
 
 listen("try_load_cached_image", async (event) => {
   let imageId = event.payload[0];
   let imageType = event.payload[1];
   let imageUrl = event.payload[2];
-
-  let data = readFromLocalStorage(imageUrl);
-
-  let element = document.getElementById(imageId);
-  let loader = document.querySelector(".preloader-" + imageId);
-
-  if (element && loader && data) {
-    element.style.display = "block";
-    element.src = `data:image/${imageType};base64,${data}`;
-    loader.style.display = "none";
-    console.log("Loaded cached image: " + imageId);
-  }
+  tryLoadCachedImage(imageId, imageType, imageUrl);
 });
 
 listen("addSingleItem", async (item) => {
@@ -103,4 +92,26 @@ listen("fs-mount-changed", (event) => {
       await removeMount(event.payload);
     }
   }, 500);
+});
+
+listen("watcher-event", (event) => {
+  setTimeout(async () => {
+    if (event.payload.type == "create") { refreshView(); console.log("FS-Event: File was created")}
+    if (event.payload.type == "remove") { refreshView(); console.log("FS-Event: File was removed")}
+    if (event.payload.type == "rename") { refreshView(); console.log("FS-Event: File was renamed")}
+    // if (event.payload.type == "modify") { refreshView(); console.log("FS-Event: File was modified")}
+  }, 100);
+});
+
+listen("refreshView", () => refreshView());
+
+listen("show-progressbar", () => showProgressbar());
+
+listen("update-progress-bar", (event) => {
+  let data = event.payload;
+  updateProgressBar(data[0], data[1], data[2], data[3], data[4], data[5]);
+});
+
+listen("finish-progress-bar", (event) => {
+  finishProgressBar(event.payload);
 });

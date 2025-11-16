@@ -23,6 +23,23 @@
             <div class="file-searching-file-count"></div>
             <div class="file-searching-done"></div>
         </div>
+        <div class="progress-bar-container-popup reverse-bounce">
+            <div class="popup-body-col-section">
+                <div class="popup-body-row-section">
+                    <div class="progress-bar-main-percentage"></div>
+                    <div class="popup-body-col-section" style="width: calc(100% - 10px);">
+                        <div class="progress-bar-detail-info"></div>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div class="progress-bar-current-file-text"></div>
+                            <div class="progress-bar-current-file-ext"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress-bar-main-progress">
+                    <div class="progress-bar-main-progress-fill"></div>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="popup-background"></div>
 
@@ -158,7 +175,7 @@
                 <div class="settings-ui-body">
                     <div class="popup-body-col-section">
                         <h3 class="settings-ui-headline">Theme</h3>
-                        <div class="popup-body-row-section">
+                        <div class="popup-body-row-section" style="align-items: center;">
                             <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig(true)"></i>
                             <select style="min-width: 0 !important;" class="select theme-select"
                                 onchange="saveConfig(true, true)"></select>
@@ -328,7 +345,7 @@
             </div>
 
             <!-- :progressbar | Progress bar popup -->
-            <div class="progress-bar-container-popup">
+            <!--<div class="progress-bar-container-popup">
                 <div class="progress-bar">
                     <p class="text-2 progress-bar-text"></p>
                     <div class="progress-bar-fill"></div>
@@ -338,7 +355,7 @@
                     <div class="progress-bar-fill progress-bar-2-fill"></div>
                 </div>
                 <p class="text-2 progress-bar-item-text"></p>
-            </div>
+            </div>-->
         </div>
     </div>
 </body>
