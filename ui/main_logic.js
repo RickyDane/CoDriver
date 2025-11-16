@@ -203,6 +203,7 @@ async function startFullSearch() {
 }
 
 async function stopFullSearch() {
+  stopSearching();
   document
     .querySelector(".fullsearch-search-button")
     .replaceWith(
@@ -2069,6 +2070,9 @@ async function showAppInfo() {
     Shortcuts:
 
     Navigation & General
+    Ctrl / Cmd + C – Copy the currently selected item
+    Ctrl / Cmd + X – Cut the currently selected item
+    Ctrl / Cmd + V – Paste the currently copied/cut item
     Esc – Close pop-up windows.
     Ctrl / Cmd + G – Jump to a directory by entering a path.
     Space – Quick preview of a selected file (supported formats: images, PDF, MP4, JSON, TXT, HTML).
@@ -2082,11 +2086,11 @@ async function showAppInfo() {
     Sorting & Filtering
     Start typing – Instantly filter directory entries (instant navigation).
     View & Layout
-    F8 – Search for files.
 
     Dual-Pane Mode
     F5 – Copy the currently selected item to the other pane.
     LShift + F5 – Move the currently selected item to the other pane.
+    F8 – Search for files (add. with content)
 
     Directory Navigation
     LAlt + 1 / 2 / 3 (macOS: Option + 1 / 2 / 3) – Navigate to a pre-configured directory (set in Settings).
