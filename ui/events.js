@@ -99,7 +99,7 @@ listen("watcher-event", (event) => {
     if (event.payload.type == "create") { refreshView(); console.log("FS-Event: File was created")}
     if (event.payload.type == "remove") { refreshView(); console.log("FS-Event: File was removed")}
     if (event.payload.type == "rename") { refreshView(); console.log("FS-Event: File was renamed")}
-    if (event.payload.type == "modify") { refreshView(); console.log("FS-Event: File was modified")}
+    // if (event.payload.type == "modify") { refreshView(); console.log("FS-Event: File was modified")}
   }, 100);
 });
 

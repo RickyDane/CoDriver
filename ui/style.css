@@ -1740,9 +1740,9 @@ button > svg {
     border-bottom: 1px solid var(--tertiaryColor);
     display: flex;
     flex-flow: row;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 10px 10px 15px;
+    gap: 10px;
+    padding: 10px 15px;
 }
 
 .compression-popup {
@@ -1880,9 +1880,9 @@ button > svg {
     background-color: var(--secondaryColor);
     display: flex;
     flex-flow: row;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 10px 10px 15px;
+    gap: 10px;
+    padding: 10px 15px;
     color: var(--textColor);
 }
 

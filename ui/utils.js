@@ -66,7 +66,6 @@ listen("tauri://file-drop", async (event) => {
     alert(error);
   }
   FileOperation = "";
-  resetProgressBar();
   IsFileOpIntern = false;
   document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
     item.style.opacity = "1";
@@ -391,6 +390,7 @@ function getIconForFile(item, itemsCount) {
       case ".z":
       case ".zstd":
       case ".br":
+      case ".density":
         fileIcon = "resources/zip-file.png";
         break;
       case ".xlsx":

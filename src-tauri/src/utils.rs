@@ -16,6 +16,7 @@ use std::fs::{create_dir_all, Metadata, OpenOptions};
 use std::io::{self, Error};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
+use std::usize;
 use std::{
     ffi::OsStr,
     fmt::Debug,
@@ -36,7 +37,8 @@ use zip::ZipWriter;
 use crate::ISCANCELED;
 use crate::{COPY_COUNTER, IS_SEARCHING, TOTAL_BYTES_COPIED, WINDOW};
 
-const CHUNK_SIZE: usize = 4 * 1024;
+const CHUNK_SIZE: usize = 64 * 1024;
+const MAGIC: u32 = 0xDE_AD;
 
 pub fn success_log<S: Into<String>>(msg: S) {
     let msg = msg.into();
@@ -137,8 +139,8 @@ pub async fn copy_to(
                                 speed = 0.0
                             }
                             progress = (100.0 / file_size) * s as f32;
-                            // Clear console
-                            println!("\x1B[2J\x1B[1;1H");
+
+                            clear_console();
                             println!("Progress: {:.0}% | Total size: {} | Bytes copied: {} | Speed: {:.0} MB/s", progress, format_bytes(total_size as u64), format_bytes(*(TOTAL_BYTES_COPIED.lock().await) as u64), speed);
                             // Only update the progressbar every 5%
                             // if progress % 5.0 < 1.0 {
@@ -671,6 +673,7 @@ pub async fn compress_items(
     compression_level: i32,
     compression_format: &str,
     strip_prefix: Option<&Path>, // Optional: strip common prefix from paths
+    interval_id: usize,
 ) -> io::Result<()> {
     let output_path = output_path.as_ref();
     let stop_watch = Stopwatch::start_new();
@@ -681,7 +684,7 @@ pub async fn compress_items(
                 &input_path,
                 output_path.to_str().unwrap(),
                 compression_level,
-            )?;
+            ).expect("Failed to compress to density");
         }
         // Implement density compression logic here
     } else if compression_format == "br" {
@@ -708,7 +711,6 @@ pub async fn compress_items(
 
         // Open ZIP file
         let zip_file = File::create(output_path)?;
-        let _ = WINDOW.get().unwrap().emit("refreshView", ());
         let mut zip = ZipWriter::new(zip_file);
 
         let options = FileOptions::default()
@@ -722,12 +724,14 @@ pub async fn compress_items(
             .unix_permissions(0o644);
 
         // Channel to send file data to writer
-        let (tx, mut rx) = tokio::sync::mpsc::channel::<(String, Vec<u8>)>(4096);
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<(String, Vec<u8>, bool)>(CHUNK_SIZE);
 
         // Writer task
         let writer_handle = task::spawn(async move {
-            while let Some((name, data)) = rx.recv().await {
-                zip.start_file(&name, options)?;
+            while let Some((name, data, is_same)) = rx.recv().await {
+                if !is_same {
+                    zip.start_file(&name, options)?;
+                }
                 // Async write data to zip file
                 zip.write_all(&data).unwrap();
             }
@@ -735,72 +739,67 @@ pub async fn compress_items(
         });
 
         // Read files in parallel
-        let mut handles = Vec::new();
         for (full_path, base_path) in files_to_compress.clone() {
             let tx = tx.clone();
             let strip = strip_prefix.map(|p| p.to_path_buf());
 
-            // let output_value = output_search_path.clone();
+            let zip_path = if let Some(strip) = strip {
+                full_path.strip_prefix(strip).unwrap_or(&full_path)
+            } else {
+                full_path
+                    .strip_prefix(&base_path.parent().unwrap_or(&base_path))
+                    .unwrap_or(&full_path)
+            };
+            let zip_name = zip_path.to_string_lossy().replace("\\", "/");
+            let mut last_path = String::new();
 
-            let handle = task::spawn(async move {
-                // Pfad-Berechnung bleibt unverändert
-                let zip_path = if let Some(strip) = strip {
-                    full_path.strip_prefix(strip).unwrap_or(&full_path)
-                } else {
-                    full_path
-                        .strip_prefix(&base_path.parent().unwrap_or(&base_path))
-                        .unwrap_or(&full_path)
-                };
-                let zip_name = zip_path.to_string_lossy().replace("\\", "/");
+            // 1. Open file
+            let file_open_result = File::open(&full_path);
 
-                // 1. Datei asynchron öffnen
-                let file_open_result = File::open(&full_path);
+            if let Ok(mut file) = file_open_result {
+                // 2. Buffer for the next chunk
+                let mut buffer = vec![0; CHUNK_SIZE];
+                loop {
+                    // 3. Read
+                    match file.read(&mut buffer) {
+                        Ok(0) => {
+                            // End of file reached
+                            // let _ = tx.send((zip_name.clone(), None)).await;
+                            break;
+                        }
+                        Ok(n) => {
+                            // Keep only read bytes
+                            buffer.truncate(n);
 
-                if let Ok(mut file) = file_open_result {
-                    loop {
-                        // 2. Buffer für den nächsten Chunk erstellen
-                        let mut buffer = vec![0; CHUNK_SIZE];
-
-                        // 3. Asynchron lesen
-                        match file.read(&mut buffer) {
-                            Ok(0) => {
-                                // Ende der Datei erreicht
-                                // Senden eines "Ende der Datei"-Signals an den Empfänger (falls nötig)
-                                // let _ = tx.send((zip_name.clone(), None)).await;
-                                break;
-                            }
-                            Ok(n) => {
-                                // Nur die gelesenen Bytes behalten
-                                buffer.truncate(n);
-
-                                // 4. Chunk asynchron senden
-                                // **ACHTUNG:** Der Empfänger (tx) muss auf (zip_name, Vec<u8>) oder ähnlich warten
-                                let _ = tx.send((zip_name.clone(), buffer)).await;
-                            }
-                            Err(e) => {
-                                eprintln!("Fehler beim Lesen der Datei {}: {}", full_path.display(), e);
-                                break;
-                            }
+                            // 4. Send async
+                            let _ = tx
+                                .send((zip_name.clone(), buffer.clone(), last_path == zip_name))
+                                .await;
+                            last_path = zip_name.clone();
+                        }
+                        Err(e) => {
+                            eprintln!("Error reading file {}: {}", full_path.display(), e);
+                            break;
                         }
                     }
-                } else {
-                    eprintln!("Fehler beim Öffnen der Datei {}", full_path.display());
                 }
-            });
-            handles.push(handle);
-        }
-
-        for h in handles {
-            h.await?;
+            } else {
+                eprintln!("Error opening file {}", full_path.display());
+            }
         }
 
         drop(tx); // Close channel
         writer_handle.await??; // Propagate errors
 
-        let _ = WINDOW.get().unwrap().eval(&format!(
-            "showToast('Compression done in parseFloat('{:?}').toFixed(2)', ToastType.INFO);",
-            stop_watch.elapsed()
-        ));
+        let _ =
+            WINDOW.get().unwrap().eval(&format!(
+            "showToast('Compression done in ' + parseFloat('{:?}').toFixed(2) + 's', ToastType.INFO);",
+            stop_watch.elapsed()));
+
+        let _ = WINDOW
+            .get()
+            .unwrap()
+            .eval(&format!("clearInterval({})", interval_id));
     }
     Ok(())
 }
@@ -853,98 +852,100 @@ pub fn compress_to_density(
     input_path: &str,
     output_path: &str,
     compression_level: i32,
-) -> Result<(), std::io::Error> {
-    let mut output_file = File::create(output_path)?;
-    let _ = WINDOW.get().unwrap().emit("refreshView", ());
+) -> Result<(), Box<dyn std::error::Error>> {
+    let input_file = BufReader::new(File::open(input_path)?);
+    let mut output_file = BufWriter::new(File::create(output_path)?);
 
-    // Read the input file into memory
-    let input_data: Vec<u8>;
-    if fs::metadata(&input_path).unwrap().is_file() {
-        input_data = std::fs::read(input_path)?;
-    } else {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "Directories are not supported",
-        ));
+    // Write header: magic, original_size (streamed, so compute on fly? For simplicity, two-pass: first count size.
+    // Alt: Write placeholder, seek back. But for streaming, assume we compute size first or use unknown.
+    // Here: Read all chunks to count.
+    let mut total_size = 0u64;
+    let mut chunks = Vec::new();
+    for (_i, chunk) in input_file
+        .bytes()
+        .map(|b| b.unwrap())
+        .collect::<Vec<u8>>()
+        .chunks(CHUNK_SIZE)
+        .enumerate()
+    {
+        chunks.push(chunk.to_vec());
+        total_size += chunk.len() as u64;
     }
-    println!("Read {} bytes from {}", input_data.len(), input_path);
+    let num_chunks = chunks.len() as u32;
 
-    // Allocate a buffer for the compressed data
-    let max_compressed_size: usize;
-    match compression_level {
-        1 => max_compressed_size = Chameleon::safe_encode_buffer_size(input_data.len()),
-        2 => max_compressed_size = Cheetah::safe_encode_buffer_size(input_data.len()),
-        3 => max_compressed_size = Lion::safe_encode_buffer_size(input_data.len()),
-        _ => max_compressed_size = Cheetah::safe_encode_buffer_size(input_data.len()),
+    // Write header
+    output_file.write_all(&MAGIC.to_le_bytes())?;
+    output_file.write_all(&total_size.to_le_bytes())?;
+    output_file.write_all(&num_chunks.to_le_bytes())?;
+
+    // Compress chunks
+    for (i, chunk) in chunks.into_iter().enumerate() {
+        let max_comp;
+        let mut comp_data;
+        let comp_size;
+        match compression_level {
+            1 => {
+                max_comp = Chameleon::safe_encode_buffer_size(chunk.len());
+                comp_data = vec![0u8; max_comp];
+                comp_size = Chameleon::encode(&chunk, &mut comp_data)?;
+            },
+            2 => {
+                max_comp = Cheetah::safe_encode_buffer_size(chunk.len());
+                comp_data = vec![0u8; max_comp];
+                comp_size = Cheetah::encode(&chunk, &mut comp_data)?;
+            },
+            3 => {
+                max_comp = Lion::safe_encode_buffer_size(chunk.len());
+                comp_data = vec![0u8; max_comp];
+                comp_size = Lion::encode(&chunk, &mut comp_data)?;
+            },
+            _ => {
+                max_comp = Cheetah::safe_encode_buffer_size(chunk.len());
+                comp_data = vec![0u8; max_comp];
+                comp_size = Cheetah::encode(&chunk, &mut comp_data)?;
+            }
+        }
+        output_file.write_all(&(i as u32).to_le_bytes())?; // Index
+        output_file.write_all(&(comp_size as u32).to_le_bytes())?; // Comp size
+        output_file.write_all(&comp_data[..comp_size])?;
     }
-    let mut compressed_data = vec![0u8; max_compressed_size];
-
-    // Compress the data
-    let compressed_size: usize;
-    match compression_level {
-        1 => compressed_size = Chameleon::encode(&input_data, &mut compressed_data).unwrap(),
-        2 => compressed_size = Cheetah::encode(&input_data, &mut compressed_data).unwrap(),
-        3 => compressed_size = Lion::encode(&input_data, &mut compressed_data).unwrap(),
-        _ => compressed_size = Cheetah::encode(&input_data, &mut compressed_data).unwrap(),
-    }
-    let mut output = Vec::with_capacity(8 + compressed_size as usize);
-
-    // Prepend original size as little-endian u64
-    output.extend_from_slice(&input_data.len().to_le_bytes());
-    // Append compressed data
-    output.extend_from_slice(&compressed_data[0..compressed_size]);
-
-    println!(
-        "Compressed to {} bytes (ratio: {:.2}%)",
-        compressed_size,
-        (compressed_size as f64 / input_data.len() as f64) * 100.0
-    );
-
-    // Write to output file
-    output_file.write_all(&output)?;
-
-    println!("Compressed archive written to {}", output_path);
+    output_file.flush()?;
     Ok(())
 }
 
-pub fn extract_from_density(input_path: &str, output_path: &str) -> Result<(), String> {
-    // Read the entire compressed archive
-    let mut input_file = File::open(input_path).unwrap();
-    let mut input_data = Vec::new();
-    input_file.read_to_end(&mut input_data).unwrap();
+pub fn extract_from_density(
+    input_path: &str,
+    output_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut input_file = BufReader::new(File::open(input_path)?);
+    let mut output_file = BufWriter::new(File::create(output_path)?);
 
-    if input_data.len() < 8 {
-        return Err("Invalid archive: too short for header".into());
+    let mut header = [0u8; 4];
+    input_file.read_exact(&mut header)?;
+    if u32::from_le_bytes(header) != MAGIC { return Err("Invalid magic".into()); }
+
+    let mut size_buf = [0u8; 8];
+    input_file.read_exact(&mut size_buf)?;
+    let _total_size = u64::from_le_bytes(size_buf);
+
+    let mut chunk_buf = [0u8; 4];
+    input_file.read_exact(&mut chunk_buf)?;
+    let num_chunks = u32::from_le_bytes(chunk_buf);
+
+    for _ in 0..num_chunks {
+        input_file.read_exact(&mut chunk_buf)?;
+        let _idx = u32::from_le_bytes(chunk_buf);  // Skip idx if not needed
+        input_file.read_exact(&mut chunk_buf)?;
+        let comp_size: usize = u32::from_le_bytes(chunk_buf) as usize;
+
+        let mut comp_data = vec![0u8; comp_size];
+        input_file.read_exact(&mut comp_data)?;
+
+        let mut decomp_data = vec![0u8; CHUNK_SIZE];  // Max chunk
+        let decomp_size = Chameleon::decode(&comp_data, &mut decomp_data)?;
+        output_file.write_all(&decomp_data[..decomp_size])?;
     }
-
-    // Extract original size from first 8 bytes (little-endian u64)
-    let original_size_bytes: [u8; 8] = input_data[0..8].try_into().unwrap();
-    let original_size = u64::from_le_bytes(original_size_bytes) as usize;
-
-    // Compressed data is the rest
-    let compressed_data = &input_data[8..];
-    println!("Original size from header: {} bytes", original_size);
-    println!("Compressed data size: {} bytes", compressed_data.len());
-
-    // Allocate output buffer of exact original size
-    let mut output_data = vec![0u8; original_size];
-
-    // Decompress
-    let decoded_size = Chameleon::decode(compressed_data, &mut output_data).unwrap();
-    if decoded_size != original_size {
-        return Err(format!(
-            "Decode mismatch: expected {}, got {}",
-            original_size, decoded_size
-        )
-        .into());
-    }
-    println!("Successfully decompressed {} bytes", decoded_size);
-
-    // Write to output file
-    let mut output_file = File::create(output_path).unwrap();
-    output_file.write_all(&output_data).unwrap();
-
-    println!("Decompressed file written to {}", output_path);
+    output_file.flush()?;
     Ok(())
 }
 
@@ -965,11 +966,13 @@ fn watch<P: AsRef<Path>>(_path: P) -> notify::Result<()> {
     #[cfg(target_os = "macos")]
     watcher.watch(Path::new("/"), RecursiveMode::Recursive)?;
     #[cfg(target_os = "linux")]
-    watcher.watch(Path::new("/dev"), RecursiveMode::Recursive)?;
-    watcher.watch(Path::new("/mnt"), RecursiveMode::Recursive)?;
-    watcher.watch(Path::new("/media"), RecursiveMode::Recursive)?;
-    watcher.watch(Path::new("/run/media"), RecursiveMode::Recursive)?;
-    watcher.watch(Path::new("/home"), RecursiveMode::Recursive)?;
+    {
+        watcher.watch(Path::new("/dev"), RecursiveMode::Recursive)?;
+        watcher.watch(Path::new("/mnt"), RecursiveMode::Recursive)?;
+        watcher.watch(Path::new("/media"), RecursiveMode::Recursive)?;
+        watcher.watch(Path::new("/run/media"), RecursiveMode::Recursive)?;
+        watcher.watch(Path::new("/home"), RecursiveMode::Recursive)?;
+    }
     // watcher.watch(Path::new("/Volumes"), RecursiveMode::Recursive)?;
     // watcher.watch(Path::new("/Users"), RecursiveMode::Recursive)?;
     // watcher.watch(Path::new("/Library"), RecursiveMode::Recursive)?;
@@ -1123,4 +1126,8 @@ where
     }
 
     Ok(())
+}
+
+pub fn clear_console() {
+    println!("\x1B[2J\x1B[1;1H");
 }

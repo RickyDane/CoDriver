@@ -10,7 +10,7 @@ use flate2::read::GzDecoder;
 #[cfg(target_os = "macos")]
 use icns::{IconFamily, IconType};
 use image::ImageReader;
-use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
+// use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
 use std::fs::{self, read_dir, remove_dir, remove_file};
@@ -46,7 +46,7 @@ mod utils;
 use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
-    calc_transfer_speed, copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes,
+    copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes,
     remove_action, show_progressbar, success_log, unpack_tar, wng_log, DirWalker, DirWalkerEntry,
 };
 #[cfg(target_os = "macos")]
@@ -171,7 +171,7 @@ fn main() {
             find_duplicates,
             cancel_operation,
             get_df_dir,
-            download_yt_video,
+            // download_yt_video,
             get_app_icns,
             get_thumbnail,
             get_simple_dir_info,
@@ -1153,6 +1153,7 @@ async fn compress_item(
     compression_level: i32,
     path_to_zip: String,
     compression_type: String,
+    interval_id: usize,
 ) {
     let output = format!(
         "{}.{}",
@@ -1169,6 +1170,7 @@ async fn compress_item(
         compression_level,
         &compression_type,
         None,
+        interval_id,
     )
     .await
     .unwrap();
@@ -1179,6 +1181,7 @@ async fn arr_compress_items(
     arr_items: Vec<String>,
     compression_level: i32,
     compression_type: String,
+    interval_id: usize,
 ) {
     let path_to_zip = current_dir()
         .unwrap()
@@ -1200,6 +1203,7 @@ async fn arr_compress_items(
         compression_level,
         &compression_type,
         None,
+        interval_id,
     )
     .await
     .unwrap();
@@ -1535,53 +1539,53 @@ async fn get_df_dir(number: u8) -> String {
     }
 }
 
-#[tauri::command]
-async fn download_yt_video(app_window: Window, url: String, quality: String) {
-    let action_id = create_new_action(
-        &app_window,
-        "Downloading ...".into(),
-        url.clone(),
-        &"".into(),
-    );
-    dbg_log(format!("Downloading {} as {}", url, quality));
-    let chosen_quality = match quality.as_str() {
-        "lowestvideo" => VideoQuality::LowestVideo,
-        "lowestaudio" => VideoQuality::LowestAudio,
-        "highestvideo" => VideoQuality::HighestVideo,
-        "highestaudio" => VideoQuality::HighestAudio,
-        _ => VideoQuality::HighestVideo,
-    };
+// #[tauri::command]
+// async fn download_yt_video(app_window: Window, url: String, quality: String) {
+//     let action_id = create_new_action(
+//         &app_window,
+//         "Downloading ...".into(),
+//         url.clone(),
+//         &"".into(),
+//     );
+//     dbg_log(format!("Downloading {} as {}", url, quality));
+//     let chosen_quality = match quality.as_str() {
+//         "lowestvideo" => VideoQuality::LowestVideo,
+//         "lowestaudio" => VideoQuality::LowestAudio,
+//         "highestvideo" => VideoQuality::HighestVideo,
+//         "highestaudio" => VideoQuality::HighestAudio,
+//         _ => VideoQuality::HighestVideo,
+//     };
 
-    dbg_log(format!("Chosen quality: {:?}", chosen_quality));
+//     dbg_log(format!("Chosen quality: {:?}", chosen_quality));
 
-    let video_options = VideoOptions {
-        quality: chosen_quality,
-        filter: VideoSearchOptions::Video,
-        ..Default::default()
-    };
+//     let video_options = VideoOptions {
+//         quality: chosen_quality,
+//         filter: VideoSearchOptions::Video,
+//         ..Default::default()
+//     };
 
-    let video = Video::new_with_options(url, video_options).unwrap();
+//     let video = Video::new_with_options(url, video_options).unwrap();
 
-    let stream = video.stream().await;
-    if stream.is_err() {
-        let _ = &app_window.eval("alert('Failed to retrieve source')");
-        remove_action(action_id);
-        return;
-    }
-    let stream = stream.unwrap();
-    let video_info = video.get_basic_info().await.unwrap();
-    let mut file = File::create(video_info.video_details.title.to_owned() + ".mp4").unwrap();
-    let _total_size = stream.content_length() as f32;
-    let mut downloaded: u64 = 0;
-    let sw = Stopwatch::start_new();
+//     let stream = video.stream().await;
+//     if stream.is_err() {
+//         let _ = &app_window.eval("alert('Failed to retrieve source')");
+//         remove_action(action_id);
+//         return;
+//     }
+//     let stream = stream.unwrap();
+//     let video_info = video.get_basic_info().await.unwrap();
+//     let mut file = File::create(video_info.video_details.title.to_owned() + ".mp4").unwrap();
+//     let _total_size = stream.content_length() as f32;
+//     let mut downloaded: u64 = 0;
+//     let sw = Stopwatch::start_new();
 
-    while let Some(chunk) = stream.chunk().await.unwrap_or_default() {
-        file.write_all(&chunk).unwrap();
-        downloaded += chunk.len() as u64;
-        let _speed = calc_transfer_speed(downloaded, sw.elapsed_ms());
-    }
-    remove_action(action_id);
-}
+//     while let Some(chunk) = stream.chunk().await.unwrap_or_default() {
+//         file.write_all(&chunk).unwrap();
+//         downloaded += chunk.len() as u64;
+//         let _speed = calc_transfer_speed(downloaded, sw.elapsed_ms());
+//     }
+//     remove_action(action_id);
+// }
 
 #[tauri::command]
 async fn get_app_icns(_path: String) -> String {

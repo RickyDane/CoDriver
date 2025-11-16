@@ -57,7 +57,10 @@ ds.subscribe("DS:select", async (payload) => {
 });
 
 ds.subscribe("DS:unselect", async (payload) => {
-  deSelectItem(payload.item);
+  setTimeout(() => {
+    console.log("Triggered removal");
+    deSelectItem(payload.item);
+  }, 200);
 });
 
 /* region Global Variables */
@@ -191,7 +194,7 @@ async function startFullSearch() {
     let searchDepth = parseInt(
       document.querySelector(".full-search-search-depth-input").value,
     );
-    searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
+    searchDepth = searchDepth >= 1 ? searchDepth : 1;
     let fileContent = document.querySelector(
       ".full-dualpane-search-file-content-input",
     ).value;
@@ -217,7 +220,6 @@ async function stopFullSearch() {
     .addEventListener("click", async () => {
       await startFullSearch();
     });
-  await stopSearching();
 }
 
 document.addEventListener("keydown", async (e) => {
@@ -254,7 +256,7 @@ document.addEventListener("keydown", async (e) => {
     CurrentQuickSearch += e.key;
     $(".instant-search-input").css("display", "block");
     $(".instant-search-input").val(CurrentQuickSearch);
-    await searchFor(CurrentQuickSearch, 9999999, 1, true);
+    await searchFor(CurrentQuickSearch, 999999, 1, true);
     setTimeout(() => {
       if (IsDualPaneEnabled === true) {
         // goUp(true);
@@ -667,6 +669,7 @@ document.onkeydown = async (e) => {
       showToast("Current dir path copied", ToastType.SUCCESS);
       return;
     }
+
     // Check if cmd / ctrl + f is pressed
     if (e.key == "f" && (e.ctrlKey || e.metaKey)) {
       if (IsDualPaneEnabled == true) return;
@@ -675,6 +678,7 @@ document.onkeydown = async (e) => {
       e.preventDefault();
       e.stopPropagation();
     }
+
     // Check if space is pressed on selected item
     if (e.key == " " && SelectedElement != null) {
       e.preventDefault();
@@ -704,6 +708,7 @@ document.onkeydown = async (e) => {
         e.stopPropagation();
         return;
       }
+
       // Check if cmd / ctrl + a is pressed
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
@@ -730,6 +735,7 @@ document.onkeydown = async (e) => {
           }
         }
       }
+
       if (
         (e.altKey && e.key == "Enter") ||
         (e.key == "F2" && !e.metaKey && !e.ctrlKey && !e.altKey) ||
@@ -741,13 +747,19 @@ document.onkeydown = async (e) => {
         // check if alt + enter is pressed
         renameElementInputPrompt(SelectedElement);
       }
+
       // check if cmd / ctrl + r is pressed
       if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "r") {
         e.preventDefault();
         e.stopPropagation();
         await unSelectAllItems();
-        refreshView();
+        if (IsDualPaneEnabled === true) {
+          refreshBothViews(SelectedItemPaneSide);
+        } else {
+          refreshView();
+        }
       }
+
       // check if cmd / ctrl + c is pressed
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
@@ -758,6 +770,7 @@ document.onkeydown = async (e) => {
         e.preventDefault();
         e.stopPropagation();
       }
+
       // check if cmd / ctrl + x is pressed
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
@@ -768,6 +781,7 @@ document.onkeydown = async (e) => {
         e.stopPropagation();
         await copyItem(SelectedElement, true);
       }
+
       // check if cmd / ctrl + v is pressed
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
@@ -778,35 +792,27 @@ document.onkeydown = async (e) => {
         e.stopPropagation();
         pasteItem();
       }
+
       // check if cmd / ctrl + g is pressed | Path input
       if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
         e.preventDefault();
         e.stopPropagation();
         showInputPopup("Input path to jump to");
       }
+
       // New folder input prompt when f7 is pressed
       if (e.key == "F7") {
         e.preventDefault();
         e.stopPropagation();
         createFolderInputPrompt();
       }
+
       // New file input prompt when f6 is pressed
       if (e.keyCode == 117) {
         e.preventDefault();
         e.stopPropagation();
         createFileInputPrompt();
       }
-      // Disabled for instant quick search
-      // check if cmd / ctrl + s is pressed
-      // if (
-      // 	((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-      // 	e.key === "s" &&
-      // 	IsShowDisks == false
-      // ) {
-      // 	openSearchBar();
-      // 	e.preventDefault();
-      // 	e.stopPropagation();
-      // }
 
       // check if ctrl / cmd + shift + m is pressed
       if (
@@ -827,6 +833,7 @@ document.onkeydown = async (e) => {
           e.preventDefault();
           e.stopPropagation();
         }
+
         // check if backspace is pressed
         if (
           e.keyCode == 8 &&
@@ -843,6 +850,18 @@ document.onkeydown = async (e) => {
 
     if (
       IsDualPaneEnabled === false &&
+      IsItemPreviewOpen === false &&
+      IsInputFocused === false
+    ) {
+      if ((IsMetaDown || IsCtrlDown || e.key == "Super") && e.key.toLowerCase() == "k") {
+        showCompressPopup(ArrSelectedItems[0]);
+      }
+      // :new_shortcut :new :shortcut
+    }
+
+    // Item preview :preview
+    if (
+      IsDualPaneEnabled === false &&
       ((IsItemPreviewOpen === true && IsPopUpOpen === true) ||
         IsPopUpOpen === false) &&
       IsInputFocused === false
@@ -854,6 +873,7 @@ document.onkeydown = async (e) => {
           e.stopPropagation();
           goGridUp();
         }
+
         // check if arrow down is pressed
         if (e.key === "ArrowDown") {
           e.preventDefault();
@@ -861,6 +881,7 @@ document.onkeydown = async (e) => {
           goGridDown();
         }
       }
+
       // check if arrow left is pressed
       if (
         e.keyCode == 37 ||
@@ -870,6 +891,7 @@ document.onkeydown = async (e) => {
         e.stopPropagation();
         goLeft();
       }
+
       // check if arrow right is pressed
       if (
         e.keyCode == 39 ||
@@ -1018,7 +1040,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     } else if (ViewMode == "column") {
       var itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
-        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; min-width: 0; width: fit-content; max-width: 400px; overflow: hidden;">
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; min-width: 0; width: fit-content; max-width: 500px; overflow: hidden;">
           <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
           <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
           <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
@@ -1265,7 +1287,7 @@ async function addSingleItem(
   } else if (ViewMode == "column") {
     var itemButtonList = document.createElement("div");
     itemButtonList.innerHTML = `
-      <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
+      <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 500px; overflow: hidden;">
         <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
         <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
         <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
@@ -1590,10 +1612,10 @@ async function showCompressPopup(item) {
         <i class="fa-solid fa-compress"></i>
         <h3>Compression options</h3>
       </div>
-      <div style="padding: 10px 0 0 10px; border-bottom: 1px solid var(--tertiaryColor);">
+      <div style="padding: 10px 5px 0 10px; border-bottom: 1px solid var(--tertiaryColor);">
         <p class="text-2">Selected item(s)</p>
         <br/>
-        <div style="max-height: 50vh; max-width: 80vw; overflow-y: auto; overflow-x: hidden;">
+        <div style="max-height: 50vh; max-width: 50vw; overflow-y: auto; overflow-x: hidden; text-overflow: ellipsis; white-space: nowrap">
           ${compressFileNames}
         </div>
         <br/>
@@ -1605,7 +1627,7 @@ async function showCompressPopup(item) {
           </div>
           <div class="popup-body-col-section" style="width: 50%;">
             <select class="select compression-popup-type-select">
-              <option value="zstd">Zstd (Level 1 - 22)</option>
+              <option value="zstd">Zstd (Level -7 - 22)</option>
               <option value="zip">Zip (Level 1 - 9)</option>
               ${arrCompressItems.length == 1 && arrCompressItems[0].getAttribute("itemisdir") != "1" ? '<option value="density">Density (Level 1 - 3)</option>' : ""}
               <option value="br">Brotli (Level 1)</option>
@@ -1666,9 +1688,9 @@ async function compressItem(
     return;
   } else if (
     compressionType == "zstd" &&
-    (compressionLevel > 22 || compressionLevel < 1)
+    (compressionLevel > 22 || compressionLevel < -7)
   ) {
-    alert("Compression level must be between 1 and 22");
+    alert("Compression level must be between -7 and 22");
     return;
   } else if (compressionType == "br" && compressionLevel != 1) {
     alert("Compression level must be 1");
@@ -1688,51 +1710,45 @@ async function compressItem(
   );
 
   // Update the file size info of the file which is being compressed
-  setTimeout(() => {
-    if (arrItems.length > 1) {
-      var filePath =
-        CurrentDir + "/compressed_items_archive." + compressionType;
-    } else {
-      var filePath =
-        arrItems[0].getAttribute("itempath") +
-        (compressionType == "br" ? ".tar" : "") +
-        "." +
-        compressionType;
-    }
-    let isCompressingDone = false;
-    let intervalId = setInterval(async () => {
-      if (!isCompressingDone) {
-        try {
-          var item = await invoke("get_single_item_info", {
-            path: filePath,
-          });
-        } catch (error) {
-          console.log(error);
-          isCompressingDone = true;
-<<<<<<< HEAD
-          showToast("Compressing stopped", ToastType.ERROR);
-          console.log(parseFloat(toString(intervalId)).toFixed(2));
-          clearInterval(intervalId);
-=======
-          showToast("Compression canceled", ToastType.ERROR);
-          removeAction(actionId);
->>>>>>> 7415c3090a18e4449b248c03b208d09a387ad47e
-          return;
-        }
-        let itemSize = document.getElementById(`size-${filePath}`);
-        if (itemSize) {
-          itemSize.textContent = formatBytes(parseInt(item.size), 2);
-        }
-      } else {
+  if (arrItems.length > 1) {
+    var filePath = CurrentDir + "/compressed_items_archive." + compressionType;
+  } else {
+    var filePath =
+      arrItems[0].getAttribute("itempath") +
+      (compressionType == "br" ? ".tar" : "") +
+      "." +
+      compressionType;
+  }
+  let isCompressingDone = false;
+  let intervalId = setInterval(async () => {
+    if (!isCompressingDone) {
+      try {
+        var item = await invoke("get_single_item_info", {
+          path: filePath,
+        });
+      } catch (error) {
+        console.log(error);
+        isCompressingDone = true;
+        showToast("Compressing stopped", ToastType.ERROR);
         clearInterval(intervalId);
+        removeAction(actionId);
+        return;
       }
-    }, 200);
-  }, 100);
+      let itemSize = document.getElementById(`size-${filePath}`);
+      if (itemSize) {
+        itemSize.textContent = formatBytes(parseInt(item.size), 2);
+      }
+    } else {
+      clearInterval(intervalId);
+    }
+  }, 200);
+
   if (arrItems.length > 1) {
     await invoke("arr_compress_items", {
       arrItems: arrItems.map((item) => item.getAttribute("itempath")),
       compressionLevel: parseInt(compressionLevel),
       compressionType: compressionType,
+      intervalId: intervalId,
     });
     await listDirectories();
   } else {
@@ -1746,6 +1762,7 @@ async function compressItem(
         compressionLevel: parseInt(compressionLevel),
         compressionType: compressionType,
         pathToZip: compressFilePath,
+        intervalId: intervalId,
       });
       await listDirectories();
     }
@@ -1870,7 +1887,6 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
     extension: item.getAttribute("itemext") ?? "",
   }));
 
-  // ContextMenu.style.display = "none";
   if (IsDualPaneEnabled == true) {
     if (SelectedItemPaneSide == "left") {
       await invoke("set_dir", { currentDir: RightDualPanePath });
@@ -1893,8 +1909,8 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
       isForDualPane: "0",
       copyToPath,
     });
-    // ContextMenu.style.display = "none";
   }
+
   if (isCopyToCut == true || IsCopyToCut == true) {
     arr = arr.map((element) => element.path);
     if (arr.includes(copyToPath)) {
@@ -1910,18 +1926,13 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
     if (IsDualPaneEnabled === true) {
       refreshBothViews(SelectedItemPaneSide);
     }
-    if (Platform != "darwin") {
-      await listDirectories();
-    }
+    await listDirectories(IsDualPaneEnabled === true);
   } else {
     await unSelectAllItems();
-    if (Platform != "darwin") {
-      await listDirectories(true);
+    if (IsDualPaneEnabled === true) {
+      refreshBothViews(SelectedItemPaneSide);
     }
   }
-  // if (arr.length >= 1) {
-  //   showToast("Done copying some files", ToastType.INFO);
-  // }
 }
 
 function createFolderInputPrompt() {
@@ -2644,7 +2655,7 @@ async function goBack() {
     await invoke("go_back", { isDualPane: IsDualPaneEnabled });
     await listDirectories();
   }
-  await setCurrentDir(await getCurrentDir());
+  await setCurrentDir(await getCurrentDir(), SelectedItemPaneSide);
 }
 
 function goUp(isSwitched = false, toFirst = false) {
