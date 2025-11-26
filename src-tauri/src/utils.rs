@@ -14,7 +14,6 @@ use serde::Serialize;
 use std::env::current_dir;
 use std::fs::{create_dir_all, Metadata, OpenOptions};
 use std::io::{self, Error};
-use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::usize;
 use std::{
@@ -608,7 +607,7 @@ pub fn update_list_item_data<S: Into<String> + Clone + Serialize>(path: S, metad
     let _ = WINDOW
         .get()
         .unwrap()
-        .emit("updateItemMetadata", (path.clone(), metadata.size()));
+        .emit("updateItemMetadata", (path.clone(), metadata.len()));
 }
 
 /// Converts a human-readable size string (e.g., "1.66 GB", "1 KiB", "42MB") to bytes (u64).
@@ -845,7 +844,7 @@ pub fn extract_zst_archive(archive_path: &Path, output_dir: &Path) -> Result<(),
 #[allow(unused)]
 pub fn get_items_size<I: IntoIterator<Item = String>>(items: I) -> u64 {
     let items = items.into_iter().map(|item| fs::metadata(item));
-    items.into_iter().map(|item| item.unwrap().size()).sum()
+    return items.into_iter().map(|item| item.unwrap().len()).sum();
 }
 
 pub fn compress_to_density(
@@ -992,8 +991,9 @@ fn watch<P: AsRef<Path>>(_path: P) -> notify::Result<()> {
 fn handle_fs_change(event: notify::Event) {
     if (event.kind == Create(CreateKind::Folder) || event.kind == Remove(RemoveKind::Folder))
         && event.paths.len() == 1
-        && (event.paths[0].starts_with("/Volumes")
+        && ((event.paths[0].starts_with("/Volumes") && event.paths[0].to_str().unwrap().split("/").count() <= 3)
             || event.paths[0].to_str().unwrap().contains("/run/media")
+            || event.paths[0].to_str().unwrap().contains("/private/tmp/codriver-sshfs-mount")
             || event.paths[0].to_str().unwrap().contains("/mnt"))
     {
         // Check mounts

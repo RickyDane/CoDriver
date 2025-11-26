@@ -10,6 +10,8 @@ use flate2::read::GzDecoder;
 #[cfg(target_os = "macos")]
 use icns::{IconFamily, IconType};
 use image::ImageReader;
+#[cfg(target_os = "windows")]
+use remove_dir_all::remove_dir_all;
 // use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
 use serde::Serialize;
 use serde_json::Value;
@@ -46,8 +48,8 @@ mod utils;
 use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
-    copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes,
-    remove_action, show_progressbar, success_log, unpack_tar, wng_log, DirWalker, DirWalkerEntry,
+    copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes, remove_action,
+    show_progressbar, success_log, unpack_tar, wng_log, DirWalker, DirWalkerEntry,
 };
 #[cfg(target_os = "macos")]
 mod window_tauri_ext;
@@ -673,7 +675,7 @@ async fn mount_sshfs(
 
     // Start sshfs process
     let child = Command::new("sshfs")
-        .arg(&remote_address)
+        .arg(format!("{}@{}:{}", username, hostname, remote_path))
         .arg(&mount_point)
         .arg("-o")
         .arg("password_stdin")
@@ -1082,15 +1084,18 @@ async fn extract_item(from_path: String, app_window: Window) {
             return;
         }
     } else if file_ext == ".rar" {
-        let mut archive = unrar::Archive::new(&from_path)
-            .open_for_processing()
-            .unwrap();
-        let _ = WINDOW.get().unwrap().emit("refreshView", ());
-        while let Some(header) = archive.read_header().unwrap() {
-            archive = if header.entry().is_file() {
-                header.extract().unwrap()
-            } else {
-                header.skip().unwrap()
+        #[cfg(not(target_os = "windows"))]
+        {
+            let mut archive = unrar::Archive::new(&from_path)
+                .open_for_processing()
+                .unwrap();
+            let _ = WINDOW.get().unwrap().emit("refreshView", ());
+            while let Some(header) = archive.read_header().unwrap() {
+                archive = if header.entry().is_file() {
+                    header.extract().unwrap()
+                } else {
+                    header.skip().unwrap()
+                }
             }
         }
     } else if file_ext == ".7z" {

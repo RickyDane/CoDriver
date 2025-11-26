@@ -997,6 +997,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
   }
   items = items.filter((str) => !str.name.toLowerCase().includes("ntuser"));
   let counter = 0;
+  let docFragment = document.createDocumentFragment();
   items.forEach(async (item) => {
     let itemLink = document.createElement("button");
     itemLink.setAttribute(
@@ -1080,9 +1081,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       DirectoryList.style.gridTemplateColumns = "unset";
       DirectoryList.style.rowGap = "1px";
     }
-    DirectoryList.append(itemLink);
+    // DirectoryList.append(itemLink);
+    docFragment.append(itemLink);
     ArrDirectoryItems.push(itemLink);
   });
+  DirectoryList.append(docFragment);
   DirectoryList.querySelectorAll("#item-link").forEach(async (item) => {
     // Start dragging item
     item.ondragstart = async (e) => {
