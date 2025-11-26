@@ -417,10 +417,7 @@ async fn list_disks() -> Vec<DisksInfo> {
     for disk in &disks {
         if ls_disks
             .iter()
-            .find(|&ls_disk| {
-                ls_disk.name == disk.name().to_string_lossy().to_string()
-                    && ls_disk.avail == format!("{:?}", disk.available_space())
-            })
+            .find(|&ls_disk| ls_disk.name == disk.name().to_string_lossy().to_string())
             .is_some()
         {
             continue;
@@ -567,7 +564,13 @@ async fn list_dirs() -> Vec<FDir> {
                         .unwrap_or("");
                 let file_data = fs::metadata(temp_item.path());
                 let file_date: String;
-                let size = temp_item.metadata().unwrap().len();
+                let size;
+                match temp_item.metadata() {
+                    Ok(metadata) => {
+                        size = metadata.len();
+                    }
+                    Err(_) => size = 0,
+                }
                 match file_data {
                     Ok(file_data) => {
                         let dt: DateTime<Local> = file_data.modified().unwrap().into();
@@ -664,14 +667,15 @@ async fn mount_sshfs(
     username: String,
     password: String,
     remote_path: String,
-    app_window: Window,
+    name: String,
 ) -> Result<String, ()> {
     let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
 
-    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &username;
+    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &name;
 
     // Ensure the local mount point exists
     std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
+    success_log(format!("Mount point created at {}", mount_point));
 
     // Start sshfs process
     let child = Command::new("sshfs")
@@ -683,7 +687,11 @@ async fn mount_sshfs(
         .spawn();
 
     if child.is_err() {
-        dialog::message(Some(&app_window), "", "Failed to start sshfs process");
+        dialog::message(
+            Some(&WINDOW.get().unwrap()),
+            "",
+            "Failed to start sshfs process",
+        );
     }
 
     let mut child = child.unwrap();
@@ -700,9 +708,9 @@ async fn mount_sshfs(
         .expect("Failed to read sshfs output");
 
     if output.status.success() {
-        dbg_log(format!("Mounted {} to {}", remote_address, mount_point));
+        success_log(format!("Mounted {} to {}", remote_address, mount_point));
     } else {
-        wng_log(format!(
+        err_log(format!(
             "Failed to mount: {}",
             String::from_utf8_lossy(&output.stderr),
         ));
@@ -1878,19 +1886,27 @@ async fn log(log: String) {
 
 #[tauri::command]
 async fn unmount_network_drive(path: String) {
-    let _ = Command::new("umount").arg(&path).spawn();
-    dbg_log(format!("Unmounted: {}", path));
+    let unmount = Command::new("umount").arg(&path).spawn();
+    if unmount.is_err() {
+        dialog::message(
+            Some(&WINDOW.get().unwrap()),
+            "Unmounting Failed",
+            "Failed to unmount the network drive. Please try again in a few seconds.",
+        );
+    } else {
+        dbg_log(format!("Unmounted: {}", path));
+    }
     let remove = remove_dir(&path);
     if remove.is_err() {
-        dbg_log(format!("Failed to remove: {} | Trying again in 0.5s", path));
+        wng_log(format!("Failed to remove: {} | Trying again in 0.5s", path));
         std::thread::sleep(std::time::Duration::from_millis(500));
         let remove2 = remove_dir(&path);
         if remove2.is_err() {
-            dbg_log(format!("Failed to remove: {} | Trying again in 1s", path));
+            wng_log(format!("Failed to remove: {} | Trying again in 1s", path));
             std::thread::sleep(std::time::Duration::from_millis(1000));
             let remove3 = remove_dir(&path);
             if remove3.is_err() {
-                dbg_log(format!(
+                wng_log(format!(
                     "Failed to remove: {} | Err: {}",
                     path,
                     remove3.err().unwrap()

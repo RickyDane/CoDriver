@@ -3788,16 +3788,18 @@ async function connectToFtp() {
   let username = $(".ftp-username-input").val();
   let password = $(".ftp-password-input").val();
   let remotePath = $(".ftp-path-input").val();
+  let name = $(".ftp-dirname-input").val();
   $(".ftp-loader").css("display", "flex");
-  openFTP(hostname, username, password, remotePath);
+  openFTP(hostname, username, password, remotePath, name);
 }
 
-async function openFTP(hostname, username, password, remotePath = "/") {
+async function openFTP(hostname, username, password, remotePath = "/", name = "") {
   await invoke("mount_sshfs", {
     hostname,
     username,
     password,
     remotePath,
+    name,
   }).then(async (mountedPath) => {
     await openDirAndSwitch(mountedPath);
   });
@@ -4524,12 +4526,4 @@ async function removeMount(mount) {
   await checkAppConfig();
   await insertSiteNavButtons();
   cdCtMenu.setupItems();
-  updateProgressBar(
-    50,
-    25,
-    100,
-    50,
-    "Anhang für Mietswohnung_R. Perlick, A. Hegemann.pdf",
-    10,
-  );
 })();

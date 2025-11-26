@@ -298,46 +298,34 @@
                     </div>
                 </div>
                 <div class="popup-body">
+                    <div class="popup-body-col-section">
+                        <p>Name</p>
+                        <input type="text" class="text-input ftp-dirname-input ftp-popup-input" placeholder="ftp-connection" required />
+                    </div>
                     <div class="popup-body-row-section">
                         <div class="popup-body-col-section">
-                            <div class="popup-body-row-section">
-                                <div class="popup-body-col-section">
-                                    <p>Hostname</p>
-                                    <input type="text" class="text-input ftp-hostname-input ftp-popup-input"
-                                        placeholder="127.0.0.1" required />
-                                </div>
-                            </div>
-                            <div class="popup-body-row-section">
-                                <div class="popup-body-col-section">
-                                    <p>Username</p>
-                                    <input type="text" class="text-input ftp-username-input ftp-popup-input"
-                                        placeholder="user" required />
-                                </div>
-                            </div>
+                            <p>Hostname</p>
+                            <input type="text" class="text-input ftp-hostname-input ftp-popup-input" placeholder="127.0.0.1" required />
                         </div>
                         <div class="popup-body-col-section">
-                            <div class="popup-body-row-section">
-                                <div class="popup-body-col-section">
-                                    <p>Remote path</p>
-                                    <input type="text" class="text-input ftp-path-input ftp-popup-input"
-                                        placeholder="/" />
-                                </div>
-                            </div>
-                            <div class="popup-body-row-section">
-                                <div class="popup-body-col-section">
-                                    <p>Password</p>
-                                    <input type="password" class="text-input ftp-password-input ftp-popup-input"
-                                        placeholder="*********" required />
-                                </div>
-                            </div>
+                            <p>Remote path</p>
+                            <input type="text" class="text-input ftp-path-input ftp-popup-input" placeholder="/" />
+                        </div>
+                    </div>
+                    <div class="popup-body-row-section">
+                        <div class="popup-body-col-section">
+                            <p>Username</p>
+                            <input type="text" class="text-input ftp-username-input ftp-popup-input" placeholder="user" required />
+                        </div>
+                        <div class="popup-body-col-section">
+                            <p>Password</p>
+                            <input type="password" class="text-input ftp-password-input ftp-popup-input" placeholder="***************" required />
                         </div>
                     </div>
                 </div>
                 <span class="popup-controls">
-                    <button class="icon-button" onclick="closeFtpConfig()"><span class="button-icon"><i
-                                class="fa-solid fa-ban"></i></span>Cancel</button>
-                    <button class="icon-button" onclick="connectToFtp()"><span class="button-icon"><i
-                                class="fa-solid fa-forward"></i></span>Connect</button>
+                    <button class="icon-button" onclick="closeFtpConfig()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
+                    <button class="icon-button" onclick="connectToFtp()"><span class="button-icon"><i class="fa-solid fa-forward"></i></span>Connect</button>
                 </span>
                 <div class="ftp-loader">
                     <div class="preloader-invert"></div>

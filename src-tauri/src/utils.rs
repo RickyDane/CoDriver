@@ -143,6 +143,7 @@ pub async fn copy_to(
                             println!("Progress: {:.0}% | Total size: {} | Bytes copied: {} | Speed: {:.0} MB/s", progress, format_bytes(total_size as u64), format_bytes(*(TOTAL_BYTES_COPIED.lock().await) as u64), speed);
                             // Only update the progressbar every 5%
                             // if progress % 5.0 < 1.0 {
+                            show_progressbar(&WINDOW.get().unwrap());
                             update_progressbar(
                                 progress,
                                 (100.0 / total_size) * *(TOTAL_BYTES_COPIED.lock().await),
