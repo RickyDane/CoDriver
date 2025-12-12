@@ -30,7 +30,6 @@ use std::{
     path::PathBuf,
 };
 use stopwatch::Stopwatch;
-use tauri::api::dialog;
 use tauri::async_runtime::Mutex;
 use tauri::{
     api::path::{
@@ -660,7 +659,7 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
     list_dirs().await
 }
 
-// :ftp
+// :ftp / :sshfs
 #[tauri::command]
 async fn mount_sshfs(
     hostname: String,
@@ -669,53 +668,53 @@ async fn mount_sshfs(
     remote_path: String,
     name: String,
 ) -> Result<String, ()> {
-    let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
+    // Build the remote address string
+    let remote_addr = format!("{}@{}:{}", username, hostname, remote_path);
 
-    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &name;
+    // Mount point under /tmp
+    let mount_point = format!("/tmp/codriver-sshfs-mount/{}", name);
+    std::fs::create_dir_all(&mount_point).expect("Failed to create mount point");
 
-    // Ensure the local mount point exists
-    std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
-    success_log(format!("Mount point created at {}", mount_point));
-
-    // Start sshfs process
-    let child = Command::new("sshfs")
-        .arg(format!("{}@{}:{}", username, hostname, remote_path))
-        .arg(&mount_point)
+    // Command: sudo -S sshfs -o password_stdin <remote> <mount>
+    let mut child = Command::new("sshfs")
         .arg("-o")
-        .arg("password_stdin")
+        .arg("password_stdin") // <-- critical
+        .arg(&remote_addr)
+        .arg(&mount_point)
         .stdin(Stdio::piped())
-        .spawn();
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn sshfs process");
 
-    if child.is_err() {
-        dialog::message(
-            Some(&WINDOW.get().unwrap()),
-            "",
-            "Failed to start sshfs process",
-        );
+    // Pipe both passwords: sudo first, then remote SSH password
+    if let Some(stdin) = child.stdin.take() {
+        use std::io::{BufWriter, Write};
+
+        let mut writer = BufWriter::new(stdin);
+
+        // sudo password + newline
+        // writeln!(writer, "{}", sudo_password).expect("Failed to write sudo password"); // Not needed as the whole program needs to be ran as root
+
+        // remote SSH password + newline
+        writeln!(writer, "{}", password).expect("Failed to write remote SSH password");
+
+        writer.flush().expect("Failed to flush password stream");
+    } else {
+        return Err(());
     }
-
-    let mut child = child.unwrap();
-
-    // Write the password to stdin of the sshfs process
-    dbg_log(format!("Connecting to {}", remote_address));
-    let stdin = child.stdin.as_mut().expect("Failed to open stdin");
-    stdin
-        .write_all(password.as_bytes())
-        .expect("Failed to write to stdin");
 
     let output = child
         .wait_with_output()
-        .expect("Failed to read sshfs output");
+        .expect("Failed to wait for sshfs process");
 
     if output.status.success() {
-        success_log(format!("Mounted {} to {}", remote_address, mount_point));
+        Ok(mount_point)
     } else {
-        err_log(format!(
-            "Failed to mount: {}",
-            String::from_utf8_lossy(&output.stderr),
-        ));
+        let err = String::from_utf8_lossy(&output.stderr);
+        err_log(err);
+        Err(())
     }
-    Ok(mount_point)
 }
 
 #[tauri::command]
@@ -1885,37 +1884,47 @@ async fn log(log: String) {
 }
 
 #[tauri::command]
-async fn unmount_network_drive(path: String) {
-    let unmount = Command::new("umount").arg(&path).spawn();
-    if unmount.is_err() {
-        dialog::message(
-            Some(&WINDOW.get().unwrap()),
-            "Unmounting Failed",
-            "Failed to unmount the network drive. Please try again in a few seconds.",
-        );
+async fn unmount_network_drive(path: String, sudo_password: String) -> Result<(), String> {
+    // Sanity check: mount point must exist.
+    if !std::path::Path::new(&path).exists() {
+        return Err("Mount point does not exist".to_string());
+    }
+
+    let mut child = Command::new("sudo")
+        .arg("-S") // read sudo password from stdin
+        .arg("umount")
+        .arg(&path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn umount process");
+
+    // Write the sudo password.
+    if let Some(stdin) = child.stdin.take() {
+        use std::io::{BufWriter, Write};
+        let mut w = BufWriter::new(stdin);
+        writeln!(w, "{}", sudo_password).expect("Failed to write sudo password");
+        w.flush().expect("Failed to flush sudo password stream");
     } else {
-        dbg_log(format!("Unmounted: {}", path));
+        return Err("Failed to write sudo password".to_string());
     }
-    let remove = remove_dir(&path);
-    if remove.is_err() {
-        wng_log(format!("Failed to remove: {} | Trying again in 0.5s", path));
-        std::thread::sleep(std::time::Duration::from_millis(500));
-        let remove2 = remove_dir(&path);
-        if remove2.is_err() {
-            wng_log(format!("Failed to remove: {} | Trying again in 1s", path));
-            std::thread::sleep(std::time::Duration::from_millis(1000));
-            let remove3 = remove_dir(&path);
-            if remove3.is_err() {
-                wng_log(format!(
-                    "Failed to remove: {} | Err: {}",
-                    path,
-                    remove3.err().unwrap()
-                ));
-                return;
-            }
+
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait for umount process");
+
+    if output.status.success() {
+        match remove_dir(path) {
+            Ok(_) => success_log("Successfully unmounted network drive"),
+
+            Err(err) => err_log(&format!("Failed to remove directory: {}", err)),
         }
+        Ok(())
+    } else {
+        let err = String::from_utf8_lossy(&output.stderr);
+        Err(err.to_string())
     }
-    success_log(format!("Removed: {}", path));
 }
 
 #[tauri::command]
@@ -2086,7 +2095,14 @@ async fn get_disk_info(path: String) -> Result<DisksInfo, String> {
         Ok(metadata) => Ok(DisksInfo {
             name: format!("{:?}", &path.split("/").last().unwrap()),
             dev: format!("{:?}", &path.split("/").last().unwrap()),
-            format: format!("{:?}", metadata.file_type()),
+            format: format!(
+                "{:?}",
+                if *&path.contains("codriver-sshfs-mount") {
+                    "SSHFS Network-Drive"
+                } else {
+                    "Drive"
+                }
+            ),
             path: format!("{:?}", &path),
             avail: format!("{:?}", metadata.len()),
             capacity: format!("{:?}", metadata.len()),

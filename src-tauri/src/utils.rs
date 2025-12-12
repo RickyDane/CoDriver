@@ -995,6 +995,7 @@ fn handle_fs_change(event: notify::Event) {
         && ((event.paths[0].starts_with("/Volumes") && event.paths[0].to_str().unwrap().split("/").count() <= 3)
             || event.paths[0].to_str().unwrap().contains("/run/media")
             || event.paths[0].to_str().unwrap().contains("/private/tmp/codriver-sshfs-mount")
+            || event.paths[0].to_str().unwrap().contains("/tmp/codriver-sshfs-mount")
             || event.paths[0].to_str().unwrap().contains("/mnt"))
     {
         // Check mounts
