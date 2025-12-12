@@ -854,7 +854,10 @@ document.onkeydown = async (e) => {
       IsItemPreviewOpen === false &&
       IsInputFocused === false
     ) {
-      if ((IsMetaDown || IsCtrlDown || e.key == "Super") && e.key.toLowerCase() == "k") {
+      if (
+        (IsMetaDown || IsCtrlDown || e.key == "Super") &&
+        e.key.toLowerCase() == "k"
+      ) {
         showCompressPopup(ArrSelectedItems[0]);
       }
       // :new_shortcut :new :shortcut
@@ -1514,7 +1517,7 @@ async function deleteItems() {
     }
   }
   let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
-  let isConfirm = await confirmPopup(msg, PopupType.DELETE);
+  let isConfirm = await showPopup(msg, PopupType.DELETE);
   if (isConfirm == true) {
     let actionId = new Date().getMilliseconds();
     createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
@@ -1572,7 +1575,7 @@ async function extractItem(item) {
     .split("/")
     [compressFilePath.split("/").length - 1].replace("'", "");
   // ContextMenu.style.display = "none";
-  let isExtracting = await confirmPopup(
+  let isExtracting = await showPopup(
     "Do you want to extract " + compressFileName + "?",
     PopupType.EXTRACT,
   );
@@ -3789,20 +3792,35 @@ async function connectToFtp() {
   let password = $(".ftp-password-input").val();
   let remotePath = $(".ftp-path-input").val();
   let name = $(".ftp-dirname-input").val();
+  // let sudoPassword = await showPopup(
+  //   "Enter sudo password",
+  //   PopupType.PROMPT,
+  //   "The sshfs process to mount the network drive requires your users admin password.",
+  // );
   $(".ftp-loader").css("display", "flex");
-  openFTP(hostname, username, password, remotePath, name);
+  await openFTP(hostname, username, password, remotePath, name);
 }
 
-async function openFTP(hostname, username, password, remotePath = "/", name = "") {
-  await invoke("mount_sshfs", {
-    hostname,
-    username,
-    password,
-    remotePath,
-    name,
-  }).then(async (mountedPath) => {
-    await openDirAndSwitch(mountedPath);
-  });
+async function openFTP(
+  hostname,
+  username,
+  password,
+  remotePath = "/",
+  name = "",
+) {
+  try {
+    await invoke("mount_sshfs", {
+      hostname,
+      username,
+      password,
+      remotePath,
+      name,
+    }).then(async (mountedPath) => {
+      // await openDirAndSwitch(mountedPath);
+    });
+  } catch (error) {
+    console.error(error);
+  }
   closeFtpConfig();
 }
 
@@ -4201,7 +4219,7 @@ async function insertSiteNavButtons() {
     // No sshfs implemenation for windows *yet*
     Platform.includes("win") && Platform != "darwin"
       ? []
-      : ["FTP", "", "fa-solid fa-circle-nodes", showFtpConfig],
+      : ["SSHFS", "", "fa-solid fa-globe", showFtpConfig],
   ];
 
   for (let i = 0; i < siteNavButtons.length; i++) {
@@ -4336,9 +4354,10 @@ async function openConfigLocation() {
   resetEverything();
 }
 
-async function confirmPopup(
+async function showPopup(
   message = "Nothing to see here!",
   type = PopupType.CONTINUE,
+  subtitle = "",
 ) {
   let confirmationButton = "";
   switch (type) {
@@ -4366,6 +4385,14 @@ async function confirmPopup(
       </button>
       `;
       break;
+    case PopupType.PROMPT:
+      confirmationButton = `
+      <button class="icon-button">
+      <div class="button-icon"><i class="fa-solid fa-check"></i></div>
+      Confirm
+      </button>
+      `;
+      break;
   }
   let popup = document.createElement("div");
   popup.className = "uni-popup confirm-popup";
@@ -4378,6 +4405,9 @@ async function confirmPopup(
     </div>
     <div class="popup-body">
     <p class="popup-body-content">${message}</p>
+    ${subtitle ? `<p class="popup-body-content popup-body-subtitle">${subtitle}</p>` : ""}
+    <br/>
+    ${type === PopupType.PROMPT ? `<input type="password" class="text-input popup-prompt-input" placeholder="Password">` : ""}
     </div>
     <div class="popup-controls">
     <button class="icon-button">
@@ -4387,20 +4417,45 @@ async function confirmPopup(
     ${confirmationButton}
     </div>
     `;
-  document.body.appendChild(popup);
-  document.querySelector(".confirm-popup button:last-child").focus();
+  document.querySelector(".main-container").appendChild(popup);
+  if (type === PopupType.PROMPT) {
+    document.querySelector(".confirm-popup input").focus();
+  } else {
+    document.querySelector(".confirm-popup button:last-child").focus();
+  }
   IsPopUpOpen = true;
   $(".popup-background").css("display", "block");
   setTimeout(() => $(".popup-background").css("opacity", "1")); // Workaround to trigger opacity transition
   return new Promise((resolve) => {
+    let input = document.querySelector(".popup-prompt-input");
+    if (input) {
+      input.onkeyup = (event) => {
+        if (event.key === "Enter") {
+          if (type === PopupType.PROMPT) {
+            resolve($(".popup-prompt-input").val());
+          } else {
+            resolve(true);
+          }
+          closeConfirmPopup();
+        }
+      };
+    }
     document.querySelector(".confirm-popup button:first-child").onclick =
       () => {
+        if (type === PopupType.PROMPT) {
+          resolve("");
+        } else {
+          resolve(false);
+        }
         closeConfirmPopup();
-        resolve(false);
       };
     document.querySelector(".confirm-popup button:last-child").onclick = () => {
+      if (type === PopupType.PROMPT) {
+        resolve($(".popup-prompt-input").val());
+      } else {
+        resolve(true);
+      }
       closeConfirmPopup();
-      resolve(true);
     };
   });
 }
@@ -4442,8 +4497,11 @@ function closeCustomContextMenu() {
 }
 
 async function unmountNetworkDrive(networkDrive) {
-  await invoke("unmount_network_drive", { path: networkDrive.path });
-  await insertSiteNavButtons();
+  let sudoPassword = await showPopup("Enter sudo password", PopupType.PROMPT);
+  await invoke("unmount_network_drive", {
+    path: networkDrive.path.replaceAll('"', ""), // replaceAll('"', "") -> otherwise the path could be invalid
+    sudoPassword,
+  });
 }
 
 function unmountDrive(disk) {
@@ -4484,7 +4542,7 @@ async function addNewMount(payload) {
 
   let mount = await invoke("get_disk_info", { path });
 
-  diskButton.dataset.itempath = path;
+  diskButton.dataset.itempath = path.replaceAll('"', "");
   diskButton.className = "site-nav-bar-button disk-site-nav-button";
   diskButton.innerHTML = `
       <i class="fa-solid fa-hard-drive"></i>
@@ -4499,13 +4557,17 @@ async function addNewMount(payload) {
   // Show space left with gradient
   diskButton.style.background = `linear-gradient(to right, var(--selectColor3) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
   diskButton.style.backgroundRepeat = "no-repeat";
+  console.log(mount);
   diskButton.oncontextmenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
     showCustomContextMenu(e, [
       {
         name: "Unmount",
-        onclick: () => unmountDrive(mount),
+        onclick: () =>
+          mount.format.includes("SSHFS")
+            ? unmountNetworkDrive(mount)
+            : unmountDrive(mount),
       },
     ]);
   };

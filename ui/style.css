@@ -763,6 +763,7 @@ label {
     border-radius: 10px;
     box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
     color: var(--textColor);
+    z-index: 98;
 }
 
 .ftp-loader {
@@ -1928,6 +1929,12 @@ button > svg {
     padding: 5px;
 }
 
+.popup-body-subtitle {
+    padding: 5px 0;
+    font-size: 0.8em;
+    color: var(--textColor2);
+}
+
 /* Duplicates */
 
 .find-duplicates-popup {
@@ -2190,6 +2197,7 @@ button > svg {
     min-width: 30%;
     width: fit-content;
     height: fit-content;
+    z-index: 100 !important;
 }
 .confirm-popup > .popup-body {
     padding: 20px;

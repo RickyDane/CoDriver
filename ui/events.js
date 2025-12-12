@@ -86,12 +86,16 @@ listen("addSingleItem", async (item) => {
 
 listen("fs-mount-changed", (event) => {
   setTimeout(async () => {
+    if (Platform == "darwin" && event.payload.paths[0].includes("/private/tmp/codriver-sshfs-mount")) {
+      event.payload.paths[0] = event.payload.paths[0].replace("/private/tmp/codriver-sshfs-mount", "/tmp/codriver-sshfs-mount");
+    }
+    console.log(event.payload);
     if (event.payload.type == "create") {
       await addNewMount(event.payload);
     } else {
       await removeMount(event.payload);
     }
-  }, 500);
+  }, 100);
 });
 
 listen("watcher-event", (event) => {
