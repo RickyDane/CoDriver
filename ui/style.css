@@ -247,7 +247,7 @@ body {
     gap: 2px;
     border-right: 1px solid var(--tertiaryColor);
     border-radius: 0px;
-    transition: 0.3s ease-out;
+    transition: width 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), padding 0.4s ease, min-width 0.4s ease;
     overflow: hidden;
     position: relative;
     overflow-y: auto;
@@ -605,6 +605,285 @@ body {
 
 .close-tab-button:hover {
     background: rgba(0, 0, 0, 0.2);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(30px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+.animate-pulse {
+    animation: pulse 2s infinite ease-in-out;
+}
+
+/* Settings ui redesign */
+.settings-ui {
+    display: none;
+    flex-flow: column;
+    position: fixed;
+    width: 80%;
+    max-width: 800px;
+    height: 80vh;
+    max-height: 600px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--secondaryColor);
+    z-index: 100;
+    margin: auto;
+    border-radius: 15px;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--tertiaryColor);
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: scale(0.9);
+}
+
+.settings-ui[style*="display: flex"] {
+    transform: scale(1);
+}
+
+.settings-ui-main {
+    display: flex;
+    flex-flow: row;
+    height: 100%;
+    overflow: hidden;
+}
+
+.settings-sidebar {
+    width: 200px;
+    background-color: var(--primaryColor);
+    border-right: 1px solid var(--tertiaryColor);
+    display: flex;
+    flex-flow: column;
+    padding: 10px;
+    gap: 5px;
+}
+
+.settings-sidebar-button {
+    background-color: transparent;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    color: var(--textColor2);
+    text-align: left;
+    cursor: pointer;
+    transition: 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600 !important;
+}
+
+.settings-sidebar-button:hover {
+    background-color: var(--transparentColor);
+    color: var(--textColor);
+}
+
+.settings-sidebar-button.active {
+    background-color: var(--tertiaryColor);
+    color: var(--textColor);
+}
+
+.settings-content {
+    flex: 1;
+    padding: 25px;
+    overflow-y: auto;
+    background-color: var(--secondaryColor);
+}
+
+.settings-tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.settings-tab-content.active {
+    display: block;
+}
+
+.settings-section {
+    margin-bottom: 30px;
+}
+
+.settings-section-title {
+    font-size: 1.2em;
+    font-weight: 800 !important;
+    margin-bottom: 15px;
+    color: var(--textColor);
+    border-bottom: 1px solid var(--tertiaryColor);
+    padding-bottom: 8px;
+}
+
+.settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 20px;
+}
+
+.settings-control-group {
+    display: flex;
+    flex-flow: column;
+    gap: 5px;
+    flex: 1;
+}
+
+.settings-label {
+    font-weight: 600 !important;
+    color: var(--textColor);
+}
+
+.settings-hint {
+    font-size: 0.85em;
+    color: var(--textColor2);
+}
+
+/* Modern Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 22px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--primaryColor);
+    transition: .4s;
+    border-radius: 34px;
+    border: 1px solid var(--tertiaryColor);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--selectColor2);
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+/* Polish Explorer Items */
+.item-link {
+    transition: background-color 0.15s ease;
+}
+
+/*.item-link:hover {
+    background-color: var(--selectColor3) !important;
+    z-index: 10;
+}*/
+
+.item-link:active {
+    /*background-color: var(--selectColor2) !important;*/
+}
+
+.directory-list > button {
+    animation: slideUp 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) backwards;
+}
+
+/* Context Menu Animation */
+.context-menu {
+    transform-origin: top left;
+    animation: fadeIn 0.15s ease-out, scaleUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scaleUp {
+    from { transform: scale(0.85); }
+    to { transform: scale(1); }
+}
+
+/* Toast Animation */
+.toast {
+    animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Sidebar Hover */
+.site-nav-bar-button {
+    transition: all 0.2s ease;
+}
+
+.site-nav-bar-button:hover {
+    padding-left: 15px;
+    background-color: var(--selectColor3) !important;
+}
+
+/* Settings UI Transition */
+.settings-ui {
+    transform: scale(0.95) translateY(20px);
+}
+
+.settings-ui.active {
+    display: flex;
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+/* Delay for cascade effect */
+.directory-list > button:nth-child(1) { animation-delay: 0.01s; }
+.directory-list > button:nth-child(2) { animation-delay: 0.02s; }
+.directory-list > button:nth-child(3) { animation-delay: 0.03s; }
+.directory-list > button:nth-child(4) { animation-delay: 0.04s; }
+.directory-list > button:nth-child(5) { animation-delay: 0.05s; }
+.directory-list > button:nth-child(6) { animation-delay: 0.06s; }
+.directory-list > button:nth-child(7) { animation-delay: 0.07s; }
+.directory-list > button:nth-child(8) { animation-delay: 0.08s; }
+.directory-list > button:nth-child(9) { animation-delay: 0.09s; }
+.directory-list > button:nth-child(10) { animation-delay: 0.10s; }
+.directory-list > button:nth-child(n+11) { animation-delay: 0.11s; }
+
+.is-file-searching.active {
+    display: block;
+    animation: pulse 1.5s infinite ease-in-out;
 }
 
 /* Settings ui */

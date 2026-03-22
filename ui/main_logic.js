@@ -2118,22 +2118,9 @@ async function checkAppConfig() {
   await applyPlatformFeatures();
   await invoke("check_app_config").then(async (appConfig) => {
     let viewMode = appConfig.view_mode.replaceAll('"', "");
-    switch (viewMode) {
-      case "wrap":
-        ViewMode = "miller";
-        break;
-      case "column":
-        ViewMode = "wrap";
-        break;
-      case "miller":
-        ViewMode = "column";
-        break;
-    }
+    await switchView(viewMode);
 
-    await switchView();
-
-    if (appConfig.is_dual_pane_enabled.includes("1")) {
-      document.querySelector(".show-dual-pane-checkbox").checked = true;
+    if (appConfig.is_dual_pane_enabled.includes("1")) {      document.querySelector(".show-dual-pane-checkbox").checked = true;
       document.querySelector(".switch-dualpane-view-button").style.display =
         "block";
     } else {
@@ -3219,20 +3206,35 @@ async function cancelSearch() {
   // await listDirectories();
 }
 
-async function switchView() {
+async function switchView(newMode = null) {
   if (IsDualPaneEnabled == false) {
-    if (ViewMode == "wrap") {
+    if (newMode) {
+      ViewMode = newMode;
+    } else {
+      if (ViewMode == "wrap") ViewMode = "column";
+      else if (ViewMode == "column") ViewMode = "miller";
+      else ViewMode = "wrap";
+    }
+
+    // Update dropdown if it exists
+    const select = document.querySelector(".view-mode-select");
+    const iconSpan = document.querySelector(".view-mode-icon-span");
+    if (select) select.value = ViewMode;
+    if (iconSpan) {
+      if (ViewMode === "wrap") {
+        iconSpan.innerHTML = '<i class="fa-solid fa-grip" style="font-size: 12px; color: var(--textColor2);"></i>';
+      } else if (ViewMode === "column") {
+        iconSpan.innerHTML = '<i class="fa-solid fa-list" style="font-size: 12px; color: var(--textColor2);"></i>';
+      } else if (ViewMode === "miller") {
+        iconSpan.innerHTML = '<i class="fa-solid fa-table-columns" style="font-size: 12px; color: var(--textColor2);"></i>';
+      }
+    }
+
+    if (ViewMode == "column") {
       document.querySelectorAll(".directory-list").forEach((list) => {
         list.style.gridTemplateColumns = "unset";
         list.style.rowGap = "2px";
       });
-      if (IsShowDisks == false) {
-        document.querySelector(".switch-view-button").innerHTML =
-          `<i class="fa-solid fa-indent"></i>`;
-      } else {
-        document.querySelector(".switch-view-button").innerHTML =
-          `<i class="fa-solid fa-grip"></i>`;
-      }
       document
         .querySelectorAll(".item-button")
         .forEach((item) => (item.style.display = "none"));
@@ -3241,19 +3243,20 @@ async function switchView() {
         .forEach((item) => (item.style.display = "flex"));
       document.querySelector(".list-column-header").style.display = "flex";
       $(".explorer-container")?.css("padding", "100px 10px 10px 10px");
-      ViewMode = "column";
-    } else if (ViewMode == "column") {
+      document.querySelector(".miller-container").style.display = "none";
+      document.querySelector(".non-dual-pane-container").style.display = "block";
+      $(".file-searchbar").css("opacity", "1");
+      $(".file-searchbar").css("pointer-events", "all");
+    } else if (ViewMode == "miller") {
       document.querySelector(".list-column-header").style.display = "none";
-      document.querySelector(".switch-view-button").innerHTML =
-        `<i class="fa-solid fa-grip"></i>`;
       document.querySelector(".miller-container").style.display = "flex";
       document.querySelector(".miller-column").style.display = "inline";
       document.querySelector(".non-dual-pane-container").style.display = "none";
       $(".explorer-container").css("padding", "10px 10px 0 10px");
       $(".file-searchbar").css("opacity", "0");
       $(".file-searchbar").css("pointer-events", "none");
-      ViewMode = "miller";
-    } else if (ViewMode == "miller") {
+    } else {
+      // wrap (Grid)
       document.querySelector(".explorer-container").style.width = "100%";
       document.querySelectorAll(".directory-list").forEach((list) => {
         if (IsShowDisks == false) {
@@ -3266,8 +3269,7 @@ async function switchView() {
       });
       document.querySelector(".miller-container").style.display = "none";
       document.querySelector(".explorer-container").style.display = "block";
-      document.querySelector(".switch-view-button").innerHTML =
-        `<i class="fa-solid fa-list"></i>`;
+      document.querySelector(".non-dual-pane-container").style.display = "block";
       document
         .querySelectorAll(".item-button")
         .forEach((item) => (item.style.display = "flex"));
@@ -3278,7 +3280,6 @@ async function switchView() {
       $(".explorer-container")?.css("padding", "85px 20px 20px 20px");
       $(".file-searchbar").css("opacity", "1");
       $(".file-searchbar").css("pointer-events", "all");
-      ViewMode = "wrap";
     }
     await invoke("switch_view", { viewMode: ViewMode });
   }
@@ -3292,6 +3293,8 @@ async function switchToDualPane() {
     OrgViewMode = ViewMode;
     IsDualPaneEnabled = true;
     ViewMode = "column";
+    document.querySelector(".view-mode-select").disabled = true;
+    document.querySelector(".view-mode-container").style.opacity = "0.5";
     document.querySelector(".miller-container").style.display = "none";
     if (Platform == "darwin") {
       $(".header-nav").css("padding-left", "85px");
@@ -3337,6 +3340,8 @@ async function switchToDualPane() {
     });
   } else {
     IsDualPaneEnabled = false;
+    document.querySelector(".view-mode-select").disabled = false;
+    document.querySelector(".view-mode-container").style.opacity = "1";
     $(".non-dual-pane-container")?.css("width", "calc(100vw - 150px)");
     $(".non-dual-pane-container")?.css("opacity", "1");
     $(".non-dual-pane-container")?.css("height", "100%");
@@ -3371,19 +3376,7 @@ async function switchToDualPane() {
     await applyPlatformFeatures();
     document.querySelector(".switch-dualpane-view-button").innerHTML =
       `<i class="fa-solid fa-table-columns"></i>`;
-    // Reset to view before the
-    switch (OrgViewMode) {
-      case "wrap":
-        ViewMode = "miller";
-        break;
-      case "column":
-        ViewMode = "wrap";
-        break;
-      case "miller":
-        ViewMode = "column";
-        break;
-    }
-    await switchView();
+    await switchView(OrgViewMode);
   }
   await saveConfig(false, false);
 }
@@ -3403,14 +3396,30 @@ function switchHiddenFiles() {
 
 function openSettings() {
   if (IsPopUpOpen == false) {
-    $(".settings-ui").css("display", "flex");
-    // Workaround for opacity transition
-    setTimeout(() => {
-      $(".settings-ui").css("opacity", "1");
-    });
+    showSettingsTab('general', document.querySelector('.settings-sidebar-button'));
+    $(".settings-ui").addClass("active");
     IsDisableShortcuts = true;
     IsPopUpOpen = true;
   }
+}
+
+async function closeSettings() {
+  $(".settings-ui").removeClass("active");
+  setTimeout(() => {
+    $(".settings-ui").css("display", "none");
+  }, 300);
+  IsDisableShortcuts = false;
+  IsPopUpOpen = false;
+}
+
+function showSettingsTab(tabName, btn) {
+  // Update sidebar buttons
+  document.querySelectorAll('.settings-sidebar-button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  
+  // Update content tabs
+  document.querySelectorAll('.settings-tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('settings-tab-' + tabName).classList.add('active');
 }
 
 async function saveConfig(isToReload = true, isVerbose = true) {
@@ -3494,15 +3503,6 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 async function addFavorites(item) {
   ArrFavorites.push(item);
   // await invoke("save_favorites", { arrFavorites: ArrFavorites }); // Todo: implement this
-}
-
-function closeSettings() {
-  $(".settings-ui").css("opacity", "0");
-  setTimeout(() => {
-    $(".settings-ui").css("display", "none");
-  }, 300);
-  IsDisableShortcuts = false;
-  IsPopUpOpen = false;
 }
 
 function getExtDescription(file_extension) {

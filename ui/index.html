@@ -76,7 +76,16 @@
                         <button class="cancel-search-button" onclick="cancelSearch()"><i
                                 class="fa-solid fa-xmark"></i></button>
                     </div>
-                    <button onclick="switchView()" class="header-nav-button switch-view-button"></button>
+                    <div class="view-mode-container" style="display: flex; align-items: center; gap: 8px; background-color: var(--secondaryColor); border: 1px solid var(--tertiaryColor); border-radius: 10px; padding: 0 10px; height: 35px;">
+                        <span class="view-mode-icon-span" style="display: flex; align-items: center; justify-content: center;">
+                            <i class="fa-solid fa-grip" style="font-size: 12px; color: var(--textColor2);"></i>
+                        </span>
+                        <select class="select view-mode-select" onchange="switchView(this.value)" style="height: 100%; padding: 0; font-size: 11px; min-width: 60px; border: none; background: transparent; box-shadow: none;">
+                            <option value="wrap">Grid</option>
+                            <option value="column">List</option>
+                            <option value="miller">Miller</option>
+                        </select>
+                    </div>
                     <div class="windows-linux-titlebar-buttons">
                         <button class="minimize-button"><i class="fa-solid fa-minus"></i></button>
                         <button class="maximize-button"><i class="fa-regular fa-window-maximize"></i></button>
@@ -169,67 +178,155 @@
             <!-- :settings | Settings UI -->
             <div class="settings-ui">
                 <div data-tauri-drag-region class="settings-ui-header">
-                    <span style="display: flex; gap: 20px; align-items: center;">
+                    <span style="display: flex; gap: 15px; align-items: center;">
                         <i class="fa-solid fa-gears"></i>
-                        <p>Settings</p>
+                        <p>Application Settings</p>
                     </span>
-                    <button class="button" onclick="showAppInfo()"><i class="fa-solid fa-info"></i></button>
+                    <button class="button" onclick="showAppInfo()"><i class="fa-solid fa-circle-info"></i></button>
                 </div>
-                <div class="settings-ui-body">
-                    <div class="popup-body-col-section">
-                        <h3 class="settings-ui-headline">Theme</h3>
-                        <div class="popup-body-row-section" style="align-items: center;">
-                            <i class="fa-solid fa-refresh" style="cursor: pointer;" onclick="checkAppConfig(true)"></i>
-                            <select style="min-width: 0 !important;" class="select theme-select"
-                                onchange="saveConfig(true, true)"></select>
-                            <button class="open-config-button icon-button" onclick="openConfigLocation()">
-                                <span class="button-icon"><i class="fa-solid fa-folder"></i></span>
-                                Open config location
-                            </button>
+                
+                <div class="settings-ui-main">
+                    <div class="settings-sidebar">
+                        <button class="settings-sidebar-button active" onclick="showSettingsTab('general', this)">
+                            <i class="fa-solid fa-house"></i> General
+                        </button>
+                        <button class="settings-sidebar-button" onclick="showSettingsTab('shortcuts', this)">
+                            <i class="fa-solid fa-keyboard"></i> Shortcuts
+                        </button>
+                        <button class="settings-sidebar-button" onclick="showSettingsTab('search', this)">
+                            <i class="fa-solid fa-magnifying-glass"></i> Search
+                        </button>
+                        <button class="settings-sidebar-button" onclick="showSettingsTab('experimental', this)">
+                            <i class="fa-solid fa-flask"></i> Experimental
+                        </button>
+                    </div>
+                    
+                    <div class="settings-content">
+                        <!-- General Tab -->
+                        <div id="settings-tab-general" class="settings-tab-content active">
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">Appearance</h3>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Color Theme</p>
+                                        <p class="settings-hint">Choose your preferred visual style</p>
+                                    </div>
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <i class="fa-solid fa-rotate" style="cursor: pointer;" onclick="checkAppConfig(true)"></i>
+                                        <select class="select theme-select" onchange="saveConfig(true, true)"></select>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Config Location</p>
+                                        <p class="settings-hint">Manage your configuration files directly</p>
+                                    </div>
+                                    <button class="icon-button" onclick="openConfigLocation()">
+                                        <span class="button-icon"><i class="fa-solid fa-folder-open"></i></span>
+                                        Open
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">Behavior</h3>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Interaction Mode</p>
+                                        <p class="settings-hint">Require a double-click to open files and folders</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input id="choose-interaction-mode" type="checkbox" class="choose-interaction-mode-checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Image Previews</p>
+                                        <p class="settings-hint">Show thumbnails for image files</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input id="switch-image-preview" type="checkbox" class="image-preview-checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shortcuts Tab -->
+                        <div id="settings-tab-shortcuts" class="settings-tab-content">
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">Quick Access Paths</h3>
+                                <p class="settings-hint" style="margin-bottom: 15px;">Configure paths accessible via Alt + 1, 2, or 3</p>
+                                <div class="settings-body-col-section" style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Slot 1 (Alt + 1)</p>
+                                        <input type="text" class="text-input configured-path-one-input" placeholder="/home/user" />
+                                    </div>
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Slot 2 (Alt + 2)</p>
+                                        <input type="text" class="text-input configured-path-two-input" placeholder="/home/user/documents" />
+                                    </div>
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Slot 3 (Alt + 3)</p>
+                                        <input type="text" class="text-input configured-path-three-input" placeholder="/home/user/downloads" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Search Tab -->
+                        <div id="settings-tab-search" class="settings-tab-content">
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">Search Behavior</h3>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Recursive Depth</p>
+                                        <p class="settings-hint">How many levels deep should we look?</p>
+                                    </div>
+                                    <input style="width: 80px;" type="number" class="text-input search-depth-input" placeholder="10" />
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Maximum Results</p>
+                                        <p class="settings-hint">Stop searching after finding this many items</p>
+                                    </div>
+                                    <input style="width: 100px;" type="number" class="text-input max-items-input" placeholder="1000" />
+                                </div>
+                                <div class="settings-section">
+                                    <p class="settings-label">Startup Path</p>
+                                    <p class="settings-hint" style="margin-bottom: 8px;">Initial directory when opening the app</p>
+                                    <input type="text" class="text-input launch-path-input" placeholder="/home" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Experimental Tab -->
+                        <div id="settings-tab-experimental" class="settings-tab-content">
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">Experimental Features</h3>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Dual Pane View</p>
+                                        <p class="settings-hint">Classic file manager side-by-side view</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input id="show-dual-pane" type="checkbox" class="show-dual-pane-checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <br />
-                    <h3 class="settings-ui-headline">Shortcuts</h3>
-                    <p>Configure up to 3 paths to switch to in an instant (Alt + 1, 2, 3)</p>
-                    <input type="text" class="settings-ui-input text-input configured-path-one-input"
-                        placeholder="/home/user" />
-                    <input type="text" class="settings-ui-input text-input configured-path-two-input"
-                        placeholder="/home/user/folder1" />
-                    <input type="text" class="settings-ui-input text-input configured-path-three-input"
-                        placeholder="/home/user/folder2" />
-                    <br />
-                    <h3 class="settings-ui-headline">Search settings</h3>
-                    <p>Search depth (higher = slower) | Standard: 10</p>
-                    <input style="width: 100px;" type="number"
-                        class="text-input settings-input number-input search-depth-input" placeholder="0 = off" />
-                    <p>Max count of items to find (higher = slower) | Standard: 1000</p>
-                    <input style="width: 100px;" type="number"
-                        class="text-input settings-input number-input max-items-input" placeholder="0 = off" />
-                    <p>Path to launch at start</p>
-                    <input type="text" class="settings-ui-input text-input launch-path-input" placeholder="/home" />
-                    <br />
-                    <h3 class="settings-ui-headline">Extra options</h3>
-                    <span style="display: flex; gap: 10px; margin-top: 5px;">
-                        <input id="choose-interaction-mode" type="checkbox"
-                            class="settings-ui-checkbox choose-interaction-mode-checkbox" />
-                        <label for="choose-interaction-mode">Double click to open item</p>
-                    </span>
-                    <span style="display: flex; gap: 10px; margin-top: 5px;">
-                        <input id="switch-image-preview" type="checkbox"
-                            class="settings-ui-checkbox image-preview-checkbox" />
-                        <label for="switch-image-preview">Image preview</p>
-                    </span>
-                    <span style="display: flex; gap: 10px; margin-top: 5px;">
-                        <input id="show-dual-pane" type="checkbox"
-                            class="settings-ui-checkbox show-dual-pane-checkbox" />
-                        <label for="show-dual-pane">Enable "Dual pane" view (Experimental)</p>
-                    </span>
                 </div>
-                <div class="popup-controls" style="border-top: 1px solid var(--tertiaryColor)">
-                    <button class="icon-button" onclick="closeSettings()"><span class="button-icon"><i
-                                class="fa-solid fa-xmark"></i></span>Close</button>
-                    <button class="icon-button" onclick="saveConfig()"><span class="button-icon"><i
-                                class="fa-solid fa-floppy-disk"></span></i>Save</button>
+                
+                <div class="popup-controls" style="border-top: 1px solid var(--tertiaryColor); padding: 15px;">
+                    <button class="icon-button" onclick="closeSettings()" style="background-color: transparent !important; border: none; box-shadow: none;">
+                        <span class="button-icon"><i class="fa-solid fa-xmark"></i></span>Cancel
+                    </button>
+                    <button class="icon-button" onclick="saveConfig()" style="background-color: var(--tertiaryColor) !important;">
+                        <span class="button-icon"><i class="fa-solid fa-check"></i></span>Save Changes
+                    </button>
                 </div>
             </div>
 
