@@ -13,7 +13,6 @@ use image::ImageReader;
 #[cfg(target_os = "windows")]
 use remove_dir_all::remove_dir_all;
 // use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
-use serde::Serialize;
 use serde_json::Value;
 use std::fs::{self, read_dir, remove_dir, remove_file};
 use std::io::Cursor;
@@ -61,8 +60,8 @@ use lazy_static::lazy_static;
 use substring::Substring;
 
 use crate::utils::{
-    compress_items, extract_brotli_tar, extract_from_density, extract_tar_bz2, extract_zst_archive,
-    get_items_size, human_to_bytes, setup_fs_watcher,
+    compress_items, dir_info, extract_brotli_tar, extract_from_density, extract_tar_bz2,
+    extract_zst_archive, get_items_size, human_to_bytes, setup_fs_watcher,
 };
 
 // Global variables
@@ -74,6 +73,7 @@ lazy_static! {
     static ref TO_COPY_COUNTER: Mutex<f32> = Mutex::new(0.0);
     static ref TOTAL_BYTES_COPIED: Arc<Mutex<f32>> = Arc::new(Mutex::new(0.0));
     static ref IS_SEARCHING: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+    pub static ref IS_SIZE_CALC_CANCELLED: Arc<std::sync::atomic::AtomicBool> = Arc::new(std::sync::atomic::AtomicBool::new(false));
 }
 
 // static mut IS_SEARCHING: bool = false;
@@ -171,11 +171,13 @@ fn main() {
             open_with,
             find_duplicates,
             cancel_operation,
+            cancel_size_calculation,
             get_df_dir,
             // download_yt_video,
             get_app_icns,
             get_thumbnail,
             get_simple_dir_info,
+            get_selection_size,
             get_themes,
             stop_searching,
             get_file_content,
@@ -412,6 +414,7 @@ struct DisksInfo {
 #[tauri::command]
 async fn list_disks() -> Vec<DisksInfo> {
     let mut ls_disks: Vec<DisksInfo> = vec![];
+
     let disks = Disks::new_with_refreshed_list();
     for disk in &disks {
         if ls_disks
@@ -451,6 +454,37 @@ async fn list_disks() -> Vec<DisksInfo> {
                 capacity: format!("{:?}", mount.metadata().unwrap().len()),
                 is_removable: true,
             });
+        }
+    }
+
+    let ls_volumes = fs::read_dir("/Volumes");
+    if ls_volumes.is_ok() {
+        let ls_sshfs_mounts = ls_volumes.unwrap();
+        for mount in ls_sshfs_mounts {
+            let mount = mount.unwrap();
+            if ls_disks
+                .iter()
+                .find(|rp| {
+                    rp.path == mount.path().to_string_lossy().to_string()
+                    || rp.name == mount.file_name().to_string_lossy().to_string()
+                })
+                .is_none()
+            {
+                ls_disks.push(DisksInfo {
+                    name: format!("{:?}", mount.file_name())
+                        .split("/")
+                        .last()
+                        .unwrap_or("/")
+                        .to_string()
+                        .replace("\"", ""),
+                    dev: format!("{:?}", mount.file_name()),
+                    format: "Network-Drive".into(),
+                    path: format!("{:?}", mount.path()).replace("\"", ""),
+                    avail: format!("{:?}", mount.metadata().unwrap().len()),
+                    capacity: format!("{:?}", mount.metadata().unwrap().len()),
+                    is_removable: true,
+                });
+            }
         }
     }
     ls_disks
@@ -1167,15 +1201,7 @@ async fn compress_item(
     compression_type: String,
     interval_id: usize,
 ) {
-    let output = format!(
-        "{}.{}",
-        current_dir()
-            .unwrap()
-            .join(path_to_zip)
-            .to_string_lossy()
-            .to_string(),
-        compression_type
-    );
+    let output = format!("{}.{}", path_to_zip, compression_type);
     compress_items(
         output,
         vec![from_path],
@@ -1195,20 +1221,13 @@ async fn arr_compress_items(
     compression_type: String,
     interval_id: usize,
 ) {
-    let path_to_zip = current_dir()
+    let output = current_dir()
         .unwrap()
         .join("compressed_items_archive")
+        .with_extension(&compression_type)
         .to_string_lossy()
         .to_string();
-    let output = format!(
-        "{}.{}",
-        current_dir()
-            .unwrap()
-            .join(path_to_zip)
-            .to_string_lossy()
-            .to_string(),
-        compression_type
-    );
+
     compress_items(
         output,
         arr_items,
@@ -1521,6 +1540,11 @@ async fn cancel_operation() {
 }
 
 #[tauri::command]
+async fn cancel_size_calculation() {
+    IS_SIZE_CALC_CANCELLED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[tauri::command]
 async fn get_df_dir(number: u8) -> String {
     match number {
         0 => desktop_dir()
@@ -1783,73 +1807,33 @@ async fn get_thumbnail(image_path: String) -> String {
 }
 
 #[tauri::command]
+async fn get_selection_size(paths: Vec<String>, update_id: String) -> u64 {
+    IS_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
+    crate::utils::ACCUMULATED_SIZE.store(0, std::sync::atomic::Ordering::Relaxed);
+    crate::utils::ACCUMULATED_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
+    
+    let mut total_size = 0;
+    for path in paths {
+        total_size += crate::utils::dir_info_incremental(path, Some(&update_id)).size;
+        if IS_SIZE_CALC_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
+    }
+    total_size
+}
+
+#[tauri::command]
 async fn get_simple_dir_info(
     path: String,
     _app_window: Window,
     _class_to_fill: String,
-) -> SimpleDirInfo {
-    unsafe {
-        CALCED_SIZE = 0;
-    }
-    dir_info(path)
-}
-
-#[derive(Debug, Serialize)]
-struct SimpleDirInfo {
-    size: u64,
-    count_elements: u64,
-}
-
-static mut CALCED_SIZE: u64 = 0; // Currently unused -> Coming implementation for showing progress
-
-fn dir_info(path: String) -> SimpleDirInfo {
-    if PathBuf::from(&path).is_file() {
-        return SimpleDirInfo {
-            size: PathBuf::from(&path).metadata().unwrap().len(),
-            count_elements: 1,
-        };
-    }
-
-    let entry = match fs::read_dir(path) {
-        Ok(entry) => entry,
-        Err(_) => {
-            return SimpleDirInfo {
-                size: 0,
-                count_elements: 0,
-            }
-        }
-    };
-    let mut size = 0;
-    let mut count_elements = 0;
-
-    for entry in entry {
-        if let Ok(entry) = entry {
-            if entry.file_type().unwrap().is_file() {
-                let file_size = match entry.metadata() {
-                    Ok(s) => s.len(),
-                    Err(_) => continue,
-                };
-                size += file_size;
-            } else if entry.file_type().unwrap().is_dir() {
-                let dir_size = dir_info(entry.path().to_string_lossy().to_string()).size;
-                size += dir_size;
-            }
-            if entry
-                .file_name()
-                .to_string_lossy()
-                .to_string()
-                .starts_with(".")
-            {
-                continue;
-            }
-            count_elements += 1;
-        }
-    }
-
-    SimpleDirInfo {
-        size,
-        count_elements,
-    }
+    update_id: Option<String>,
+) -> crate::utils::SimpleDirInfo {
+    IS_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
+    crate::utils::ACCUMULATED_SIZE.store(0, std::sync::atomic::Ordering::Relaxed);
+    crate::utils::ACCUMULATED_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
+    
+    crate::utils::dir_info_incremental(path, update_id.as_deref())
 }
 
 #[tauri::command]

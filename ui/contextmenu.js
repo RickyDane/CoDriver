@@ -95,12 +95,12 @@ class CDContextMenu {
     this.setupItems();
     if (!ArrSelectedItems.includes(item)) {
       if (ArrSelectedItems.length === 0) {
-        selectItem(item, "", true);
+        selectItem(item, "", true, false);
       } else if (IsMetaDown || IsCtrlDown) {
-        selectItem(item, "", true);
+        selectItem(item, "", true, false);
       } else {
         unSelectAllItems();
-        selectItem(item, "", true);
+        selectItem(item, "", true, false);
       }
     }
   }

@@ -113,14 +113,14 @@ async function getThumbnail(imagePath) {
   return thumbnailPath;
 }
 
-async function getSimpleDirInfo(path = "", classToFill = "", isDir = false) {
+async function getSimpleDirInfo(path = "", classToFill = "", isDir = false, updateId = null) {
   $(classToFill).html(
     `<div style="display: flex; gap: 10px;">
       <div class="preloader-small-invert"></div>
       Loading ...
     </div>`,
   );
-  await invoke("get_simple_dir_info", { path, appWindow, classToFill }).then(
+  await invoke("get_simple_dir_info", { path, appWindow, classToFill, updateId }).then(
     (simpleDirInfo) => {
       $(classToFill).html(
         formatBytes(simpleDirInfo.size) +

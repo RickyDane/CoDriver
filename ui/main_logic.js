@@ -57,10 +57,7 @@ ds.subscribe("DS:select", async (payload) => {
 });
 
 ds.subscribe("DS:unselect", async (payload) => {
-  setTimeout(() => {
-    console.log("Triggered removal");
-    deSelectItem(payload.item);
-  }, 200);
+  deSelectItem(payload.item);
 });
 
 /* region Global Variables */
@@ -353,7 +350,14 @@ document.addEventListener("mousedown", (e) => {
     !e.target.classList.contains("item-preview-file-content") &&
     !e.target.classList.contains("popup-header") &&
     !e.target.classList.contains("item-preview-copy-path-button") &&
-    !e.target.classList.contains("context-label")
+    !e.target.classList.contains("context-label") &&
+    !e.target.classList.contains("item-size-box") &&
+    !e.target.classList.contains("fa-cube") &&
+    !e.target.classList.contains("site-nav-bar-button") &&
+    !e.target.closest(".site-nav-bar-button") &&
+    e.target.tagName !== "I" &&
+    e.target.id !== "size-" + e.target.id.split("-")[1] &&
+    !e.target.closest(".item-size-box")
   ) {
     // ContextMenu.style.display = "none";
     cdCtMenu.hide();
@@ -607,14 +611,6 @@ document.onkeydown = async (e) => {
         e.stopPropagation();
         goToOtherPane();
       }
-      if (IsPopUpOpen == false) {
-        // check if f8 is pressed
-        if (e.keyCode == 119) {
-          e.preventDefault();
-          e.stopPropagation();
-          openFullSearchContainer();
-        }
-      }
       if (e.key == "PageUp") {
         goUp();
         goUp();
@@ -815,6 +811,13 @@ document.onkeydown = async (e) => {
         createFileInputPrompt();
       }
 
+      // Open file search container when f8 is pressed
+      if (e.key == "F8" || e.keyCode == 119) {
+        e.preventDefault();
+        e.stopPropagation();
+        openFullSearchContainer();
+      }
+
       // check if ctrl / cmd + shift + m is pressed
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
@@ -948,6 +951,7 @@ document
 
 // Main function to handle directory visualization
 async function showItems(items, dualPaneSide = "", millerCol = 1) {
+  unSelectAllItems();
   await cancelSearch(); // Cancel any ongoing search
 
   // Reenable miller column view when navigating out from disk view
@@ -1636,7 +1640,7 @@ async function showCompressPopup(item) {
             <select class="select compression-popup-type-select">
               <option value="zstd">Zstd (Level -7 - 22)</option>
               <option value="zip">Zip (Level 1 - 9)</option>
-              ${arrCompressItems.length == 1 && arrCompressItems[0].getAttribute("itemisdir") != "1" ? '<option value="density">Density (Level 1 - 3)</option>' : ""}
+              <option value="density">Density (Level 1 - 3)</option>
               <option value="br">Brotli (Level 1)</option>
             </select>
           </div>
@@ -1734,6 +1738,9 @@ async function compressItem(
           path: filePath,
         });
       } catch (error) {
+        if (error.includes("No such file or directory")) {
+          return;
+        }
         console.log(error);
         isCompressingDone = true;
         showToast("Compressing stopped", ToastType.ERROR);
@@ -2518,7 +2525,12 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
   }
 }
 
-async function selectItem(element, dualPaneSide = "", isNotReset = false) {
+async function selectItem(
+  element,
+  dualPaneSide = "",
+  isNotReset = false,
+  triggerCalculation = true,
+) {
   if (element == null || element == undefined) {
     return;
   }
@@ -2590,6 +2602,67 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
     await showItemPreview(SelectedElement, true);
   }
   ArrSelectedItems.push(SelectedElement);
+  updateSelectionInfo(triggerCalculation);
+}
+
+listen("size-update", (event) => {
+  const [id, size, count] = event.payload;
+  if (id === "selection") {
+    let selectionInfo = document.querySelector(".selection-info");
+    if (selectionInfo) {
+      if (ArrSelectedItems.length === 1) {
+        selectionInfo.textContent = ArrSelectedItems[0].getAttribute("itemname") + " (" + formatBytes(size, 2) + ")";
+      } else {
+        selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatBytes(size, 2) + ")";
+      }
+    }
+  } else if (id === "properties") {
+    $(".properties-item-size").html(formatBytes(size, 2));
+  }
+});
+
+let currentSelectionRequestId = 0;
+async function updateSelectionInfo(shouldCalculate = true) {
+  let selectionInfo = document.querySelector(".selection-info");
+  if (!selectionInfo) return;
+  if (ArrSelectedItems.length == 0) {
+    selectionInfo.textContent = "";
+    return;
+  }
+
+  if (!shouldCalculate) {
+    if (ArrSelectedItems.length == 1) {
+      let item = ArrSelectedItems[0];
+      let size = item.getAttribute("itemsize");
+      selectionInfo.textContent =
+        item.getAttribute("itemname") + (size ? " (" + size + ")" : "");
+    } else {
+      selectionInfo.textContent = ArrSelectedItems.length + " items selected";
+    }
+    return;
+  }
+
+  let requestId = ++currentSelectionRequestId;
+  await invoke("cancel_size_calculation");
+  selectionInfo.innerHTML = '<div class="preloader-small-invert"></div>';
+
+  if (ArrSelectedItems.length == 1) {
+    let item = ArrSelectedItems[0];
+    let size = item.getAttribute("itemsize");
+    if (item.getAttribute("itemisdir") == "1") {
+      let paths = [item.getAttribute("itempath")];
+      let totalSize = await invoke("get_selection_size", { paths, updateId: "selection" });
+      if (requestId !== currentSelectionRequestId) return;
+      selectionInfo.textContent = item.getAttribute("itemname") + " (" + formatBytes(totalSize, 2) + ")";
+    } else {
+      selectionInfo.textContent = item.getAttribute("itemname") + (size ? " (" + size + ")" : "");
+    }
+  } else {
+    let paths = ArrSelectedItems.map(item => item.getAttribute("itempath"));
+    let totalSize = await invoke("get_selection_size", { paths, updateId: "selection" });
+    if (requestId !== currentSelectionRequestId) return;
+    selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatBytes(totalSize, 2) + ")";
+  }
 }
 
 function deSelectItem(item) {
@@ -2602,8 +2675,11 @@ function deSelectItem(item) {
     item.children[0].children[1].classList.remove("selected-item-min");
   }
   var index = ArrSelectedItems.indexOf(item);
-  ArrSelectedItems.splice(index, 1);
+  if (index !== -1) {
+    ArrSelectedItems.splice(index, 1);
+  }
   item.setAttribute("itemisselected", false);
+  updateSelectionInfo();
 }
 
 async function unSelectAllItems() {
@@ -2640,6 +2716,7 @@ async function unSelectAllItems() {
   SelectedItemToOpen = null;
   $(".selected-item")?.removeClass("selected-item");
   $(".selected-item-min")?.removeClass("selected-item-min");
+  updateSelectionInfo();
 }
 
 async function goHome() {
@@ -3433,18 +3510,27 @@ function getExtDescription(file_extension) {
 }
 
 async function showProperties(item) {
-  if (item == null) {
-    item = document.createElement("div");
-    item.setAttribute("itemname", CurrentDir);
-    item.setAttribute("itempath", CurrentDir);
-    item.setAttribute("itemext", "");
+  let itemsToProcess = [];
+  if (ArrSelectedItems.length > 1) {
+    itemsToProcess = ArrSelectedItems;
+  } else if (item != null) {
+    itemsToProcess = [item];
+  } else {
+    // Current directory properties
+    let dummyItem = document.createElement("div");
+    dummyItem.setAttribute("itemname", CurrentDir);
+    dummyItem.setAttribute("itempath", CurrentDir);
+    dummyItem.setAttribute("itemext", "");
+    dummyItem.setAttribute("itemisdir", "1");
+    itemsToProcess = [dummyItem];
   }
+
   if (IsPopUpOpen === false) {
-    let name = item.getAttribute("itemname");
-    let path = item.getAttribute("itempath");
-    let ext = item.getAttribute("itemext");
-    let extension_description = getExtDescription(ext); // undefined if it's unknown or a directory
-    let modifiedAt = item.getAttribute("itemmodified");
+    let name = itemsToProcess.length > 1 ? itemsToProcess.length + " items selected" : itemsToProcess[0].getAttribute("itemname");
+    let path = itemsToProcess.length > 1 ? "Multiple paths" : itemsToProcess[0].getAttribute("itempath");
+    let ext = itemsToProcess.length > 1 ? "" : itemsToProcess[0].getAttribute("itemext");
+    let extension_description = ext ? getExtDescription(ext) : undefined;
+    let modifiedAt = itemsToProcess.length > 1 ? null : itemsToProcess[0].getAttribute("itemmodified");
 
     let popup = document.createElement("div");
     popup.className = "uni-popup item-properties-popup";
@@ -3453,6 +3539,7 @@ async function showProperties(item) {
       <h3>${name}</h3>
       </div>
       <div class="popup-body">
+      ${itemsToProcess.length === 1 ? `
       <span style="display: flex; gap: 10px; align-items: center;">
       Path:
       <button class="icon-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', ToastType.INFO);">
@@ -3461,13 +3548,13 @@ async function showProperties(item) {
   				<p style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${path}</p>
       </button>
       </span>
+      ` : ""}
       ${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ""}
-      <br/>
-      <p>${modifiedAt != null ? "Modified: " + modifiedAt : ""}</p>
+      ${modifiedAt != null ? `<br/><p>Modified: ${modifiedAt}</p>` : ""}
       </div>
       <div class="popup-controls" style="display: flex; justify-content: space-between;">
     		<div style="display: flex; gap: 5px;">
-   			<div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
+   			<div>Total Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
     		</div>
       <button class="icon-button" onclick="closeInfoProperties()">
       <span class="button-icon"><i class="fa-solid fa-ban"></i></span>
@@ -3477,15 +3564,24 @@ async function showProperties(item) {
       `;
     document.querySelector("body").append(popup);
     IsPopUpOpen = true;
-    await getSimpleDirInfo(
-      path,
-      ".properties-item-size",
-      item.getAttribute("itemisdir") == "1",
-    );
+
+    if (itemsToProcess.length === 1) {
+      await getSimpleDirInfo(
+        itemsToProcess[0].getAttribute("itempath"),
+        ".properties-item-size",
+        itemsToProcess[0].getAttribute("itemisdir") == "1",
+        "properties"
+      );
+    } else {
+      let paths = itemsToProcess.map(i => i.getAttribute("itempath"));
+      let totalSize = await invoke("get_selection_size", { paths, updateId: "properties" });
+      $(".properties-item-size").html(formatBytes(totalSize, 2));
+    }
   }
 }
 
 function closeInfoProperties() {
+  invoke("cancel_size_calculation");
   $(".item-properties-popup")?.remove();
   IsPopUpOpen = false;
   IsItemPreviewOpen = false;
