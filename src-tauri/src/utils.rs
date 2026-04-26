@@ -20,7 +20,7 @@ use std::{
     ffi::OsStr,
     fmt::Debug,
     fs::{self, File},
-    io::{BufReader, BufWriter, Read, Write, Seek, SeekFrom},
+    io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write},
 };
 use stopwatch::Stopwatch;
 use tar::Archive as TarArchive;
@@ -32,7 +32,7 @@ use tokio::task;
 use zip::write::FileOptions;
 use zip::ZipWriter;
 
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 #[allow(unused_imports)]
 use crate::ISCANCELED;
@@ -110,16 +110,82 @@ pub async fn copy_to(
     from_path: String,
     total_size: f32,
     count_to_copy: f32,
-) {
+) -> Result<(), String> {
+    let skipped_existing = AtomicBool::new(false);
+    copy_to_with_overwrite_policy(
+        final_filename,
+        from_path,
+        total_size,
+        count_to_copy,
+        true,
+        &skipped_existing,
+    )
+    .await
+}
+
+pub async fn copy_to_preserving_existing(
+    final_filename: String,
+    from_path: String,
+    total_size: f32,
+    count_to_copy: f32,
+) -> Result<(), String> {
+    let skipped_existing = AtomicBool::new(false);
+    copy_to_with_overwrite_policy(
+        final_filename,
+        from_path,
+        total_size,
+        count_to_copy,
+        false,
+        &skipped_existing,
+    )
+    .await?;
+
+    if skipped_existing.load(Ordering::Relaxed) {
+        return Err(
+            "Merge partially completed; existing nested items were preserved and source was kept"
+                .to_string(),
+        );
+    }
+
+    Ok(())
+}
+
+async fn copy_to_with_overwrite_policy(
+    final_filename: String,
+    from_path: String,
+    total_size: f32,
+    count_to_copy: f32,
+    overwrite_existing: bool,
+    skipped_existing: &AtomicBool,
+) -> Result<(), String> {
     // let app_window = WINDOW.get().unwrap();
-    let file = fs::metadata(&from_path).unwrap();
-    let total_size = total_size;
+    let file = fs::metadata(&from_path)
+        .map_err(|err| format!("Failed to read source metadata '{}': {}", from_path, err))?;
     if file.is_file() {
+        if !overwrite_existing && Path::new(&final_filename).exists() {
+            wng_log(format!(
+                "Skipping existing nested item during merge: {}",
+                final_filename
+            ));
+            skipped_existing.store(true, Ordering::Relaxed);
+            return Ok(());
+        }
         // Prepare to copy file
-        let mut fr = BufReader::new(File::open(&from_path).unwrap());
+        let mut fr = BufReader::new(
+            File::open(&from_path)
+                .map_err(|err| format!("Failed to open source '{}': {}", from_path, err))?,
+        );
         let mut buf = vec![0; 61_035_156]; // Copying in 64 MB chunks
-        let new_file = File::create(&final_filename).unwrap();
-        let file_size = fs::metadata(&from_path).unwrap().len() as f32;
+        let new_file = if overwrite_existing {
+            File::create(&final_filename)
+        } else {
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&final_filename)
+        }
+        .map_err(|err| format!("Failed to create destination '{}': {}", final_filename, err))?;
+        let file_size = file.len() as f32;
         let mut fw = BufWriter::new(new_file);
         let mut s = 0;
         let mut speed: f64;
@@ -163,35 +229,49 @@ pub async fn copy_to(
                         }
                         Err(err) => {
                             dialog::message(WINDOW.get(), "Info", format!("{:?}", err.to_string()));
-                            break;
+                            return Err(format!("Failed to write '{}': {}", final_filename, err));
                         }
                     }
                 }
                 Err(e) => {
                     err_log(format!("Error copying: {}", e));
-                    break;
+                    return Err(format!("Failed to read '{}': {}", from_path, e));
                 }
             }
         }
+        fw.flush()
+            .map_err(|err| format!("Failed to flush '{}': {}", final_filename, err))?;
     } else if file.is_dir() {
         // Recursive copying of the directory
-        fs::create_dir_all(&final_filename).unwrap();
-        for entry in fs::read_dir(&from_path).unwrap() {
-            let entry = entry.unwrap();
+        fs::create_dir_all(&final_filename)
+            .map_err(|err| format!("Failed to create directory '{}': {}", final_filename, err))?;
+        for entry in fs::read_dir(&from_path)
+            .map_err(|err| format!("Failed to read directory '{}': {}", from_path, err))?
+        {
+            let entry = entry.map_err(|err| format!("Failed to read directory entry: {}", err))?;
             let path = entry.path();
-            let relative_path = path.strip_prefix(&from_path).unwrap();
-            let dest_file = final_filename.clone() + "/" + relative_path.to_str().unwrap();
-            Box::pin(copy_to(
+            let relative_path = path
+                .strip_prefix(&from_path)
+                .map_err(|err| format!("Failed to build relative path: {}", err))?;
+            let dest_file = Path::new(&final_filename)
+                .join(relative_path)
+                .to_string_lossy()
+                .to_string();
+            Box::pin(copy_to_with_overwrite_policy(
                 dest_file,
-                path.to_str().unwrap().to_string(),
-                total_size.clone(),
-                count_to_copy.clone(),
+                path.to_string_lossy().to_string(),
+                total_size,
+                count_to_copy,
+                overwrite_existing,
+                skipped_existing,
             ))
-            .await;
+            .await?;
         }
     } else {
         wng_log(format!("Unsupported file type: {}", from_path));
+        return Err(format!("Unsupported file type: {}", from_path));
     }
+    Ok(())
 }
 
 pub fn count_entries(path: &str) -> Result<f32, std::io::Error> {
@@ -777,11 +857,8 @@ pub async fn compress_items(
     let stop_watch = Stopwatch::start_new();
 
     if compression_format == "density" {
-        compress_to_density(
-            output_path,
-            input_paths,
-            compression_level,
-        ).expect("Failed to compress to density");
+        compress_to_density(output_path, input_paths, compression_level)
+            .expect("Failed to compress to density");
         let _ =
             WINDOW.get().unwrap().eval(&format!(
             "showToast('Compression done in ' + parseFloat('{:?}').toFixed(2) + 's', ToastType.INFO);",
@@ -794,10 +871,7 @@ pub async fn compress_items(
     } else if compression_format == "br" {
         let mut br_path = output_path.to_path_buf();
         br_path.set_extension("tar.br");
-        let _ = compress_files_to_brotli_tar(
-            br_path,
-            input_paths,
-        );
+        let _ = compress_files_to_brotli_tar(br_path, input_paths);
     } else {
         // Collect all files to compress
         let mut files_to_compress = Vec::new();
@@ -964,8 +1038,15 @@ pub fn compress_to_density(
 ) -> Result<(), Box<dyn std::error::Error>> {
     // 1. Create a tar archive in a temp location
     let mut temp_tar_path = output_path.to_path_buf();
-    let ext = temp_tar_path.extension().and_then(|s| s.to_str()).unwrap_or("");
-    let new_ext = if ext.is_empty() { "tar.tmp".to_string() } else { format!("{}.tar.tmp", ext) };
+    let ext = temp_tar_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+    let new_ext = if ext.is_empty() {
+        "tar.tmp".to_string()
+    } else {
+        format!("{}.tar.tmp", ext)
+    };
     temp_tar_path.set_extension(new_ext);
     {
         let temp_tar_file = File::create(&temp_tar_path)?;
@@ -989,7 +1070,9 @@ pub fn compress_to_density(
     let mut buffer = vec![0u8; CHUNK_SIZE];
     loop {
         let n = temp_tar_file.read(&mut buffer)?;
-        if n == 0 { break; }
+        if n == 0 {
+            break;
+        }
         total_size += n as u64;
         num_chunks += 1;
     }
@@ -1015,17 +1098,17 @@ pub fn compress_to_density(
                 max_comp = Chameleon::safe_encode_buffer_size(chunk.len());
                 comp_data = vec![0u8; max_comp];
                 comp_size = Chameleon::encode(chunk, &mut comp_data)?;
-            },
+            }
             2 => {
                 max_comp = Cheetah::safe_encode_buffer_size(chunk.len());
                 comp_data = vec![0u8; max_comp];
                 comp_size = Cheetah::encode(chunk, &mut comp_data)?;
-            },
+            }
             3 => {
                 max_comp = Lion::safe_encode_buffer_size(chunk.len());
                 comp_data = vec![0u8; max_comp];
                 comp_size = Lion::encode(chunk, &mut comp_data)?;
-            },
+            }
             _ => {
                 max_comp = Cheetah::safe_encode_buffer_size(chunk.len());
                 comp_data = vec![0u8; max_comp];
@@ -1052,7 +1135,7 @@ pub fn extract_from_density(
     let mut header = [0u8; 4];
     input_file.read_exact(&mut header)?;
     let magic = u32::from_le_bytes(header);
-    
+
     let mut algorithm_id = 1u8;
     if magic == MAGIC_V2 {
         let mut alg_buf = [0u8; 1];
@@ -1072,8 +1155,15 @@ pub fn extract_from_density(
 
     // Decompress to a temp file
     let mut temp_decomp_path = Path::new(input_path).to_path_buf();
-    let ext = temp_decomp_path.extension().and_then(|s| s.to_str()).unwrap_or("");
-    let new_ext = if ext.is_empty() { "tmp".to_string() } else { format!("{}.tmp", ext) };
+    let ext = temp_decomp_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+    let new_ext = if ext.is_empty() {
+        "tmp".to_string()
+    } else {
+        format!("{}.tmp", ext)
+    };
     temp_decomp_path.set_extension(new_ext);
     {
         let mut output_file = BufWriter::new(File::create(&temp_decomp_path)?);
@@ -1102,7 +1192,9 @@ pub fn extract_from_density(
     if magic == MAGIC_V2 {
         let tar_file = File::open(&temp_decomp_path)?;
         let mut archive = tar::Archive::new(tar_file);
-        let parent = Path::new(input_path).parent().unwrap_or_else(|| Path::new("."));
+        let parent = Path::new(input_path)
+            .parent()
+            .unwrap_or_else(|| Path::new("."));
         archive.unpack(parent)?;
         fs::remove_file(temp_decomp_path)?;
     } else {
@@ -1159,10 +1251,17 @@ fn watch<P: AsRef<Path>>(_path: P) -> notify::Result<()> {
 fn handle_fs_change(event: notify::Event) {
     if (event.kind == Create(CreateKind::Folder) || event.kind == Remove(RemoveKind::Folder))
         && event.paths.len() == 1
-        && ((event.paths[0].starts_with("/Volumes") && event.paths[0].to_str().unwrap().split("/").count() <= 3)
+        && ((event.paths[0].starts_with("/Volumes")
+            && event.paths[0].to_str().unwrap().split("/").count() <= 3)
             || event.paths[0].to_str().unwrap().contains("/run/media")
-            || event.paths[0].to_str().unwrap().contains("/private/tmp/codriver-sshfs-mount")
-            || event.paths[0].to_str().unwrap().contains("/tmp/codriver-sshfs-mount")
+            || event.paths[0]
+                .to_str()
+                .unwrap()
+                .contains("/private/tmp/codriver-sshfs-mount")
+            || event.paths[0]
+                .to_str()
+                .unwrap()
+                .contains("/tmp/codriver-sshfs-mount")
             || event.paths[0].to_str().unwrap().contains("/mnt"))
     {
         // Check mounts
