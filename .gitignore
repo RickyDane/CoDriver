@@ -1,6 +1,5 @@
 ~/
 +
-worker.js
 .cargo
 .xwin
 .xwin-cache
@@ -12,3 +11,4 @@ worker.js
 target/
 .idea
 AuthKey*
+.zed

@@ -14,7 +14,7 @@ class ActiveAction {
     }
     getHTMLElement() {
         return `
-            <div onclick="openDirAndSwitch('${this.path}')" class="active-action active-action-${this.id}">
+            <div onclick="openDirAndSwitch('${this.path}')" class="active-action bounce active-action-${this.id}">
                 <div class="active-action-header">
                     <div class="preloader-small-invert"></div>
                     <p>${this.name}</p>
