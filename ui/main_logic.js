@@ -2913,6 +2913,8 @@ function deSelectItem(item) {
   if (index !== -1) {
     ArrSelectedItems.splice(index, 1);
   }
+  var index = ArrSelectedItems.indexOf(item);
+  ArrSelectedItems.splice(index, 1);
   item.setAttribute("itemisselected", false);
   updateSelectionInfo();
 }

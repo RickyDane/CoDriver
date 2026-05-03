@@ -278,7 +278,7 @@ body {
 }
 
 .site-nav-bar-button > svg {
-    color: var(--textColor);
+    color: var(--textColor2);
 }
 
 .site-nav-bar-button:hover {
