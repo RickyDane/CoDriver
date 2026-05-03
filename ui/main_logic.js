@@ -2477,9 +2477,18 @@ async function listDisks() {
         item.name.replace('"', "").replace('"', ""),
       );
       itemLink.setAttribute("itemisdir", 1);
-      itemLink.setAttribute("onclick", "interactWithItem(this, '')");
+      itemLink.setAttribute("itemisdisk", "1");
+      itemLink.setAttribute(
+        "itemisremovable",
+        isEjectableDisk(item) ? "1" : "0",
+      );
       itemLink.className = "item-link directory-entry";
       let itemButton = document.createElement("div");
+      itemButton.setAttribute("itemisdisk", "1");
+      itemButton.setAttribute(
+        "itemisremovable",
+        itemLink.getAttribute("itemisremovable"),
+      );
       if (item.name == "") {
         item.name = "/";
       }
@@ -2491,32 +2500,50 @@ async function listDisks() {
         $(".explorer-container")?.css("padding", "85px 20px 20px 20px");
       }
 
+      let usedPercentage = 100 - evalCurrentLoad(item.avail, item.capacity);
       itemButton.innerHTML = `
-        <span class="disk-item-button">
-        <div class="disk-item-top">
-        <img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto" loading="lazy"/>
-        <span class="disk-info">
-        <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Description:</span><span class="disk-info">${item.name}</span></span>
-        <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">File-System:</span><span class="disk-info">${item.format.replace('"', "").replace('"', "")}</span></span>
-        </span>
-        <span class="disk-info">
-        <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Total space:</span><span class="disk-info">${formatBytes(item.capacity)}</span></span>
-        <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Available space:</span><span class="disk-info">${formatBytes(item.avail)}</span></span>
-        </span>
+        <div class="disk-card">
+          <img class="disk-card-icon" src="resources/disk-icon.png" />
+          <div class="disk-card-body">
+            <div class="disk-card-header">
+              <div class="disk-card-title-group">
+                <h3 class="disk-card-name">${item.name}</h3>
+                <span class="disk-card-filesystem">${item.format.replace(/"/g, "")}</span>
+              </div>
+              <span class="disk-card-usage-percent">${usedPercentage}% used</span>
+            </div>
+
+            <div class="disk-card-usage-bar-bg">
+              <div class="disk-card-usage-bar-fill" style="width: ${usedPercentage}%"></div>
+            </div>
+
+            <div class="disk-card-stats-row">
+              <span>Total ${formatBytes(item.capacity)}</span>
+              <span>Used ${formatBytes(item.capacity - item.avail)}</span>
+              <span>Available ${formatBytes(item.avail)}</span>
+            </div>
+          </div>
         </div>
-        <span class="disk-item-bot">
-        <div class="disk-item-usage-bar" style="width: ${evalCurrentLoad(item.avail, item.capacity)}%;"></div>
-        <p class="disk-info"><b class="disk-info">Usage:</b> ${formatBytes(item.capacity)} / ${formatBytes(item.avail)} available (${evalCurrentLoad(item.avail, item.capacity)}%)</p>
-        </span>
-        </span>
-        `;
+      `;
       itemButton.className = "disk-item-button-button directory-entry";
 
       DirectoryList.style.gridTemplateColumns = "unset";
       DirectoryList.style.rowGap = "2px";
 
       itemButton.style.width = "100%";
-      itemButton.style.height = "100px";
+      itemLink.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await interactWithItem(itemLink, "");
+      });
+      itemLink.addEventListener("dblclick", async (e) => {
+        e.preventDefault();
+        await openItem(itemLink, "");
+      });
+      itemLink.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        cdCtMenu.setSelectedItem(itemLink);
+        cdCtMenu.show(e);
+      });
       itemLink.append(itemButton);
       DirectoryList.append(itemLink);
       document.querySelector(".current-path").innerHTML = `
@@ -2527,6 +2554,15 @@ async function listDisks() {
   document
     .querySelector(".tab-container-" + CurrentActiveTab)
     .append(DirectoryList);
+}
+
+function isEjectableDisk(item) {
+  const path = item.path?.replace(/"/g, "") ?? "";
+  if (!path || path === "/") return false;
+  if (Platform === "darwin") {
+    return item.is_removable === true && path.startsWith("/Volumes/");
+  }
+  return item.is_removable === true;
 }
 
 async function listDirectories(fromDualPaneCopy = false) {
@@ -2747,7 +2783,9 @@ async function selectItem(
         item.children[0].classList.remove("selected-item");
       } else if (ViewMode == "column" || ViewMode == "miller") {
         if (IsShowDisks == true) {
-          item.children[1].classList.remove("selected-item");
+          (item.children[1] ?? item.children[0])?.classList.remove(
+            "selected-item",
+          );
         } else {
           item.children[0].classList.remove("selected-item");
         }
@@ -2768,7 +2806,9 @@ async function selectItem(
     SelectedElement?.children[0].classList.add("selected-item");
   } else if (ViewMode == "column" || ViewMode == "miller") {
     if (IsShowDisks == true) {
-      SelectedElement?.children[1].classList.add("selected-item");
+      (
+        SelectedElement?.children[1] ?? SelectedElement?.children[0]
+      )?.classList.add("selected-item");
     } else {
       SelectedElement?.children[0].classList.add("selected-item");
     }
@@ -3280,10 +3320,13 @@ async function goToDir(directory) {
   });
 }
 
-async function openInTerminal() {
+async function openInTerminal(item = null) {
+  const path =
+    item?.getAttribute("itempath") ??
+    (ArrSelectedItems.length === 0 ? CurrentDir : SelectedItemPath);
   if (
     !(await invoke("open_in_terminal", {
-      path: ArrSelectedItems.length === 0 ? CurrentDir : SelectedItemPath,
+      path,
     }))
   ) {
     if (Platform === "linux") {
@@ -3295,6 +3338,22 @@ async function openInTerminal() {
     } else {
       showToast("Failed to open terminal.", ToastType.ERROR);
     }
+  }
+}
+
+async function ejectDisk(item) {
+  const path = item?.getAttribute("itempath");
+  if (!path) {
+    showToast("No disk selected to eject", ToastType.ERROR);
+    return;
+  }
+
+  try {
+    const message = await invoke("eject_disk", { path });
+    showToast(message || "Disk ejected", ToastType.SUCCESS);
+    await listDisks();
+  } catch (error) {
+    showToast(`Failed to eject disk: ${error}`, ToastType.ERROR, 5000);
   }
 }
 

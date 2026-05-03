@@ -190,6 +190,7 @@ fn main() {
             get_sshfs_mounts,
             unmount_network_drive,
             unmount_drive,
+            eject_disk,
             load_item_image,
             get_disk_info,
             get_machine_bytes,
@@ -2247,6 +2248,43 @@ async fn unmount_drive(path: String) {
         .spawn();
     #[cfg(target_os = "linux")]
     let _ = Command::new("umount").arg(path).spawn();
+}
+
+#[tauri::command]
+async fn eject_disk(path: String) -> Result<String, String> {
+    let path = path.trim();
+    if path.is_empty() || path == "/" {
+        return Err("Refusing to eject system root".into());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        if !path.starts_with("/Volumes/") {
+            return Err("Only mounted volumes under /Volumes can be ejected".into());
+        }
+
+        let output = Command::new("diskutil")
+            .args(["unmount", path])
+            .output()
+            .map_err(|error| format!("Failed to start diskutil: {error}"))?;
+
+        if output.status.success() {
+            Ok("Disk ejected".into())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            Err(if stderr.is_empty() {
+                "diskutil failed to eject disk".into()
+            } else {
+                stderr
+            })
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = path;
+        Err("Eject disk is only supported on macOS".into())
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

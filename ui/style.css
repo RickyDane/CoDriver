@@ -267,7 +267,7 @@ body {
     align-items: center;
     gap: 8px;
     font-size: small;
-    color: var(--textColor2);
+    color: var(--textColor);
     transition: 0.2s ease;
 }
 
@@ -278,22 +278,29 @@ body {
 }
 
 .site-nav-bar-button > svg {
-    color: var(--textColor2);
+    color: var(--textColor);
 }
 
 .site-nav-bar-button:hover {
     background-color: var(--selectColor3) !important;
-    color: white;
+    color: var(--textColor);
     scale: 1.025;
+}
+
+.site-nav-bar-button:focus-visible {
+    outline: 2px solid var(--selectColor2);
+    outline-offset: 2px;
+    background-color: var(--selectColor3) !important;
 }
 
 .disk-site-nav-button {
     height: 35px;
     min-height: 35px;
-    color: var(--textColor2);
+    color: var(--textColor);
     /*text-shadow: 0 0 5px rgba(0, 0, 0, 0.75);*/
-    border: 1px solid transparent important;
+    border: 1px solid transparent;
     box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.1);
+    background-color: var(--secondaryColor);
 }
 .disk-site-nav-button:hover {
     background-color: var(--selectColor3) !important;
@@ -663,11 +670,7 @@ body {
     overflow: hidden;
     opacity: 0;
     transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    transform: scale(0.9);
-}
-
-.settings-ui[style*="display: flex"] {
-    transform: scale(1);
+    transform: scale(0.95) translateY(20px);
 }
 
 .settings-ui-main {
@@ -677,9 +680,23 @@ body {
     overflow: hidden;
 }
 
+.settings-ui-header {
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--primaryColor);
+    border-bottom: 1px solid var(--tertiaryColor);
+    padding: 15px 20px;
+    border-radius: 15px 15px 0 0;
+    color: var(--textColor);
+    font-size: large;
+    font-weight: bolder !important;
+}
+
 .settings-sidebar {
     width: 200px;
-    background-color: var(--primaryColor);
+    background-color: var(--secondaryColor);
     border-right: 1px solid var(--tertiaryColor);
     display: flex;
     flex-flow: column;
@@ -692,7 +709,7 @@ body {
     border: none;
     padding: 10px 15px;
     border-radius: 8px;
-    color: var(--textColor2);
+    color: var(--textColor);
     text-align: left;
     cursor: pointer;
     transition: 0.2s ease;
@@ -716,7 +733,7 @@ body {
     flex: 1;
     padding: 25px;
     overflow-y: auto;
-    background-color: var(--secondaryColor);
+    background-color: transparent;
 }
 
 .settings-tab-content {
@@ -739,6 +756,7 @@ body {
     color: var(--textColor);
     border-bottom: 1px solid var(--tertiaryColor);
     padding-bottom: 8px;
+    letter-spacing: 0.5px;
 }
 
 .settings-row {
@@ -747,6 +765,20 @@ body {
     align-items: center;
     margin-bottom: 15px;
     gap: 20px;
+    border-bottom: 1px solid var(--tertiaryColor);
+    padding-bottom: 15px;
+}
+
+.settings-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.settings-ui .popup-controls {
+    background-color: var(--primaryColor);
+    border-top: 1px solid var(--tertiaryColor);
+    padding: 15px 20px;
+    border-radius: 0 0 15px 15px;
 }
 
 .settings-control-group {
@@ -858,10 +890,6 @@ input:checked + .slider:before {
 }
 
 /* Settings UI Transition */
-.settings-ui {
-    transform: scale(0.95) translateY(20px);
-}
-
 .settings-ui.active {
     display: flex;
     opacity: 1;
@@ -886,140 +914,9 @@ input:checked + .slider:before {
     animation: pulse 1.5s infinite ease-in-out;
 }
 
-/* Settings ui */
-.settings-ui {
-    display: none;
-    flex-flow: column;
-    position: fixed;
-    width: 100%;
-    height: 100vh;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--secondaryColor);
-    z-index: 3;
-    margin: auto;
-    border-radius: 10px;
-    box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
-    border: 1px solid var(--tertiaryColor);
-    overflow: hidden;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
 
-.settings-ui-header {
-    position: sticky;
-    top: 0;
-    left: 0;
-    right: 0;
-    background-color: var(--navBarColor);
-    width: calc(100% - 10px);
-    padding: 5px 5px 5px 20px;
-    font-size: large;
-    font-weight: bolder !important;
-    display: flex;
-    flex-flow: row;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 4;
-    border: 1px solid var(--tertiaryColor);
-    margin-bottom: 1px;
-    color: var(--textColor);
-    border-radius: 10px;
-    margin: 5px 5px 0px 5px;
-}
 
-.settings-ui-body {
-    display: flex;
-    flex-flow: column;
-    gap: 10px;
-    padding: 20px;
-    overflow-y: auto;
-    z-index: 3;
-    color: var(--textColor);
-}
-.settings-ui-body::-webkit-scrollbar-thumb {
-    background-color: var(--navBarColor);
-}
 
-.settings-ui-headline {
-    font-weight: bolder !important;
-}
-
-.settings-ui-controls {
-    display: flex;
-    flex-flow: row;
-    gap: 5px;
-    justify-content: flex-end;
-    padding: 5px;
-    z-index: 3;
-    border-top: 1px solid var(--tertiaryColor);
-    color: var(--textColor);
-}
-
-.settings-ui > button {
-    float: right;
-    margin-top: 20px;
-    font-size: 16px;
-}
-
-.settings-ui > .popup-controls > .icon-button {
-    background-color: var(--primaryColor) !important;
-}
-
-.settings-ui > .popup-controls > .icon-button:hover {
-    background-color: var(--secondaryColor) !important;
-}
-
-.settings-ui-input {
-    width: 50% !important;
-    padding: 10px 15px;
-    background-color: var(--primaryColor) !important;
-    border-radius: 10px;
-    border: 1px solid rgba(0, 0, 0, 0.25);
-    z-index: 3;
-    color: var(--textColor);
-}
-
-.settings-ui-input:hover {
-    background-color: var(--secondaryColor) !important;
-}
-
-.settings-ui-input:focus {
-    background-color: var(--tertiaryColor) !important;
-}
-
-.settings-ui-checkbox {
-    width: 20px;
-    height: 20px;
-    border-radius: 10px;
-    border: 1px solid var(--primaryColor);
-    cursor: pointer;
-    transition: 0.1s ease-out;
-}
-
-.settings-ui-button {
-    background-color: var(--transparentColor) !important;
-    padding: 7.5px 12.5px !important;
-    border: 1px solid var(--tertiaryColor) !important;
-    color: var(--textColor);
-}
-
-.settings-ui-button:hover {
-    background-color: var(--transparentColorActive) !important;
-}
-
-input[type="checkbox"] {
-    cursor: pointer;
-}
-
-.open-config-button {
-    background-color: var(--primaryColor) !important;
-}
-.open-config-button:hover {
-    background-color: var(--secondaryColor) !important;
-}
 
 label {
     cursor: pointer;
@@ -1313,78 +1210,149 @@ button > svg {
     border-radius: 10px;
     cursor: pointer;
     text-align: left;
-    font-size: small;
-    height: 75px;
-    width: 100px;
+    width: 100%;
+    min-height: 92px;
     overflow: hidden;
     display: flex;
-    flex-flow: column;
     align-items: center;
-    text-align: center;
-    gap: 10px;
-    transition: 0.1s ease-out;
+    transition: 0.2s ease-out;
     margin: 0 auto;
+    background-color: var(--secondaryColor);
+    border: 1px solid var(--tertiaryColor);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 14px 18px;
+    gap: 8px;
 }
 
 .disk-item-button-button:hover {
-    background-color: var(--transparentColor);
+    background-color: var(--primaryColor);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
 }
 
-.disk-item-button {
-    display: flex;
-    flex-flow: column;
-    justify-content: space-between;
-    width: 100%;
-}
-
-.disk-item-top {
+.disk-card {
     display: flex;
     flex-flow: row;
     align-items: center;
-    gap: 30px;
-    margin-top: 10px;
-    padding-left: 15px;
+    gap: 12px;
+    width: 100%;
 }
 
-.disk-item-top > span > span {
-    margin: 5px 0px;
-}
-
-.disk-item-bot {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 5px;
-    background-color: var(--transparentColor);
-    height: 24px;
-    overflow: hidden;
+.disk-card-body {
     display: flex;
+    flex-flow: column;
+    gap: 7px;
+    min-width: 0;
+    width: 100%;
+}
+
+.disk-card-header {
+    display: flex;
+    flex-flow: row;
     align-items: center;
-    text-align: right;
-    margin: 5px;
-    border-radius: 10px;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
 }
 
-.disk-item-bot > p {
-    font-size: var(--fontSize);
-    z-index: 3;
+.disk-card-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.disk-card-title-group {
     display: flex;
-    gap: 10px;
-    padding-left: 5px;
+    flex-flow: column;
+    gap: 2px;
+    min-width: 0;
 }
 
-.disk-item-usage-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--selectColor3);
-    z-index: 2;
-    border-right: 2px solid var(--selectColor2);
-    margin: 1px;
-    border-radius: 2px 0px 0px 2px;
+.disk-card-name {
+    font-size: 1.1em;
+    font-weight: 700 !important;
+    color: var(--textColor);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.disk-card-filesystem {
+    font-size: 0.85em;
+    color: var(--textColor2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.disk-card-usage-section {
+    display: flex;
+    flex-flow: column;
+    gap: 8px;
+}
+
+.disk-card-usage-bar-bg {
+    width: 100%;
+    height: 6px;
+    background-color: var(--primaryColor);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--tertiaryColor);
+}
+
+.disk-card-usage-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--selectColor2), var(--selectColor3));
+    border-radius: 4px;
+    transition: width 0.5s ease-out;
+}
+
+.disk-card-usage-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85em;
+    color: var(--textColor2);
+}
+
+.disk-card-usage-percent {
+    flex: 0 0 auto;
+    color: var(--textColor3);
+    font-size: 0.9em;
+    font-weight: 600 !important;
+}
+
+.disk-card-stats-row {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 4px 12px;
+    color: var(--textColor2);
+    font-size: 0.85em;
+    line-height: 1.2;
+    font-weight: 600 !important;
+}
+
+.disk-card-stats-row > span:not(:last-child)::after {
+    content: "·";
+    margin-left: 12px;
+    color: var(--textColor2);
+}
+
+.disk-card-stat-label {
+    font-size: 0.85em;
+    color: var(--textColor2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.disk-card-stat-value {
+    font-size: 0.9em;
+    font-weight: 600 !important;
+    color: var(--textColor);
 }
 
 .icon-button {
@@ -1830,7 +1798,7 @@ button > svg {
 }
 
 .context-menu {
-    width: 150px;
+    width: 180px;
     height: fit-content;
     padding: 5px;
     display: flex;
@@ -1855,7 +1823,8 @@ button > svg {
     background-color: transparent;
     border-radius: 10px;
     margin: 2px 0;
-    padding: 5px 10px;
+    padding: 7px 10px;
+    gap: 10px;
     cursor: pointer;
     text-align: left;
     display: flex;
@@ -1974,6 +1943,10 @@ button > svg {
 
 .disk-info-icon {
     margin: 0 !important;
+}
+
+.disk-info {
+    color: var(--textColor);
 }
 
 .loading-popup {
