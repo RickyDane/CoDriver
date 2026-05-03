@@ -295,6 +295,7 @@ function getIconForFile(item, itemsCount) {
       case "sdk":
       case "sdks":
         fileIcon = "resources/folder-sdk.png";
+        break;
       default:
         fileIcon = "resources/folder-icon.png";
         break;
