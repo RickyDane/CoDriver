@@ -5,47 +5,98 @@ const { message } = TAURI.dialog;
 const { open } = TAURI.dialog;
 const { appWindow } = TAURI.window;
 const { writeText } = TAURI.clipboard;
-const { writeFile } = TAURI.clipboard;
 const { getTauriVersion } = TAURI.app;
 const { getVersion } = TAURI.app;
-const { getName } = TAURI.app;
 const { getMatches } = TAURI.cli;
 const { platform } = TAURI.os;
 const { arch } = TAURI.os;
-const { fetch } = TAURI.http;
 const convertFileSrc = TAURI.convertFileSrc;
-const { appDataDir } = TAURI.path;
 const { resolveResource } = TAURI.path;
-const { resourceDir } = TAURI.path;
-const { BaseDirectory } = TAURI.fs;
-const { readDir } = TAURI.fs;
 
 // :entry_point Entry point
 
 getMatches().then((matches) => {
   // alert(JSON.stringify(matches.args.source.value));
-})
+});
 
 // :drag / Dragging functionality
 
 async function startDrag(options, onEvent) {
-  ds.break();
-  await invoke("plugin:drag|start_drag", {
-    item: options.item,
-    image: options.icon,
-    onEventFn: onEvent ? transformCallback(onEvent) : null,
-  });
+  if (ds) ds.break();
+  let dragIcon = options.icon || DefaultFileIcon;
+  if (!dragIcon || dragIcon === "") {
+    dragIcon = "resources/file-icon.png";
+  }
+  
+  try {
+    await invoke("plugin:drag|start_drag", {
+      item: options.item,
+      image: dragIcon,
+      onEventFn: onEvent ? transformCallback(onEvent) : null,
+    });
+  } catch (error) {
+    writeLog("Drag and drop error: " + error);
+  }
+  // Removed immediate resetEverything() as it might interfere with the drag operation start
+}
+
+async function handleDragStart(e, item) {
+  e.preventDefault();
+  if (ds) ds.break();
+  IsFileOpIntern = true;
+
+  // Use resolved icons. If the itemicon is a full path, it might fail in the plugin.
+  // Fallback to DefaultFileIcon for files and DefaultFolderIcon for directories.
+  let icon = item.getAttribute("itemicon");
+  let isDirAttr = item.getAttribute("itemisdir");
+  let isDir = isDirAttr == "1" || isDirAttr == "true" || isDirAttr === true || isDirAttr == 1;
+
+  if (isDir) {
+    icon = DefaultFolderIcon;
+  } else if (!icon || icon.includes("/") || icon.includes("\\")) {
+    // If it's a full path or empty, use the default resolved file icon
+    icon = DefaultFileIcon;
+  }
+
+  // Determine drag items: if dragged item is in current selection, drag all selected;
+  // otherwise drag only this item (without mutating selection array)
+  let isInSelection = ArrSelectedItems.some(
+    (sel) => sel.getAttribute("itempath") === item.getAttribute("itempath")
+  );
+  let dragItems = isInSelection ? ArrSelectedItems : [item];
+  let arr = dragItems.map((it) => it.getAttribute("itempath"));
+
+  if (arr.length > 0) {
+    await startDrag({ item: arr, icon: icon });
+  }
 }
 
 const ds = new DragSelect({
   immediateDrag: false,
-})
+});
 
-ds.subscribe('DS:select', async (payload) => {
-  if (payload.item == SelectedElement || IsShiftDown === true || IsCtrlDown === true || IsMetaDown === true) return;
+const cdCtMenu = new CDContextMenu();
+
+// :drag / Selec items via dragging
+
+ds.subscribe("DS:select", async (payload) => {
+  if (
+    payload.item == SelectedElement ||
+    IsShiftDown === true ||
+    IsCtrlDown === true ||
+    IsMetaDown === true ||
+    ArrSelectedItems.find(
+      (itemOfArray) =>
+        itemOfArray.getAttribute("itempath") ==
+        payload.item.getAttribute("itempath"),
+    ) != null
+  ) {
+    return;
+  }
   selectItem(payload.item, "", true);
 });
-ds.subscribe('DS:unselect', async (payload) => {
+
+ds.subscribe("DS:unselect", async (payload) => {
   deSelectItem(payload.item);
 });
 
@@ -54,7 +105,6 @@ let ViewMode = "wrap";
 let OrgViewMode = "wrap";
 
 let DirectoryList;
-let Applications = [];
 let ArrDirectoryItems = [];
 let ArrActiveActions = [];
 let ContextMenu = document.querySelector(".context-menu");
@@ -104,9 +154,6 @@ let IsFullSearching = false;
 let IsSearching = false;
 let FoundItemsCountIndex = 0;
 
-let ArrSelectedItems = [];
-let ArrCopyItems = [];
-
 let IsImagePreview = false;
 let CurrentFtpPath = "";
 let IsCopyToCut = false;
@@ -143,13 +190,15 @@ let CurrentTheme = "0";
 /* Upper right search bar logic */
 
 document.querySelector(".search-bar-input").addEventListener("focusin", (e) => {
-  $(".file-searchbar").css("width", "250px");
+  $(".file-searchbar").css("width", "300px");
   IsInputFocused = true;
 });
-document.querySelector(".search-bar-input").addEventListener("focusout", (e) => {
-  $(".file-searchbar").css("width", "200px");
-  IsInputFocused = false;
-});
+document
+  .querySelector(".search-bar-input")
+  .addEventListener("focusout", (e) => {
+    $(".file-searchbar").css("width", "200px");
+    IsInputFocused = false;
+  });
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
   if (e.keyCode === 13) {
     let fileName = $(".search-bar-input").val();
@@ -169,9 +218,11 @@ async function startFullSearch() {
       <div class="button-icon"><i class="fa-solid fa-stop"></i></div>
       Stop
       `);
-    document.querySelector(".fullsearch-search-button").addEventListener("click", async () => {
-      await stopFullSearch();
-    });
+    document
+      .querySelector(".fullsearch-search-button")
+      .addEventListener("click", async () => {
+        await stopFullSearch();
+      });
     let fileName = document.querySelector(".full-dualpane-search-input").value;
     let maxItems = parseInt(
       document.querySelector(".full-search-max-items-input").value,
@@ -180,14 +231,21 @@ async function startFullSearch() {
     let searchDepth = parseInt(
       document.querySelector(".full-search-search-depth-input").value,
     );
-    searchDepth = searchDepth >= 1 ? searchDepth : 9999999;
-    let fileContent = document.querySelector(".full-dualpane-search-file-content-input").value;
+    searchDepth = searchDepth >= 1 ? searchDepth : 1;
+    let fileContent = document.querySelector(
+      ".full-dualpane-search-file-content-input",
+    ).value;
     await searchFor(fileName, maxItems, searchDepth, false, fileContent);
   }
 }
 
 async function stopFullSearch() {
-  document.querySelector(".fullsearch-search-button").replaceWith(document.querySelector(".fullsearch-search-button").cloneNode(true));
+  stopSearching();
+  document
+    .querySelector(".fullsearch-search-button")
+    .replaceWith(
+      document.querySelector(".fullsearch-search-button").cloneNode(true),
+    );
   IsFullSearching = false;
   $(".full-searching-loader").css("display", "none");
   $(".fullsearch-current-file").html("");
@@ -195,10 +253,11 @@ async function stopFullSearch() {
     <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
     Search
     `);
-  document.querySelector(".fullsearch-search-button").addEventListener("click", async () => {
-    await startFullSearch();
-  });
-  await stopSearching();
+  document
+    .querySelector(".fullsearch-search-button")
+    .addEventListener("click", async () => {
+      await startFullSearch();
+    });
 }
 
 document.addEventListener("keydown", async (e) => {
@@ -212,7 +271,7 @@ document.addEventListener("keydown", async (e) => {
     await resetEverything();
     $(".search-bar-input").blur();
     // Close all popups etc.
-    ContextMenu.style.display = "none";
+    // ContextMenu.style.display = "none";
     if (DraggedOverElement != null) {
       DraggedOverElement.style.opacity = "1";
     }
@@ -223,7 +282,8 @@ document.addEventListener("keydown", async (e) => {
   }
 
   // :quicksearch :instantsearch
-  if (IsInputFocused === false &&
+  if (
+    IsInputFocused === false &&
     IsPopUpOpen === false &&
     IsMetaDown === false &&
     IsCtrlDown === false &&
@@ -234,14 +294,14 @@ document.addEventListener("keydown", async (e) => {
     CurrentQuickSearch += e.key;
     $(".instant-search-input").css("display", "block");
     $(".instant-search-input").val(CurrentQuickSearch);
-    await searchFor(CurrentQuickSearch, 9999999, 1, true);
+    await searchFor(CurrentQuickSearch, 999999, 1, true);
     setTimeout(() => {
       if (IsDualPaneEnabled === true) {
         // goUp(true);
       } else {
         // goLeft();
       }
-    }, 250);
+    }, 500);
     CurrentQuickSearchTime = TIMETORESET;
     clearInterval(CurrentQuickSearchTimer);
     resetQuickSearch();
@@ -273,7 +333,7 @@ async function resetEverything() {
   closeCompressPopup();
   closeYtDownloadPopup();
   closeInfoProperties();
-  resetProgressBar();
+  finishProgressBar();
   closeInputDialogs();
   unSelectAllItems();
   closeConfirmPopup();
@@ -284,6 +344,7 @@ async function resetEverything() {
   IsPopUpOpen = false;
   IsInputFocused = false;
   IsDisableShortcuts = false;
+  IsFileOpIntern = false;
   if (ArrCopyItems.length == 0) {
     IsCopyToCut = false;
   }
@@ -292,14 +353,21 @@ async function resetEverything() {
   $(".site-nav-bar-button").css("backgroundColor", "transparent");
   $(".item-link").css("border", "1px solid transparent");
   $(".item-link").css("backgroundColor", "transparent");
+  $(".item-link").css("scale", "1");
   $(".path-item").css("border", "1px solid transparent");
   $(".path-item").css("backgroundColor", "var(--transparentColor)");
   CurrentQuickSearch = "";
   resetQuickSearch();
+  cdCtMenu.hide();
+  cdCtMenu.hideSubMenu();
 }
 
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
+  if (e.buttons == 8) {
+    goBack();
+  }
+
   // Check if your click is outside of important elements
   if (
     !e.target.classList.contains("context-item-icon") &&
@@ -322,42 +390,63 @@ document.addEventListener("mousedown", (e) => {
     !e.target.classList.contains("item-button-text") &&
     !e.target.classList.contains("item-preview-file-content") &&
     !e.target.classList.contains("popup-header") &&
-    !e.target.classList.contains("item-preview-copy-path-button")
+    !e.target.classList.contains("item-preview-copy-path-button") &&
+    !e.target.classList.contains("context-label") &&
+    !e.target.classList.contains("item-size-box") &&
+    !e.target.classList.contains("fa-cube") &&
+    !e.target.classList.contains("site-nav-bar-button") &&
+    !e.target.closest(".site-nav-bar-button") &&
+    e.target.tagName !== "I" &&
+    e.target.id !== "size-" + e.target.id.split("-")[1] &&
+    !e.target.closest(".item-size-box")
   ) {
-    ContextMenu.style.display = "none";
+    // ContextMenu.style.display = "none";
+    cdCtMenu.hide();
+    cdCtMenu.hideSubMenu();
     $(".extra-c-menu")?.remove();
 
     // Reset context menu
     resetContextMenu();
 
-    document
-      .querySelector(".c-item-duplicates")
-      .setAttribute("disabled", "true");
-    document
-      .querySelector(".c-item-duplicates")
-      .classList.add("c-item-disabled");
+    // document
+    //   .querySelector(".c-item-duplicates")
+    //   .setAttribute("disabled", "true");
+    // document
+    //   .querySelector(".c-item-duplicates")
+    //   .classList.add("c-item-disabled");
     unSelectAllItems();
     if (DraggedOverElement != null) {
       DraggedOverElement.style.filter = "none";
     }
     // closeItemPreview();
   }
-  if (IsPopUpOpen === true && !e.target.classList.contains("input-dialog") && !e.target.classList.contains("input-dialog-headline") && !e.target.classList.contains("text-input")) {
+  if (
+    IsPopUpOpen === true &&
+    IsInputFocused === true &&
+    !e.target.classList.contains("input-dialog") &&
+    !e.target.classList.contains("input-dialog-headline") &&
+    !e.target.classList.contains("text-input")
+  ) {
     closeInputDialogs();
-    IsInputFocused = false;
   }
   if (!e.target.classList.contains("c-item-custom")) {
     closeCustomContextMenu();
   }
   $(".site-nav-bar-button").css("border", "1px solid transparent");
+  $(".site-nav-bar-button").css("backgroundColor", "transparent");
   $(".item-link").css("border", "1px solid transparent");
+  $(".item-link").css("backgroundColor", "transparent");
   $(".path-item").css("border", "1px solid transparent");
 });
 
 // Open context menu for pasting for example
 // :context open
 document.addEventListener("contextmenu", (e) => {
+  // cdCtMenu.setupItems();
+  cdCtMenu.show(e);
+  return;
   e.preventDefault();
+  console.log(IsPopUpOpen, IsInputFocused);
   if (IsPopUpOpen == false && IsInputFocused == false) {
     ContextMenu.children[7].replaceWith(
       ContextMenu.children[7].cloneNode(true),
@@ -373,7 +462,7 @@ document.addEventListener("contextmenu", (e) => {
       { once: true },
     );
 
-    if (CopyFilePath == "") {
+    if (CopyFilePath === "") {
       document.querySelector(".c-item-paste").setAttribute("disabled", "true");
       document.querySelector(".c-item-paste").classList.add("c-item-disabled");
     } else {
@@ -382,47 +471,54 @@ document.addEventListener("contextmenu", (e) => {
         .querySelector(".c-item-paste")
         .classList.remove("c-item-disabled");
     }
-   	document
-    		.querySelector(".c-item-ytdownload")
-    		.replaceWith(document.querySelector(".c-item-ytdownload").cloneNode(true));
-   	document.querySelector(".c-item-ytdownload").addEventListener(
-    		"click",
-    		async () => {
-     			await showYtDownload();
-    		},
-    		{ once: true },
-   	);
+
+    // Currently disabled due to issues with download functionality
+    // document.querySelector(".c-item-ytdownload").replaceWith(document.querySelector(".c-item-ytdownload").cloneNode(true));
+    // document.querySelector(".c-item-ytdownload").addEventListener(
+    // 		"click",
+    // 		async () => {
+    //  			await showYtDownload();
+    // 		},
+    // 		{ once: true },
+    // );
   }
 });
 
 // Position contextmenu
 function positionContextMenu(e) {
-  ContextMenu.style.display = "flex";
+  cdCtMenu.menu.style.display = "flex";
 
   // Horizontal position
-  if (ContextMenu.clientWidth + e.clientX >= window.innerWidth) {
-    ContextMenu.style.left = e.clientX - ContextMenu.clientWidth + "px";
+  if (cdCtMenu.menu.clientWidth + e.clientX >= window.innerWidth) {
+    cdCtMenu.menu.style.left = e.clientX - cdCtMenu.menu.clientWidth + "px";
   } else {
-    ContextMenu.style.left = e.clientX + "px";
+    cdCtMenu.menu.style.left = e.clientX + "px";
   }
 
   // Vertical position
-  if (ContextMenu.offsetHeight + e.clientY <= window.innerHeight) {
-    ContextMenu.style.top = e.clientY + "px";
-    ContextMenu.style.bottom = null;
-  } else if ((ContextMenu.offsetHeight + e.clientY >= window.innerHeight) && (e.clientY - ContextMenu.offsetHeight > 0)) {
-    ContextMenu.style.top = e.clientY - ContextMenu.offsetHeight + "px";
-    ContextMenu.style.bottom = null;
+  if (cdCtMenu.menu.offsetHeight + e.clientY <= window.innerHeight) {
+    cdCtMenu.menu.style.top = e.clientY + "px";
+    cdCtMenu.menu.style.bottom = null;
+  } else if (
+    cdCtMenu.menu.offsetHeight + e.clientY >= window.innerHeight &&
+    e.clientY - cdCtMenu.menu.offsetHeight > 0
+  ) {
+    cdCtMenu.menu.style.top = e.clientY - cdCtMenu.menu.offsetHeight + "px";
+    cdCtMenu.menu.style.bottom = null;
   } else {
-    ContextMenu.style.top = window.innerHeight - ContextMenu.offsetHeight - 10 + "px";
-    ContextMenu.style.bottom = null;
+    cdCtMenu.menu.style.top =
+      window.innerHeight - cdCtMenu.menu.offsetHeight - 10 + "px";
+    cdCtMenu.menu.style.bottom = null;
   }
 }
 
 /* :shortcuts Shortcuts definition */
 
 function isShortcut(key) {
-  if (key == "Meta" ||
+  if (
+    key == "Meta" ||
+    key == "Super" ||
+    key == "Compose" ||
     key == "Control" ||
     key == "Shift" ||
     key == "Alt" ||
@@ -464,11 +560,12 @@ function isShortcut(key) {
     key == "-" ||
     key == "*" ||
     key == "/" ||
-    key == ",") {
-      return true;
-    } else {
-      return false;
-    }
+    key == ","
+  ) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 document.onkeydown = async (e) => {
@@ -555,14 +652,6 @@ document.onkeydown = async (e) => {
         e.stopPropagation();
         goToOtherPane();
       }
-      if (IsPopUpOpen == false) {
-        // check if f8 is pressed
-        if (e.keyCode == 119) {
-          e.preventDefault();
-          e.stopPropagation();
-          openFullSearchContainer();
-        }
-      }
       if (e.key == "PageUp") {
         goUp();
         goUp();
@@ -577,18 +666,20 @@ document.onkeydown = async (e) => {
       }
 
       // Open disk dropdown / :dropdown :disk_dropdown
-      if (e.key == 1 && IsMetaDown == true) {
+      if (e.key == "F1" && (IsMetaDown == true || IsAltDown == true)) {
         let diskDropdown = document.querySelector(".left-disk-dropdown");
-        let evt = document.createEvent("MouseEvents")
-        evt.initMouseEvent("mousedown"); // Find alternative to obsolete method
+        let evt = document.createEvent("MouseEvents");
+        evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
         diskDropdown.dispatchEvent(evt);
+        IsAltDown = false;
         IsMetaDown = false;
-      } else if (e.key == 2 && IsMetaDown == true) {
+      } else if (e.key == "F2" && (IsMetaDown == true || IsAltDown == true)) {
         SelectedItemPaneSide = "right";
         let diskDropdown = document.querySelector(".right-disk-dropdown");
-        let evt = document.createEvent("MouseEvents")
-        evt.initMouseEvent("mousedown"); // Find alternative to obsolete method
+        let evt = document.createEvent("MouseEvents");
+        evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
         diskDropdown.dispatchEvent(evt);
+        IsAltDown = false;
         IsMetaDown = false;
       }
     } else if (IsItemPreviewOpen == true && IsDualPaneEnabled === true) {
@@ -616,6 +707,7 @@ document.onkeydown = async (e) => {
       showToast("Current dir path copied", ToastType.SUCCESS);
       return;
     }
+
     // Check if cmd / ctrl + f is pressed
     if (e.key == "f" && (e.ctrlKey || e.metaKey)) {
       if (IsDualPaneEnabled == true) return;
@@ -624,11 +716,16 @@ document.onkeydown = async (e) => {
       e.preventDefault();
       e.stopPropagation();
     }
+
     // Check if space is pressed on selected item
     if (e.key == " " && SelectedElement != null) {
       e.preventDefault();
       e.stopPropagation();
-      if (IsPopUpOpen == false && IsInputFocused == false && IsItemPreviewOpen == false) {
+      if (
+        IsPopUpOpen == false &&
+        IsInputFocused == false &&
+        IsItemPreviewOpen == false
+      ) {
         showItemPreview(SelectedElement);
       } else {
         closeItemPreview();
@@ -637,7 +734,10 @@ document.onkeydown = async (e) => {
 
     if (IsPopUpOpen == false) {
       // check if del is pressed
-      if (IsInputFocused == false && (e.keyCode == 46 || (e.metaKey && e.keyCode == 8))) {
+      if (
+        IsInputFocused == false &&
+        (e.keyCode == 46 || (e.metaKey && e.keyCode == 8))
+      ) {
         await deleteItems();
         closeLoadingPopup();
         await listDirectories();
@@ -646,6 +746,7 @@ document.onkeydown = async (e) => {
         e.stopPropagation();
         return;
       }
+
       // Check if cmd / ctrl + a is pressed
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
@@ -672,9 +773,10 @@ document.onkeydown = async (e) => {
           }
         }
       }
+
       if (
         (e.altKey && e.key == "Enter") ||
-        e.key == "F2" ||
+        (e.key == "F2" && !e.metaKey && !e.ctrlKey && !e.altKey) ||
         (Platform == "darwin" &&
           e.key == "Enter" &&
           IsDualPaneEnabled == false &&
@@ -683,13 +785,19 @@ document.onkeydown = async (e) => {
         // check if alt + enter is pressed
         renameElementInputPrompt(SelectedElement);
       }
+
       // check if cmd / ctrl + r is pressed
       if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "r") {
         e.preventDefault();
         e.stopPropagation();
         await unSelectAllItems();
-        refreshView();
+        if (IsDualPaneEnabled === true) {
+          refreshBothViews(SelectedItemPaneSide);
+        } else {
+          refreshView();
+        }
       }
+
       // check if cmd / ctrl + c is pressed
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
@@ -700,55 +808,56 @@ document.onkeydown = async (e) => {
         e.preventDefault();
         e.stopPropagation();
       }
+
       // check if cmd / ctrl + x is pressed
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
         e.key == "x" &&
         IsInputFocused == false
       ) {
-        copyItem(SelectedElement, true);
         e.preventDefault();
         e.stopPropagation();
+        await copyItem(SelectedElement, true);
       }
+
       // check if cmd / ctrl + v is pressed
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
         e.key == "v" &&
         IsInputFocused == false
       ) {
-        pasteItem();
         e.preventDefault();
         e.stopPropagation();
+        pasteItem();
       }
+
       // check if cmd / ctrl + g is pressed | Path input
       if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
-        showInputPopup("Input path to jump to");
         e.preventDefault();
         e.stopPropagation();
+        showInputPopup("Input path to jump to");
       }
+
       // New folder input prompt when f7 is pressed
       if (e.key == "F7") {
-        createFolderInputPrompt();
         e.preventDefault();
         e.stopPropagation();
+        createFolderInputPrompt();
       }
+
       // New file input prompt when f6 is pressed
       if (e.keyCode == 117) {
-        createFileInputPrompt();
         e.preventDefault();
         e.stopPropagation();
+        createFileInputPrompt();
       }
-      // Disabled for instant quick search
-      // check if cmd / ctrl + s is pressed
-      // if (
-      // 	((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-      // 	e.key === "s" &&
-      // 	IsShowDisks == false
-      // ) {
-      // 	openSearchBar();
-      // 	e.preventDefault();
-      // 	e.stopPropagation();
-      // }
+
+      // Open file search container when f8 is pressed
+      if (e.key == "F8" || e.keyCode == 119) {
+        e.preventDefault();
+        e.stopPropagation();
+        openFullSearchContainer();
+      }
 
       // check if ctrl / cmd + shift + m is pressed
       if (
@@ -769,8 +878,14 @@ document.onkeydown = async (e) => {
           e.preventDefault();
           e.stopPropagation();
         }
+
         // check if backspace is pressed
-        if (e.keyCode == 8 && IsPopUpOpen === false && IsInputFocused === false && ArrSelectedItems.length == 0) {
+        if (
+          e.keyCode == 8 &&
+          IsPopUpOpen === false &&
+          IsInputFocused === false &&
+          ArrSelectedItems.length == 0
+        ) {
           goBack();
           e.preventDefault();
           e.stopPropagation();
@@ -778,7 +893,27 @@ document.onkeydown = async (e) => {
       }
     }
 
-    if (IsDualPaneEnabled === false && (IsItemPreviewOpen === true && IsPopUpOpen === true || IsPopUpOpen === false) && IsInputFocused === false) {
+    if (
+      IsDualPaneEnabled === false &&
+      IsItemPreviewOpen === false &&
+      IsInputFocused === false
+    ) {
+      if (
+        (IsMetaDown || IsCtrlDown || e.key == "Super") &&
+        e.key.toLowerCase() == "k"
+      ) {
+        showCompressPopup(ArrSelectedItems[0]);
+      }
+      // :new_shortcut :new :shortcut
+    }
+
+    // Item preview :preview
+    if (
+      IsDualPaneEnabled === false &&
+      ((IsItemPreviewOpen === true && IsPopUpOpen === true) ||
+        IsPopUpOpen === false) &&
+      IsInputFocused === false
+    ) {
       if (ViewMode == "wrap") {
         // check if arrow up is pressed
         if (e.keyCode == 38) {
@@ -786,6 +921,7 @@ document.onkeydown = async (e) => {
           e.stopPropagation();
           goGridUp();
         }
+
         // check if arrow down is pressed
         if (e.key === "ArrowDown") {
           e.preventDefault();
@@ -793,14 +929,22 @@ document.onkeydown = async (e) => {
           goGridDown();
         }
       }
+
       // check if arrow left is pressed
-      if (e.keyCode == 37 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)) {
+      if (
+        e.keyCode == 37 ||
+        ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)
+      ) {
         e.preventDefault();
         e.stopPropagation();
         goLeft();
       }
+
       // check if arrow right is pressed
-      if (e.keyCode == 39 || ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)) {
+      if (
+        e.keyCode == 39 ||
+        ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)
+      ) {
         e.preventDefault();
         e.stopPropagation();
         goRight();
@@ -848,12 +992,21 @@ document
 
 // Main function to handle directory visualization
 async function showItems(items, dualPaneSide = "", millerCol = 1) {
-  await cancelSearch();
+  unSelectAllItems();
+  await cancelSearch(); // Cancel any ongoing search
+
+  // Reenable miller column view when navigating out from disk view
+  if (IsShowDisks == true && ViewMode == "miller") {
+    $(".miller-container")?.css("display", "flex");
+    $(".non-dual-pane-container")?.css("display", "none");
+    $(".explorer-container")?.css("padding", "10px 10px 0 10px");
+  }
+
   IsShowDisks = false;
 
   if (items.length > 1000) {
     showLoadingPopup("Loading much data, please wait...");
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
   // Reset position when navigating into another directory
@@ -884,237 +1037,48 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     DirectoryList.className = "directory-list";
   }
   if (IsShowHiddenFiles === false) {
-    items = items.filter((str) => !str.name.startsWith(".") && !str.name.toLowerCase().includes("desktop.ini"));
+    items = items.filter(
+      (str) =>
+        !str.name.startsWith(".") &&
+        !str.name.toLowerCase().includes("desktop.ini"),
+    );
   }
   items = items.filter((str) => !str.name.toLowerCase().includes("ntuser"));
   let counter = 0;
+  let docFragment = document.createDocumentFragment();
   items.forEach(async (item) => {
-    let itemIconId = crypto.randomUUID();
     let itemLink = document.createElement("button");
     itemLink.setAttribute(
       "onclick",
       "interactWithItem(this, '" + dualPaneSide + "')",
     );
+    let itemIconId = crypto.randomUUID();
+    itemLink.setAttribute("itemiconid", itemIconId);
     itemLink.setAttribute("itempath", item.path);
     itemLink.setAttribute("itemindex", counter++);
     itemLink.setAttribute("itempaneside", dualPaneSide);
-    itemLink.setAttribute("itemisdir", item.is_dir);
+    itemLink.setAttribute("itemisdir", item.is_dir ? 1 : 0);
     itemLink.setAttribute("itemext", item.extension);
     itemLink.setAttribute("itemname", item.name);
     itemLink.setAttribute("itemsize", formatBytes(item.size));
     itemLink.setAttribute("itemrawsize", item.size);
     itemLink.setAttribute("itemmodified", item.last_modified);
     itemLink.setAttribute("draggable", true);
-    itemLink.setAttribute("id", "item-link");
     itemLink.setAttribute("itemformillercol", parseInt(millerCol) + 1);
     itemLink.setAttribute("itemisselected", false);
 
     let fileIcon = "resources/file-icon.png"; // Default
     let iconSize = "56px";
-    if (item.is_dir == 1) {
-      fileIcon = "resources/folder-icon.png";
-      // Check for dir name to apply custom icons
-      switch (item.name.toLowerCase()) {
-        case "downloads":
-        fileIcon = "resources/folder-downloads.png";
-        break;
-        case "desktop":
-        case "schreibtisch":
-        fileIcon = "resources/folder-desktop.png";
-        break;
-        case "dokumente":
-        case "doks":
-        case "documents":
-        case "docs":
-        fileIcon = "resources/folder-docs.png";
-        break;
-        case "musik":
-        case "music":
-        case "audio":
-        fileIcon = "resources/folder-music.png";
-        break;
-        case "bilder":
-        case "fotos":
-        case "photos":
-        case "pictures":
-        case "images":
-        fileIcon = "resources/folder-images.png";
-        break;
-        case "videos":
-        case "video":
-        case "movies":
-        case "movie":
-        case "films":
-        case "filme":
-        fileIcon = "resources/folder-videos.png";
-        break;
-        case "coding":
-        case "programming":
-        case "programmieren":
-        case "code":
-        fileIcon = "resources/folder-coding.png";
-        break;
-        case "werkzeuge":
-        case "tools":
-        fileIcon = "resources/folder-tools.png";
-        break;
-        case "public":
-        case "öffentlich":
-        case "shared":
-        case "geteilt":
-        fileIcon = "resources/folder-public.png";
-        break;
-        case "games":
-        case "gaming":
-        case "spiele":
-        fileIcon = "resources/folder-games.png";
-        break;
-        case "developer":
-        case "entwickler":
-        case "entwicklung":
-        case "development":
-        fileIcon = "resources/folder-development.png";
-        break;
-        case "applications":
-        case "programme":
-        fileIcon = "resources/folder-applications.png";
-        break;
-        case "sdk":
-        case "sdks":
-        fileIcon = "resources/folder-sdk.png";
-        default:
-        fileIcon = "resources/folder-icon.png";
-        break;
-      }
-    } else {
-      switch (item.extension.toLowerCase()) {
-        case ".rs":
-        fileIcon = "resources/rust-file.png";
-        break;
-        case ".js":
-        case ".jsx":
-        fileIcon = "resources/javascript-file.png";
-        break;
-        case ".css":
-        case ".scss":
-        fileIcon = "resources/css-file.png";
-        break;
-        case ".sql":
-        case ".db":
-        fileIcon = "resources/sql-file.png";
-        break;
-        case ".go":
-        fileIcon = "resources/go-file.png";
-        break;
-        case ".md":
-        fileIcon = "resources/markdown-file.png";
-        break;
-        case ".bin":
-        fileIcon = "resources/bin-file.png";
-        break;
-        case ".json":
-        case ".cs":
-        case ".c":
-        case ".xml":
-        case ".htm":
-        case ".html":
-        case ".php":
-        case ".py":
-        case ".ts":
-        case ".tsx":
-        fileIcon = "resources/code-file.png";
-        break;
-        case ".png":
-        case ".jpg":
-        case ".jpeg":
-        case ".gif":
-        case ".webp":
-        case ".svg":
-        case ".ico":
-        case ".bmp":
-        case ".tiff":
-        case ".tif":
-        case ".jfif":
-        case ".avif":
-        case ".icns":
-        if (IsImagePreview) {
-          if (item.size < 10000000 && items.length < 1000) { // ~10 mb
-            fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
-          } else {
-            fileIcon = "resources/img-file.png";
-          }
-        } else {
-          fileIcon = "resources/img-file.png";
-        }
-        break;
-        case ".pdf":
-        if (IsImagePreview) {
-          if (item.size < 5000000) { // ~5 mb
-            fileIcon = convertFileSrc(item.path); // Beispiel für die Verwendung der Funktion
-          }
-        } else {
-          fileIcon = "resources/pdf-file.png";
-        }
-        break;
-        case ".txt":
-        case ".rtf":
-        fileIcon = "resources/text-file.png";
-        break;
-        case ".docx":
-        case ".doc":
-        fileIcon = "resources/word-file.png";
-        break;
-        case ".zip":
-        case ".rar":
-        case ".tar":
-        case ".zst":
-        case ".7z":
-        case ".gz":
-        case ".xz":
-        case ".bz2":
-        case ".lz":
-        case ".lz4":
-        case ".lzma":
-        case ".lzo":
-        case ".z":
-        case ".zstd":
-        case ".br":
-        fileIcon = "resources/zip-file.png";
-        break;
-        case ".xlsx":
-        fileIcon = "resources/spreadsheet-file.png";
-        break;
-        case ".appimage":
-        fileIcon = "resources/appimage-file.png";
-        break;
-        case ".mp4":
-        case ".mkv":
-        case ".avi":
-        case ".mov":
-        case ".wmv":
-        case ".flv":
-        case ".webm":
-        fileIcon = "resources/video-file.png";
-        break;
-        case ".mp3":
-        case ".wav":
-        case ".ogg":
-        case ".opus":
-        fileIcon = "resources/audio-file.png";
-        break;
-        case ".iso":
-        fileIcon = "resources/iso-file.png";
-        break;
-        default:
-        fileIcon = "resources/file-icon.png";
-        break;
-      }
-    }
+    fileIcon = getIconForFile(item, items.length);
+
+    itemLink.setAttribute("itemicon", fileIcon);
     itemLink.className = "item-link directory-entry";
+
     if (ViewMode == "wrap") {
       var itemButton = document.createElement("div");
       itemButton.innerHTML = `
-        <img id="${itemIconId}" decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" loading="lazy" />
+        <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+        <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="${iconSize}" height="${iconSize}" loading="lazy" />
         <p class="item-button-text" style="text-align: left;">${item.name}</p>
         `;
       itemButton.className = "item-button directory-entry";
@@ -1125,13 +1089,17 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     } else if (ViewMode == "column") {
       var itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
-        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
-        <img id="${itemIconId}" decoding="async" class="item-icon" src="${fileIcon}" width="32px" height="32px" loading="lazy"/>
-        <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; min-width: 0; width: fit-content; max-width: 500px; overflow: hidden;">
+          <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+          <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
+          <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
         </span>
-        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
-        <p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
-        <p class="item-button-list-text" style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: fit-content; justify-content: flex-end; padding-right: 5px;">
+          <p class="item-button-list-text" style="width: 100%; text-align: right;">${item.last_modified}</p>
+          <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
+       			<span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
+       			<i class="fa-solid fa-cube"></i>
+      		</div>
         </span>
         `;
       if (dualPaneSide != null && dualPaneSide != "") {
@@ -1142,12 +1110,12 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       itemLink.append(itemButtonList);
       DirectoryList.style.gridTemplateColumns = "unset";
       DirectoryList.style.rowGap = "2px";
-    }
-    else if (ViewMode == "miller") {
+    } else if (ViewMode == "miller") {
       var itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
         <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
-        <img id="${itemIconId}" decoding="async" class="item-icon" src="${fileIcon}" width="24px" height="24px" loading="lazy"/>
+        <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+        <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="24px" height="24px" loading="lazy"/>
         <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
         </span>
         `;
@@ -1160,54 +1128,30 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
       DirectoryList.style.gridTemplateColumns = "unset";
       DirectoryList.style.rowGap = "1px";
     }
-    DirectoryList.append(itemLink);
+    // DirectoryList.append(itemLink);
+    docFragment.append(itemLink);
     ArrDirectoryItems.push(itemLink);
-
-    // let itemIconElement = document.getElementById(itemIconId);
-    // if (itemIconElement) {
-    //   if (item.size > 10000000) { // ~10 mb
-    //     item.src = convertFileSrc(await getThumbnail(item.path));
-    //   }
-    // }
   });
-  DirectoryList.querySelectorAll("#item-link").forEach((item) => {
+  DirectoryList.append(docFragment);
+  DirectoryList.querySelectorAll(".item-link").forEach(async (item) => {
     // Start dragging item
-    item.ondragstart = async (e) => {
-      e.preventDefault();
-      IsFileOpIntern = true;
-      let icon = DefaultFileIcon;
-      if (item.getAttribute("itemisdir") == 1) {
-        icon = DefaultFolderIcon;
-      }
-      if (
-        ArrSelectedItems.find(
-          (itemOfArray) =>
-          itemOfArray.getAttribute("itempath") ==
-          item.getAttribute("itempath"),
-        ) == null ||
-        ArrSelectedItems.length == 0
-      ) {
-        ArrSelectedItems.push(item);
-      }
-      let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
-      if (
-        Platform != "darwin" &&
-        (Platform.includes("win") || Platform.includes("linux"))
-      ) {
-        await startDrag({ item: arr, icon: icon });
-        await resetEverything();
-      } else {
-        await startDrag({ item: arr, icon: icon });
-        await resetEverything();
-      }
+    item.ondragstart = (e) => {
+      handleDragStart(e, item);
     };
+    item.addEventListener("mousedown", (e) => {
+      if (e.button === 0 && ds) {
+        ds.break();
+      }
+    });
     // Accept file drop into folders
     item.addEventListener("dragover", (e) => {
       MousePos = [e.clientX, e.clientY];
       if (item.getAttribute("itemisdir") == "1") {
-        if (!ArrSelectedItems.includes(item)) {
-          item.style.border = "1px solid var(--tertiaryColor)";
-          item.style.backgroundColor = "var(--primaryColor)";
+        if (!ArrSelectedItems.includes(item))
+          item.style.border = "1px solid var(--selectColor2)";
+        {
+          item.style.backgroundColor = "var(--selectColor3)";
+          item.style.scale = "1";
           DraggedOverElement = item;
         }
       }
@@ -1215,26 +1159,25 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     item.addEventListener("dragleave", () => {
       item.style.border = "1px solid transparent";
       item.style.backgroundColor = "1px solid var(--transparentColor)";
+      item.style.scale = "1";
     });
-    // :item_right_click :context_menu | showItems()
+    // :item_right_click :context_menu / showItems()
     // Open context menu when right-clicking on file/folder
-    item.addEventListener("contextmenu", async (e) => {
-      e.preventDefault();
-      if (IsPopUpOpen == false && IsInputFocused == false) {
-        setupItemContextMenu(item, e);
-      }
+    item.addEventListener("contextmenu", (e) => {
+      cdCtMenu.setSelectedItem(item);
+      cdCtMenu.show(e);
     });
 
-    // :thumbnail :set_thubnail | Set thumbnail image
-    (async () => {
-      if (isImage(item.getAttribute("itemext"))) {
-        // if (item.getAttribute("itemrawsize") > 10000000) { // ~10 mb
-        //   item.querySelector("img").src = convertFileSrc(await getThumbnail(item.getAttribute("itempath")));
-        // }
-      } else if (item.getAttribute("itemext") == ".app") {
-        item.querySelector("img").src = convertFileSrc(await invoke("get_app_icns", { path: item.getAttribute("itempath") }));
-      }
-    })();
+    // :thumbnail :set_thumbnail | Set thumbnail image
+    if (isImage(item.getAttribute("itemext"))) {
+      // if (item.getAttribute("itemrawsize") > 50000000) { // ~50 mb
+      //   item.querySelector("img").src = convertFileSrc(await getThumbnail(item.getAttribute("itempath")));
+      // }
+    } else if (item.getAttribute("itemext") == ".app") {
+      item.querySelector("img").src = convertFileSrc(
+        await invoke("get_app_icns", { path: item.getAttribute("itempath") }),
+      );
+    }
   });
   if (IsDualPaneEnabled == true) {
     if (dualPaneSide == "left") {
@@ -1258,26 +1201,56 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
   ds.setSettings({
     selectables: document.querySelectorAll(".item-link"),
     area: document.querySelector(".explorer-container"),
-    draggability: false
+    draggability: false,
   });
   closeLoadingPopup();
+
+  // Load all the item images after items were added to the view to avoid lag / frozen application
+  let arrItems = document.querySelectorAll(".item-link");
+  arrLoadItemImage(arrItems);
 }
 
-listen("addSingleItem", async (item) => {
-  item = JSON.parse(item.payload);
-  // We need to wait here, otherwise the function won't be triggered
-  setTimeout(async () => {
-    if (IsDualPaneEnabled == true) {
-      await addSingleItem(item, SelectedItemPaneSide);
-    } else {
-      await addSingleItem(item);
-    }
-  }, 10);
-});
+function arrLoadItemImage(arrItems, isSingle = false) {
+  let arr = Array.from(arrItems).map((item) => {
+    return {
+      image_id: item.getAttribute("itemiconid"),
+      image_url: item.getAttribute("itemicon"),
+      image_type: item.getAttribute("itemext").replace(".", "").toLowerCase(),
+    };
+  });
+  invoke("load_item_image", {
+    arrItems: arr,
+    isSingle: isSingle,
+  });
+}
 
-async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex = 0) {
+function writeToLocalStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.error("Error writing image to local storage:", error);
+  }
+}
+
+function readFromLocalStorage(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.error("Error reading image from local storage:", error);
+  }
+}
+
+async function addSingleItem(
+  item,
+  dualPaneSide = "",
+  millerCol = 1,
+  itemIndex = 0,
+) {
   if (IsShowHiddenFiles === false) {
-    if (item.name.startsWith(".") == true || item.name.toLowerCase().includes("desktop.ini")) {
+    if (
+      item.name.startsWith(".") == true ||
+      item.name.toLowerCase().includes("desktop.ini")
+    ) {
       return;
     }
   }
@@ -1305,6 +1278,8 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
     "onclick",
     "interactWithItem(this, '" + dualPaneSide + "')",
   );
+  let itemIconId = crypto.randomUUID();
+  itemLink.setAttribute("itemiconid", itemIconId);
   itemLink.setAttribute("itempath", item.path);
   itemLink.setAttribute("itemindex", FoundItemsCountIndex++);
   itemLink.setAttribute("itempaneside", dualPaneSide);
@@ -1315,202 +1290,20 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
   itemLink.setAttribute("itemrawsize", item.size);
   itemLink.setAttribute("itemmodified", item.last_modified);
   itemLink.setAttribute("draggable", true);
-  itemLink.setAttribute("id", "item-link");
   itemLink.setAttribute("itemformillercol", parseInt(millerCol) + 1);
 
   let fileIcon = "resources/file-icon.png"; // Default
   let iconSize = "56px";
-  if (item.is_dir == 1) {
-    fileIcon = "resources/folder-icon.png";
-    // Check for dir name to apply custom icons
-    if (item.name.toLowerCase().includes("downloads")) {
-      fileIcon = "resources/folder-downloads.png";
-    } else if (
-      item.name.toLowerCase().includes("desktop") ||
-      item.name.toLowerCase().includes("schreibtisch")
-    ) {
-      fileIcon = "resources/folder-desktop.png";
-    } else if (
-      item.name.toLowerCase().includes("dokumente") ||
-      item.name.toLowerCase().includes("documents") ||
-      item.name.toLowerCase().includes("docs")
-    ) {
-      fileIcon = "resources/folder-docs.png";
-    } else if (
-      item.name.toLowerCase().includes("musik") ||
-      item.name.toLowerCase().includes("music")
-    ) {
-      fileIcon = "resources/folder-music.png";
-    } else if (
-      item.name.toLowerCase().includes("bilder") ||
-      item.name.toLowerCase().includes("pictures") ||
-      item.name.toLowerCase().includes("images")
-    ) {
-      fileIcon = "resources/folder-images.png";
-    } else if (
-      item.name.toLowerCase().includes("videos") ||
-      item.name.toLowerCase().includes("movies") ||
-      item.name.toLowerCase().includes("films") ||
-      item.name.toLowerCase().includes("filme")
-    ) {
-      fileIcon = "resources/folder-videos.png";
-    } else if (
-      item.name.toLowerCase().includes("coding") ||
-      item.name.toLowerCase().includes("programming") ||
-      item.name.toLowerCase().includes("programmieren") ||
-      item.name.toLowerCase().includes("code")
-    ) {
-      fileIcon = "resources/folder-coding.png";
-    } else if (
-      item.name.toLowerCase().includes("werkzeuge") ||
-      item.name.toLowerCase().includes("tools")
-    ) {
-      fileIcon = "resources/folder-tools.png";
-    } else if (
-      item.name.toLowerCase().includes("public") ||
-      item.name.toLowerCase().includes("öffentlich") ||
-      item.name.toLowerCase().includes("shared") ||
-      item.name.toLowerCase().includes("geteilt")
-    ) {
-      fileIcon = "resources/folder-public.png";
-    } else if (
-      item.name.toLowerCase().includes("games") ||
-      item.name.toLowerCase().includes("spiele")
-    ) {
-      fileIcon = "resources/folder-games.png";
-    } else if (
-      item.name.toLowerCase().includes("developer") ||
-      item.name.toLowerCase().includes("development")
-    ) {
-      fileIcon = "resources/folder-development.png";
-    }
-  } else {
-    switch (item.extension) {
-      case ".rs":
-      fileIcon = "resources/rust-file.png";
-      break;
-      case ".js":
-      case ".jsx":
-      fileIcon = "resources/javascript-file.png";
-      break;
-      case ".css":
-      case ".scss":
-      fileIcon = "resources/css-file.png";
-      break;
-      case ".sql":
-      case ".db":
-      fileIcon = "resources/sql-file.png";
-      break;
-      case ".go":
-      fileIcon = "resources/go-file.png";
-      break;
-      case ".md":
-      fileIcon = "resources/markdown-file.png";
-      break;
-      case ".bin":
-      fileIcon = "resources/bin-file.png";
-      break;
-      case ".json":
-      case ".cs":
-      case ".c":
-      case ".xml":
-      case ".htm":
-      case ".html":
-      case ".php":
-      case ".py":
-      case ".ts":
-      case ".tsx":
-      fileIcon = "resources/code-file.png";
-      break;
-      case ".png":
-      case ".jpg":
-      case ".jpeg":
-      case ".gif":
-      case ".webp":
-      case ".svg":
-      case ".ico":
-      case ".bmp":
-      case ".tiff":
-      case ".tif":
-      case ".jfif":
-      case ".avif":
-      case ".icns":
-      if (IsImagePreview) {
-    				if (item.size < 10000000) { // ~10 mb
-     					fileIcon = convertFileSrc(item.path);
-    				}
-        else {
-          fileIcon = "resources/img-file.png";
-        }
-      } else {
-        fileIcon = "resources/img-file.png";
-      }
-      break;
-      case ".pdf":
-      if (IsImagePreview) {
-        fileIcon = convertFileSrc(item.path);
-      } else {
-        fileIcon = "resources/pdf-file.png";
-      }
-      break;
-      case ".txt":
-      fileIcon = "resources/text-file.png";
-      break;
-      case ".docx":
-      case ".doc":
-      fileIcon = "resources/word-file.png";
-      break;
-      case ".zip":
-      case ".rar":
-      case ".tar":
-      case ".zst":
-      case ".7z":
-      case ".gz":
-      case ".xz":
-      case ".bz2":
-      case ".lz":
-      case ".lz4":
-      case ".lzma":
-      case ".lzo":
-      case ".z":
-      case ".zstd":
-      case ".br":
-      fileIcon = "resources/zip-file.png";
-      break;
-      case ".xlsx":
-      fileIcon = "resources/spreadsheet-file.png";
-      break;
-      case ".appimage":
-      fileIcon = "resources/appimage-file.png";
-      break;
-      case ".mp4":
-      case ".mkv":
-      case ".avi":
-      case ".mov":
-      case ".wmv":
-      case ".flv":
-      case ".webm":
-      fileIcon = "resources/video-file.png";
-      break;
-      case ".mp3":
-      case ".wav":
-      case ".ogg":
-      case ".opus":
-      fileIcon = "resources/audio-file.png";
-      break;
-      case ".iso":
-      fileIcon = "resources/iso-file.png";
-      break;
-      default:
-      fileIcon = "resources/file-icon.png";
-      break;
-    }
-  }
+  fileIcon = getIconForFile(item, 1);
+
+  itemLink.setAttribute("itemicon", fileIcon);
   itemLink.className = "item-link directory-entry";
+
   if (ViewMode == "wrap") {
     var itemButton = document.createElement("div");
     itemButton.innerHTML = `
-      <img decoding="async" class="item-icon" src="${fileIcon}" width="${iconSize}" height="${iconSize}" loading="lazy" />
+      <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+      <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="${iconSize}" height="${iconSize}" loading="lazy" />
       <p class="item-button-text" style="text-align: left;">${item.name}</p>
       `;
     itemButton.className = "item-button directory-entry";
@@ -1523,13 +1316,17 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
   } else if (ViewMode == "column") {
     var itemButtonList = document.createElement("div");
     itemButtonList.innerHTML = `
-      <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 400px; overflow: hidden;">
-      <img decoding="async" class="item-icon" src="${fileIcon}" width="32px" height="32px" loading="lazy"/>
-      <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+      <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 500px; overflow: hidden;">
+        <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+        <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
+        <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
       </span>
       <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
-      <p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
-      <p class="item-button-list-text" style="width: 75px; text-align: right;">${formatBytes(parseInt(item.size), 2)}</p>
+        <p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
+        <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
+     			<span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
+     			<i class="fa-solid fa-cube"></i>
+    		</div>
       </span>
       `;
     if (dualPaneSide != null && dualPaneSide != "") {
@@ -1540,41 +1337,19 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
     itemLink.append(itemButtonList);
     $(".directory-list").css("gridTemplateColumns", "unset");
     $(".directory-list").css("rowGap", "2px");
-  }
-  if (ViewMode == "miller") {
+  } else if (ViewMode == "miller") {
     $(".directory-list").style.gridTemplateColumns = "unset";
     $(".directory-list").style.rowGap = "1px";
   }
   // Start dragging item
-  itemLink.ondragstart = async (e) => {
-    e.preventDefault();
-    IsFileOpIntern = true;
-    let icon = DefaultFileIcon;
-    if (itemLink.getAttribute("itemisdir") == 1) {
-      icon = DefaultFolderIcon;
-    }
-    if (
-      ArrSelectedItems.find(
-        (itemOfArray) =>
-        itemOfArray.getAttribute("itempath") ==
-        itemLink.getAttribute("itempath"),
-      ) == null ||
-      ArrSelectedItems.length == 0
-    ) {
-      ArrSelectedItems.push(itemLink);
-    }
-    let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
-    if (
-      Platform != "darwin" &&
-      (Platform.includes("win") || Platform.includes("linux"))
-    ) {
-      await startDrag({ item: arr, icon: "" });
-      unSelectAllItems();
-    } else {
-      await startDrag({ item: arr, icon: icon });
-      unSelectAllItems();
-    }
+  itemLink.ondragstart = (e) => {
+    handleDragStart(e, itemLink);
   };
+  itemLink.addEventListener("mousedown", (e) => {
+    if (e.button === 0 && ds) {
+      ds.break();
+    }
+  });
   // Accept file drop into folders
   itemLink.addEventListener("dragover", (e) => {
     MousePos = [e.clientX, e.clientY];
@@ -1590,13 +1365,11 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
     itemLink.style.opacity = "1";
     itemLink.style.border = "1px solid transparent";
   });
-  // :item_right_click :context_menu | AddSingleItem()
+  // :item_right_click :context_menu | addSingleItem()
   // Open context menu when right-clicking on file/folder
-  itemLink.addEventListener("contextmenu", async (e) => {
-    e.preventDefault();
-    if (IsPopUpOpen == false && IsInputFocused == false) {
-      setupItemContextMenu(itemLink, e);
-    }
+  itemLink.addEventListener("contextmenu", (e) => {
+    cdCtMenu.setSelectedItem(itemLink);
+    cdCtMenu.show(e);
   });
 
   if (IsDualPaneEnabled === true) {
@@ -1609,11 +1382,13 @@ async function addSingleItem(item, dualPaneSide = "", millerCol = 1, itemIndex =
       RightPaneItemCollection = document.querySelector(".dual-pane-right");
       goUp(false, true);
     }
-  }
-  else {
+  } else {
     $(".directory-list").append(itemLink);
   }
   ArrDirectoryItems.push(itemLink);
+
+  // Load the item image after it was added to the view to avoid lag / frozen application
+  arrLoadItemImage([itemLink], true);
 }
 
 async function getCurrentDir() {
@@ -1621,102 +1396,129 @@ async function getCurrentDir() {
 }
 
 async function setCurrentDir(currentDir = "", dualPaneSide = "") {
-  if (currentDir == "") return;
+  try {
+    if (currentDir == "") return;
 
-  if (dualPaneSide != "") {
-    SelectedItemPaneSide = dualPaneSide;
-  }
-
-  await invoke("set_dir", { currentDir }).then(async (isSuccess) => {
-    if (isSuccess === false) {
-      alert("Switching directory failed. Probably no permissions.");
-      return;
+    if (dualPaneSide != "") {
+      SelectedItemPaneSide = dualPaneSide;
     }
 
-    // Setting the current path on the bottom
-    updateCurrentPath(currentDir, dualPaneSide);
-  });
+    await invoke("set_dir", { currentDir }).then(async (isSuccess) => {
+      if (isSuccess === false) {
+        alert("Switching directory failed. Probably no permissions.");
+        return;
+      }
 
-  if (dualPaneSide == "left") {
-    LeftDualPanePath = currentDir;
-    $(".dual-pane-left").css("box-shadow", "inset 0px 0px 30px 3px var(--transparentColorActive)");
-    $(".dual-pane-right").css("box-shadow", "none");
-  } else if (dualPaneSide == "right") {
-    RightDualPanePath = currentDir;
-    $(".dual-pane-right").css("box-shadow", "inset 0px 0px 30px 3px var(--transparentColorActive)");
-    $(".dual-pane-left").css("box-shadow", "none");
+      // Setting the current path on the bottom
+      updateCurrentPath(currentDir, dualPaneSide);
+    });
+
+    if (dualPaneSide == "left") {
+      LeftDualPanePath = currentDir;
+      $(".dual-pane-left").css(
+        "box-shadow",
+        "inset 0px 0px 30px 3px var(--transparentColorActive)",
+      );
+      $(".dual-pane-right").css("box-shadow", "none");
+    } else if (dualPaneSide == "right") {
+      RightDualPanePath = currentDir;
+      $(".dual-pane-right").css(
+        "box-shadow",
+        "inset 0px 0px 30px 3px var(--transparentColorActive)",
+      );
+      $(".dual-pane-left").css("box-shadow", "none");
+    }
+  } catch (e) {
+    writeLog(e);
   }
 }
 
 function updateCurrentPath(currentDir, dualPaneSide) {
-  CurrentDir = currentDir;
-  let currentDirContainer = document.querySelector(".current-path");
-  currentDirContainer.innerHTML = "";
-  let currentPathTracker = "/";
-  if (Platform != "darwin" && Platform.includes("win")) {
-    currentPathTracker = "";
-  }
-
-  if (currentDir.endsWith("/")) {
-    currentDir = currentDir.substring(currentDir.length - 1);
-  }
-
-  if (currentDir.startsWith("/")) {
-    currentDir = currentDir.substring(1, currentDir.length);
-  }
-
-  let counter = 0;
-
-  currentDir.split("/").forEach((path) => {
-    if (path == "") return;
-    let pathItem = document.createElement("button");
-    pathItem.textContent = path;
-    pathItem.className = "path-item";
-    currentPathTracker += path + "/";
-    pathItem.setAttribute("itempath", currentPathTracker);
-    pathItem.setAttribute("itempaneside", dualPaneSide);
-    pathItem.setAttribute("itemisdir", 1);
-    pathItem.setAttribute(
-      "onClick",
-      "openItem(this, '" + dualPaneSide + "', '')",
-    );
-    pathItem.ondragover = (e) => {
-      MousePos = [e.clientX, e.clientY-60];
-      e.preventDefault();
-      pathItem.style.border = "2px solid var(--secondaryColor)";
-      pathItem.style.backgroundColor = "var(--tertiaryColor)";
-      DraggedOverElement = pathItem;
+  try {
+    CurrentDir = currentDir;
+    let currentDirContainer = document.querySelector(".current-path");
+    currentDirContainer.innerHTML = "";
+    let currentPathTracker = "/";
+    if (Platform != "darwin" && Platform.includes("win")) {
+      currentPathTracker = "";
     }
-    pathItem.ondragleave = (e) => {
-      e.preventDefault();
-      pathItem.style.opacity = 1;
-      pathItem.style.border = "2px solid transparent";
-      pathItem.style.backgroundColor = "var(--transparentColor)";
+
+    if (currentDir.endsWith("/")) {
+      currentDir = currentDir.substring(currentDir.length - 1);
     }
-    let divider = document.createElement("i");
-    divider.className = "fa fa-chevron-right";
-    divider.style.color = "var(--textColor)";
-    divider.style.fontSize = "10px";
-    if (counter > 0) { 
-      currentDirContainer.appendChild(divider);
+
+    if (currentDir.startsWith("/")) {
+      currentDir = currentDir.substring(1, currentDir.length);
     }
-    currentDirContainer.appendChild(pathItem);
-    counter++;
-  });
+
+    let counter = 0;
+
+    currentDir.split("/").forEach((path) => {
+      if (path == "") return;
+      let pathItem = document.createElement("button");
+      pathItem.textContent = path;
+      pathItem.className = "path-item";
+      currentPathTracker += path + "/";
+      pathItem.setAttribute(
+        "itempath",
+        currentPathTracker.endsWith("/")
+          ? currentPathTracker.substring(0, currentPathTracker.length - 1)
+          : currentPathTracker,
+      );
+      pathItem.setAttribute("itempaneside", dualPaneSide);
+      pathItem.setAttribute("itemisdir", 1);
+      pathItem.setAttribute(
+        "onClick",
+        "openItem(this, '" + dualPaneSide + "', '')",
+      );
+      pathItem.ondragover = (e) => {
+        MousePos = [e.clientX, e.clientY - 60];
+        e.preventDefault();
+        pathItem.style.border = "2px solid var(--selectColor)";
+        pathItem.style.backgroundColor = "var(--tertiaryColor)";
+        pathItem.style.scale = "1.05";
+        DraggedOverElement = pathItem;
+      };
+      pathItem.ondragleave = (e) => {
+        e.preventDefault();
+        pathItem.style.opacity = 1;
+        pathItem.style.border = "2px solid transparent";
+        pathItem.style.backgroundColor = "var(--transparentColor)";
+        pathItem.style.scale = "1";
+      };
+      let divider = document.createElement("i");
+      divider.className = "fa fa-chevron-right";
+      divider.style.color = "var(--textColor)";
+      divider.style.fontSize = "10px";
+      if (counter > 0) {
+        currentDirContainer.appendChild(divider);
+      }
+      currentDirContainer.appendChild(pathItem);
+      counter++;
+    });
+  } catch (e) {
+    writeLog(e);
+  }
 }
 
 async function deleteItems() {
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   let msg = "Do you really want to delete:<br/><br/>";
   for (let i = 0; i < ArrSelectedItems.length; i++) {
     if (i == 0) {
-      msg += "<span class='confirm-popup-item'>" + ArrSelectedItems[i].getAttribute("itemname") + "</span>";
+      msg +=
+        "<span class='confirm-popup-item'>" +
+        ArrSelectedItems[i].getAttribute("itemname") +
+        "</span>";
     } else {
-      msg += "<br/><span class='confirm-popup-item'>" + ArrSelectedItems[i].getAttribute("itemname") + "</span>";
+      msg +=
+        "<br/><span class='confirm-popup-item'>" +
+        ArrSelectedItems[i].getAttribute("itemname") +
+        "</span>";
     }
   }
   let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
-  let isConfirm = await confirmPopup(msg, PopupType.DELETE);
+  let isConfirm = await showPopup(msg, PopupType.DELETE);
   if (isConfirm == true) {
     let actionId = new Date().getMilliseconds();
     createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
@@ -1725,7 +1527,9 @@ async function deleteItems() {
       await invoke("delete_item", { actFileName });
     }
     IsCopyToCut = false;
-    await listDirectories();
+    if (Platform != "darwin") {
+      await listDirectories();
+    }
     ArrSelectedItems = [];
     showToast("Deletion of items is done", ToastType.INFO);
     removeAction(actionId);
@@ -1757,7 +1561,7 @@ async function copyItem(item, toCut = false, fromInternal = false) {
       item.style.filter = "blur(2px)";
     }
   }
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   await writeText(CopyFilePath);
   if (toCut == true) {
     IsCopyToCut = true;
@@ -1768,11 +1572,16 @@ async function copyItem(item, toCut = false, fromInternal = false) {
 
 async function extractItem(item) {
   let compressFilePath = item.getAttribute("itempath");
-  let compressFileName = compressFilePath.split("/")[compressFilePath.split("/").length - 1].replace("'", "");
-  ContextMenu.style.display = "none";
-  let isExtracting = await confirmPopup("Do you want to extract " + compressFileName + "?", PopupType.EXTRACT);
+  let compressFileName = compressFilePath
+    .split("/")
+    [compressFilePath.split("/").length - 1].replace("'", "");
+  // ContextMenu.style.display = "none";
+  let isExtracting = await showPopup(
+    "Do you want to extract " + compressFileName + "?",
+    PopupType.EXTRACT,
+  );
   if (isExtracting == true) {
-    ContextMenu.style.display = "none";
+    // ContextMenu.style.display = "none";
     let extractFilePath = item.getAttribute("itempath");
     let extractFileName = item.getAttribute("itemname");
     if (extractFileName != "") {
@@ -1786,52 +1595,65 @@ async function extractItem(item) {
 
 async function showCompressPopup(item) {
   IsPopUpOpen = true;
-  ContextMenu.style.display = "none";
   let arrCompressItems = ArrSelectedItems;
   if (ArrSelectedItems.length > 1) {
     arrCompressItems = ArrSelectedItems;
   } else {
     arrCompressItems = [item];
   }
-  let compressFileName = "";
+  let compressFileNames = "";
   if (arrCompressItems.length > 1) {
     for (let i = 0; i < arrCompressItems.length; i++) {
-      compressFileName += arrCompressItems[i].getAttribute("itemname") + "<br>";
+      compressFileNames +=
+        "<h5 style='max-width: 50vw; overflow-x: hidden; padding-right: 5px; text-overflow: ellipsis'>" +
+        arrCompressItems[i].getAttribute("itemname") +
+        "</h5>";
     }
   } else {
-    compressFileName = item.getAttribute("itemname");
+    compressFileNames = item.getAttribute("itemname");
   }
-  if (compressFileName != "") {
+  if (compressFileNames != "") {
     let popup = document.createElement("div");
+    popup.className = "uni-popup compression-popup";
     popup.innerHTML = `
       <div class="popup-header">
-      <i class="fa-solid fa-compress"></i>
-      <h3>Compression options</h3>
+        <i class="fa-solid fa-compress"></i>
+        <h3>Compression options</h3>
       </div>
-      <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
-      <p class="text-2">Selected item</p>
-      <h5>${compressFileName}</h5>
+      <div style="padding: 10px 5px 0 10px; border-bottom: 1px solid var(--tertiaryColor);">
+        <p class="text-2">Selected item(s)</p>
+        <br/>
+        <div style="max-height: 50vh; max-width: 50vw; overflow-y: auto; overflow-x: hidden; text-overflow: ellipsis; white-space: nowrap">
+          ${compressFileNames}
+        </div>
+        <br/>
       </div>
       <div class="popup-body">
-      <div class="popup-body-row-section">
-      <div class="popup-body-col-section" style="width: 100%;">
-      <p class="text-2">Level (0 - 9)</p>
-      <input class="text-input compression-popup-level-input" type="number" value="6" placeholder="0 - 9" />
-      </div>
-      </div>
+        <div class="popup-body-row-section">
+          <div class="popup-body-col-section" style="width: 50%;">
+            <input class="text-input compression-popup-level-input" type="number" value="1" placeholder="Default: 1" />
+          </div>
+          <div class="popup-body-col-section" style="width: 50%;">
+            <select class="select compression-popup-type-select">
+              <option value="zstd">Zstd (Level -7 - 22)</option>
+              <option value="zip">Zip (Level 1 - 9)</option>
+              <option value="density">Density (Level 1 - 3)</option>
+              <option value="br">Brotli (Level 1)</option>
+            </select>
+          </div>
+        </div>
       </div>
       <div class="popup-controls">
-      <button class="icon-button" onclick="closeCompressPopup()">
-      <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-      Close
-      </button>
-      <button class="icon-button compress-item-button">
-      <div class="button-icon"><i class="fa-solid fa-minimize"></i></div>
-      Compress
-      </button>
+        <button class="icon-button" onclick="closeCompressPopup()">
+          <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+          Close
+        </button>
+        <button class="icon-button compress-item-button">
+          <div class="button-icon"><i class="fa-solid fa-minimize"></i></div>
+          Compress
+        </button>
       </div>
       `;
-    popup.className = "uni-popup compression-popup";
     document.querySelector("body").append(popup);
     document
       .querySelector(".compress-item-button")
@@ -1839,6 +1661,7 @@ async function showCompressPopup(item) {
         await compressItem(
           arrCompressItems,
           $(".compression-popup-level-input").val(),
+          $(".compression-popup-type-select").val(),
         );
       });
     $(".compression-popup-level-input").on(
@@ -1860,35 +1683,103 @@ async function showCompressPopup(item) {
   }
 }
 
-async function compressItem(arrItems, compressionLevel = 3) {
+async function compressItem(
+  arrItems,
+  compressionLevel = 6,
+  compressionType = "zip",
+) {
+  if (
+    compressionType == "zip" &&
+    (compressionLevel > 9 || compressionLevel < 1)
+  ) {
+    alert("Compression level must be between 1 and 9");
+    return;
+  } else if (
+    compressionType == "zstd" &&
+    (compressionLevel > 22 || compressionLevel < -7)
+  ) {
+    alert("Compression level must be between -7 and 22");
+    return;
+  } else if (compressionType == "br" && compressionLevel != 1) {
+    alert("Compression level must be 1");
+    return;
+  }
   closeCompressPopup();
+
+  let actionId = crypto.randomUUID();
+
+  createNewAction(
+    actionId,
+    arrItems.length == 1 ? arrItems[0].getAttribute("itemname") : "Archive",
+    arrItems.length == 1
+      ? "into " + compressionType + " with level " + compressionLevel
+      : "Archive",
+    arrItems.length == 1 ? arrItems[0].getAttribute("itempath") : null,
+  );
+
+  // Update the file size info of the file which is being compressed
   if (arrItems.length > 1) {
-    ContextMenu.style.display = "none";
+    var filePath = CurrentDir + "/compressed_items_archive." + compressionType;
+  } else {
+    var filePath =
+      arrItems[0].getAttribute("itempath") +
+      (compressionType == "br" ? ".tar" : "") +
+      "." +
+      compressionType;
+  }
+  let isCompressingDone = false;
+  let intervalId = setInterval(async () => {
+    if (!isCompressingDone) {
+      try {
+        var item = await invoke("get_single_item_info", {
+          path: filePath,
+        });
+      } catch (error) {
+        if (error.includes("No such file or directory")) {
+          return;
+        }
+        console.log(error);
+        isCompressingDone = true;
+        showToast("Compressing stopped", ToastType.ERROR);
+        clearInterval(intervalId);
+        removeAction(actionId);
+        return;
+      }
+      let itemSize = document.getElementById(`size-${filePath}`);
+      if (itemSize) {
+        itemSize.textContent = formatBytes(parseInt(item.size), 2);
+      }
+    } else {
+      clearInterval(intervalId);
+    }
+  }, 200);
+
+  if (arrItems.length > 1) {
     await invoke("arr_compress_items", {
       arrItems: arrItems.map((item) => item.getAttribute("itempath")),
       compressionLevel: parseInt(compressionLevel),
-      appWindow
+      compressionType: compressionType,
+      intervalId: intervalId,
     });
     await listDirectories();
-    showToast("Compressing done", ToastType.INFO);
   } else {
     let item = arrItems[0];
     let compressFilePath = item.getAttribute("itempath");
     let compressFileName = item.getAttribute("itemname");
     if (compressFileName != "") {
-      // open compressing... popup
-      ContextMenu.style.display = "none";
       SelectedItemPaneSide = item.getAttribute("itempaneside");
       await invoke("compress_item", {
         fromPath: compressFilePath,
         compressionLevel: parseInt(compressionLevel),
+        compressionType: compressionType,
         pathToZip: compressFilePath,
-        appWindow
+        intervalId: intervalId,
       });
       await listDirectories();
-      showToast("Compressing done", ToastType.INFO);
     }
   }
+  isCompressingDone = true;
+  removeAction(actionId);
 }
 
 async function closeCompressPopup() {
@@ -1944,39 +1835,272 @@ function closeInputPopup() {
   IsInputFocused = false;
 }
 
+function normalizePath(path = "") {
+  return String(path ?? "").replaceAll("\\", "/").replace(/\/+$/, "");
+}
+
+function parentPath(path = "") {
+  let normalized = normalizePath(path);
+  let index = normalized.lastIndexOf("/");
+  if (index <= 0) return index === 0 ? "/" : "";
+  return normalized.slice(0, index);
+}
+
+function joinPath(base = "", name = "") {
+  let normalizedBase = normalizePath(base);
+  if (normalizedBase === "") return name;
+  if (normalizedBase === "/") return `/${name}`;
+  return `${normalizedBase}/${name}`;
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function toCopyModel(item) {
+  return {
+    name: item.getAttribute("itemname") ?? "",
+    path: item.getAttribute("itempath") ?? "",
+    is_dir: parseInt(item.getAttribute("itemisdir") ?? 0) ?? 0,
+    size: item.getAttribute("itemrawsize") ?? "",
+    last_modified: item.getAttribute("itemmodified") ?? "",
+    extension: item.getAttribute("itemext") ?? "",
+  };
+}
+
+function formatConflictMeta(item) {
+  let modified = item?.last_modified ? `Modified ${item.last_modified}` : "Modified unknown";
+  let size = item?.is_dir == 1 ? "Folder" : formatBytes(parseInt(item?.size ?? 0), 2);
+  return `${modified} • ${size}`;
+}
+
+async function getDestinationConflict(item, destinationPath) {
+  try {
+    let existing = await invoke("get_single_item_info", { path: destinationPath });
+    return { item, existing, destinationPath };
+  } catch (_) {
+    return null;
+  }
+}
+
+function isConflictActionValid(action, conflict) {
+  if (action !== "merge") return true;
+  return conflict.item.is_dir == 1 && conflict.existing.is_dir == 1;
+}
+
+async function resolveCopyMoveConflicts(items, targetPath) {
+  let resolvedItems = [];
+  let conflicts = [];
+
+  for (let item of items) {
+    let destinationPath = joinPath(targetPath, item.name);
+    let conflict = await getDestinationConflict(item, destinationPath);
+    if (conflict) {
+      conflicts.push(conflict);
+    } else {
+      resolvedItems.push({
+        source_path: item.path,
+        destination_path: destinationPath,
+        policy: "copy",
+      });
+    }
+  }
+
+  let applyToAllAction = null;
+  for (let i = 0; i < conflicts.length; i++) {
+    let conflict = conflicts[i];
+    let decision = null;
+
+    if (applyToAllAction && isConflictActionValid(applyToAllAction, conflict)) {
+      decision = { action: applyToAllAction, applyToAll: true };
+    } else {
+      decision = await showDestinationConflictPopup(conflict, i + 1, conflicts.length);
+    }
+
+    if (decision.action === "cancel") {
+      return null;
+    }
+    if (decision.applyToAll) {
+      applyToAllAction = decision.action;
+    }
+    if (decision.action === "skip") {
+      continue;
+    }
+
+    resolvedItems.push({
+      source_path: conflict.item.path,
+      destination_path: conflict.destinationPath,
+      policy: decision.action,
+    });
+  }
+
+  return resolvedItems;
+}
+
+async function runResolvedCopyMove(items, targetPath, shouldMove = false) {
+  if (!targetPath || items.length === 0) return [];
+
+  let resolvedItems = await resolveCopyMoveConflicts(items, targetPath);
+  if (resolvedItems === null) {
+    showToast("Operation cancelled", ToastType.INFO);
+    return [];
+  }
+
+  let result;
+  try {
+    result = await invoke("arr_copy_paste_resolved", { items: resolvedItems });
+  } catch (error) {
+    showToast(`Copy failed: ${error}`, ToastType.ERROR);
+    return [];
+  }
+  let copiedSources = Array.isArray(result) ? result : (result?.copied_sources ?? []);
+  let errors = Array.isArray(result) ? [] : (result?.errors ?? []);
+  if (errors.length > 0) {
+    showToast(`${errors.length} item(s) failed to copy. Source files were kept.`, ToastType.ERROR);
+    errors.forEach((error) => writeLog(`Copy failed: ${error}`));
+  }
+  if (shouldMove && copiedSources.length > 0) {
+    await invoke("arr_delete_items", { arrItems: copiedSources });
+  }
+  return copiedSources;
+}
+
+async function showDestinationConflictPopup(conflict, index, total) {
+  let isFolderConflict = conflict.item.is_dir == 1 && conflict.existing.is_dir == 1;
+  let popup = document.createElement("div");
+  popup.className = "uni-popup destination-conflict-popup";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-labelledby", "destination-conflict-title");
+  popup.setAttribute("aria-describedby", "destination-conflict-desc");
+  popup.innerHTML = `
+    <div class="popup-header destination-conflict-header">
+      <div class="destination-conflict-title-row">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        <h3 id="destination-conflict-title">Item already exists</h3>
+      </div>
+      <p class="destination-conflict-count">Conflict ${index} of ${total}</p>
+    </div>
+    <div class="popup-body destination-conflict-body">
+      <p id="destination-conflict-desc" class="popup-body-content">“${escapeHtml(conflict.item.name)}” already exists in the destination.</p>
+      <div class="destination-conflict-comparison" aria-label="Item comparison">
+        <section class="destination-conflict-card">
+          <h4>Incoming item</h4>
+          <p class="destination-conflict-name" title="${escapeHtml(conflict.item.path)}">${escapeHtml(conflict.item.name)}</p>
+          <p class="text-2">${escapeHtml(formatConflictMeta(conflict.item))}</p>
+          <p class="text-2" title="${escapeHtml(conflict.item.path)}">From: ${escapeHtml(normalizePath(conflict.item.path).split("/").slice(0, -1).join("/") || "/")}</p>
+        </section>
+        <section class="destination-conflict-card">
+          <h4>Existing item</h4>
+          <p class="destination-conflict-name" title="${escapeHtml(conflict.existing.path)}">${escapeHtml(conflict.existing.name)}</p>
+          <p class="text-2">${escapeHtml(formatConflictMeta(conflict.existing))}</p>
+          <p class="text-2" title="${escapeHtml(conflict.destinationPath)}">In: ${escapeHtml(normalizePath(conflict.destinationPath).split("/").slice(0, -1).join("/") || "/")}</p>
+        </section>
+      </div>
+      <fieldset class="destination-conflict-options">
+        <legend>Choose what to do</legend>
+        <label><input type="radio" name="conflict-action" value="replace"> <span>Replace existing item</span><small>This will overwrite the existing item.</small></label>
+        <label class="${isFolderConflict ? "" : "is-disabled"}"><input type="radio" name="conflict-action" value="merge" ${isFolderConflict ? "" : "disabled"}> <span>Merge folders</span><small>${isFolderConflict ? "Combine folder contents." : "Available only when both items are folders."}</small></label>
+        <label><input type="radio" name="conflict-action" value="duplicate" checked> <span>Keep both</span><small>Create a duplicate with a new name.</small></label>
+      </fieldset>
+      ${total > 1 ? `<label class="destination-conflict-apply-all"><input type="checkbox" class="destination-conflict-apply-all-input"> Apply this choice to all remaining conflicts</label>` : ""}
+    </div>
+    <div class="popup-controls destination-conflict-controls">
+      <button class="icon-button destination-conflict-cancel"><div class="button-icon"><i class="fa-solid fa-xmark"></i></div>Cancel</button>
+      <button class="icon-button destination-conflict-skip"><div class="button-icon"><i class="fa-solid fa-forward-step"></i></div>Skip</button>
+      <button class="icon-button destination-conflict-confirm"><div class="button-icon"><i class="fa-solid fa-check"></i></div>Continue</button>
+    </div>`;
+
+  document.querySelector(".main-container").appendChild(popup);
+  let previouslyFocused = document.activeElement;
+  IsPopUpOpen = true;
+  IsDisableShortcuts = true;
+  $(".popup-background").css("display", "block");
+  setTimeout(() => $(".popup-background").css("opacity", "1"));
+  popup.querySelector(".destination-conflict-confirm").focus();
+
+  return new Promise((resolve) => {
+    let isClosed = false;
+    let focusableSelector = "button, [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
+    let close = (action) => {
+      if (isClosed) return;
+      isClosed = true;
+      let selected = popup.querySelector("input[name='conflict-action']:checked")?.value ?? "duplicate";
+      let applyToAll = popup.querySelector(".destination-conflict-apply-all-input")?.checked ?? false;
+      popup.remove();
+      $(".popup-background").css("display", "none");
+      $(".popup-background").css("opacity", "0");
+      IsPopUpOpen = false;
+      IsDisableShortcuts = false;
+      if (previouslyFocused && typeof previouslyFocused.focus === "function") {
+        previouslyFocused.focus();
+      }
+      resolve({ action: action ?? selected, applyToAll });
+    };
+
+    popup.querySelector(".destination-conflict-cancel").onclick = () => close("cancel");
+    popup.querySelector(".destination-conflict-skip").onclick = () => close("skip");
+    popup.querySelector(".destination-conflict-confirm").onclick = () => close();
+    popup.onkeydown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close("cancel");
+      }
+      if (event.key === "Tab") {
+        let focusable = [...popup.querySelectorAll(focusableSelector)].filter((element) => element.offsetParent !== null);
+        if (focusable.length === 0) return;
+        let first = focusable[0];
+        let last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+      if (event.key === "Enter" && !["INPUT", "LABEL"].includes(event.target.tagName)) {
+        event.preventDefault();
+        close();
+      }
+    };
+  });
+}
+
 async function itemMoveTo(isForDualPane = false) {
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   let selectedPath = "";
   if (isForDualPane == false) {
     selectedPath = await open({ multiple: false, directory: true });
   } else {
     switch (SelectedItemPaneSide) {
       case "left":
-      await setCurrentDir(RightDualPanePath, "right");
-      selectedPath = CurrentDir;
-      break;
+        await setCurrentDir(RightDualPanePath, "right");
+        selectedPath = CurrentDir;
+        break;
       case "right":
-      await setCurrentDir(LeftDualPanePath, "left");
-      selectedPath = CurrentDir;
-      break;
+        await setCurrentDir(LeftDualPanePath, "left");
+        selectedPath = CurrentDir;
+        break;
     }
   }
+
+  let arr = ArrSelectedItems.map(toCopyModel);
+
   if (selectedPath != "" && selectedPath != null) {
-    await invoke("arr_copy_paste", {
-      appWindow,
-      arrItems: ArrSelectedItems.map((item) => item.getAttribute("itempath")),
-      isForDualPane: isForDualPane ? "1" : "0",
-      copyToPath: selectedPath,
-    }).then(async () => {
-      await invoke("arr_delete_items", {
-        arrItems: ArrSelectedItems.map((item) => item.getAttribute("itempath")),
-      });
+    let copiedSources = await runResolvedCopyMove(arr, selectedPath, true);
+    if (copiedSources.length > 0) {
       if (isForDualPane) {
         refreshBothViews(SelectedItemPaneSide);
       } else {
         refreshView();
       }
-    });
+    }
   }
 }
 
@@ -1988,74 +2112,48 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
     arr = ArrCopyItems;
   }
 
-  arr = arr.map((item) => ({
-    name: item.getAttribute("itemname") ?? "",
-    path: item.getAttribute("itempath") ?? "",
-    is_dir: parseInt(item.getAttribute("itemisdir") ?? 0) ?? 0,
-    size: item.getAttribute("itemrawsize") ?? "",
-    last_modified: item.getAttribute("itemmodified") ?? "",
-    extension: item.getAttribute("itemext") ?? "",
-  }));
+  arr = arr.map(toCopyModel);
 
-  ContextMenu.style.display = "none";
+  let targetPath = copyToPath;
+
   if (IsDualPaneEnabled == true) {
     if (SelectedItemPaneSide == "left") {
       await invoke("set_dir", { currentDir: RightDualPanePath });
-      await invoke("arr_copy_paste", {
-        appWindow,
-        arrItems: arr,
-        isForDualPane: "1",
-        copyToPath,
-      });
+      targetPath = copyToPath || RightDualPanePath;
     } else if (SelectedItemPaneSide == "right") {
       await invoke("set_dir", { currentDir: LeftDualPanePath });
-      await invoke("arr_copy_paste", {
-        appWindow,
-        arrItems: arr,
-        isForDualPane: "1",
-        copyToPath,
-      });
+      targetPath = copyToPath || LeftDualPanePath;
     }
   } else {
-    await invoke("arr_copy_paste", {
-      appWindow,
-      arrItems: arr,
-      isForDualPane: "0",
-      copyToPath,
-    });
-    ContextMenu.style.display = "none";
+    targetPath = copyToPath || CurrentDir;
   }
-  if (isCopyToCut == true) {
-    arr = arr.map((element) => element.path);
-    if (arr.includes(copyToPath)) {
+
+  if (isCopyToCut == true || IsCopyToCut == true) {
+    let targetDirectory = normalizePath(targetPath);
+    let sourceParents = arr.map((element) => parentPath(element.path));
+    if (sourceParents.includes(targetDirectory)) {
       alert("Cannot copy to the same directory");
       writeLog("Cannot copy to the same directory");
       return;
     }
-    await invoke("arr_delete_items", {
-      arrItems: arr,
-    });
-    ArrCopyItems = [];
-    if (IsDualPaneEnabled === true) {
-      refreshBothViews(SelectedItemPaneSide);
+    let copiedSources = await runResolvedCopyMove(arr, targetPath, true);
+    if (copiedSources.length > 0) {
+      ArrCopyItems = [];
+      IsCopyToCut = false;
+      if (IsDualPaneEnabled === true) {
+        refreshBothViews(SelectedItemPaneSide);
+      }
+      await listDirectories(IsDualPaneEnabled === true);
     }
-    await listDirectories();
+  } else {
+    let copiedSources = await runResolvedCopyMove(arr, targetPath, false);
+    if (copiedSources.length > 0) {
+      await unSelectAllItems();
+      if (IsDualPaneEnabled === true) {
+        refreshBothViews(SelectedItemPaneSide);
+      }
+    }
   }
-  else {
-    await unSelectAllItems();
-    await listDirectories(true);
-  }
-  if (arr.length >= 1) {
-    showToast("Done copying some files", ToastType.SUCCESS);
-  }
-}
-
-function resetProgressBar() {
-  document.querySelector(".progress-bar-text").textContent = "";
-  document.querySelector(".progress-bar-item-text").textContent = "";
-  document.querySelector(".progress-bar-fill").style.width = "0px";
-  document.querySelector(".progress-bar-container-popup").style.display = "none";
-  document.querySelector(".progress-bar-2-fill").style.width = "0px";
 }
 
 function createFolderInputPrompt() {
@@ -2069,7 +2167,7 @@ function createFolderInputPrompt() {
     <input class="text-input" type="text" placeholder="New folder" autofocus>
     `;
   document.querySelector("body").append(nameInput);
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   nameInput.children[1].focus();
   IsInputFocused = true;
   IsDisableShortcuts = true;
@@ -2099,12 +2197,12 @@ function createFileInputPrompt(e) {
     <input class="text-input" type="text" placeholder="New document" autofocus>
     `;
   document.querySelector("body").append(nameInput);
-  ContextMenu.style.display = "none";
+  // ContextMenu.style.display = "none";
   nameInput.children[1].focus();
   IsInputFocused = true;
   IsDisableShortcuts = true;
   nameInput.addEventListener("keyup", (e) => {
-    if (e.keyCode === 13) {
+    if (e.key === "Enter") {
       createFile(nameInput.children[1].value);
       resetEverything();
       nameInput.remove();
@@ -2122,6 +2220,7 @@ function createFileInputPrompt(e) {
 function closeInputDialogs() {
   $(".input-dialog").remove();
   IsDisableShortcuts = false;
+  IsInputFocused = false;
   IsPopUpOpen = false;
 }
 
@@ -2142,7 +2241,6 @@ function renameElementInputPrompt(item) {
     `;
 
   document.querySelector("body").append(nameInput);
-  ContextMenu.style.display = "none";
   IsDisableShortcuts = true;
   IsPopUpOpen = true;
   nameInput.children[1].focus();
@@ -2187,29 +2285,49 @@ async function showAppInfo() {
     Tauri version: ${await getTauriVersion()}
     Architecture: ${await arch()}
     Developer: Ricky Dane
-    `);
+
+
+    Shortcuts:
+
+    Navigation & General
+    Ctrl / Cmd + C – Copy the currently selected item
+    Ctrl / Cmd + X – Cut the currently selected item
+    Ctrl / Cmd + V – Paste the currently copied/cut item
+    Esc – Close pop-up windows.
+    Ctrl / Cmd + G – Jump to a directory by entering a path.
+    Space – Quick preview of a selected file (supported formats: images, PDF, MP4, JSON, TXT, HTML).
+
+    File & Folder Operations
+    F6 – Create a new file.
+    F7 – Create a new folder.
+    Ctrl / Cmd + LShift + M – Start multi-rename on selected items.
+    Ctrl / Cmd + Return – Execute the multi-rename operation.
+
+    Sorting & Filtering
+    Start typing – Instantly filter directory entries (instant navigation).
+    View & Layout
+
+    Dual-Pane Mode
+    F5 – Copy the currently selected item to the other pane.
+    LShift + F5 – Move the currently selected item to the other pane.
+    F8 – Search for files (add. with content)
+
+    Directory Navigation
+    LAlt + 1 / 2 / 3 (macOS: Option + 1 / 2 / 3) – Navigate to a pre-configured directory (set in Settings).
+
+    Multi-Rename
+    Ctrl / Cmd + LShift + M – Initiate multi-rename.
+    Ctrl / Cmd + Return – Run the multi-rename.
+  `);
 }
 
 async function checkAppConfig() {
   await applyPlatformFeatures();
   await invoke("check_app_config").then(async (appConfig) => {
     let viewMode = appConfig.view_mode.replaceAll('"', "");
-    switch (viewMode) {
-      case "wrap":
-      ViewMode = "miller";
-      break;
-      case "column":
-      ViewMode = "wrap";
-      break;
-      case "miller":
-      ViewMode = "column";
-      break;
-    }
+    await switchView(viewMode);
 
-    await switchView();
-
-    if (appConfig.is_dual_pane_enabled.includes("1")) {
-      document.querySelector(".show-dual-pane-checkbox").checked = true;
+    if (appConfig.is_dual_pane_enabled.includes("1")) {      document.querySelector(".show-dual-pane-checkbox").checked = true;
       document.querySelector(".switch-dualpane-view-button").style.display =
         "block";
     } else {
@@ -2234,23 +2352,24 @@ async function checkAppConfig() {
 
     // Theme options
     CurrentTheme = appConfig.current_theme;
+    ArrFavorites = appConfig.arr_favorites || [];
     appConfig.themes = await invoke("get_themes");
     // Fallback when there's no theme installed
     if (appConfig.themes.length == 0) {
       appConfig.themes = [
         {
-          "name": "Default",
-          "primary_color": "#3f4352",
-          "secondary_color": "rgba(56, 59, 71, 1)",
-          "tertiary_color": "#474b5c",
-          "text_color": "rgba(255, 255, 255, 0.8)",
-          "text_color2": "rgba(255, 255, 255, 0.6)",
-          "text_color3": "rgb(255, 255, 255)",
-          "transparent_color": "rgba(0, 0, 0, 0.15)",
-          "transparent_color_active": "rgba(0, 0, 0, 0.25)",
-          "site_bar_color": "rgb(45, 47, 57)",
-          "nav_bar_color": "rgba(30, 30, 40, 0.5)"
-        }
+          name: "Default",
+          primary_color: "#3f4352",
+          secondary_color: "rgba(56, 59, 71, 1)",
+          tertiary_color: "#474b5c",
+          text_color: "rgba(255, 255, 255, 0.8)",
+          text_color2: "rgba(255, 255, 255, 0.6)",
+          text_color3: "rgb(255, 255, 255)",
+          transparent_color: "rgba(0, 0, 0, 0.15)",
+          transparent_color_active: "rgba(0, 0, 0, 0.25)",
+          site_bar_color: "rgb(45, 47, 57)",
+          nav_bar_color: "rgba(30, 30, 40, 0.5)",
+        },
       ];
     }
     let themeSelect = document.querySelector(".theme-select");
@@ -2270,12 +2389,17 @@ async function checkAppConfig() {
     checkColorMode(appConfig);
 
     // General configurations
-    document.querySelector(".configured-path-one-input").value = ConfiguredPathOne = appConfig.configured_path_one;
-    document.querySelector(".configured-path-two-input").value = ConfiguredPathTwo = appConfig.configured_path_two;
-    document.querySelector(".configured-path-three-input").value = ConfiguredPathThree = appConfig.configured_path_three;
+    document.querySelector(".configured-path-one-input").value =
+      ConfiguredPathOne = appConfig.configured_path_one;
+    document.querySelector(".configured-path-two-input").value =
+      ConfiguredPathTwo = appConfig.configured_path_two;
+    document.querySelector(".configured-path-three-input").value =
+      ConfiguredPathThree = appConfig.configured_path_three;
     document.querySelector(".launch-path-input").value = appConfig.launch_path;
-    document.querySelector(".search-depth-input").value = SettingsSearchDepth = parseInt(appConfig.search_depth);
-    document.querySelector(".max-items-input").value = SettingsMaxItems = parseInt(appConfig.max_items);
+    document.querySelector(".search-depth-input").value = SettingsSearchDepth =
+      parseInt(appConfig.search_depth);
+    document.querySelector(".max-items-input").value = SettingsMaxItems =
+      parseInt(appConfig.max_items);
 
     if (appConfig.is_dual_pane_active.includes("1")) {
       await switchToDualPane();
@@ -2297,7 +2421,9 @@ async function checkAppConfig() {
         await setCurrentDir(path, "left");
         await listDirectories();
       } else {
-        alert("No directory found or unable to open due to missing permissions");
+        alert(
+          "No directory found or unable to open due to missing permissions",
+        );
       }
     } else {
       await initDualPane(await getCurrentDir());
@@ -2323,9 +2449,9 @@ async function applyPlatformFeatures() {
     appWindow.transparent = true;
     appWindow.setDecorations(false);
     $(".windows-linux-titlebar-buttons").css("display", "flex");
-    $('.minimize-button').on('click', () => appWindow.minimize())
-    $('.maximize-button').on('click', () => appWindow.toggleMaximize())
-    $('.close-button').on('click', () => appWindow.close())
+    $(".minimize-button").on("click", () => appWindow.minimize());
+    $(".maximize-button").on("click", () => appWindow.toggleMaximize());
+    $(".close-button").on("click", () => appWindow.close());
     $(".search-bar-input").attr("placeholder", "Ctrl + F");
   }
   DefaultFileIcon = await resolveResource("resources/file-icon.png");
@@ -2351,65 +2477,92 @@ async function listDisks() {
         item.name.replace('"', "").replace('"', ""),
       );
       itemLink.setAttribute("itemisdir", 1);
-      itemLink.setAttribute("onclick", "interactWithItem(this, '')");
+      itemLink.setAttribute("itemisdisk", "1");
+      itemLink.setAttribute(
+        "itemisremovable",
+        isEjectableDisk(item) ? "1" : "0",
+      );
       itemLink.className = "item-link directory-entry";
       let itemButton = document.createElement("div");
+      itemButton.setAttribute("itemisdisk", "1");
+      itemButton.setAttribute(
+        "itemisremovable",
+        itemLink.getAttribute("itemisremovable"),
+      );
       if (item.name == "") {
         item.name = "/";
       }
-      itemButton.innerHTML = `
-        <span class="disk-item-button">
-        <div class="disk-item-top">
-        <img decoding="async" class="item-icon" src="resources/disk-icon.png" width="56px" height="auto" loading="lazy"/>
-        <span class="disk-info">
-        <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Description:</span><span class="disk-info">${item.name}</span></span>
-        <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">File-System:</span><span class="disk-info">${item.format.replace('"', "").replace('"', "")}</span></span>
-        </span>
-        <span class="disk-info">
-        <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Total space:</span><span class="disk-info">${formatBytes(item.capacity)}</span></span>
-        <span class="disk-info" style="display: flex; gap: 10px; align-items: center;"><span class="disk-info">Available space:</span><span class="disk-info">${formatBytes(item.avail)}</span></span>
-        </span>
-        </div>
-        <span class="disk-item-bot">
-        <div class="disk-item-usage-bar" style="width: ${evalCurrentLoad(item.avail, item.capacity)}%;"></div>
-        <p class="disk-info"><b class="disk-info">Usage:</b> ${formatBytes(item.capacity)} / ${formatBytes(item.avail)} available (${evalCurrentLoad(item.avail, item.capacity)}%)</p>
-        </span>
-        </span>
-        `;
-      itemButton.className = "disk-item-button-button directory-entry";
-      let itemButtonList = document.createElement("div");
-      itemButtonList.innerHTML = `
-        <span class="disk-info" style="display: flex; gap: 10px; align-items: center; width: 50%;">
-        <img decoding="async" class="item-icon" src="resources/disk-icon.png" width="32px" height="32px" loading="lazy"/>
-        <p class="disk-info" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
-        </span>
-        <span class="disk-info" style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding-right: 5px;">
-        <p class="disk-info" style="width: auto; text-align: right;">${formatBytes(item.avail)}</p>
-        <p class="disk-info" style="width: 75px; text-align: right;">${formatBytes(item.capacity)}</p>
-        </span>
-        `;
-      itemButtonList.className = "item-button-list directory-entry";
-      if (ViewMode == "column") {
-        itemButton.style.display = "none";
-        DirectoryList.style.gridTemplateColumns = "unset";
-        DirectoryList.style.rowGap = "2px";
-      } else {
-        itemButtonList.style.display = "none";
-        DirectoryList.style.gridTemplateColumns = "unset";
-        DirectoryList.style.rowGap = "10px";
+
+      if (ViewMode == "miller") {
+        $(".miller-container")?.css("display", "none");
+        $(".non-dual-pane-container")?.css("display", "flex");
+        $(".explorer-container")?.css("display", "block");
+        $(".explorer-container")?.css("padding", "85px 20px 20px 20px");
       }
+
+      let usedPercentage = 100 - evalCurrentLoad(item.avail, item.capacity);
+      itemButton.innerHTML = `
+        <div class="disk-card">
+          <img class="disk-card-icon" src="resources/disk-icon.png" />
+          <div class="disk-card-body">
+            <div class="disk-card-header">
+              <div class="disk-card-title-group">
+                <h3 class="disk-card-name">${item.name}</h3>
+                <span class="disk-card-filesystem">${item.format.replace(/"/g, "")}</span>
+              </div>
+              <span class="disk-card-usage-percent">${usedPercentage}% used</span>
+            </div>
+
+            <div class="disk-card-usage-bar-bg">
+              <div class="disk-card-usage-bar-fill" style="width: ${usedPercentage}%"></div>
+            </div>
+
+            <div class="disk-card-stats-row">
+              <span>Total ${formatBytes(item.capacity)}</span>
+              <span>Used ${formatBytes(item.capacity - item.avail)}</span>
+              <span>Available ${formatBytes(item.avail)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+      itemButton.className = "disk-item-button-button directory-entry";
+
+      DirectoryList.style.gridTemplateColumns = "unset";
+      DirectoryList.style.rowGap = "2px";
+
       itemButton.style.width = "100%";
-      itemButton.style.height = "100px";
+      itemLink.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await interactWithItem(itemLink, "");
+      });
+      itemLink.addEventListener("dblclick", async (e) => {
+        e.preventDefault();
+        await openItem(itemLink, "");
+      });
+      itemLink.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        cdCtMenu.setSelectedItem(itemLink);
+        cdCtMenu.show(e);
+      });
       itemLink.append(itemButton);
-      itemLink.append(itemButtonList);
       DirectoryList.append(itemLink);
       document.querySelector(".current-path").innerHTML = `
         <div class="path-item">Disks</div>
         `;
     });
   });
-  document.querySelector(".tab-container-" + CurrentActiveTab).append(DirectoryList);
-  insertSiteNavButtons();
+  document
+    .querySelector(".tab-container-" + CurrentActiveTab)
+    .append(DirectoryList);
+}
+
+function isEjectableDisk(item) {
+  const path = item.path?.replace(/"/g, "") ?? "";
+  if (!path || path === "/") return false;
+  if (Platform === "darwin") {
+    return item.is_removable === true && path.startsWith("/Volumes/");
+  }
+  return item.is_removable === true;
 }
 
 async function listDirectories(fromDualPaneCopy = false) {
@@ -2419,16 +2572,15 @@ async function listDirectories(fromDualPaneCopy = false) {
     if (fromDualPaneCopy == true) {
       switch (SelectedItemPaneSide) {
         case "left":
-        CurrentDir = RightDualPanePath;
-        await showItems(lsItems, "right");
-        break;
+          CurrentDir = RightDualPanePath;
+          await showItems(lsItems, "right");
+          break;
         case "right":
-        CurrentDir = LeftDualPanePath;
-        await showItems(lsItems, "left");
-        break;
+          CurrentDir = LeftDualPanePath;
+          await showItems(lsItems, "left");
+          break;
       }
-    }
-    else {
+    } else {
       await showItems(lsItems, SelectedItemPaneSide);
     }
     goUp(false, true);
@@ -2449,19 +2601,19 @@ async function refreshView() {
 async function refreshBothViews(dualPaneSide = "") {
   switch (dualPaneSide) {
     case "left":
-    await setCurrentDir(RightDualPanePath, "right");
-    await listDirectories();
-    await setCurrentDir(LeftDualPanePath, "left");
-    await listDirectories();
-    goUp(false, true);
-    break;
+      await setCurrentDir(RightDualPanePath, "right");
+      await listDirectories();
+      await setCurrentDir(LeftDualPanePath, "left");
+      await listDirectories();
+      goUp(false, true);
+      break;
     case "right":
-    await setCurrentDir(LeftDualPanePath, "left");
-    await listDirectories();
-    await setCurrentDir(RightDualPanePath, "right");
-    await listDirectories();
-    goUp(false, true);
-    break;
+      await setCurrentDir(LeftDualPanePath, "left");
+      await listDirectories();
+      await setCurrentDir(RightDualPanePath, "right");
+      await listDirectories();
+      goUp(false, true);
+      break;
   }
 }
 
@@ -2497,47 +2649,45 @@ async function interactWithItem(
           for (let i = firstIndex; i <= lastIndex; i++) {
             selectItem(DirectoryList.children[i]);
           }
-        }
-        else {
+        } else {
           for (let i = firstIndex; i >= lastIndex; i--) {
             selectItem(DirectoryList.children[i]);
           }
         }
-      }
-      else {
+      } else {
         if (dualPaneSide == "left") {
-          let firstIndex = parseInt(SelectedElement?.getAttribute("itemindex") ?? 0);
+          let firstIndex = parseInt(
+            SelectedElement?.getAttribute("itemindex") ?? 0,
+          );
           let lastIndex = parseInt(element.getAttribute("itemindex"));
           unSelectAllItems();
           if (firstIndex < lastIndex) {
             for (let i = firstIndex; i <= lastIndex; i++) {
               selectItem(LeftPaneItemCollection.children[i]);
             }
-          }
-          else {
+          } else {
             for (let i = firstIndex; i >= lastIndex; i--) {
               selectItem(LeftPaneItemCollection.children[i]);
             }
           }
-        }
-        else {
-          let firstIndex = parseInt(SelectedElement?.getAttribute("itemindex") ?? ß);
+        } else {
+          let firstIndex = parseInt(
+            SelectedElement?.getAttribute("itemindex") ?? ß,
+          );
           let lastIndex = parseInt(element.getAttribute("itemindex"));
           unSelectAllItems();
           if (firstIndex < lastIndex) {
             for (let i = firstIndex; i <= lastIndex; i++) {
               selectItem(RightPaneItemCollection.children[i]);
             }
-          }
-          else {
+          } else {
             for (let i = firstIndex; i >= lastIndex; i--) {
               selectItem(RightPaneItemCollection.children[i]);
             }
           }
         }
       }
-    }
-    else {
+    } else {
       await selectItem(element);
     }
   }
@@ -2552,25 +2702,23 @@ async function interactWithItem(
   // Double click logic / reset after 250 ms to force double click to open
   setTimeout(() => {
     SelectedItemToOpen = null;
-  }, 250); // Maybe make this customizable in the future
+  }, 250); // TODO: Maybe make this customizable in the future
 }
 
 async function openItem(element, dualPaneSide, shortcutDirPath = null) {
   let isDir =
     element != null
-    ? parseInt(element.getAttribute("itemisdir"))
-    : shortcutDirPath != null
-    ? 1
-    : 0;
-  let path = element != null ? element.getAttribute("itempath") : shortcutDirPath;
-  let millerCol = element != null ? element.getAttribute("itemformillercol") : null;
+      ? parseInt(element.getAttribute("itemisdir"))
+      : shortcutDirPath != null
+        ? 1
+        : 0;
+  let path =
+    element != null ? element.getAttribute("itempath") : shortcutDirPath;
+  let millerCol =
+    element != null ? element.getAttribute("itemformillercol") : null;
   let ext = element != null ? element.getAttribute("itemext") : null;
   if (IsPopUpOpen == false || IsQuickSearchOpen === true) {
-    if (
-      IsItemPreviewOpen == false &&
-      isDir == 1 &&
-      ext != ".app"
-    ) {
+    if (IsItemPreviewOpen == false && isDir == 1 && ext != ".app") {
       // Open directory
       let isSwitched = await invoke("open_dir", { path });
       if (isSwitched == true) {
@@ -2583,8 +2731,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
             await addMillerCol(millerCol);
             await setMillerColActive(null, millerCol);
             await listDirectories();
-          }
-          else {
+          } else {
             await listDirectories();
           }
           await setCurrentDir(path);
@@ -2609,19 +2756,36 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
   }
 }
 
-async function selectItem(element, dualPaneSide = "", isNotReset = false) {
-  ContextMenu.style.display = "none";
+async function selectItem(
+  element,
+  dualPaneSide = "",
+  isNotReset = false,
+  triggerCalculation = true,
+) {
+  if (element == null || element == undefined) {
+    return;
+  }
+  cdCtMenu.hide();
+  cdCtMenu.hideSubMenu();
   let path = element?.getAttribute("itempath");
   let index = element?.getAttribute("itemindex");
 
   // Reset colored selection
-  if (SelectedElement != null && IsMetaDown == false && IsCtrlDown == false && IsShiftDown == false && (isNotReset === false)) {
+  if (
+    SelectedElement != null &&
+    IsMetaDown == false &&
+    IsCtrlDown == false &&
+    IsShiftDown == false &&
+    isNotReset === false
+  ) {
     ArrSelectedItems.forEach((item) => {
       if (IsDualPaneEnabled) {
         item.children[0].classList.remove("selected-item");
       } else if (ViewMode == "column" || ViewMode == "miller") {
-        if (IsShowDisks) {
-          item.children[1].classList.remove("selected-item");
+        if (IsShowDisks == true) {
+          (item.children[1] ?? item.children[0])?.classList.remove(
+            "selected-item",
+          );
         } else {
           item.children[0].classList.remove("selected-item");
         }
@@ -2629,12 +2793,8 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
         if (IsShowDisks == true) {
           item.children[0].classList.remove("selected-item");
         } else {
-          item.children[0].classList.remove(
-            "selected-item",
-          );
-          item.children[0].children[1].classList.remove(
-            "selected-item-min",
-          );
+          item.children[0].children[0].classList.remove("selected-item");
+          item.children[0].children[1].classList.remove("selected-item-min");
         }
       }
     });
@@ -2645,8 +2805,10 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
   if (IsDualPaneEnabled) {
     SelectedElement?.children[0].classList.add("selected-item");
   } else if (ViewMode == "column" || ViewMode == "miller") {
-    if (IsShowDisks) {
-      SelectedElement?.children[1].classList.add("selected-item");
+    if (IsShowDisks == true) {
+      (
+        SelectedElement?.children[1] ?? SelectedElement?.children[0]
+      )?.classList.add("selected-item");
     } else {
       SelectedElement?.children[0].classList.add("selected-item");
     }
@@ -2654,9 +2816,7 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
     if (IsShowDisks == true) {
       SelectedElement?.children[0].classList.add("selected-item");
     } else {
-      SelectedElement?.children[0].children[0].classList.add(
-        "selected-item",
-      );
+      SelectedElement?.children[0].children[0].classList.add("selected-item");
       SelectedElement?.children[0].children[1].classList.add(
         "selected-item-min",
       );
@@ -2677,6 +2837,67 @@ async function selectItem(element, dualPaneSide = "", isNotReset = false) {
     await showItemPreview(SelectedElement, true);
   }
   ArrSelectedItems.push(SelectedElement);
+  updateSelectionInfo(triggerCalculation);
+}
+
+listen("size-update", (event) => {
+  const [id, size, count] = event.payload;
+  if (id === "selection") {
+    let selectionInfo = document.querySelector(".selection-info");
+    if (selectionInfo) {
+      if (ArrSelectedItems.length === 1) {
+        selectionInfo.textContent = ArrSelectedItems[0].getAttribute("itemname") + " (" + formatBytes(size, 2) + ")";
+      } else {
+        selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatBytes(size, 2) + ")";
+      }
+    }
+  } else if (id === "properties") {
+    $(".properties-item-size").html(formatBytes(size, 2));
+  }
+});
+
+let currentSelectionRequestId = 0;
+async function updateSelectionInfo(shouldCalculate = true) {
+  let selectionInfo = document.querySelector(".selection-info");
+  if (!selectionInfo) return;
+  if (ArrSelectedItems.length == 0) {
+    selectionInfo.textContent = "";
+    return;
+  }
+
+  if (!shouldCalculate) {
+    if (ArrSelectedItems.length == 1) {
+      let item = ArrSelectedItems[0];
+      let size = item.getAttribute("itemsize");
+      selectionInfo.textContent =
+        item.getAttribute("itemname") + (size ? " (" + size + ")" : "");
+    } else {
+      selectionInfo.textContent = ArrSelectedItems.length + " items selected";
+    }
+    return;
+  }
+
+  let requestId = ++currentSelectionRequestId;
+  await invoke("cancel_size_calculation");
+  selectionInfo.innerHTML = '<div class="preloader-small-invert"></div>';
+
+  if (ArrSelectedItems.length == 1) {
+    let item = ArrSelectedItems[0];
+    let size = item.getAttribute("itemsize");
+    if (item.getAttribute("itemisdir") == "1") {
+      let paths = [item.getAttribute("itempath")];
+      let totalSize = await invoke("get_selection_size", { paths, updateId: "selection" });
+      if (requestId !== currentSelectionRequestId) return;
+      selectionInfo.textContent = item.getAttribute("itemname") + " (" + formatBytes(totalSize, 2) + ")";
+    } else {
+      selectionInfo.textContent = item.getAttribute("itemname") + (size ? " (" + size + ")" : "");
+    }
+  } else {
+    let paths = ArrSelectedItems.map(item => item.getAttribute("itempath"));
+    let totalSize = await invoke("get_selection_size", { paths, updateId: "selection" });
+    if (requestId !== currentSelectionRequestId) return;
+    selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatBytes(totalSize, 2) + ")";
+  }
 }
 
 function deSelectItem(item) {
@@ -2686,11 +2907,16 @@ function deSelectItem(item) {
     item.children[0].classList.remove("selected-item");
   } else {
     item.children[0].children[0].classList.remove("selected-item");
-    item.children[0].children[1].classList.remove(
-      "selected-item-min",
-    );
+    item.children[0].children[1].classList.remove("selected-item-min");
   }
+  var index = ArrSelectedItems.indexOf(item);
+  if (index !== -1) {
+    ArrSelectedItems.splice(index, 1);
+  }
+  var index = ArrSelectedItems.indexOf(item);
+  ArrSelectedItems.splice(index, 1);
   item.setAttribute("itemisselected", false);
+  updateSelectionInfo();
 }
 
 async function unSelectAllItems() {
@@ -2704,10 +2930,16 @@ async function unSelectAllItems() {
         try {
           if (IsShowDisks === true) {
             ArrSelectedItems[i].children[0].classList.remove("selected-item");
-            ArrSelectedItems[i].children[1].classList.remove("selected-item-min");
+            ArrSelectedItems[i].children[1].classList.remove(
+              "selected-item-min",
+            );
           } else {
-            ArrSelectedItems[i].children[0].children[0].classList.remove("selected-item");
-            ArrSelectedItems[i].children[0].children[1].classList.remove("selected-item-min");
+            ArrSelectedItems[i].children[0].children[0].classList.remove(
+              "selected-item",
+            );
+            ArrSelectedItems[i].children[0].children[1].classList.remove(
+              "selected-item-min",
+            );
           }
         } catch (e) {
           writeLog(e);
@@ -2721,15 +2953,21 @@ async function unSelectAllItems() {
   SelectedItemToOpen = null;
   $(".selected-item")?.removeClass("selected-item");
   $(".selected-item-min")?.removeClass("selected-item-min");
+  updateSelectionInfo();
 }
 
 async function goHome() {
-  await invoke("go_home");
-  await listDirectories();
-  await setCurrentDir(await getCurrentDir());
+  try {
+    await invoke("go_home");
+    await listDirectories();
+    await setCurrentDir(await getCurrentDir());
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function goBack() {
+  console.log("Going back", IsMetaDown, IsAltDown, IsCtrlDown);
   if (IsDualPaneEnabled === true) {
     if (SelectedItemPaneSide == "left") {
       LeftPaneItemIndex = LastLeftPaneIndex ?? 0;
@@ -2741,7 +2979,7 @@ async function goBack() {
     await invoke("go_back", { isDualPane: IsDualPaneEnabled });
     await listDirectories();
   }
-  await setCurrentDir(await getCurrentDir());
+  await setCurrentDir(await getCurrentDir(), SelectedItemPaneSide);
 }
 
 function goUp(isSwitched = false, toFirst = false) {
@@ -2816,7 +3054,7 @@ function goUp(isSwitched = false, toFirst = false) {
       if (SelectedItemPaneSide == "left") {
         if (
           parseInt(selectedItemIndex) * 38 -
-          document.querySelector(".dual-pane-left").scrollTop <
+            document.querySelector(".dual-pane-left").scrollTop <
           10
         ) {
           document.querySelector(".dual-pane-left").scrollTop -= 38;
@@ -2824,7 +3062,7 @@ function goUp(isSwitched = false, toFirst = false) {
       } else if (SelectedItemPaneSide == "right") {
         if (
           parseInt(selectedItemIndex) * 38 -
-          document.querySelector(".dual-pane-right").scrollTop <
+            document.querySelector(".dual-pane-right").scrollTop <
           10
         ) {
           document.querySelector(".dual-pane-right").scrollTop -= 38;
@@ -2913,7 +3151,7 @@ function goDown() {
   if (SelectedItemPaneSide == "left") {
     if (
       parseInt(selectedItemIndex) * 38 -
-      document.querySelector(".dual-pane-left").scrollTop >
+        document.querySelector(".dual-pane-left").scrollTop >
       window.innerHeight - 150
     ) {
       document.querySelector(".dual-pane-left").scrollTop += 38;
@@ -2921,7 +3159,7 @@ function goDown() {
   } else if (SelectedItemPaneSide == "right") {
     if (
       parseInt(selectedItemIndex) * 38 -
-      document.querySelector(".dual-pane-right").scrollTop >
+        document.querySelector(".dual-pane-right").scrollTop >
       window.innerHeight - 150
     ) {
       document.querySelector(".dual-pane-right").scrollTop += 38;
@@ -2937,8 +3175,7 @@ async function goToOtherPane() {
   }
   try {
     goUp(true);
-  }
-  catch (e) {
+  } catch (e) {
     writeLog(e);
   }
 }
@@ -2982,8 +3219,7 @@ function goLeft(isToFirst = false, index = null) {
   if (index == null) {
     if (SelectedElement == null) {
       index = 0;
-    }
-    else {
+    } else {
       index = parseInt(SelectedElement?.getAttribute("itemindex")) - 1 ?? 0;
     }
   }
@@ -2998,8 +3234,7 @@ function goRight(isToFirst = false, index = null) {
   if (index == null) {
     if (SelectedElement == null) {
       index = 0;
-    }
-    else {
+    } else {
       index = parseInt(SelectedElement?.getAttribute("itemindex")) + 1 ?? 0;
     }
   }
@@ -3011,15 +3246,22 @@ function goRight(isToFirst = false, index = null) {
 }
 
 function goGridUp() {
-  var rowlen = Array.prototype.reduce.call(DirectoryList.children, function (prev, next) {
-    if (!prev[2]) {
-      var ret = next.getBoundingClientRect().left
-      // if increasing, increment unter
-      if (!(prev[0] > -1 && ret < prev[1])) { prev[0]++ }
-        else { prev[2] = 1 } // else stop counting
-    }
-    return [prev[0], ret, prev[2]] // [counter, elem, stop-counting]
-  }, [0, null, 0])[0];
+  var rowlen = Array.prototype.reduce.call(
+    DirectoryList.children,
+    function (prev, next) {
+      if (!prev[2]) {
+        var ret = next.getBoundingClientRect().left;
+        // if increasing, increment unter
+        if (!(prev[0] > -1 && ret < prev[1])) {
+          prev[0]++;
+        } else {
+          prev[2] = 1;
+        } // else stop counting
+      }
+      return [prev[0], ret, prev[2]]; // [counter, elem, stop-counting]
+    },
+    [0, null, 0],
+  )[0];
   let index = 0;
   if (SelectedElement != null) {
     index = parseInt(SelectedElement?.getAttribute("itemindex")) - rowlen;
@@ -3028,15 +3270,22 @@ function goGridUp() {
 }
 
 function goGridDown() {
-  var rowlen = Array.prototype.reduce.call(DirectoryList.children, function (prev, next) {
-    if (!prev[2]) {
-      var ret = next.getBoundingClientRect().left
-      // if increasing, increment counter
-      if (!(prev[0] > -1 && ret < prev[1])) { prev[0]++ }
-        else { prev[2] = 1 } // else stop counting
-    }
-    return [prev[0], ret, prev[2]] // [counter, elem, stop-counting]
-  }, [0, null, 0])[0];
+  var rowlen = Array.prototype.reduce.call(
+    DirectoryList.children,
+    function (prev, next) {
+      if (!prev[2]) {
+        var ret = next.getBoundingClientRect().left;
+        // if increasing, increment counter
+        if (!(prev[0] > -1 && ret < prev[1])) {
+          prev[0]++;
+        } else {
+          prev[2] = 1;
+        } // else stop counting
+      }
+      return [prev[0], ret, prev[2]]; // [counter, elem, stop-counting]
+    },
+    [0, null, 0],
+  )[0];
   let index = 0;
   if (SelectedElement != null) {
     index = parseInt(SelectedElement?.getAttribute("itemindex")) + rowlen;
@@ -3048,15 +3297,13 @@ async function openSelectedItem() {
   if (IsDualPaneEnabled === true) {
     if (SelectedItemPaneSide == "left") {
       LastLeftPaneIndex = LeftPaneItemIndex;
-    }
-    else {
+    } else {
       LastRightPaneIndex = RightPaneItemIndex;
     }
     if (SelectedElement != null) {
       await openItem(SelectedElement, SelectedItemPaneSide);
     }
-  }
-  else {
+  } else {
     if (SelectedElement != null) {
       await openItem(SelectedElement);
     }
@@ -3065,26 +3312,51 @@ async function openSelectedItem() {
 }
 
 async function goToDir(directory) {
-  await invoke("go_to_dir", { directory }).then(async (items) => {
+  invoke("go_to_dir", { directory }).then(async (items) => {
     if (IsDualPaneEnabled == true) {
       await showItems(items, SelectedItemPaneSide);
     } else {
       await showItems(items);
     }
+    await setCurrentDir(await getCurrentDir());
   });
-  await setCurrentDir(await getCurrentDir());
 }
 
-async function openInTerminal() {
-  if (!await invoke("open_in_terminal", {"path": ArrSelectedItems.length === 0 ? CurrentDir : SelectedItemPath})) {
+async function openInTerminal(item = null) {
+  const path =
+    item?.getAttribute("itempath") ??
+    (ArrSelectedItems.length === 0 ? CurrentDir : SelectedItemPath);
+  if (
+    !(await invoke("open_in_terminal", {
+      path,
+    }))
+  ) {
     if (Platform === "linux") {
-      showToast("Failed to open terminal. Make sure exo-open is installed and configured.", ToastType.ERROR, 5000);
+      showToast(
+        "Failed to open terminal. Make sure exo-open is installed and configured.",
+        ToastType.ERROR,
+        5000,
+      );
     } else {
       showToast("Failed to open terminal.", ToastType.ERROR);
     }
   }
+}
 
-  ContextMenu.style.display = "none";
+async function ejectDisk(item) {
+  const path = item?.getAttribute("itempath");
+  if (!path) {
+    showToast("No disk selected to eject", ToastType.ERROR);
+    return;
+  }
+
+  try {
+    const message = await invoke("eject_disk", { path });
+    showToast(message || "Disk ejected", ToastType.SUCCESS);
+    await listDisks();
+  } catch (error) {
+    showToast(`Failed to eject disk: ${error}`, ToastType.ERROR, 5000);
+  }
 }
 
 async function searchFor(
@@ -3101,12 +3373,10 @@ async function searchFor(
     if (IsDualPaneEnabled === true) {
       if (SelectedItemPaneSide === "left") {
         $(".dual-pane-left").html("");
-      }
-      else {
+      } else {
         $(".dual-pane-right").html("");
       }
-    }
-    else {
+    } else {
       $(".directory-list").html("");
     }
     IsSearching = true;
@@ -3116,8 +3386,7 @@ async function searchFor(
       maxItems,
       searchDepth,
       fileContent,
-      appWindow,
-      isQuickSearch
+      isQuickSearch,
     });
     setTimeout(() => {
       ds.setSettings({
@@ -3138,11 +3407,13 @@ function openFullSearchContainer() {
   IsInputFocused = true;
   IsPopUpOpen = true;
   IsDisableShortcuts = true;
-  document.querySelectorAll(".trigger-for-full-search").forEach(element => element.addEventListener("keydown", (e) => {
-    if (e.key == "Enter") {
-      startFullSearch();
-    }
-  }));
+  document.querySelectorAll(".trigger-for-full-search").forEach((element) =>
+    element.addEventListener("keydown", (e) => {
+      if (e.key == "Enter") {
+        startFullSearch();
+      }
+    }),
+  );
 }
 
 function closeFullSearchContainer() {
@@ -3152,18 +3423,28 @@ function closeFullSearchContainer() {
   IsInputFocused = false;
 }
 
-document.querySelector(".dualpane-search-input").addEventListener("keyup", async (e) => {
-  if (e.keyCode == 13) { // 13 = Enter
-    closeSearchBar();
-    if (IsDualPaneEnabled == true) {
-      await openSelectedItem(SelectedElement);
+document
+  .querySelector(".dualpane-search-input")
+  .addEventListener("keyup", async (e) => {
+    if (e.keyCode == 13) {
+      // 13 = Enter
+      closeSearchBar();
+      if (IsDualPaneEnabled == true) {
+        await openSelectedItem(SelectedElement);
+      }
+    } else if (
+      IsQuickSearchOpen == true &&
+      e.key !== "Escape" &&
+      e.key != "Shift" &&
+      e.key != "Control" &&
+      e.key != "Alt" &&
+      e.key != "Meta"
+    ) {
+      await searchFor($(".dualpane-search-input").val(), 999999, 1, true);
+    } else {
+      goUp(false, true);
     }
-  } else if (IsQuickSearchOpen == true && e.key !== "Escape" && e.key != "Shift" && e.key != "Control" && e.key != "Alt" && e.key != "Meta") {
-    await searchFor($(".dualpane-search-input").val(), 999999, 1, true);
-  } else {
-    goUp(false, true);
-  }
-});
+  });
 
 function openSearchBar() {
   document.querySelector(".search-bar-container").style.display = "flex";
@@ -3172,9 +3453,11 @@ function openSearchBar() {
   IsDisableShortcuts = true;
   IsQuickSearchOpen = true;
   IsPopUpOpen = true;
-  document.querySelector(".dualpane-search-input").addEventListener("focusout", () => {
-    resetEverything();
-  });
+  document
+    .querySelector(".dualpane-search-input")
+    .addEventListener("focusout", () => {
+      resetEverything();
+    });
 }
 
 function closeSearchBar() {
@@ -3192,43 +3475,57 @@ async function cancelSearch() {
   // await listDirectories();
 }
 
-async function switchView() {
+async function switchView(newMode = null) {
   if (IsDualPaneEnabled == false) {
-    if (ViewMode == "wrap") {
+    if (newMode) {
+      ViewMode = newMode;
+    } else {
+      if (ViewMode == "wrap") ViewMode = "column";
+      else if (ViewMode == "column") ViewMode = "miller";
+      else ViewMode = "wrap";
+    }
+
+    // Update dropdown if it exists
+    const select = document.querySelector(".view-mode-select");
+    const iconSpan = document.querySelector(".view-mode-icon-span");
+    if (select) select.value = ViewMode;
+    if (iconSpan) {
+      if (ViewMode === "wrap") {
+        iconSpan.innerHTML = '<i class="fa-solid fa-grip" style="font-size: 12px; color: var(--textColor2);"></i>';
+      } else if (ViewMode === "column") {
+        iconSpan.innerHTML = '<i class="fa-solid fa-list" style="font-size: 12px; color: var(--textColor2);"></i>';
+      } else if (ViewMode === "miller") {
+        iconSpan.innerHTML = '<i class="fa-solid fa-table-columns" style="font-size: 12px; color: var(--textColor2);"></i>';
+      }
+    }
+
+    if (ViewMode == "column") {
       document.querySelectorAll(".directory-list").forEach((list) => {
         list.style.gridTemplateColumns = "unset";
         list.style.rowGap = "2px";
       });
-      if (IsShowDisks == false) {
-        document.querySelector(".switch-view-button").innerHTML =
-          `<i class="fa-solid fa-indent"></i>`;
-      } else {
-        document.querySelector(".switch-view-button").innerHTML =
-          `<i class="fa-solid fa-grip"></i>`;
-      }
       document
         .querySelectorAll(".item-button")
         .forEach((item) => (item.style.display = "none"));
       document
         .querySelectorAll(".item-button-list")
         .forEach((item) => (item.style.display = "flex"));
-      document
-        .querySelectorAll(".disk-item-button-button")
-        .forEach((item) => (item.style.display = "none"));
       document.querySelector(".list-column-header").style.display = "flex";
       $(".explorer-container")?.css("padding", "100px 10px 10px 10px");
-      ViewMode = "column";
-    } else if (ViewMode == "column") {
+      document.querySelector(".miller-container").style.display = "none";
+      document.querySelector(".non-dual-pane-container").style.display = "block";
+      $(".file-searchbar").css("opacity", "1");
+      $(".file-searchbar").css("pointer-events", "all");
+    } else if (ViewMode == "miller") {
       document.querySelector(".list-column-header").style.display = "none";
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-grip"></i>`;
       document.querySelector(".miller-container").style.display = "flex";
       document.querySelector(".miller-column").style.display = "inline";
       document.querySelector(".non-dual-pane-container").style.display = "none";
       $(".explorer-container").css("padding", "10px 10px 0 10px");
       $(".file-searchbar").css("opacity", "0");
       $(".file-searchbar").css("pointer-events", "none");
-      ViewMode = "miller";
-    } else if (ViewMode == "miller" || IsShowDisks == true) {
+    } else {
+      // wrap (Grid)
       document.querySelector(".explorer-container").style.width = "100%";
       document.querySelectorAll(".directory-list").forEach((list) => {
         if (IsShowDisks == false) {
@@ -3241,15 +3538,17 @@ async function switchView() {
       });
       document.querySelector(".miller-container").style.display = "none";
       document.querySelector(".explorer-container").style.display = "block";
-      document.querySelector(".switch-view-button").innerHTML = `<i class="fa-solid fa-list"></i>`;
-      document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "flex"));
-      document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "none"));
-      document.querySelectorAll(".disk-item-button-button").forEach((item) => (item.style.display = "flex"));
+      document.querySelector(".non-dual-pane-container").style.display = "block";
+      document
+        .querySelectorAll(".item-button")
+        .forEach((item) => (item.style.display = "flex"));
+      document
+        .querySelectorAll(".item-button-list")
+        .forEach((item) => (item.style.display = "none"));
       document.querySelector(".list-column-header").style.display = "none";
       $(".explorer-container")?.css("padding", "85px 20px 20px 20px");
       $(".file-searchbar").css("opacity", "1");
       $(".file-searchbar").css("pointer-events", "all");
-      ViewMode = "wrap";
     }
     await invoke("switch_view", { viewMode: ViewMode });
   }
@@ -3263,14 +3562,21 @@ async function switchToDualPane() {
     OrgViewMode = ViewMode;
     IsDualPaneEnabled = true;
     ViewMode = "column";
+    document.querySelector(".view-mode-select").disabled = true;
+    document.querySelector(".view-mode-container").style.opacity = "0.5";
     document.querySelector(".miller-container").style.display = "none";
     if (Platform == "darwin") {
       $(".header-nav").css("padding-left", "85px");
     }
-    document.querySelectorAll(".item-button").forEach((item) => (item.style.display = "none"));
-    document.querySelectorAll(".item-button-list").forEach((item) => (item.style.display = "flex"));
-    document.querySelector(".switch-dualpane-view-button").innerHTML = `<i class="fa-regular fa-rectangle-xmark"></i>`;
-    setCurrentDir(await getCurrentDir());
+    document
+      .querySelectorAll(".item-button")
+      .forEach((item) => (item.style.display = "none"));
+    document
+      .querySelectorAll(".item-button-list")
+      .forEach((item) => (item.style.display = "flex"));
+    document.querySelector(".switch-dualpane-view-button").innerHTML =
+      `<i class="fa-regular fa-rectangle-xmark"></i>`;
+    await setCurrentDir(await getCurrentDir());
     await invoke("list_dirs").then(async (items) => {
       await showItems(items, "left");
       await showItems(items, "right");
@@ -3280,8 +3586,7 @@ async function switchToDualPane() {
     document.querySelector(".site-nav-bar").style.minWidth = "0";
     if (Platform == "darwin") {
       $(".site-nav-bar").css("padding", "55px 0 0 0");
-    }
-    else {
+    } else {
       $(".site-nav-bar").css("padding", "0");
     }
     $(".list-column-header").css("height", "0");
@@ -3304,6 +3609,8 @@ async function switchToDualPane() {
     });
   } else {
     IsDualPaneEnabled = false;
+    document.querySelector(".view-mode-select").disabled = false;
+    document.querySelector(".view-mode-container").style.opacity = "1";
     $(".non-dual-pane-container")?.css("width", "calc(100vw - 150px)");
     $(".non-dual-pane-container")?.css("opacity", "1");
     $(".non-dual-pane-container")?.css("height", "100%");
@@ -3313,14 +3620,16 @@ async function switchToDualPane() {
     $(".site-nav-bar")?.css("min-width", "150px");
     if (Platform == "darwin") {
       $(".site-nav-bar")?.css("padding", "55px 10px 10px 10px");
-    }
-    else {
+    } else {
       $(".site-nav-bar")?.css("padding", "10px");
     }
     $(".explorer-container").css("padding", "10px");
     $(".list-column-header")?.css("height", "35px");
     $(".list-column-header")?.css("padding", "5px");
-    $(".list-column-header")?.css("border-bottom", "1px solid var(--tertiaryColor)");
+    $(".list-column-header")?.css(
+      "border-bottom",
+      "1px solid var(--tertiaryColor)",
+    );
     $(".dual-pane-container")?.css("opacity", "0");
     $(".dual-pane-container")?.css("height", "0");
     $(".dual-pane-container")?.css("padding-top", "0");
@@ -3336,19 +3645,7 @@ async function switchToDualPane() {
     await applyPlatformFeatures();
     document.querySelector(".switch-dualpane-view-button").innerHTML =
       `<i class="fa-solid fa-table-columns"></i>`;
-    // Reset to view before the
-    switch (OrgViewMode) {
-      case "wrap":
-      ViewMode = "miller";
-      break;
-      case "column":
-      ViewMode = "wrap";
-      break;
-      case "miller":
-      ViewMode = "column";
-      break;
-    }
-    await switchView();
+    await switchView(OrgViewMode);
   }
   await saveConfig(false, false);
 }
@@ -3366,16 +3663,37 @@ function switchHiddenFiles() {
   listDirectories();
 }
 
+let closeSettingsTimeout;
+
 function openSettings() {
   if (IsPopUpOpen == false) {
+    if (closeSettingsTimeout) clearTimeout(closeSettingsTimeout);
+    showSettingsTab('general', document.querySelector('.settings-sidebar-button'));
     $(".settings-ui").css("display", "flex");
-    // Workaround for opacity transition
-    setTimeout(() => {
-      $(".settings-ui").css("opacity", "1");
-    });
+    $(".settings-ui").addClass("active");
     IsDisableShortcuts = true;
     IsPopUpOpen = true;
   }
+}
+
+async function closeSettings() {
+  $(".settings-ui").removeClass("active");
+  if (closeSettingsTimeout) clearTimeout(closeSettingsTimeout);
+  closeSettingsTimeout = setTimeout(() => {
+    $(".settings-ui").css("display", "none");
+  }, 300);
+  IsDisableShortcuts = false;
+  IsPopUpOpen = false;
+}
+
+function showSettingsTab(tabName, btn) {
+  // Update sidebar buttons
+  document.querySelectorAll('.settings-sidebar-button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  
+  // Update content tabs
+  document.querySelectorAll('.settings-tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('settings-tab-' + tabName).classList.add('active');
 }
 
 async function saveConfig(isToReload = true, isVerbose = true) {
@@ -3439,7 +3757,6 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     isOpenInTerminal,
     isDualPaneEnabled,
     launchPath,
-    isDualPaneEnabled,
     isDualPaneActive,
     searchDepth,
     maxItems,
@@ -3452,22 +3769,22 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     showToast("Settings have been saved", ToastType.INFO);
   }
   if (isToReload == true) {
-    checkAppConfig();
+    await checkAppConfig();
   }
 }
 
-async function addFavorites(item) {
-  ArrFavorites.push(item);
-  // await invoke("save_favorites", { arrFavorites: ArrFavorites }); // Todo: implement this
+async function addFavorite(path) {
+  if (!ArrFavorites.includes(path)) {
+    ArrFavorites.push(path);
+    await saveConfig(false, false);
+    await insertSiteNavButtons();
+  }
 }
 
-function closeSettings() {
-  $(".settings-ui").css("opacity", "0");
-  setTimeout(() => {
-    $(".settings-ui").css("display", "none");
-  }, 300)
-  IsDisableShortcuts = false;
-  IsPopUpOpen = false;
+async function removeFavorite(path) {
+  ArrFavorites = ArrFavorites.filter((f) => f !== path);
+  await saveConfig(false, false);
+  await insertSiteNavButtons();
 }
 
 function getExtDescription(file_extension) {
@@ -3475,13 +3792,28 @@ function getExtDescription(file_extension) {
 }
 
 async function showProperties(item) {
+  let itemsToProcess = [];
+  if (ArrSelectedItems.length > 1) {
+    itemsToProcess = ArrSelectedItems;
+  } else if (item != null) {
+    itemsToProcess = [item];
+  } else {
+    // Current directory properties
+    let dummyItem = document.createElement("div");
+    dummyItem.setAttribute("itemname", CurrentDir);
+    dummyItem.setAttribute("itempath", CurrentDir);
+    dummyItem.setAttribute("itemext", "");
+    dummyItem.setAttribute("itemisdir", "1");
+    itemsToProcess = [dummyItem];
+  }
+
   if (IsPopUpOpen === false) {
-    let name = item.getAttribute("itemname");
-    let path = item.getAttribute("itempath");
-    let ext = item.getAttribute("itemext");
-    let extension_description = getExtDescription(ext); // undefined if it's unknown or a directory
-    let modifiedAt = item.getAttribute("itemmodified");
-    ContextMenu.style.display = "none";
+    let name = itemsToProcess.length > 1 ? itemsToProcess.length + " items selected" : itemsToProcess[0].getAttribute("itemname");
+    let path = itemsToProcess.length > 1 ? "Multiple paths" : itemsToProcess[0].getAttribute("itempath");
+    let ext = itemsToProcess.length > 1 ? "" : itemsToProcess[0].getAttribute("itemext");
+    let extension_description = ext ? getExtDescription(ext) : undefined;
+    let modifiedAt = itemsToProcess.length > 1 ? null : itemsToProcess[0].getAttribute("itemmodified");
+
     let popup = document.createElement("div");
     popup.className = "uni-popup item-properties-popup";
     popup.innerHTML = `
@@ -3489,6 +3821,7 @@ async function showProperties(item) {
       <h3>${name}</h3>
       </div>
       <div class="popup-body">
+      ${itemsToProcess.length === 1 ? `
       <span style="display: flex; gap: 10px; align-items: center;">
       Path:
       <button class="icon-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', ToastType.INFO);">
@@ -3497,13 +3830,13 @@ async function showProperties(item) {
   				<p style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${path}</p>
       </button>
       </span>
-      ${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ''}
-      <br/>
-      <p>Modified: ${modifiedAt}</p>
+      ` : ""}
+      ${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ""}
+      ${modifiedAt != null ? `<br/><p>Modified: ${modifiedAt}</p>` : ""}
       </div>
       <div class="popup-controls" style="display: flex; justify-content: space-between;">
     		<div style="display: flex; gap: 5px;">
-   			<div>Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
+   			<div>Total Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
     		</div>
       <button class="icon-button" onclick="closeInfoProperties()">
       <span class="button-icon"><i class="fa-solid fa-ban"></i></span>
@@ -3513,11 +3846,24 @@ async function showProperties(item) {
       `;
     document.querySelector("body").append(popup);
     IsPopUpOpen = true;
-    await getSimpleDirInfo(path, ".properties-item-size", item.getAttribute("itemisdir") == "1");
+
+    if (itemsToProcess.length === 1) {
+      await getSimpleDirInfo(
+        itemsToProcess[0].getAttribute("itempath"),
+        ".properties-item-size",
+        itemsToProcess[0].getAttribute("itemisdir") == "1",
+        "properties"
+      );
+    } else {
+      let paths = itemsToProcess.map(i => i.getAttribute("itempath"));
+      let totalSize = await invoke("get_selection_size", { paths, updateId: "properties" });
+      $(".properties-item-size").html(formatBytes(totalSize, 2));
+    }
   }
 }
 
 function closeInfoProperties() {
+  invoke("cancel_size_calculation");
   $(".item-properties-popup")?.remove();
   IsPopUpOpen = false;
   IsItemPreviewOpen = false;
@@ -3549,19 +3895,19 @@ async function showItemPreview(item, isOverride = false) {
     case ".ico":
     case ".jfif":
     case ".avif":
-    module = `
+      module = `
       <div class="module-container">
       <img class="${moduleImgId}" decoding="async" src="resources/preloader_big.gif" width="100%" height="100%" />
       </div>
       `;
-    break;
+      break;
     case ".pdf":
     case ".html":
     case ".xhtml":
     case ".htm":
-    popup.style.backgroundColor = "white";
-    module = `<iframe decoding="async" src="${convertFileSrc(path)}" />>`;
-    break;
+      popup.style.backgroundColor = "white";
+      module = `<iframe decoding="async" src="${convertFileSrc(path)}" />>`;
+      break;
     case ".mp4":
     case ".mkv":
     case ".mov":
@@ -3577,12 +3923,12 @@ async function showItemPreview(item, isOverride = false) {
     case ".ape":
     case ".flv":
     case ".wmv":
-    module = `
+      module = `
       <div class="module-container">
-      <video decoding="async" src="${convertFileSrc(path)}" autoplay></video>
+      <video decoding="async" src="${convertFileSrc(path)}" autoplay controls></video>
       </div>
       `;
-    break;
+      break;
     case ".txt":
     case ".json":
     case ".sh":
@@ -3611,14 +3957,14 @@ async function showItemPreview(item, isOverride = false) {
     case ".log":
     case ".env":
     case ".gitignore":
-    popup.style.maxWidth = "50%";
-    module = `
+      popup.style.maxWidth = "50%";
+      module = `
       <div class="module-container"><pre class="item-preview-file-content" style="padding: 20px; font-size: 12px;">${await invoke("get_file_content", { path })}</pre></div>
       `;
-    break;
+      break;
     default:
-    showProperties(item);
-    return;
+      showProperties(item);
+      return;
   }
   popup.innerHTML = `
     <div class="popup-header">
@@ -3629,7 +3975,10 @@ async function showItemPreview(item, isOverride = false) {
   IsPopUpOpen = true;
   document.querySelector("body").append(popup);
   $(popup).fadeIn(fadeTime);
-  popup.querySelector("img").src = convertFileSrc(item.getAttribute("itempath"));
+  let img = popup.querySelector("img");
+  if (img) {
+    img.src = convertFileSrc(item.getAttribute("itempath"));
+  }
   popup.children[0].addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       e.target.blur();
@@ -3650,28 +3999,28 @@ function showMultiRenamePopup() {
     </h3>
     <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
   		<h4 class="text">Options</h4>
-  		<p class="text-2">If no extension is supplied the extension won't be changed</p>
+  		<p class="text-small">If no extension is supplied the extension won't be changed</p>
     </div>
     <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
     <div style="display: flex; flex-flow: row; gap: 10px;">
   		<div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
-  		<p class="text-2">New name</p>
+  		<p class="text-small">New name</p>
   		<input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
   		</div>
   		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-2">Start at</p>
+  		<p class="text-small">Start at</p>
   		<input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
   		</div>
   		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-2">Step by</p>
+  		<p class="text-small">Step by</p>
   		<input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
   		</div>
   		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-2">Digits</p>
+  		<p class="text-small">Digits</p>
   		<input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
   		</div>
   		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-2">Extension</p>
+  		<p class="text-small">Extension</p>
 		  <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
   		</div>
   		</div>
@@ -3685,7 +4034,6 @@ function showMultiRenamePopup() {
     let item = document.createElement("div");
     item.className = "list-item";
     item.innerHTML = `${arrItemsToRename[i].getAttribute("itemname")}`;
-    item.style.fontSize = "var(--fontSize)";
     list.append(item);
   }
   popup.append(list);
@@ -3801,11 +4149,11 @@ async function showFtpConfig() {
     IsPopUpOpen = true;
     document.querySelectorAll(".ftp-popup-input").forEach(
       (input) =>
-      (input.onkeyup = (e) => {
-        if (e.key === "Enter") {
-          connectToFtp();
-        }
-      }),
+        (input.onkeyup = (e) => {
+          if (e.key === "Enter") {
+            connectToFtp();
+          }
+        }),
     );
   }
 }
@@ -3821,8 +4169,14 @@ async function connectToFtp() {
   let username = $(".ftp-username-input").val();
   let password = $(".ftp-password-input").val();
   let remotePath = $(".ftp-path-input").val();
+  let name = $(".ftp-dirname-input").val();
+  // let sudoPassword = await showPopup(
+  //   "Enter sudo password",
+  //   PopupType.PROMPT,
+  //   "The sshfs process to mount the network drive requires your users admin password.",
+  // );
   $(".ftp-loader").css("display", "flex");
-  openFTP(hostname, username, password, remotePath);
+  await openFTP(hostname, username, password, remotePath, name);
 }
 
 async function openFTP(
@@ -3830,16 +4184,21 @@ async function openFTP(
   username,
   password,
   remotePath = "/",
+  name = "",
 ) {
-  await invoke("mount_sshfs", {
-    hostname,
-    username,
-    password,
-    remotePath,
-  }).then(async (mountedPath) => {
-    await openDirAndSwitch(mountedPath);
-    insertSiteNavButtons();
-  });
+  try {
+    await invoke("mount_sshfs", {
+      hostname,
+      username,
+      password,
+      remotePath,
+      name,
+    }).then(async (mountedPath) => {
+      // await openDirAndSwitch(mountedPath);
+    });
+  } catch (error) {
+    console.error(error);
+  }
   closeFtpConfig();
 }
 
@@ -3848,40 +4207,46 @@ async function sortItems(sortMethod) {
     let arr = [...DirectoryList.children];
     arr = getFDirObjectListFromDirectoryList(arr);
     if (sortMethod == "size") {
+      IsFilteredByDate = false;
+      IsFilteredByName = false;
       if (IsFilteredBySize == true) {
         arr.sort((a, b) => {
-          return parseInt(b.size) - parseInt(a.size);
+          return parseInt(a.size) - parseInt(b.size);
         });
         IsFilteredBySize = false;
       } else {
         arr.sort((a, b) => {
-          return parseInt(a.size) - parseInt(b.size);
+          return parseInt(b.size) - parseInt(a.size);
         });
         IsFilteredBySize = true;
       }
     }
     if (sortMethod == "name") {
+      IsFilteredByDate = false;
+      IsFilteredBySize = false;
       if (IsFilteredByName == true) {
         arr.sort((a, b) => {
-          return a.name.localeCompare(b.name);
+          return b.name.localeCompare(a.name);
         });
         IsFilteredByName = false;
       } else {
         arr.sort((a, b) => {
-          return b.name.localeCompare(a.name);
+          return a.name.localeCompare(b.name);
         });
         IsFilteredByName = true;
       }
     }
     if (sortMethod == "date") {
+      IsFilteredBySize = false;
+      IsFilteredByName = false;
       if (IsFilteredByDate == true) {
         arr.sort((a, b) => {
-          return new Date(b.last_modified) - new Date(a.last_modified);
+          return new Date(a.last_modified) - new Date(b.last_modified);
         });
         IsFilteredByDate = false;
       } else {
         arr.sort((a, b) => {
-          return new Date(a.last_modified) - new Date(b.last_modified);
+          return new Date(b.last_modified) - new Date(a.last_modified);
         });
         IsFilteredByDate = true;
       }
@@ -3932,12 +4297,15 @@ function checkColorMode(appConfig) {
     "--textColor3",
     appConfig.themes[themeId].text_color3.replace('"', "").replace('"', ""),
   );
-  r.style.setProperty("--siteBarColor", appConfig.themes[themeId].site_bar_color);
+  r.style.setProperty(
+    "--siteBarColor",
+    appConfig.themes[themeId].site_bar_color,
+  );
   r.style.setProperty("--navBarColor", appConfig.themes[themeId].nav_bar_color);
 }
 
 async function open_with(filePath, appPath) {
-  ContextMenu.style.display = "none";
+  cdCtMenu.hide();
   await invoke("open_with", { filePath: filePath, appPath: appPath });
 }
 
@@ -3948,8 +4316,7 @@ async function getSetInstalledApplications(ext = "") {
 }
 
 function showFindDuplicates(item) {
-  ContextMenu.style.display = "none";
-  IsPopUpOpen = true;
+  cdCtMenu.hide();
   let popup = document.createElement("div");
   popup.className = "uni-popup find-duplicates-popup";
   popup.innerHTML = `
@@ -4001,6 +4368,7 @@ function showFindDuplicates(item) {
         document.querySelector(".duplicates-search-depth-input").value,
       );
     });
+  IsPopUpOpen = true;
 }
 
 function closeFindDuplicatesPopup() {
@@ -4012,18 +4380,16 @@ function closeFindDuplicatesPopup() {
 async function findDuplicates(item, depth) {
   showLoadingPopup("Searching for duplicates ...");
   document.querySelector(".list").innerHTML = "";
-  ContextMenu.style.display = "none";
+  IsPopUpOpen = true;
   await invoke("find_duplicates", {
     appWindow: appWindow,
     path: item.getAttribute("itempath"),
     depth: parseInt(depth),
   });
   closeLoadingPopup();
-  IsPopUpOpen = true;
 }
 
 async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
-  ContextMenu.style.display = "none";
   IsPopUpOpen = true;
   let popup = document.createElement("div");
   popup.className = "uni-popup yt-download-popup";
@@ -4084,7 +4450,7 @@ async function startYtDownload(
 ) {
   closeYtDownloadPopup();
   await invoke("download_yt_video", { appWindow, url, quality });
-  resetProgressBar();
+  finishProgressBar();
   await listDirectories();
 }
 
@@ -4176,22 +4542,22 @@ async function getDir(number) {
 }
 
 async function insertSiteNavButtons() {
-  // Clear current stack of nav buttons
-  document.querySelectorAll(".site-nav-bar-button").forEach(item => item.remove());
-  new Set(document.querySelector(".site-nav-bar").children).forEach(item => {
-    if (item.className == "horizontal-seperator") {
-      item.remove();
-    }
-  });
+  // Clear current stack of dynamic elements in sidebar
+  $(".site-nav-bar-button").remove();
+  $(".site-nav-bar-title").remove();
+  $(".site-nav-bar > .horizontal-seperator").remove();
+  $(".site-nav-bar > .disk-container").remove();
 
   let disks = await invoke("list_disks");
   let siteNavButtons = [
-    Platform.includes("darwin") ? [
-      "Applications",
-      "/Applications",
-      "fa-solid fa-rocket",
-      async () => await openDirAndSwitch("/Applications"),
-    ] : [],
+    Platform.includes("darwin")
+      ? [
+          "Applications",
+          "/Applications",
+          "fa-solid fa-rocket",
+          async () => await openDirAndSwitch("/Applications"),
+        ]
+      : [],
     [
       "Desktop",
       await getDir(0),
@@ -4229,7 +4595,9 @@ async function insertSiteNavButtons() {
       async () => await goToDir(5),
     ],
     // No sshfs implemenation for windows *yet*
-    Platform.includes("win") && Platform != "darwin" ? [] : ["FTP", "", "fa-solid fa-circle-nodes", showFtpConfig],
+    Platform.includes("win") && Platform != "darwin"
+      ? []
+      : ["SSHFS", "", "fa-solid fa-globe", showFtpConfig],
   ];
 
   for (let i = 0; i < siteNavButtons.length; i++) {
@@ -4240,21 +4608,74 @@ async function insertSiteNavButtons() {
     button.setAttribute("itempath", siteNavButtons[i][1]);
     button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
     button.ondragover = (e) => {
-      button.style.border = "1px solid var(--tertiaryColor)";
-      button.style.backgroundColor = "var(--secondaryColor)";
+      button.style.border = "1px solid var(--selectColor2)";
+      button.style.backgroundColor = "var(--selectColor3)";
+      button.style.scale = "1.05";
       DraggedOverElement = button;
       MousePos = [e.clientX, e.clientY];
     };
     button.ondragleave = () => {
       button.style.border = "1px solid transparent";
-      button.style.backgroundColor = "var(--siteBarColor)";
+      button.style.backgroundColor = "transparent";
+      button.style.scale = "1";
     };
     document.querySelector(".site-nav-bar").append(button);
+  }
+
+  // Favorites
+  if (ArrFavorites.length > 0) {
+    let seperator = document.createElement("div");
+    seperator.className = "horizontal-seperator";
+    document.querySelector(".site-nav-bar").append(seperator);
+
+    let favTitle = document.createElement("p");
+    favTitle.className = "site-nav-bar-title";
+    favTitle.innerHTML = "FAVORITES";
+    document.querySelector(".site-nav-bar").append(favTitle);
+
+    ArrFavorites.forEach((path) => {
+      let button = document.createElement("button");
+      button.className = "site-nav-bar-button";
+      let name = path.split(/[\\\/]/).pop() || path;
+      button.innerHTML = `<i class="fa-solid fa-star" style="color: #ffca28; font-size: 10px;"></i> <p>${name}</p>`;
+      button.setAttribute("itempath", path);
+      button.title = path;
+      button.onclick = async () => {
+        await openDirAndSwitch(path);
+        await listDirectories();
+      };
+      button.oncontextmenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showCustomContextMenu(e, [
+          {
+            name: "Remove from Favorites",
+            onclick: () => removeFavorite(path),
+          },
+        ]);
+      };
+      button.ondragover = (e) => {
+        button.style.border = "1px solid var(--selectColor2)";
+        button.style.backgroundColor = "var(--selectColor3)";
+        button.style.scale = "1.05";
+        DraggedOverElement = button;
+        MousePos = [e.clientX, e.clientY];
+      };
+      button.ondragleave = () => {
+        button.style.border = "1px solid transparent";
+        button.style.backgroundColor = "transparent";
+        button.style.scale = "1";
+      };
+      document.querySelector(".site-nav-bar").append(button);
+    });
   }
 
   let seperator = document.createElement("div");
   seperator.className = "horizontal-seperator";
   document.querySelector(".site-nav-bar").append(seperator);
+
+  let diskContainer = document.createElement("div");
+  diskContainer.className = "disk-container";
 
   // Available disks as site nav buttons
   let diskButton = document.createElement("button");
@@ -4270,27 +4691,41 @@ async function insertSiteNavButtons() {
 
     disks.forEach((mount) => {
       let diskButton = document.createElement("button");
-      diskButton.className = "site-nav-bar-button";
-      diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i><p>${mount.name != "" ? mount.name : "/"}</p>`;
+      diskButton.dataset.itempath = mount.path;
+      diskButton.className = "site-nav-bar-button disk-site-nav-button";
+      diskButton.innerHTML = `
+          <i class="fa-solid fa-hard-drive"></i>
+          <div style="width: 100%; display: flex; flex-flow: column;">
+            <p style="width: 90%; font-size: x-small; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mount.name != "" ? mount.name : "/"}</p>
+            <div style="font-size: x-small; color: var(--textColor2)">${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%</div>
+          </div>`;
       diskButton.onclick = async () => {
         await openDirAndSwitch(mount.path);
         await listDirectories();
       };
-      if (mount.format.includes("SSHFS")) {
+      // Show space left with gradient
+      diskButton.style.background = `linear-gradient(to right, var(--selectColor3) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
+      diskButton.style.backgroundRepeat = "no-repeat";
+      if (mount.format.includes("SSHFS") || mount.is_removable == true) {
         diskButton.oncontextmenu = (e) => {
           e.preventDefault();
           e.stopPropagation();
           showCustomContextMenu(e, [
             {
-              name: "Unmont",
-              onclick: () => unmountNetworkDrive(mount)
+              name: "Unmount",
+              onclick: () =>
+                mount.format.includes("SSHFS")
+                  ? unmountNetworkDrive(mount)
+                  : unmountDrive(mount),
             },
           ]);
         };
       }
-      document.querySelector(".site-nav-bar").append(diskButton);
+      diskContainer.append(diskButton);
     });
   }
+
+  document.querySelector(".site-nav-bar").append(diskContainer);
 }
 
 /* File operation context menu */
@@ -4345,33 +4780,45 @@ async function openConfigLocation() {
   resetEverything();
 }
 
-async function confirmPopup(message = "Nothing to see here!", type = PopupType.CONTINUE) {
+async function showPopup(
+  message = "Nothing to see here!",
+  type = PopupType.CONTINUE,
+  subtitle = "",
+) {
   let confirmationButton = "";
   switch (type) {
     case PopupType.CONTINUE:
-    confirmationButton = `
+      confirmationButton = `
       <button class="icon-button">
       <div class="button-icon"><i class="fa-solid fa-check"></i></div>
       Confirm
       </button>
       `;
-    break;
+      break;
     case PopupType.EXTRACT:
-    confirmationButton = `
+      confirmationButton = `
       <button class="icon-button">
       <div class="button-icon"><i class="fa-solid fa-maximize"></i></div>
       Extract
       </button>
       `;
-    break;
+      break;
     case PopupType.DELETE:
-    confirmationButton = `
+      confirmationButton = `
       <button class="icon-button delete-button">
       <div class="button-icon"><i class="fa-solid fa-trash"></i></div>
       Delete
       </button>
       `;
-    break;
+      break;
+    case PopupType.PROMPT:
+      confirmationButton = `
+      <button class="icon-button">
+      <div class="button-icon"><i class="fa-solid fa-check"></i></div>
+      Confirm
+      </button>
+      `;
+      break;
   }
   let popup = document.createElement("div");
   popup.className = "uni-popup confirm-popup";
@@ -4384,6 +4831,9 @@ async function confirmPopup(message = "Nothing to see here!", type = PopupType.C
     </div>
     <div class="popup-body">
     <p class="popup-body-content">${message}</p>
+    ${subtitle ? `<p class="popup-body-content popup-body-subtitle">${subtitle}</p>` : ""}
+    <br/>
+    ${type === PopupType.PROMPT ? `<input type="password" class="text-input popup-prompt-input" placeholder="Password">` : ""}
     </div>
     <div class="popup-controls">
     <button class="icon-button">
@@ -4393,19 +4843,45 @@ async function confirmPopup(message = "Nothing to see here!", type = PopupType.C
     ${confirmationButton}
     </div>
     `;
-  document.body.appendChild(popup);
-  document.querySelector(".confirm-popup button:last-child").focus();
+  document.querySelector(".main-container").appendChild(popup);
+  if (type === PopupType.PROMPT) {
+    document.querySelector(".confirm-popup input").focus();
+  } else {
+    document.querySelector(".confirm-popup button:last-child").focus();
+  }
   IsPopUpOpen = true;
   $(".popup-background").css("display", "block");
   setTimeout(() => $(".popup-background").css("opacity", "1")); // Workaround to trigger opacity transition
   return new Promise((resolve) => {
-    document.querySelector(".confirm-popup button:first-child").onclick = () => {
-      closeConfirmPopup();
-      resolve(false);
-    };
+    let input = document.querySelector(".popup-prompt-input");
+    if (input) {
+      input.onkeyup = (event) => {
+        if (event.key === "Enter") {
+          if (type === PopupType.PROMPT) {
+            resolve($(".popup-prompt-input").val());
+          } else {
+            resolve(true);
+          }
+          closeConfirmPopup();
+        }
+      };
+    }
+    document.querySelector(".confirm-popup button:first-child").onclick =
+      () => {
+        if (type === PopupType.PROMPT) {
+          resolve("");
+        } else {
+          resolve(false);
+        }
+        closeConfirmPopup();
+      };
     document.querySelector(".confirm-popup button:last-child").onclick = () => {
+      if (type === PopupType.PROMPT) {
+        resolve($(".popup-prompt-input").val());
+      } else {
+        resolve(true);
+      }
       closeConfirmPopup();
-      resolve(true);
     };
   });
 }
@@ -4418,174 +4894,9 @@ function closeConfirmPopup() {
 }
 
 function resetContextMenu() {
-  // Disabled access to "open with" context menu
-  $(".c-item-openwith").css("pointer-events", "none");
-  new Set(ContextMenu.children).forEach(children => {
-    if (
-      !(children.classList.contains("context-with-dropdown") && children.children[0].innerHTML === "Extras") &&
-      !children.classList.contains("c-item-newfile") &&
-      !children.classList.contains("c-item-newfolder") &&
-      !children.classList.contains("c-item-openinterminal")
-    )
-    {
-      children.setAttribute("disabled", "true");
-      children.classList.add("c-item-disabled");
-    }
-  });
-}
-
-async function setupItemContextMenu(item, e) {
-  if (ArrSelectedItems.length == 1 && (IsCtrlDown === false && Platform != "darwin" || Platform == "darwin" && IsMetaDown === false)) {
-    await unSelectAllItems();
-  }
-  if (!ArrSelectedItems.includes(item)) {
-    selectItem(item, "", true);
-  }
-  if (IsPopUpOpen == false) {
-    let appsCMenu = document.querySelector(".context-open-item-with");
-    appsCMenu.innerHTML = "";
-    await getSetInstalledApplications(item.getAttribute("itemext"));
-    if (Platform.includes("linux")) {
-      appsCMenu.innerHTML = "<p>Not yet available on this platform</p>";
-    } else if (Applications.length > 0) {
-      Applications.forEach((app) => {
-        if (app[0].split(".")[0].length > 0) {
-          let newItem = document.createElement("button");
-          newItem.innerHTML = app[0].split(".")[0];
-          newItem.className = "context-item";
-          newItem.setAttribute("appname", app[0].split(".")[0]);
-          newItem.setAttribute("apppath", app[1]);
-          newItem.setAttribute("onclick", `open_with('${item.getAttribute("itempath")}', '${app[1]}')`);
-          appsCMenu.appendChild(newItem);
-        }
-      });
-    } else {
-      appsCMenu.innerHTML = "<p>No applications found</p>";
-    }
-
-    // Reset so that the commands are not triggered multiple times
-    new Set(ContextMenu.children).forEach(children => {
-      children.replaceWith(children.cloneNode(true));
-    });
-
-    // Enable all items
-    new Set(ContextMenu.children).forEach(children => {
-      if (children.classList.contains("c-item-paste")) {
-        if (ArrCopyItems.length > 0) {
-          children.removeAttribute("disabled");
-          children.classList.remove("c-item-disabled");
-        }
-      } else {
-        children.removeAttribute("disabled");
-        children.classList.remove("c-item-disabled");
-      }
-    });
-
-    // Check if item is an supported archive
-    let extension = item.getAttribute("itemext");
-    if (
-      extension != ".zip" &&
-      extension != ".rar" &&
-      extension != ".7z" &&
-      extension != ".tar" &&
-      extension != ".gz" &&
-      extension != ".br" &&
-      extension != ".bz2"
-    ) {
-      document.querySelector(".c-item-extract").setAttribute("disabled", "true");
-      document.querySelector(".c-item-extract").classList.add("c-item-disabled");
-    } else {
-      document.querySelector(".c-item-extract").removeAttribute("disabled");
-      document.querySelector(".c-item-extract").classList.remove("c-item-disabled");
-      // Disable another compression
-      document.querySelector(".c-item-compress").setAttribute("disabled", "true");
-      document.querySelector(".c-item-compress").classList.add("c-item-disabled");
-    }
-
-    // Check if item can be searched through for duplicates
-    if (item.getAttribute("itemisdir") == "1") {
-      document.querySelector(".c-item-duplicates").removeAttribute("disabled");
-      document.querySelector(".c-item-duplicates").classList.remove("c-item-disabled");
-    } else {
-      document.querySelector(".c-item-duplicates").setAttribute("disabled", "true");
-      document.querySelector(".c-item-duplicates").classList.add("c-item-disabled");
-    }
-
-    document.querySelector(".c-item-delete").addEventListener(
-      "click",
-      async () => {
-        await deleteItems();
-      },
-      { once: true },
-    );
-    document.querySelector(".c-item-extract").addEventListener(
-      "click",
-      async () => {
-        await extractItem(item);
-      },
-      { once: true },
-    );
-    document.querySelector(".c-item-compress").addEventListener(
-      "click",
-      async () => {
-        await showCompressPopup(item);
-      },
-      { once: true },
-    );
-    document.querySelector(".c-item-copy").addEventListener(
-      "click",
-      async () => {
-        await copyItem(item);
-      },
-      { once: true },
-    );
-    document.querySelector(".c-item-moveto").addEventListener(
-      "click",
-      async () => {
-        await itemMoveTo(false);
-      },
-      { once: true },
-    );
-    document.querySelector(".c-item-newfile").addEventListener(
-      "click",
-      () => {
-        createFileInputPrompt(e);
-      },
-      { once: true },
-    );
-    document.querySelector(".c-item-rename").addEventListener(
-      "click",
-      () => {
-        renameElementInputPrompt(item);
-      },
-      { once: true },
-    );
-    document.querySelector(".c-item-properties").addEventListener(
-      "click",
-      () => {
-        showProperties(item);
-      },
-      { once: true },
-    );
-    document.querySelector(".c-item-duplicates").addEventListener(
-      "click",
-      () => {
-        showFindDuplicates(item);
-      },
-      { once: true },
-    );
-    document.querySelector(".c-item-ytdownload").addEventListener(
-      "click",
-      async () => {
-        await showYtDownload();
-      },
-      { once: true },
-    );
-
-    $(".context-with-dropdown").css("pointer-events", "all");
-
-    positionContextMenu(e);
-  }
+  cdCtMenu.setSelectedItem(null);
+  cdCtMenu.hide();
+  cdCtMenu.hideSubMenu();
 }
 
 function showCustomContextMenu(e, contextMenuItems = [{}]) {
@@ -4611,18 +4922,25 @@ function closeCustomContextMenu() {
   $(".custom-context-menu").remove();
 }
 
-function unmountNetworkDrive(networkDrive) {
-  invoke("unmount_network_drive", { path: networkDrive.path }).then(() => {
-    insertSiteNavButtons();
+async function unmountNetworkDrive(networkDrive) {
+  let sudoPassword = await showPopup("Enter sudo password", PopupType.PROMPT);
+  await invoke("unmount_network_drive", {
+    path: networkDrive.path.replaceAll('"', ""), // replaceAll('"', "") -> otherwise the path could be invalid
+    sudoPassword,
   });
 }
 
+function unmountDrive(disk) {
+  invoke("unmount_drive", { path: disk.path });
+}
+
 async function configBackButton(path = "") {
-  let button = document.querySelector(".go-back-button")
+  let button = document.querySelector(".go-back-button");
   button.setAttribute("itempath", path);
   button.ondragover = (e) => {
-    button.style.opacity = "0.5";
-    button.style.border = "1px solid var(--textColor)";
+    button.style.border = "1px solid var(--selectColor2)";
+    button.style.backgroundColor = "var(--transparentColor)";
+    button.style.scale = "1.05";
     DraggedOverElement = button;
     MousePos = [e.clientX, e.clientY];
   };
@@ -4635,10 +4953,65 @@ function resetBackButton() {
   let button = document.querySelector(".go-back-button");
   button.style.opacity = "1";
   button.style.border = "1px solid transparent";
+  button.style.backgroundColor = "initial";
+  button.style.scale = "1";
+}
+
+async function handleMountChanges() {
+  await insertSiteNavButtons();
+}
+
+async function addNewMount(payload) {
+  let path = payload.paths[0];
+  let name = path.split("/")[path.split("/").length - 1];
+  let diskButton = document.createElement("button");
+
+  let mount = await invoke("get_disk_info", { path });
+
+  diskButton.dataset.itempath = path.replaceAll('"', "");
+  diskButton.className = "site-nav-bar-button disk-site-nav-button";
+  diskButton.innerHTML = `
+      <i class="fa-solid fa-hard-drive"></i>
+      <div style="width: 100%; display: flex; flex-flow: column;">
+      <p style="width: 90%; font-size: x-small; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mount.name != "" ? mount.name.replaceAll('"', "") : "/"}</p>
+        <div style="float: right; font-size: x-small; color: var(--textColor2)">${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%</div>
+      </div>`;
+  diskButton.onclick = async () => {
+    await openDirAndSwitch(path);
+    await listDirectories();
+  };
+  // Show space left with gradient
+  diskButton.style.background = `linear-gradient(to right, var(--selectColor3) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
+  diskButton.style.backgroundRepeat = "no-repeat";
+  console.log(mount);
+  diskButton.oncontextmenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showCustomContextMenu(e, [
+      {
+        name: "Unmount",
+        onclick: () =>
+          mount.format.includes("SSHFS")
+            ? unmountNetworkDrive(mount)
+            : unmountDrive(mount),
+      },
+    ]);
+  };
+  document.querySelector(".disk-container").append(diskButton);
+}
+
+async function removeMount(mount) {
+  let path = mount.paths[0];
+  let diskButton = document.querySelector(
+    `.disk-site-nav-button[data-itempath="${path}"]`,
+  );
+  if (!diskButton) return;
+  diskButton.remove();
 }
 
 (async () => {
   await getSetInstalledApplications();
   await checkAppConfig();
   await insertSiteNavButtons();
+  cdCtMenu.setupItems();
 })();

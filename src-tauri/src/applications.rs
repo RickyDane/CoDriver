@@ -134,7 +134,7 @@ fn find_ios_app_icon(app_path: PathBuf) -> Option<PathBuf> {
             all_icons.push(entry.path().to_path_buf());
         }
     }
-    if all_icons.len() == 0 {
+    if all_icons.is_empty() {
         None
     } else if all_icons.len() == 1 {
         Some(all_icons[0].clone())
@@ -142,7 +142,7 @@ fn find_ios_app_icon(app_path: PathBuf) -> Option<PathBuf> {
         // more than one png found, search for keyword AppIcon, ignore case
         // filter to get png with AppIcon in name, ignore case
         // sort all_icons by path length, shortest first
-        all_icons.sort_by(|a, b| a.to_str().unwrap().len().cmp(&b.to_str().unwrap().len()));
+        all_icons.sort_by_key(|a| a.to_str().unwrap().len());
         let filtered_all_icons = all_icons
             .iter()
             .filter(|&x| {
@@ -156,7 +156,7 @@ fn find_ios_app_icon(app_path: PathBuf) -> Option<PathBuf> {
             .collect::<Vec<_>>();
         if filtered_all_icons.len() == 1 {
             Some(filtered_all_icons[0].clone())
-        } else if filtered_all_icons.len() == 0 {
+        } else if filtered_all_icons.is_empty() {
             Some(all_icons[0].clone())
         } else {
             // filtered_all_icons more than 1, use the one with shortest length
@@ -196,13 +196,13 @@ pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
     }
     if all_icons.len() == 1 {
         Some(all_icons[0].clone())
-    } else if all_icons.len() == 0 {
+    } else if all_icons.is_empty() {
         None
     } else {
         // more than one icon found
         // search for appicon in name, ignore case
         // sort all_icons by path length, shortest first
-        all_icons.sort_by(|a, b| a.to_str().unwrap().len().cmp(&b.to_str().unwrap().len()));
+        all_icons.sort_by_key(|a| a.to_str().unwrap().len());
         let filtered_all_icons = all_icons
             .iter()
             .filter(|&x| {
@@ -216,7 +216,7 @@ pub fn find_app_icns(app_path: PathBuf) -> Option<PathBuf> {
             .collect::<Vec<_>>();
         if filtered_all_icons.len() == 1 {
             Some(filtered_all_icons[0].clone())
-        } else if filtered_all_icons.len() == 0 {
+        } else if filtered_all_icons.is_empty() {
             Some(all_icons[0].clone())
         } else {
             // filtered_all_icons more than 1, use the one with shortest length
