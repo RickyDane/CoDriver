@@ -1,6 +1,6 @@
 [package]
 name = "CoDriver"
-version = "0.6.5"
+version = "0.7.0"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "BSD-2-Clause license"
@@ -39,7 +39,6 @@ open = "5.0.0"
 stopwatch = "0.0.7"
 zip-extensions = "0.6.1"
 sevenz-rust = "0.5.2"
-unrar = "0.5.1"
 sysinfo = "0.30.5"
 color-print = "0.3.5"
 rayon = "1.8.1"
@@ -70,6 +69,10 @@ density-rs = "0.16.6"
 futures = "0.3.31"
 bzip2 = "0.6.1"
 brotlic = "0.8.2"
+anyhow = "1.0.100"
+
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+unrar = "0.5.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"

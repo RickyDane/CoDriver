@@ -10,8 +10,9 @@ use flate2::read::GzDecoder;
 #[cfg(target_os = "macos")]
 use icns::{IconFamily, IconType};
 use image::ImageReader;
+#[cfg(target_os = "windows")]
+use remove_dir_all::remove_dir_all;
 // use rusty_ytdl::{Video, VideoOptions, VideoQuality, VideoSearchOptions};
-use serde::Serialize;
 use serde_json::Value;
 use std::fs::{self, read_dir, remove_dir, remove_file};
 use std::io::Cursor;
@@ -28,7 +29,6 @@ use std::{
     path::PathBuf,
 };
 use stopwatch::Stopwatch;
-use tauri::api::dialog;
 use tauri::async_runtime::Mutex;
 use tauri::{
     api::path::{
@@ -46,8 +46,9 @@ mod utils;
 use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
-    copy_to, count_entries, create_new_action, dbg_log, err_log, format_bytes,
-    remove_action, show_progressbar, success_log, unpack_tar, wng_log, DirWalker, DirWalkerEntry,
+    copy_to, copy_to_preserving_existing, count_entries, create_new_action, dbg_log, err_log,
+    format_bytes, remove_action, show_progressbar, success_log, unpack_tar, wng_log, DirWalker,
+    DirWalkerEntry,
 };
 #[cfg(target_os = "macos")]
 mod window_tauri_ext;
@@ -60,8 +61,8 @@ use lazy_static::lazy_static;
 use substring::Substring;
 
 use crate::utils::{
-    compress_items, extract_brotli_tar, extract_from_density, extract_tar_bz2, extract_zst_archive,
-    get_items_size, human_to_bytes, setup_fs_watcher,
+    compress_items, dir_info, extract_brotli_tar, extract_from_density, extract_tar_bz2,
+    extract_zst_archive, get_items_size, human_to_bytes, setup_fs_watcher,
 };
 
 // Global variables
@@ -73,6 +74,8 @@ lazy_static! {
     static ref TO_COPY_COUNTER: Mutex<f32> = Mutex::new(0.0);
     static ref TOTAL_BYTES_COPIED: Arc<Mutex<f32>> = Arc::new(Mutex::new(0.0));
     static ref IS_SEARCHING: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+    pub static ref IS_SIZE_CALC_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
+        Arc::new(std::sync::atomic::AtomicBool::new(false));
 }
 
 // static mut IS_SEARCHING: bool = false;
@@ -164,17 +167,20 @@ fn main() {
             rename_elements_with_format,
             add_favorite,
             arr_copy_paste,
+            arr_copy_paste_resolved,
             arr_delete_items,
             arr_compress_items,
             get_installed_apps,
             open_with,
             find_duplicates,
             cancel_operation,
+            cancel_size_calculation,
             get_df_dir,
             // download_yt_video,
             get_app_icns,
             get_thumbnail,
             get_simple_dir_info,
+            get_selection_size,
             get_themes,
             stop_searching,
             get_file_content,
@@ -184,6 +190,7 @@ fn main() {
             get_sshfs_mounts,
             unmount_network_drive,
             unmount_drive,
+            eject_disk,
             load_item_image,
             get_disk_info,
             get_machine_bytes,
@@ -202,6 +209,19 @@ struct FDir {
     extension: String,
     size: String,
     last_modified: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+struct CopyConflictItem {
+    source_path: String,
+    destination_path: String,
+    policy: String,
+}
+
+#[derive(serde::Serialize, Clone, Debug)]
+struct CopyPasteResolvedResult {
+    copied_sources: Vec<String>,
+    errors: Vec<String>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -411,14 +431,12 @@ struct DisksInfo {
 #[tauri::command]
 async fn list_disks() -> Vec<DisksInfo> {
     let mut ls_disks: Vec<DisksInfo> = vec![];
+
     let disks = Disks::new_with_refreshed_list();
     for disk in &disks {
         if ls_disks
             .iter()
-            .find(|&ls_disk| {
-                ls_disk.name == disk.name().to_string_lossy().to_string()
-                    && ls_disk.avail == format!("{:?}", disk.available_space())
-            })
+            .find(|&ls_disk| ls_disk.name == disk.name().to_string_lossy().to_string())
             .is_some()
         {
             continue;
@@ -453,6 +471,37 @@ async fn list_disks() -> Vec<DisksInfo> {
                 capacity: format!("{:?}", mount.metadata().unwrap().len()),
                 is_removable: true,
             });
+        }
+    }
+
+    let ls_volumes = fs::read_dir("/Volumes");
+    if ls_volumes.is_ok() {
+        let ls_sshfs_mounts = ls_volumes.unwrap();
+        for mount in ls_sshfs_mounts {
+            let mount = mount.unwrap();
+            if ls_disks
+                .iter()
+                .find(|rp| {
+                    rp.path == mount.path().to_string_lossy().to_string()
+                        || rp.name == mount.file_name().to_string_lossy().to_string()
+                })
+                .is_none()
+            {
+                ls_disks.push(DisksInfo {
+                    name: format!("{:?}", mount.file_name())
+                        .split("/")
+                        .last()
+                        .unwrap_or("/")
+                        .to_string()
+                        .replace("\"", ""),
+                    dev: format!("{:?}", mount.file_name()),
+                    format: "Network-Drive".into(),
+                    path: format!("{:?}", mount.path()).replace("\"", ""),
+                    avail: format!("{:?}", mount.metadata().unwrap().len()),
+                    capacity: format!("{:?}", mount.metadata().unwrap().len()),
+                    is_removable: true,
+                });
+            }
         }
     }
     ls_disks
@@ -565,7 +614,13 @@ async fn list_dirs() -> Vec<FDir> {
                         .unwrap_or("");
                 let file_data = fs::metadata(temp_item.path());
                 let file_date: String;
-                let size = temp_item.metadata().unwrap().len();
+                let size;
+                match temp_item.metadata() {
+                    Ok(metadata) => {
+                        size = metadata.len();
+                    }
+                    Err(_) => size = 0,
+                }
                 match file_data {
                     Ok(file_data) => {
                         let dt: DateTime<Local> = file_data.modified().unwrap().into();
@@ -655,57 +710,62 @@ async fn go_to_dir(directory: u8) -> Vec<FDir> {
     list_dirs().await
 }
 
-// :ftp
+// :ftp / :sshfs
 #[tauri::command]
 async fn mount_sshfs(
     hostname: String,
     username: String,
     password: String,
     remote_path: String,
-    app_window: Window,
+    name: String,
 ) -> Result<String, ()> {
-    let remote_address = format!("{}@{}:{}", username, hostname, remote_path);
+    // Build the remote address string
+    let remote_addr = format!("{}@{}:{}", username, hostname, remote_path);
 
-    let mount_point = "/tmp/codriver-sshfs-mount/".to_owned() + &username;
+    // Mount point under /tmp
+    let mount_point = format!("/tmp/codriver-sshfs-mount/{}", name);
+    std::fs::create_dir_all(&mount_point).expect("Failed to create mount point");
 
-    // Ensure the local mount point exists
-    std::fs::create_dir_all(&mount_point).expect("Failed to create mount point directory");
-
-    // Start sshfs process
-    let child = Command::new("sshfs")
-        .arg(&remote_address)
-        .arg(&mount_point)
+    // Command: sudo -S sshfs -o password_stdin <remote> <mount>
+    let mut child = Command::new("sshfs")
         .arg("-o")
-        .arg("password_stdin")
+        .arg("password_stdin") // <-- critical
+        .arg(&remote_addr)
+        .arg(&mount_point)
         .stdin(Stdio::piped())
-        .spawn();
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn sshfs process");
 
-    if child.is_err() {
-        dialog::message(Some(&app_window), "", "Failed to start sshfs process");
+    // Pipe both passwords: sudo first, then remote SSH password
+    if let Some(stdin) = child.stdin.take() {
+        use std::io::{BufWriter, Write};
+
+        let mut writer = BufWriter::new(stdin);
+
+        // sudo password + newline
+        // writeln!(writer, "{}", sudo_password).expect("Failed to write sudo password"); // Not needed as the whole program needs to be ran as root
+
+        // remote SSH password + newline
+        writeln!(writer, "{}", password).expect("Failed to write remote SSH password");
+
+        writer.flush().expect("Failed to flush password stream");
+    } else {
+        return Err(());
     }
-
-    let mut child = child.unwrap();
-
-    // Write the password to stdin of the sshfs process
-    dbg_log(format!("Connecting to {}", remote_address));
-    let stdin = child.stdin.as_mut().expect("Failed to open stdin");
-    stdin
-        .write_all(password.as_bytes())
-        .expect("Failed to write to stdin");
 
     let output = child
         .wait_with_output()
-        .expect("Failed to read sshfs output");
+        .expect("Failed to wait for sshfs process");
 
     if output.status.success() {
-        dbg_log(format!("Mounted {} to {}", remote_address, mount_point));
+        Ok(mount_point)
     } else {
-        wng_log(format!(
-            "Failed to mount: {}",
-            String::from_utf8_lossy(&output.stderr),
-        ));
+        let err = String::from_utf8_lossy(&output.stderr);
+        err_log(err);
+        Err(())
     }
-    Ok(mount_point)
 }
 
 #[tauri::command]
@@ -874,13 +934,16 @@ async fn copy_paste(
                 let _ = copy(from_path, final_filename);
             } else {
                 println!("Copying {} to {}", from_path, final_filename);
-                copy_to(
+                if let Err(err) = copy_to(
                     final_filename,
                     from_path,
                     total_bytes_to_copy,
                     to_copy_counter.clone(),
                 )
-                .await;
+                .await
+                {
+                    err_log(format!("Copy failed: {}", err));
+                }
             }
         }
         _ => return,
@@ -929,10 +992,318 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
         )
         .await;
         // Execute the copy process for either a dir or file
-        copy_to(final_filename, item_path, total_bytes, counter).await;
+        if let Err(err) = copy_to(final_filename, item_path, total_bytes, counter).await {
+            err_log(format!("Copy failed: {}", err));
+        }
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed().as_secs_f32()));
     let _ = app_window.emit("finish-progress-bar", sw.elapsed().as_secs_f32());
+}
+
+#[tauri::command]
+async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResolvedResult {
+    let app_window = WINDOW.get().unwrap();
+    if items.is_empty() {
+        return CopyPasteResolvedResult {
+            copied_sources: Vec::new(),
+            errors: Vec::new(),
+        };
+    }
+
+    *(COPY_COUNTER.lock().await) = 0.0;
+    *(TOTAL_BYTES_COPIED.lock().await) = 0.0;
+
+    show_progressbar(app_window);
+
+    let mut counter = 0.0;
+    let mut total_bytes = 0.0;
+    for item in items.clone() {
+        counter += count_entries(&item.source_path).unwrap_or(0.0);
+        total_bytes += dir_info(item.source_path.clone()).size as f32;
+    }
+
+    let sw = Stopwatch::start_new();
+    let mut copied_sources: Vec<String> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
+
+    for item in items {
+        if item.policy == "skip" {
+            continue;
+        }
+
+        let source = item.source_path.replace("\\", "/");
+        let mut destination = item.destination_path.replace("\\", "/");
+        let source_path = Path::new(&source);
+        let destination_path = Path::new(&destination);
+
+        if let Err(err) = validate_copy_destination(source_path, destination_path) {
+            wng_log(format!(
+                "Skipping unsafe copy from '{}' to '{}': {}",
+                source, destination, err
+            ));
+            errors.push(err);
+            continue;
+        }
+
+        let copy_result = match item.policy.as_str() {
+            "replace" => {
+                replace_path_safely(source_path, destination_path, total_bytes, counter).await
+            }
+            "merge" => {
+                if source_path.is_dir() && destination_path.is_dir() {
+                    copy_to_preserving_existing(
+                        destination.clone(),
+                        source.clone(),
+                        total_bytes,
+                        counter,
+                    )
+                    .await
+                } else {
+                    Err("Merge is only supported for two folders".to_string())
+                }
+            }
+            "duplicate" => {
+                destination = get_available_path(destination_path);
+                copy_to(destination.clone(), source.clone(), total_bytes, counter).await
+            }
+            _ => {
+                if destination_path.exists() {
+                    destination = get_available_path(destination_path);
+                }
+                copy_to(destination.clone(), source.clone(), total_bytes, counter).await
+            }
+        };
+
+        match copy_result {
+            Ok(()) => copied_sources.push(source),
+            Err(err) => {
+                err_log(format!(
+                    "Copy failed from '{}' to '{}': {}",
+                    source, destination, err
+                ));
+                errors.push(format!("{} → {}: {}", source, destination, err));
+            }
+        }
+    }
+
+    dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed().as_secs_f32()));
+    let _ = app_window.emit("finish-progress-bar", sw.elapsed().as_secs_f32());
+    CopyPasteResolvedResult {
+        copied_sources,
+        errors,
+    }
+}
+
+fn canonical_or_parent_path(path: &Path) -> Result<PathBuf, String> {
+    if path.exists() {
+        return path
+            .canonicalize()
+            .map_err(|err| format!("Failed to canonicalize '{}': {}", path.display(), err));
+    }
+
+    let parent = path
+        .parent()
+        .ok_or_else(|| format!("Destination has no parent: '{}'", path.display()))?;
+    let canonical_parent = parent.canonicalize().map_err(|err| {
+        format!(
+            "Failed to canonicalize destination parent '{}': {}",
+            parent.display(),
+            err
+        )
+    })?;
+    let file_name = path
+        .file_name()
+        .ok_or_else(|| format!("Destination has no file name: '{}'", path.display()))?;
+    Ok(canonical_parent.join(file_name))
+}
+
+fn comparable_path(path: &Path) -> String {
+    let value = path.to_string_lossy().replace("\\", "/");
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    {
+        value.to_lowercase()
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        value
+    }
+}
+
+fn validate_copy_destination(source_path: &Path, destination_path: &Path) -> Result<(), String> {
+    let source_canonical = source_path.canonicalize().map_err(|err| {
+        format!(
+            "Failed to canonicalize source '{}': {}",
+            source_path.display(),
+            err
+        )
+    })?;
+    let destination_canonical = canonical_or_parent_path(destination_path)?;
+
+    let source_cmp = comparable_path(&source_canonical);
+    let destination_cmp = comparable_path(&destination_canonical);
+    if source_cmp == destination_cmp {
+        return Err("Source and destination resolve to the same path".to_string());
+    }
+    if source_path.is_dir() {
+        let source_prefix = format!("{}/", source_cmp.trim_end_matches('/'));
+        if destination_cmp.starts_with(&source_prefix) {
+            return Err("Cannot copy or move a folder into itself or its descendant".to_string());
+        }
+    }
+    Ok(())
+}
+
+fn get_replace_temp_path(destination_path: &Path, prefix: &str) -> PathBuf {
+    let parent = destination_path.parent().unwrap_or_else(|| Path::new(""));
+    let name = destination_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("item");
+    let mut counter = 0;
+    loop {
+        let candidate = parent.join(format!(
+            ".codriver-{}-{}-{}-{}",
+            prefix,
+            std::process::id(),
+            counter,
+            name
+        ));
+        if !candidate.exists() {
+            return candidate;
+        }
+        counter += 1;
+    }
+}
+
+fn get_replace_staging_path(destination_path: &Path) -> PathBuf {
+    get_replace_temp_path(destination_path, "replace-tmp")
+}
+
+fn get_replace_backup_path(destination_path: &Path) -> PathBuf {
+    get_replace_temp_path(destination_path, "replace-backup")
+}
+
+async fn replace_path_safely(
+    source_path: &Path,
+    destination_path: &Path,
+    total_bytes: f32,
+    counter: f32,
+) -> Result<(), String> {
+    let staging_path = get_replace_staging_path(destination_path);
+    let staging = staging_path.to_string_lossy().replace("\\", "/");
+    let source = source_path.to_string_lossy().replace("\\", "/");
+
+    if let Err(err) = copy_to(staging.clone(), source, total_bytes, counter).await {
+        let _ = remove_path(&staging_path).await;
+        return Err(err);
+    }
+
+    let backup_path = if destination_path.exists() {
+        let backup_path = get_replace_backup_path(destination_path);
+        if let Err(err) = fs::rename(destination_path, &backup_path) {
+            let _ = remove_path(&staging_path).await;
+            return Err(format!(
+                "Failed to back up existing destination '{}' before replacement: {}",
+                destination_path.display(),
+                err
+            ));
+        }
+        Some(backup_path)
+    } else {
+        None
+    };
+
+    let had_backup = backup_path.is_some();
+    if let Err(err) = fs::rename(&staging_path, destination_path) {
+        let rollback_error = if let Some(backup_path) = &backup_path {
+            fs::rename(backup_path, destination_path)
+                .err()
+                .map(|rollback_err| rollback_err.to_string())
+        } else {
+            None
+        };
+
+        let _ = remove_path(&staging_path).await;
+
+        return Err(match rollback_error {
+            Some(rollback_err) => format!(
+                "Failed to install replacement '{}' from staging '{}': {}. Rollback also failed: {}",
+                destination_path.display(),
+                staging,
+                err,
+                rollback_err
+            ),
+            None if had_backup => format!(
+                "Failed to install replacement '{}' from staging '{}': {}. Original destination was restored",
+                destination_path.display(),
+                staging,
+                err
+            ),
+            None => format!(
+                "Failed to install replacement '{}' from staging '{}': {}",
+                destination_path.display(),
+                staging,
+                err
+            ),
+        });
+    }
+
+    if let Some(backup_path) = backup_path {
+        if let Err(err) = remove_path(&backup_path).await {
+            wng_log(format!(
+                "Replacement succeeded but backup cleanup failed '{}': {}",
+                backup_path.display(),
+                err
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+async fn remove_path(path: &Path) -> Result<(), String> {
+    let path_string = path.to_string_lossy().replace("\\", "/");
+    if path.is_dir() {
+        #[cfg(target_os = "windows")]
+        {
+            remove_dir_all(path).map_err(|err| err.to_string())?;
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            rapid_delete_dir_all(&path_string, None, None)
+                .await
+                .map_err(|err| err.to_string())?;
+        }
+    } else if path.exists() {
+        delete_file(&path_string).map_err(|err| err.to_string())?;
+    }
+    Ok(())
+}
+
+fn get_available_path(path: &Path) -> String {
+    if !path.exists() {
+        return path.to_string_lossy().replace("\\", "/");
+    }
+
+    let parent = path.parent().unwrap_or_else(|| Path::new(""));
+    let stem = path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("Untitled");
+    let extension = path.extension().and_then(|value| value.to_str());
+    let mut counter = 1;
+
+    loop {
+        let candidate_name = match extension {
+            Some(ext) if !ext.is_empty() => format!("{} ({}).{}", stem, counter, ext),
+            _ => format!("{} ({})", stem, counter),
+        };
+        let candidate = parent.join(candidate_name);
+        if !candidate.exists() {
+            return candidate.to_string_lossy().replace("\\", "/");
+        }
+        counter += 1;
+    }
 }
 
 #[tauri::command]
@@ -1082,15 +1453,18 @@ async fn extract_item(from_path: String, app_window: Window) {
             return;
         }
     } else if file_ext == ".rar" {
-        let mut archive = unrar::Archive::new(&from_path)
-            .open_for_processing()
-            .unwrap();
-        let _ = WINDOW.get().unwrap().emit("refreshView", ());
-        while let Some(header) = archive.read_header().unwrap() {
-            archive = if header.entry().is_file() {
-                header.extract().unwrap()
-            } else {
-                header.skip().unwrap()
+        #[cfg(not(target_os = "windows"))]
+        {
+            let mut archive = unrar::Archive::new(&from_path)
+                .open_for_processing()
+                .unwrap();
+            let _ = WINDOW.get().unwrap().emit("refreshView", ());
+            while let Some(header) = archive.read_header().unwrap() {
+                archive = if header.entry().is_file() {
+                    header.extract().unwrap()
+                } else {
+                    header.skip().unwrap()
+                }
             }
         }
     } else if file_ext == ".7z" {
@@ -1155,15 +1529,7 @@ async fn compress_item(
     compression_type: String,
     interval_id: usize,
 ) {
-    let output = format!(
-        "{}.{}",
-        current_dir()
-            .unwrap()
-            .join(path_to_zip)
-            .to_string_lossy()
-            .to_string(),
-        compression_type
-    );
+    let output = format!("{}.{}", path_to_zip, compression_type);
     compress_items(
         output,
         vec![from_path],
@@ -1183,20 +1549,13 @@ async fn arr_compress_items(
     compression_type: String,
     interval_id: usize,
 ) {
-    let path_to_zip = current_dir()
+    let output = current_dir()
         .unwrap()
         .join("compressed_items_archive")
+        .with_extension(&compression_type)
         .to_string_lossy()
         .to_string();
-    let output = format!(
-        "{}.{}",
-        current_dir()
-            .unwrap()
-            .join(path_to_zip)
-            .to_string_lossy()
-            .to_string(),
-        compression_type
-    );
+
     compress_items(
         output,
         arr_items,
@@ -1509,6 +1868,11 @@ async fn cancel_operation() {
 }
 
 #[tauri::command]
+async fn cancel_size_calculation() {
+    IS_SIZE_CALC_CANCELLED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[tauri::command]
 async fn get_df_dir(number: u8) -> String {
     match number {
         0 => desktop_dir()
@@ -1771,73 +2135,33 @@ async fn get_thumbnail(image_path: String) -> String {
 }
 
 #[tauri::command]
+async fn get_selection_size(paths: Vec<String>, update_id: String) -> u64 {
+    IS_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
+    crate::utils::ACCUMULATED_SIZE.store(0, std::sync::atomic::Ordering::Relaxed);
+    crate::utils::ACCUMULATED_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
+
+    let mut total_size = 0;
+    for path in paths {
+        total_size += crate::utils::dir_info_incremental(path, Some(&update_id)).size;
+        if IS_SIZE_CALC_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
+    }
+    total_size
+}
+
+#[tauri::command]
 async fn get_simple_dir_info(
     path: String,
     _app_window: Window,
     _class_to_fill: String,
-) -> SimpleDirInfo {
-    unsafe {
-        CALCED_SIZE = 0;
-    }
-    dir_info(path)
-}
+    update_id: Option<String>,
+) -> crate::utils::SimpleDirInfo {
+    IS_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
+    crate::utils::ACCUMULATED_SIZE.store(0, std::sync::atomic::Ordering::Relaxed);
+    crate::utils::ACCUMULATED_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
 
-#[derive(Debug, Serialize)]
-struct SimpleDirInfo {
-    size: u64,
-    count_elements: u64,
-}
-
-static mut CALCED_SIZE: u64 = 0; // Currently unused -> Coming implementation for showing progress
-
-fn dir_info(path: String) -> SimpleDirInfo {
-    if PathBuf::from(&path).is_file() {
-        return SimpleDirInfo {
-            size: PathBuf::from(&path).metadata().unwrap().len(),
-            count_elements: 1,
-        };
-    }
-
-    let entry = match fs::read_dir(path) {
-        Ok(entry) => entry,
-        Err(_) => {
-            return SimpleDirInfo {
-                size: 0,
-                count_elements: 0,
-            }
-        }
-    };
-    let mut size = 0;
-    let mut count_elements = 0;
-
-    for entry in entry {
-        if let Ok(entry) = entry {
-            if entry.file_type().unwrap().is_file() {
-                let file_size = match entry.metadata() {
-                    Ok(s) => s.len(),
-                    Err(_) => continue,
-                };
-                size += file_size;
-            } else if entry.file_type().unwrap().is_dir() {
-                let dir_size = dir_info(entry.path().to_string_lossy().to_string()).size;
-                size += dir_size;
-            }
-            if entry
-                .file_name()
-                .to_string_lossy()
-                .to_string()
-                .starts_with(".")
-            {
-                continue;
-            }
-            count_elements += 1;
-        }
-    }
-
-    SimpleDirInfo {
-        size,
-        count_elements,
-    }
+    crate::utils::dir_info_incremental(path, update_id.as_deref())
 }
 
 #[tauri::command]
@@ -1872,29 +2196,47 @@ async fn log(log: String) {
 }
 
 #[tauri::command]
-async fn unmount_network_drive(path: String) {
-    let _ = Command::new("umount").arg(&path).spawn();
-    dbg_log(format!("Unmounted: {}", path));
-    let remove = remove_dir(&path);
-    if remove.is_err() {
-        dbg_log(format!("Failed to remove: {} | Trying again in 0.5s", path));
-        std::thread::sleep(std::time::Duration::from_millis(500));
-        let remove2 = remove_dir(&path);
-        if remove2.is_err() {
-            dbg_log(format!("Failed to remove: {} | Trying again in 1s", path));
-            std::thread::sleep(std::time::Duration::from_millis(1000));
-            let remove3 = remove_dir(&path);
-            if remove3.is_err() {
-                dbg_log(format!(
-                    "Failed to remove: {} | Err: {}",
-                    path,
-                    remove3.err().unwrap()
-                ));
-                return;
-            }
-        }
+async fn unmount_network_drive(path: String, sudo_password: String) -> Result<(), String> {
+    // Sanity check: mount point must exist.
+    if !std::path::Path::new(&path).exists() {
+        return Err("Mount point does not exist".to_string());
     }
-    success_log(format!("Removed: {}", path));
+
+    let mut child = Command::new("sudo")
+        .arg("-S") // read sudo password from stdin
+        .arg("umount")
+        .arg(&path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn umount process");
+
+    // Write the sudo password.
+    if let Some(stdin) = child.stdin.take() {
+        use std::io::{BufWriter, Write};
+        let mut w = BufWriter::new(stdin);
+        writeln!(w, "{}", sudo_password).expect("Failed to write sudo password");
+        w.flush().expect("Failed to flush sudo password stream");
+    } else {
+        return Err("Failed to write sudo password".to_string());
+    }
+
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait for umount process");
+
+    if output.status.success() {
+        match remove_dir(path) {
+            Ok(_) => success_log("Successfully unmounted network drive"),
+
+            Err(err) => err_log(&format!("Failed to remove directory: {}", err)),
+        }
+        Ok(())
+    } else {
+        let err = String::from_utf8_lossy(&output.stderr);
+        Err(err.to_string())
+    }
 }
 
 #[tauri::command]
@@ -1906,6 +2248,43 @@ async fn unmount_drive(path: String) {
         .spawn();
     #[cfg(target_os = "linux")]
     let _ = Command::new("umount").arg(path).spawn();
+}
+
+#[tauri::command]
+async fn eject_disk(path: String) -> Result<String, String> {
+    let path = path.trim();
+    if path.is_empty() || path == "/" {
+        return Err("Refusing to eject system root".into());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        if !path.starts_with("/Volumes/") {
+            return Err("Only mounted volumes under /Volumes can be ejected".into());
+        }
+
+        let output = Command::new("diskutil")
+            .args(["unmount", path])
+            .output()
+            .map_err(|error| format!("Failed to start diskutil: {error}"))?;
+
+        if output.status.success() {
+            Ok("Disk ejected".into())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            Err(if stderr.is_empty() {
+                "diskutil failed to eject disk".into()
+            } else {
+                stderr
+            })
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = path;
+        Err("Eject disk is only supported on macOS".into())
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -2065,7 +2444,14 @@ async fn get_disk_info(path: String) -> Result<DisksInfo, String> {
         Ok(metadata) => Ok(DisksInfo {
             name: format!("{:?}", &path.split("/").last().unwrap()),
             dev: format!("{:?}", &path.split("/").last().unwrap()),
-            format: format!("{:?}", metadata.file_type()),
+            format: format!(
+                "{:?}",
+                if *&path.contains("codriver-sshfs-mount") {
+                    "SSHFS Network-Drive"
+                } else {
+                    "Drive"
+                }
+            ),
             path: format!("{:?}", &path),
             avail: format!("{:?}", metadata.len()),
             capacity: format!("{:?}", metadata.len()),

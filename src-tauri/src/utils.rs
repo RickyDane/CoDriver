@@ -14,14 +14,13 @@ use serde::Serialize;
 use std::env::current_dir;
 use std::fs::{create_dir_all, Metadata, OpenOptions};
 use std::io::{self, Error};
-use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::usize;
 use std::{
     ffi::OsStr,
     fmt::Debug,
     fs::{self, File},
-    io::{BufReader, BufWriter, Read, Write},
+    io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write},
 };
 use stopwatch::Stopwatch;
 use tar::Archive as TarArchive;
@@ -33,12 +32,19 @@ use tokio::task;
 use zip::write::FileOptions;
 use zip::ZipWriter;
 
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
 #[allow(unused_imports)]
 use crate::ISCANCELED;
-use crate::{COPY_COUNTER, IS_SEARCHING, TOTAL_BYTES_COPIED, WINDOW};
+use crate::{COPY_COUNTER, IS_SEARCHING, IS_SIZE_CALC_CANCELLED, TOTAL_BYTES_COPIED, WINDOW};
+
+pub static ACCUMULATED_SIZE: AtomicU64 = AtomicU64::new(0);
+pub static ACCUMULATED_COUNT: AtomicU64 = AtomicU64::new(0);
+pub static LAST_EMIT: AtomicU64 = AtomicU64::new(0);
 
 const CHUNK_SIZE: usize = 64 * 1024;
 const MAGIC: u32 = 0xDE_AD;
+const MAGIC_V2: u32 = 0xDE_AF;
 
 pub fn success_log<S: Into<String>>(msg: S) {
     let msg = msg.into();
@@ -104,16 +110,82 @@ pub async fn copy_to(
     from_path: String,
     total_size: f32,
     count_to_copy: f32,
-) {
+) -> Result<(), String> {
+    let skipped_existing = AtomicBool::new(false);
+    copy_to_with_overwrite_policy(
+        final_filename,
+        from_path,
+        total_size,
+        count_to_copy,
+        true,
+        &skipped_existing,
+    )
+    .await
+}
+
+pub async fn copy_to_preserving_existing(
+    final_filename: String,
+    from_path: String,
+    total_size: f32,
+    count_to_copy: f32,
+) -> Result<(), String> {
+    let skipped_existing = AtomicBool::new(false);
+    copy_to_with_overwrite_policy(
+        final_filename,
+        from_path,
+        total_size,
+        count_to_copy,
+        false,
+        &skipped_existing,
+    )
+    .await?;
+
+    if skipped_existing.load(Ordering::Relaxed) {
+        return Err(
+            "Merge partially completed; existing nested items were preserved and source was kept"
+                .to_string(),
+        );
+    }
+
+    Ok(())
+}
+
+async fn copy_to_with_overwrite_policy(
+    final_filename: String,
+    from_path: String,
+    total_size: f32,
+    count_to_copy: f32,
+    overwrite_existing: bool,
+    skipped_existing: &AtomicBool,
+) -> Result<(), String> {
     // let app_window = WINDOW.get().unwrap();
-    let file = fs::metadata(&from_path).unwrap();
-    let total_size = total_size;
+    let file = fs::metadata(&from_path)
+        .map_err(|err| format!("Failed to read source metadata '{}': {}", from_path, err))?;
     if file.is_file() {
+        if !overwrite_existing && Path::new(&final_filename).exists() {
+            wng_log(format!(
+                "Skipping existing nested item during merge: {}",
+                final_filename
+            ));
+            skipped_existing.store(true, Ordering::Relaxed);
+            return Ok(());
+        }
         // Prepare to copy file
-        let mut fr = BufReader::new(File::open(&from_path).unwrap());
-        let mut buf = vec![0; 1_048_576]; // Copying in 1 MB chunks
-        let new_file = File::create(&final_filename).unwrap();
-        let file_size = fs::metadata(&from_path).unwrap().len() as f32;
+        let mut fr = BufReader::new(
+            File::open(&from_path)
+                .map_err(|err| format!("Failed to open source '{}': {}", from_path, err))?,
+        );
+        let mut buf = vec![0; 61_035_156]; // Copying in 64 MB chunks
+        let new_file = if overwrite_existing {
+            File::create(&final_filename)
+        } else {
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&final_filename)
+        }
+        .map_err(|err| format!("Failed to create destination '{}': {}", final_filename, err))?;
+        let file_size = file.len() as f32;
         let mut fw = BufWriter::new(new_file);
         let mut s = 0;
         let mut speed: f64;
@@ -144,6 +216,7 @@ pub async fn copy_to(
                             println!("Progress: {:.0}% | Total size: {} | Bytes copied: {} | Speed: {:.0} MB/s", progress, format_bytes(total_size as u64), format_bytes(*(TOTAL_BYTES_COPIED.lock().await) as u64), speed);
                             // Only update the progressbar every 5%
                             // if progress % 5.0 < 1.0 {
+                            show_progressbar(&WINDOW.get().unwrap());
                             update_progressbar(
                                 progress,
                                 (100.0 / total_size) * *(TOTAL_BYTES_COPIED.lock().await),
@@ -156,35 +229,49 @@ pub async fn copy_to(
                         }
                         Err(err) => {
                             dialog::message(WINDOW.get(), "Info", format!("{:?}", err.to_string()));
-                            break;
+                            return Err(format!("Failed to write '{}': {}", final_filename, err));
                         }
                     }
                 }
                 Err(e) => {
                     err_log(format!("Error copying: {}", e));
-                    break;
+                    return Err(format!("Failed to read '{}': {}", from_path, e));
                 }
             }
         }
+        fw.flush()
+            .map_err(|err| format!("Failed to flush '{}': {}", final_filename, err))?;
     } else if file.is_dir() {
         // Recursive copying of the directory
-        fs::create_dir_all(&final_filename).unwrap();
-        for entry in fs::read_dir(&from_path).unwrap() {
-            let entry = entry.unwrap();
+        fs::create_dir_all(&final_filename)
+            .map_err(|err| format!("Failed to create directory '{}': {}", final_filename, err))?;
+        for entry in fs::read_dir(&from_path)
+            .map_err(|err| format!("Failed to read directory '{}': {}", from_path, err))?
+        {
+            let entry = entry.map_err(|err| format!("Failed to read directory entry: {}", err))?;
             let path = entry.path();
-            let relative_path = path.strip_prefix(&from_path).unwrap();
-            let dest_file = final_filename.clone() + "/" + relative_path.to_str().unwrap();
-            Box::pin(copy_to(
+            let relative_path = path
+                .strip_prefix(&from_path)
+                .map_err(|err| format!("Failed to build relative path: {}", err))?;
+            let dest_file = Path::new(&final_filename)
+                .join(relative_path)
+                .to_string_lossy()
+                .to_string();
+            Box::pin(copy_to_with_overwrite_policy(
                 dest_file,
-                path.to_str().unwrap().to_string(),
-                total_size.clone(),
-                count_to_copy.clone(),
+                path.to_string_lossy().to_string(),
+                total_size,
+                count_to_copy,
+                overwrite_existing,
+                skipped_existing,
             ))
-            .await;
+            .await?;
         }
     } else {
         wng_log(format!("Unsupported file type: {}", from_path));
+        return Err(format!("Unsupported file type: {}", from_path));
     }
+    Ok(())
 }
 
 pub fn count_entries(path: &str) -> Result<f32, std::io::Error> {
@@ -559,6 +646,97 @@ pub fn format_bytes(size: u64) -> String {
     format!("{:.2} {}", size, UNITS[unit_index])
 }
 
+#[derive(Debug, Serialize)]
+pub struct SimpleDirInfo {
+    pub size: u64,
+    pub count_elements: u64,
+}
+
+pub fn dir_info(path: String) -> SimpleDirInfo {
+    dir_info_incremental(path, None)
+}
+
+pub fn dir_info_incremental(path: String, update_id: Option<&str>) -> SimpleDirInfo {
+    if Path::new(&path).is_file() {
+        let size = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+        if let Some(id) = update_id {
+            accumulate_and_emit(size, 1, id);
+        }
+        return SimpleDirInfo {
+            size,
+            count_elements: 1,
+        };
+    }
+
+    let entries = match fs::read_dir(&path) {
+        Ok(entries) => entries,
+        Err(_) => {
+            return SimpleDirInfo {
+                size: 0,
+                count_elements: 0,
+            }
+        }
+    };
+    let mut size = 0;
+    let mut count_elements = 0;
+
+    for entry in entries {
+        if IS_SIZE_CALC_CANCELLED.load(Ordering::Relaxed) {
+            return SimpleDirInfo {
+                size: 0,
+                count_elements: 0,
+            };
+        }
+        if let Ok(entry) = entry {
+            let file_type = entry.file_type().unwrap();
+            if file_type.is_file() {
+                let file_size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                size += file_size;
+                count_elements += 1;
+                if let Some(id) = update_id {
+                    accumulate_and_emit(file_size, 1, id);
+                }
+            } else if file_type.is_dir() {
+                let d_info =
+                    dir_info_incremental(entry.path().to_string_lossy().to_string(), update_id);
+                size += d_info.size;
+                count_elements += d_info.count_elements;
+            }
+            if entry
+                .file_name()
+                .to_string_lossy()
+                .to_string()
+                .starts_with(".")
+            {
+                continue;
+            }
+        }
+    }
+    SimpleDirInfo {
+        size,
+        count_elements,
+    }
+}
+
+fn accumulate_and_emit(size: u64, count: u64, id: &str) {
+    let new_total_size = ACCUMULATED_SIZE.fetch_add(size, Ordering::Relaxed) + size;
+    let new_total_count = ACCUMULATED_COUNT.fetch_add(count, Ordering::Relaxed) + count;
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64;
+    let last = LAST_EMIT.load(Ordering::Relaxed);
+
+    if now - last > 100 {
+        // Throttle to 10 updates per second
+        LAST_EMIT.store(now, Ordering::Relaxed);
+        if let Some(window) = WINDOW.get() {
+            let _ = window.emit("size-update", (id, new_total_size, new_total_count));
+        }
+    }
+}
+
 pub fn unpack_tar(file: File, path: String) {
     let path = Path::new(&path)
         .with_extension("")
@@ -608,7 +786,7 @@ pub fn update_list_item_data<S: Into<String> + Clone + Serialize>(path: S, metad
     let _ = WINDOW
         .get()
         .unwrap()
-        .emit("updateItemMetadata", (path.clone(), metadata.size()));
+        .emit("updateItemMetadata", (path.clone(), metadata.len()));
 }
 
 /// Converts a human-readable size string (e.g., "1.66 GB", "1 KiB", "42MB") to bytes (u64).
@@ -679,19 +857,21 @@ pub async fn compress_items(
     let stop_watch = Stopwatch::start_new();
 
     if compression_format == "density" {
-        for input_path in input_paths {
-            compress_to_density(
-                &input_path,
-                output_path.to_str().unwrap(),
-                compression_level,
-            ).expect("Failed to compress to density");
-        }
-        // Implement density compression logic here
+        compress_to_density(output_path, input_paths, compression_level)
+            .expect("Failed to compress to density");
+        let _ =
+            WINDOW.get().unwrap().eval(&format!(
+            "showToast('Compression done in ' + parseFloat('{:?}').toFixed(2) + 's', ToastType.INFO);",
+            stop_watch.elapsed()));
+
+        let _ = WINDOW
+            .get()
+            .unwrap()
+            .eval(&format!("clearInterval({})", interval_id));
     } else if compression_format == "br" {
-        let _ = compress_files_to_brotli_tar(
-            output_path.with_extension("tar").with_added_extension("br"),
-            input_paths,
-        );
+        let mut br_path = output_path.to_path_buf();
+        br_path.set_extension("tar.br");
+        let _ = compress_files_to_brotli_tar(br_path, input_paths);
     } else {
         // Collect all files to compress
         let mut files_to_compress = Vec::new();
@@ -844,42 +1024,72 @@ pub fn extract_zst_archive(archive_path: &Path, output_dir: &Path) -> Result<(),
 
 #[allow(unused)]
 pub fn get_items_size<I: IntoIterator<Item = String>>(items: I) -> u64 {
-    let items = items.into_iter().map(|item| fs::metadata(item));
-    items.into_iter().map(|item| item.unwrap().size()).sum()
+    let mut total_size = 0;
+    for item in items {
+        total_size += dir_info(item).size;
+    }
+    total_size
 }
 
 pub fn compress_to_density(
-    input_path: &str,
-    output_path: &str,
+    output_path: &Path,
+    input_paths: Vec<String>,
     compression_level: i32,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let input_file = BufReader::new(File::open(input_path)?);
-    let mut output_file = BufWriter::new(File::create(output_path)?);
-
-    // Write header: magic, original_size (streamed, so compute on fly? For simplicity, two-pass: first count size.
-    // Alt: Write placeholder, seek back. But for streaming, assume we compute size first or use unknown.
-    // Here: Read all chunks to count.
-    let mut total_size = 0u64;
-    let mut chunks = Vec::new();
-    for (_i, chunk) in input_file
-        .bytes()
-        .map(|b| b.unwrap())
-        .collect::<Vec<u8>>()
-        .chunks(CHUNK_SIZE)
-        .enumerate()
+    // 1. Create a tar archive in a temp location
+    let mut temp_tar_path = output_path.to_path_buf();
+    let ext = temp_tar_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+    let new_ext = if ext.is_empty() {
+        "tar.tmp".to_string()
+    } else {
+        format!("{}.tar.tmp", ext)
+    };
+    temp_tar_path.set_extension(new_ext);
     {
-        chunks.push(chunk.to_vec());
-        total_size += chunk.len() as u64;
-    }
-    let num_chunks = chunks.len() as u32;
+        let temp_tar_file = File::create(&temp_tar_path)?;
+        let mut tar_builder = tar::Builder::new(temp_tar_file);
 
-    // Write header
-    output_file.write_all(&MAGIC.to_le_bytes())?;
+        for path_str in input_paths {
+            let path = Path::new(&path_str);
+            if path.is_file() {
+                tar_builder.append_path_with_name(path, path.file_name().unwrap())?;
+            } else if path.is_dir() {
+                tar_builder.append_dir_all(path.file_name().unwrap(), path)?;
+            }
+        }
+        tar_builder.finish()?;
+    }
+
+    // 2. First pass to count total_size and num_chunks of the tar
+    let mut temp_tar_file = File::open(&temp_tar_path)?;
+    let mut total_size = 0u64;
+    let mut num_chunks = 0u32;
+    let mut buffer = vec![0u8; CHUNK_SIZE];
+    loop {
+        let n = temp_tar_file.read(&mut buffer)?;
+        if n == 0 {
+            break;
+        }
+        total_size += n as u64;
+        num_chunks += 1;
+    }
+    temp_tar_file.seek(SeekFrom::Start(0))?;
+
+    // 3. Write header with MAGIC_V2 and compression_level
+    let mut output_file = BufWriter::new(File::create(output_path)?);
+    output_file.write_all(&MAGIC_V2.to_le_bytes())?;
+    output_file.write_all(&(compression_level as u8).to_le_bytes())?;
     output_file.write_all(&total_size.to_le_bytes())?;
     output_file.write_all(&num_chunks.to_le_bytes())?;
 
-    // Compress chunks
-    for (i, chunk) in chunks.into_iter().enumerate() {
+    // 4. Second pass to compress and write chunks
+    for i in 0..num_chunks {
+        let n = temp_tar_file.read(&mut buffer)?;
+        let chunk = &buffer[..n];
+
         let max_comp;
         let mut comp_data;
         let comp_size;
@@ -887,22 +1097,22 @@ pub fn compress_to_density(
             1 => {
                 max_comp = Chameleon::safe_encode_buffer_size(chunk.len());
                 comp_data = vec![0u8; max_comp];
-                comp_size = Chameleon::encode(&chunk, &mut comp_data)?;
-            },
+                comp_size = Chameleon::encode(chunk, &mut comp_data)?;
+            }
             2 => {
                 max_comp = Cheetah::safe_encode_buffer_size(chunk.len());
                 comp_data = vec![0u8; max_comp];
-                comp_size = Cheetah::encode(&chunk, &mut comp_data)?;
-            },
+                comp_size = Cheetah::encode(chunk, &mut comp_data)?;
+            }
             3 => {
                 max_comp = Lion::safe_encode_buffer_size(chunk.len());
                 comp_data = vec![0u8; max_comp];
-                comp_size = Lion::encode(&chunk, &mut comp_data)?;
-            },
+                comp_size = Lion::encode(chunk, &mut comp_data)?;
+            }
             _ => {
                 max_comp = Cheetah::safe_encode_buffer_size(chunk.len());
                 comp_data = vec![0u8; max_comp];
-                comp_size = Cheetah::encode(&chunk, &mut comp_data)?;
+                comp_size = Cheetah::encode(chunk, &mut comp_data)?;
             }
         }
         output_file.write_all(&(i as u32).to_le_bytes())?; // Index
@@ -910,6 +1120,9 @@ pub fn compress_to_density(
         output_file.write_all(&comp_data[..comp_size])?;
     }
     output_file.flush()?;
+
+    // 5. Delete temp tar
+    fs::remove_file(temp_tar_path)?;
     Ok(())
 }
 
@@ -918,11 +1131,19 @@ pub fn extract_from_density(
     output_path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut input_file = BufReader::new(File::open(input_path)?);
-    let mut output_file = BufWriter::new(File::create(output_path)?);
 
     let mut header = [0u8; 4];
     input_file.read_exact(&mut header)?;
-    if u32::from_le_bytes(header) != MAGIC { return Err("Invalid magic".into()); }
+    let magic = u32::from_le_bytes(header);
+
+    let mut algorithm_id = 1u8;
+    if magic == MAGIC_V2 {
+        let mut alg_buf = [0u8; 1];
+        input_file.read_exact(&mut alg_buf)?;
+        algorithm_id = alg_buf[0];
+    } else if magic != MAGIC {
+        return Err("Invalid magic".into());
+    }
 
     let mut size_buf = [0u8; 8];
     input_file.read_exact(&mut size_buf)?;
@@ -932,20 +1153,58 @@ pub fn extract_from_density(
     input_file.read_exact(&mut chunk_buf)?;
     let num_chunks = u32::from_le_bytes(chunk_buf);
 
-    for _ in 0..num_chunks {
-        input_file.read_exact(&mut chunk_buf)?;
-        let _idx = u32::from_le_bytes(chunk_buf);  // Skip idx if not needed
-        input_file.read_exact(&mut chunk_buf)?;
-        let comp_size: usize = u32::from_le_bytes(chunk_buf) as usize;
+    // Decompress to a temp file
+    let mut temp_decomp_path = Path::new(input_path).to_path_buf();
+    let ext = temp_decomp_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+    let new_ext = if ext.is_empty() {
+        "tmp".to_string()
+    } else {
+        format!("{}.tmp", ext)
+    };
+    temp_decomp_path.set_extension(new_ext);
+    {
+        let mut output_file = BufWriter::new(File::create(&temp_decomp_path)?);
+        for _ in 0..num_chunks {
+            input_file.read_exact(&mut chunk_buf)?;
+            let _idx = u32::from_le_bytes(chunk_buf);
+            input_file.read_exact(&mut chunk_buf)?;
+            let comp_size: usize = u32::from_le_bytes(chunk_buf) as usize;
 
-        let mut comp_data = vec![0u8; comp_size];
-        input_file.read_exact(&mut comp_data)?;
+            let mut comp_data = vec![0u8; comp_size];
+            input_file.read_exact(&mut comp_data)?;
 
-        let mut decomp_data = vec![0u8; CHUNK_SIZE];  // Max chunk
-        let decomp_size = Chameleon::decode(&comp_data, &mut decomp_data)?;
-        output_file.write_all(&decomp_data[..decomp_size])?;
+            let mut decomp_data = vec![0u8; CHUNK_SIZE];
+            let decomp_size = match algorithm_id {
+                1 => Chameleon::decode(&comp_data, &mut decomp_data)?,
+                2 => Cheetah::decode(&comp_data, &mut decomp_data)?,
+                3 => Lion::decode(&comp_data, &mut decomp_data)?,
+                _ => Chameleon::decode(&comp_data, &mut decomp_data)?,
+            };
+            output_file.write_all(&decomp_data[..decomp_size])?;
+        }
+        output_file.flush()?;
     }
-    output_file.flush()?;
+
+    // If it was MAGIC_V2, it's a tar archive
+    if magic == MAGIC_V2 {
+        let tar_file = File::open(&temp_decomp_path)?;
+        let mut archive = tar::Archive::new(tar_file);
+        let parent = Path::new(input_path)
+            .parent()
+            .unwrap_or_else(|| Path::new("."));
+        archive.unpack(parent)?;
+        fs::remove_file(temp_decomp_path)?;
+    } else {
+        // Old format: just rename temp file to output_path
+        if Path::new(output_path).exists() {
+            fs::remove_file(output_path)?;
+        }
+        fs::rename(temp_decomp_path, output_path)?;
+    }
+
     Ok(())
 }
 
@@ -992,8 +1251,17 @@ fn watch<P: AsRef<Path>>(_path: P) -> notify::Result<()> {
 fn handle_fs_change(event: notify::Event) {
     if (event.kind == Create(CreateKind::Folder) || event.kind == Remove(RemoveKind::Folder))
         && event.paths.len() == 1
-        && (event.paths[0].starts_with("/Volumes")
+        && ((event.paths[0].starts_with("/Volumes")
+            && event.paths[0].to_str().unwrap().split("/").count() <= 3)
             || event.paths[0].to_str().unwrap().contains("/run/media")
+            || event.paths[0]
+                .to_str()
+                .unwrap()
+                .contains("/private/tmp/codriver-sshfs-mount")
+            || event.paths[0]
+                .to_str()
+                .unwrap()
+                .contains("/tmp/codriver-sshfs-mount")
             || event.paths[0].to_str().unwrap().contains("/mnt"))
     {
         // Check mounts

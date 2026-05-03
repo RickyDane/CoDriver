@@ -12,6 +12,16 @@ class CDContextMenu {
       action: () => deleteItems(),
     },
     {
+      label: "Add to Favorites",
+      icon: "fa-solid fa-star",
+      action: () => addFavorite(this.selectedItem.getAttribute("itempath")),
+    },
+    {
+      label: "Remove Favorite",
+      icon: "fa-regular fa-star",
+      action: () => removeFavorite(this.selectedItem.getAttribute("itempath")),
+    },
+    {
       label: "Open with",
       icon: "fa-solid fa-up-right-from-square",
       subItems: [],
@@ -73,6 +83,47 @@ class CDContextMenu {
     },
   ];
 
+  diskItems = [
+    {
+      label: "Open Disk",
+      icon: "fa-solid fa-folder-open",
+      action: () => openItem(this.selectedItem, ""),
+    },
+    {
+      label: "Add to Favorites",
+      icon: "fa-solid fa-star",
+      action: () => addFavorite(this.selectedItem.getAttribute("itempath")),
+    },
+    {
+      label: "Remove Favorite",
+      icon: "fa-regular fa-star",
+      action: () => removeFavorite(this.selectedItem.getAttribute("itempath")),
+    },
+    {
+      label: "Copy Path",
+      icon: "fa-solid fa-clipboard",
+      action: async () => {
+        await writeText(this.selectedItem.getAttribute("itempath"));
+        showToast("Copied path to clipboard", ToastType.INFO);
+      },
+    },
+    {
+      label: "Open in Terminal",
+      icon: "fa-solid fa-terminal",
+      action: () => openInTerminal(this.selectedItem),
+    },
+    {
+      label: "Eject Disk",
+      icon: "fa-solid fa-eject",
+      action: () => ejectDisk(this.selectedItem),
+    },
+    {
+      label: "Properties",
+      icon: "fa-solid fa-circle-info",
+      action: () => showProperties(this.selectedItem),
+    },
+  ];
+
   constructor() {
     this.setup();
     this.setupItems();
@@ -95,12 +146,12 @@ class CDContextMenu {
     this.setupItems();
     if (!ArrSelectedItems.includes(item)) {
       if (ArrSelectedItems.length === 0) {
-        selectItem(item, "", true);
+        selectItem(item, "", true, false);
       } else if (IsMetaDown || IsCtrlDown) {
-        selectItem(item, "", true);
+        selectItem(item, "", true, false);
       } else {
         unSelectAllItems();
-        selectItem(item, "", true);
+        selectItem(item, "", true, false);
       }
     }
   }
@@ -119,7 +170,7 @@ class CDContextMenu {
 
   setupItems() {
     this.menu.innerHTML = "";
-    this.items.forEach((item) => {
+    this.getVisibleItems().forEach((item) => {
       let isDisabled = this.checkDisabled(item);
       if (isDisabled == true) {
         return;
@@ -147,6 +198,13 @@ class CDContextMenu {
       };
       this.menu.appendChild(button);
     });
+  }
+
+  getVisibleItems() {
+    if (this.selectedItem?.getAttribute("itemisdisk") === "1") {
+      return this.diskItems;
+    }
+    return this.items;
   }
 
   showSubMenuItems(item, e) {
@@ -216,6 +274,17 @@ class CDContextMenu {
         ]);
       } else if (item.label == "Paste") {
         return ArrCopyItems.length === 0;
+      } else if (item.label == "Add to Favorites") {
+        if (!this.selectedItem) return true;
+        if (this.selectedItem.getAttribute("itemisdir") != "1") return true;
+        let path = this.selectedItem.getAttribute("itempath");
+        return ArrFavorites.includes(path);
+      } else if (item.label == "Remove Favorite") {
+        if (!this.selectedItem) return true;
+        let path = this.selectedItem.getAttribute("itempath");
+        return !ArrFavorites.includes(path);
+      } else if (item.label == "Eject Disk") {
+        return this.selectedItem?.getAttribute("itemisremovable") !== "1";
       }
     }
   }
