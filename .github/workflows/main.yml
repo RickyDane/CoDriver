@@ -2,8 +2,11 @@ name: 'publish'
 
 on:
   push:
-    branches:
-      - release
+    branches: [main, master, release]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master, release]
+  workflow_dispatch:
 
 jobs:
   publish-tauri:
