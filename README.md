@@ -201,6 +201,11 @@ You should be able to run ```cargo tauri dev``` in the root directory of this pr
 </br>
 Be sure to have tauri-cli installed: ```cargo install tauri-cli```
 </br>
+
+## Release signing
+
+macOS release artifacts must be signed and notarized to avoid Gatekeeper reporting that the installed app is damaged. See [macOS signing and notarization](docs/macos-signing-notarization.md) for required GitHub Actions secrets and verification commands.
+
 ## Star History
 
 <a href="https://star-history.com/#rickydane/CoDriver&Date">

@@ -45,9 +45,52 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      - name: import Apple Developer ID certificate (macOS only)
+        if: matrix.settings.platform == 'macos-latest'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${APPLE_CERTIFICATE}" ] || [ -z "${APPLE_CERTIFICATE_PASSWORD}" ] || [ -z "${KEYCHAIN_PASSWORD}" ] || [ -z "${APPLE_ID}" ] || [ -z "${APPLE_PASSWORD}" ] || [ -z "${APPLE_TEAM_ID}" ]; then
+            echo "Missing macOS signing/notarization secrets. Configure APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, KEYCHAIN_PASSWORD, APPLE_ID, APPLE_PASSWORD, and APPLE_TEAM_ID."
+            exit 1
+          fi
+
+          echo "${APPLE_CERTIFICATE}" | base64 -D > certificate.p12
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security import certificate.p12 -k build.keychain -P "${APPLE_CERTIFICATE_PASSWORD}" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${KEYCHAIN_PASSWORD}" build.keychain
+          security find-identity -v -p codesigning build.keychain
+
+      - name: select Developer ID signing identity (macOS only)
+        if: matrix.settings.platform == 'macos-latest'
+        run: |
+          set -euo pipefail
+
+          CERT_ID=$(security find-identity -v -p codesigning build.keychain | awk -F'"' '/Developer ID Application:/ { print $2; exit }')
+          if [ -z "${CERT_ID}" ]; then
+            echo "No Developer ID Application certificate found in build.keychain. Export a Developer ID Application .p12 certificate for APPLE_CERTIFICATE."
+            exit 1
+          fi
+
+          echo "APPLE_SIGNING_IDENTITY=${CERT_ID}" >> "$GITHUB_ENV"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
         with:
           tagName: CoDriver-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
           releaseName: 'CoDriver v__VERSION__'
