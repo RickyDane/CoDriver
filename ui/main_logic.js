@@ -27,7 +27,7 @@ async function startDrag(options, onEvent) {
   if (!dragIcon || dragIcon === "") {
     dragIcon = "resources/file-icon.png";
   }
-  
+
   try {
     await invoke("plugin:drag|start_drag", {
       item: options.item,
@@ -1655,6 +1655,7 @@ async function showCompressPopup(item) {
       </div>
       `;
     document.querySelector("body").append(popup);
+    popup.classList.add("popup-enter");
     document
       .querySelector(".compress-item-button")
       .addEventListener("click", async () => {
@@ -1783,9 +1784,18 @@ async function compressItem(
 }
 
 async function closeCompressPopup() {
-  $(".compression-popup").remove();
-  IsPopUpOpen = false;
-  IsInputFocused = false;
+  let popup = document.querySelector(".compression-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+      IsInputFocused = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+    IsInputFocused = false;
+  }
 }
 
 function showLoadingPopup(msg) {
@@ -1797,11 +1807,20 @@ function showLoadingPopup(msg) {
     `;
   popup.className = "uni-popup loading-popup";
   body.append(popup);
+  popup.classList.add("popup-enter");
   IsPopUpOpen = true;
 }
 function closeLoadingPopup() {
-  $(".loading-popup").remove();
-  IsPopUpOpen = false;
+  let popup = document.querySelector(".loading-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+  }
 }
 
 function showInputPopup(msg) {
@@ -1820,6 +1839,7 @@ function showInputPopup(msg) {
     }
   });
   body.append(popup);
+  popup.classList.add("popup-enter");
   IsPopUpOpen = true;
   popup.children[1].focus();
   IsInputFocused = true;
@@ -1830,9 +1850,16 @@ function showInputPopup(msg) {
 }
 
 function closeInputPopup() {
-  $(".input-popup").remove();
-  IsPopUpOpen = false;
-  IsInputFocused = false;
+  let popup = document.querySelector(".input-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+  }
 }
 
 function normalizePath(path = "") {
@@ -2015,8 +2042,9 @@ async function showDestinationConflictPopup(conflict, index, total) {
       <button class="icon-button destination-conflict-skip"><div class="button-icon"><i class="fa-solid fa-forward-step"></i></div>Skip</button>
       <button class="icon-button destination-conflict-confirm"><div class="button-icon"><i class="fa-solid fa-check"></i></div>Continue</button>
     </div>`;
-
   document.querySelector(".main-container").appendChild(popup);
+  popup.classList.add("popup-enter");
+
   let previouslyFocused = document.activeElement;
   IsPopUpOpen = true;
   IsDisableShortcuts = true;
@@ -2032,15 +2060,18 @@ async function showDestinationConflictPopup(conflict, index, total) {
       isClosed = true;
       let selected = popup.querySelector("input[name='conflict-action']:checked")?.value ?? "duplicate";
       let applyToAll = popup.querySelector(".destination-conflict-apply-all-input")?.checked ?? false;
-      popup.remove();
-      $(".popup-background").css("display", "none");
-      $(".popup-background").css("opacity", "0");
-      IsPopUpOpen = false;
-      IsDisableShortcuts = false;
-      if (previouslyFocused && typeof previouslyFocused.focus === "function") {
-        previouslyFocused.focus();
-      }
-      resolve({ action: action ?? selected, applyToAll });
+      popup.classList.add("popup-exit");
+      popup.addEventListener("animationend", () => {
+        popup?.remove();
+        $(".popup-background").css("display", "none");
+        $(".popup-background").css("opacity", "0");
+        IsPopUpOpen = false;
+        IsDisableShortcuts = false;
+        if (previouslyFocused && typeof previouslyFocused.focus === "function") {
+          previouslyFocused.focus();
+        }
+        resolve({ action: action ?? selected, applyToAll });
+      }, { once: true });
     };
 
     popup.querySelector(".destination-conflict-cancel").onclick = () => close("cancel");
@@ -2401,6 +2432,20 @@ async function checkAppConfig() {
     document.querySelector(".max-items-input").value = SettingsMaxItems =
       parseInt(appConfig.max_items);
 
+    // New settings
+    let fontSize = parseInt(appConfig.font_size) || 12;
+    document.querySelector(".font-size-slider").value = fontSize;
+    document.getElementById("font-size-value").textContent = fontSize + "px";
+    document.documentElement.style.setProperty("--fontSize", fontSize + "px");
+
+    if (appConfig.is_window_transparency && appConfig.is_window_transparency.includes("1")) {
+      document.querySelector(".window-transparency-checkbox").checked = true;
+      document.body.style.opacity = "0.78";
+    } else {
+      document.querySelector(".window-transparency-checkbox").checked = false;
+      document.body.style.opacity = "1.0";
+    }
+
     if (appConfig.is_dual_pane_active.includes("1")) {
       await switchToDualPane();
       if (appConfig.launch_path.length >= 1) {
@@ -2446,7 +2491,6 @@ async function applyPlatformFeatures() {
     $(".search-bar-input").attr("placeholder", "Cmd + F");
     $(".settings-ui-header").css("padding", "5px 5px 5px 100px");
   } else {
-    appWindow.transparent = true;
     appWindow.setDecorations(false);
     $(".windows-linux-titlebar-buttons").css("display", "flex");
     $(".minimize-button").on("click", () => appWindow.minimize());
@@ -3699,7 +3743,7 @@ function showSettingsTab(tabName, btn) {
   // Update sidebar buttons
   document.querySelectorAll('.settings-sidebar-button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  
+
   // Update content tabs
   document.querySelectorAll('.settings-tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('settings-tab-' + tabName).classList.add('active');
@@ -3723,8 +3767,8 @@ async function saveConfig(isToReload = true, isVerbose = true) {
   let isDualPaneActive = IsDualPaneEnabled;
   let searchDepth = parseInt(
     document.querySelector(".search-depth-input").value,
-  );
-  let maxItems = parseInt(document.querySelector(".max-items-input").value);
+  ) || 10;
+  let maxItems = parseInt(document.querySelector(".max-items-input").value) || 1000;
   let isImagePreview = (IsImagePreview = document.querySelector(
     ".image-preview-checkbox",
   ).checked);
@@ -3732,6 +3776,10 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     ":checked",
   ));
   let currentTheme = $(".theme-select").val();
+  let fontSize = parseInt(document.querySelector(".font-size-slider").value) || 12;
+  let isWindowTransparency = document.querySelector(
+    ".window-transparency-checkbox",
+  ).checked;
 
   if (isOpenInTerminal == true) {
     isOpenInTerminal = "1";
@@ -3758,6 +3806,21 @@ async function saveConfig(isToReload = true, isVerbose = true) {
   } else {
     isSelectMode = "0";
   }
+  if (isWindowTransparency == true) {
+    isWindowTransparency = "1";
+  } else {
+    isWindowTransparency = "0";
+  }
+
+  // Apply font size immediately
+  document.documentElement.style.setProperty("--fontSize", fontSize + "px");
+
+  // Apply window transparency
+  if (isWindowTransparency == "1") {
+    document.body.style.opacity = "0.78";
+  } else {
+    document.body.style.opacity = "1.0";
+  }
 
   await invoke("save_config", {
     configuredPathOne,
@@ -3773,6 +3836,8 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     isSelectMode,
     currentTheme,
     arrFavorites: ArrFavorites,
+    fontSize,
+    isWindowTransparency,
   });
   if (isVerbose === true) {
     showToast("Settings have been saved", ToastType.INFO);
@@ -3780,6 +3845,27 @@ async function saveConfig(isToReload = true, isVerbose = true) {
   if (isToReload == true) {
     await checkAppConfig();
   }
+}
+
+async function resetSettingsToDefaults() {
+  if (!confirm("Reset all settings to their default values?")) return;
+
+  document.querySelector(".theme-select").value = "0";
+  document.querySelector("#choose-interaction-mode").checked = true;
+  document.querySelector(".image-preview-checkbox").checked = true;
+  document.querySelector(".configured-path-one-input").value = "";
+  document.querySelector(".configured-path-two-input").value = "";
+  document.querySelector(".configured-path-three-input").value = "";
+  document.querySelector(".search-depth-input").value = "10";
+  document.querySelector(".max-items-input").value = "1000";
+  document.querySelector(".launch-path-input").value = "";
+  document.querySelector(".show-dual-pane-checkbox").checked = false;
+  document.querySelector(".font-size-slider").value = 12;
+  document.getElementById("font-size-value").textContent = "12px";
+  document.querySelector(".window-transparency-checkbox").checked = false;
+
+  await saveConfig(true, true);
+  showToast("Settings reset to defaults", ToastType.INFO);
 }
 
 async function addFavorite(path) {
@@ -3854,6 +3940,7 @@ async function showProperties(item) {
       </div>
       `;
     document.querySelector("body").append(popup);
+    popup.classList.add("popup-enter");
     IsPopUpOpen = true;
 
     if (itemsToProcess.length === 1) {
@@ -3873,9 +3960,18 @@ async function showProperties(item) {
 
 function closeInfoProperties() {
   invoke("cancel_size_calculation");
-  $(".item-properties-popup")?.remove();
-  IsPopUpOpen = false;
-  IsItemPreviewOpen = false;
+  let popup = document.querySelector(".item-properties-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+      IsItemPreviewOpen = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+    IsItemPreviewOpen = false;
+  }
 }
 
 async function showItemPreview(item, isOverride = false) {
@@ -4060,6 +4156,7 @@ function showMultiRenamePopup() {
     `;
   popup.append(popupControls);
   document.querySelector("body").append(popup);
+  popup.classList.add("popup-enter");
   $(".multi-rename-newname").focus();
   document.querySelectorAll(".multi-rename-input").forEach((input) =>
     input.addEventListener("keyup", async (e) => {
@@ -4116,8 +4213,16 @@ async function renameItemsWithFormat(
 }
 
 function closeMultiRenamePopup() {
-  IsPopUpOpen = false;
-  $(".multi-rename-popup").remove();
+  let popup = document.querySelector(".multi-rename-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+  }
 }
 
 async function closeItemPreview() {
@@ -4363,6 +4468,7 @@ function showFindDuplicates(item) {
     `;
   popup.append(popupControls);
   document.querySelector("body").append(popup);
+  popup.classList.add("popup-enter");
   document
     .querySelector(".duplicates-search-depth-input")
     .addEventListener("focus", () => (IsInputFocused = true));
@@ -4381,9 +4487,18 @@ function showFindDuplicates(item) {
 }
 
 function closeFindDuplicatesPopup() {
-  IsPopUpOpen = false;
-  cancelOperation();
-  document.querySelector(".find-duplicates-popup")?.remove();
+  let popup = document.querySelector(".find-duplicates-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+      cancelOperation();
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+    cancelOperation();
+  }
 }
 
 async function findDuplicates(item, depth) {
@@ -4437,6 +4552,7 @@ async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
     </div>
     `;
   document.querySelector("body").append(popup);
+  popup.classList.add("popup-enter");
   document
     .querySelector(".yt-url-input")
     .addEventListener("focus", () => (IsInputFocused = true));
@@ -4464,9 +4580,18 @@ async function startYtDownload(
 }
 
 async function closeYtDownloadPopup() {
-  IsPopUpOpen = false;
-  cancelOperation();
-  document.querySelector(".yt-download-popup")?.remove();
+  let popup = document.querySelector(".yt-download-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+      cancelOperation();
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+    cancelOperation();
+  }
 }
 
 async function cancelOperation() {
@@ -4647,9 +4772,10 @@ async function insertSiteNavButtons() {
       async () => await goToDir(5),
     ],
     // No sshfs implemenation for windows *yet*
-    Platform.includes("win") && Platform != "darwin"
-      ? []
-      : ["SSHFS", "", "fa-solid fa-globe", showFtpConfig],
+    // Currently disabled
+    // Platform.includes("win") && Platform != "darwin"
+    //   ? []
+    //   : ["SSHFS", "", "fa-solid fa-globe", showFtpConfig],
   ];
 
   for (let i = 0; i < siteNavButtons.length; i++) {
@@ -4923,6 +5049,7 @@ async function showPopup(
     </div>
     `;
   document.querySelector(".main-container").appendChild(popup);
+  popup.classList.add("popup-enter");
   if (type === PopupType.PROMPT) {
     document.querySelector(".confirm-popup input").focus();
   } else {
@@ -4966,10 +5093,20 @@ async function showPopup(
 }
 
 function closeConfirmPopup() {
-  document.querySelector(".confirm-popup")?.remove();
-  $(".popup-background").css("display", "none");
-  $(".popup-background").css("opacity", "0");
-  IsPopUpOpen = false;
+  let popup = document.querySelector(".confirm-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      $(".popup-background").css("display", "none");
+      $(".popup-background").css("opacity", "0");
+      IsPopUpOpen = false;
+    }, { once: true });
+  } else {
+    $(".popup-background").css("display", "none");
+    $(".popup-background").css("opacity", "0");
+    IsPopUpOpen = false;
+  }
 }
 
 function resetContextMenu() {

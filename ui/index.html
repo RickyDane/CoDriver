@@ -181,29 +181,35 @@
             <!-- :settings | Settings UI -->
             <div class="settings-ui">
                 <div data-tauri-drag-region class="settings-ui-header">
-                    <span style="display: flex; gap: 15px; align-items: center;">
-                        <i class="fa-solid fa-gears"></i>
-                        <p>Application Settings</p>
+                    <span class="settings-header-title">
+                        <i class="fa-solid fa-sliders"></i>
+                        <p>Settings</p>
                     </span>
-                    <button class="button" onclick="showAppInfo()"><i class="fa-solid fa-circle-info"></i></button>
+                    <button class="settings-close-btn" onclick="closeSettings()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
-                
-                <div class="settings-ui-main">
+
+                <div class="settings-ui-body">
                     <div class="settings-sidebar">
                         <button class="settings-sidebar-button active" onclick="showSettingsTab('general', this)">
-                            <i class="fa-solid fa-house"></i> General
+                            <i class="fa-solid fa-house"></i>
+                            <span>General</span>
                         </button>
                         <button class="settings-sidebar-button" onclick="showSettingsTab('shortcuts', this)">
-                            <i class="fa-solid fa-keyboard"></i> Shortcuts
+                            <i class="fa-solid fa-keyboard"></i>
+                            <span>Shortcuts</span>
                         </button>
                         <button class="settings-sidebar-button" onclick="showSettingsTab('search', this)">
-                            <i class="fa-solid fa-magnifying-glass"></i> Search
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span>Search</span>
                         </button>
                         <button class="settings-sidebar-button" onclick="showSettingsTab('experimental', this)">
-                            <i class="fa-solid fa-flask"></i> Experimental
+                            <i class="fa-solid fa-flask"></i>
+                            <span>Experimental</span>
                         </button>
                     </div>
-                    
+
                     <div class="settings-content">
                         <!-- General Tab -->
                         <div id="settings-tab-general" class="settings-tab-content active">
@@ -214,23 +220,43 @@
                                         <p class="settings-label">Color Theme</p>
                                         <p class="settings-hint">Choose your preferred visual style</p>
                                     </div>
-                                    <div style="display: flex; gap: 10px; align-items: center;">
-                                        <i class="fa-solid fa-rotate" style="cursor: pointer;" onclick="checkAppConfig(true)"></i>
+                                    <div class="settings-control-inline">
+                                        <i class="fa-solid fa-rotate settings-refresh-icon" onclick="checkAppConfig(true)"></i>
                                         <select class="select theme-select" onchange="saveConfig(true, true)"></select>
                                     </div>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Font Size</p>
+                                        <p class="settings-hint">Adjust the interface font size</p>
+                                    </div>
+                                    <div class="settings-slider-wrap">
+                                        <span class="settings-slider-value" id="font-size-value">12px</span>
+                                        <input type="range" min="10" max="18" value="12" class="settings-slider font-size-slider" oninput="document.getElementById('font-size-value').textContent = this.value + 'px'">
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Window Transparency</p>
+                                        <p class="settings-hint">Enable translucent window background</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" class="window-transparency-checkbox">
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
                                 <div class="settings-row">
                                     <div class="settings-control-group">
                                         <p class="settings-label">Config Location</p>
                                         <p class="settings-hint">Manage your configuration files directly</p>
                                     </div>
-                                    <button class="icon-button" onclick="openConfigLocation()">
-                                        <span class="button-icon"><i class="fa-solid fa-folder-open"></i></span>
+                                    <button class="settings-action-btn secondary" onclick="openConfigLocation()">
+                                        <i class="fa-solid fa-folder-open"></i>
                                         Open
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div class="settings-section">
                                 <h3 class="settings-section-title">Behavior</h3>
                                 <div class="settings-row">
@@ -260,18 +286,18 @@
                         <div id="settings-tab-shortcuts" class="settings-tab-content">
                             <div class="settings-section">
                                 <h3 class="settings-section-title">Quick Access Paths</h3>
-                                <p class="settings-hint" style="margin-bottom: 15px;">Configure paths accessible via Alt + 1, 2, or 3</p>
-                                <div class="settings-body-col-section" style="display: flex; flex-direction: column; gap: 10px;">
-                                    <div class="settings-control-group">
-                                        <p class="settings-label">Slot 1 (Alt + 1)</p>
+                                <p class="settings-hint settings-section-desc">Configure paths accessible via Alt + 1, 2, or 3</p>
+                                <div class="settings-input-list">
+                                    <div class="settings-input-item">
+                                        <p class="settings-label">Slot 1 <span class="settings-kbd">Alt + 1</span></p>
                                         <input type="text" class="text-input configured-path-one-input" placeholder="/home/user" />
                                     </div>
-                                    <div class="settings-control-group">
-                                        <p class="settings-label">Slot 2 (Alt + 2)</p>
+                                    <div class="settings-input-item">
+                                        <p class="settings-label">Slot 2 <span class="settings-kbd">Alt + 2</span></p>
                                         <input type="text" class="text-input configured-path-two-input" placeholder="/home/user/documents" />
                                     </div>
-                                    <div class="settings-control-group">
-                                        <p class="settings-label">Slot 3 (Alt + 3)</p>
+                                    <div class="settings-input-item">
+                                        <p class="settings-label">Slot 3 <span class="settings-kbd">Alt + 3</span></p>
                                         <input type="text" class="text-input configured-path-three-input" placeholder="/home/user/downloads" />
                                     </div>
                                 </div>
@@ -287,18 +313,21 @@
                                         <p class="settings-label">Recursive Depth</p>
                                         <p class="settings-hint">How many levels deep should we look?</p>
                                     </div>
-                                    <input style="width: 80px;" type="number" class="text-input search-depth-input" placeholder="10" />
+                                    <input type="number" class="text-input search-depth-input" placeholder="10" />
                                 </div>
                                 <div class="settings-row">
                                     <div class="settings-control-group">
                                         <p class="settings-label">Maximum Results</p>
                                         <p class="settings-hint">Stop searching after finding this many items</p>
                                     </div>
-                                    <input style="width: 100px;" type="number" class="text-input max-items-input" placeholder="1000" />
+                                    <input type="number" class="text-input max-items-input" placeholder="1000" />
                                 </div>
-                                <div class="settings-section">
+                            </div>
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">Startup</h3>
+                                <div class="settings-input-item">
                                     <p class="settings-label">Startup Path</p>
-                                    <p class="settings-hint" style="margin-bottom: 8px;">Initial directory when opening the app</p>
+                                    <p class="settings-hint">Initial directory when opening the app</p>
                                     <input type="text" class="text-input launch-path-input" placeholder="/home" />
                                 </div>
                             </div>
@@ -322,13 +351,15 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="popup-controls">
-                    <button class="icon-button" onclick="closeSettings()" style="background-color: transparent !important; border: none; box-shadow: none;">
-                        <span class="button-icon"><i class="fa-solid fa-xmark"></i></span>Cancel
+
+                <div class="settings-ui-footer">
+                    <button class="settings-reset-btn" onclick="resetSettingsToDefaults()">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        Reset to Defaults
                     </button>
-                    <button class="icon-button" onclick="saveConfig(); closeSettings()" style="background-color: var(--tertiaryColor) !important;">
-                        <span class="button-icon"><i class="fa-solid fa-check"></i></span>Save Changes
+                    <button class="settings-save-btn" onclick="saveConfig(); closeSettings()">
+                        <i class="fa-solid fa-check"></i>
+                        Save Changes
                     </button>
                 </div>
             </div>
@@ -431,10 +462,10 @@
                         </div>
                     </div>
                 </div>
-                <span class="popup-controls">
+                <div class="popup-controls">
                     <button class="icon-button" onclick="closeFtpConfig()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
                     <button class="icon-button" onclick="connectToFtp()"><span class="button-icon"><i class="fa-solid fa-forward"></i></span>Connect</button>
-                </span>
+                </div>
                 <div class="ftp-loader">
                     <div class="preloader-invert"></div>
                 </div>

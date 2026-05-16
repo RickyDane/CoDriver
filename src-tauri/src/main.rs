@@ -256,6 +256,8 @@ struct AppConfig {
     is_select_mode: String,
     arr_favorites: Vec<String>,
     current_theme: String,
+    font_size: i32,
+    is_window_transparency: String,
 }
 
 #[tauri::command]
@@ -322,6 +324,8 @@ async fn check_app_config() -> AppConfig {
             is_select_mode: "1".to_string(),
             arr_favorites: vec![],
             current_theme: "0".to_string(),
+            font_size: 12,
+            is_window_transparency: "0".to_string(),
         };
         let _ = serde_json::to_writer_pretty(
             File::create(
@@ -382,6 +386,14 @@ async fn check_app_config() -> AppConfig {
             .map(|x| x.to_string().replace('"', ""))
             .collect(),
         current_theme: app_config["current_theme"].to_string().replace('"', ""),
+        font_size: app_config["font_size"]
+            .to_string()
+            .replace('"', "")
+            .parse::<i32>()
+            .unwrap_or(12),
+        is_window_transparency: app_config["is_window_transparency"]
+            .to_string()
+            .replace('"', ""),
     }
 }
 
@@ -1612,6 +1624,8 @@ async fn save_config(
     is_select_mode: String,
     arr_favorites: Vec<String>,
     current_theme: String,
+    font_size: i32,
+    is_window_transparency: String,
 ) {
     let app_config_file = File::open(
         app_config_dir(&Config::default())
@@ -1637,6 +1651,8 @@ async fn save_config(
         is_select_mode: is_select_mode.replace("\\", "/"),
         arr_favorites,
         current_theme: current_theme.replace("\\", "/"),
+        font_size,
+        is_window_transparency: is_window_transparency.replace("\\", ""),
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
