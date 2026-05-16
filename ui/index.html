@@ -46,8 +46,10 @@
     <!-- :instant-search | Instant Search -->
     <input class="instant-search-input text-input" type="text" placeholder="Start typing ..." disabled />
 
-    <div style="display: flex; width: 100%; height: 100vh;">
+    <div style="display: flex; width: 100%; height: 100vh; overflow: hidden;">
         <div class="site-nav-bar">
+            <div class="site-nav-bar-blur-top"></div>
+            <div class="site-nav-bar-gradient-top"></div>
             <div class="codriver-name">CoDriver</div>
             <div class="active-actions-container"></div>
         </div>
@@ -76,15 +78,16 @@
                         <button class="cancel-search-button" onclick="cancelSearch()"><i
                                 class="fa-solid fa-xmark"></i></button>
                     </div>
-                    <div class="view-mode-container" style="display: flex; align-items: center; gap: 8px; background-color: var(--secondaryColor); border: 1px solid var(--tertiaryColor); border-radius: 10px; padding: 0 10px; height: 35px;">
-                        <span class="view-mode-icon-span" style="display: flex; align-items: center; justify-content: center;">
-                            <i class="fa-solid fa-grip" style="font-size: 12px; color: var(--textColor2);"></i>
-                        </span>
-                        <select class="select view-mode-select" onchange="switchView(this.value)" style="height: 100%; padding: 0; font-size: 11px; min-width: 60px; border: none; background: transparent; box-shadow: none;">
-                            <option value="wrap">Grid</option>
-                            <option value="column">List</option>
-                            <option value="miller">Miller</option>
-                        </select>
+                    <div class="view-mode-group" role="group" aria-label="View mode">
+                        <button class="view-mode-btn active" data-view="wrap" onclick="switchView('wrap')" aria-pressed="true" title="Grid view">
+                            <i class="fa-solid fa-grip"></i>
+                        </button>
+                        <button class="view-mode-btn" data-view="column" onclick="switchView('column')" aria-pressed="false" title="List view">
+                            <i class="fa-solid fa-list"></i>
+                        </button>
+                        <button class="view-mode-btn" data-view="miller" onclick="switchView('miller')" aria-pressed="false" title="Miller columns view">
+                            <i class="fa-solid fa-table-columns"></i>
+                        </button>
                     </div>
                     <div class="windows-linux-titlebar-buttons">
                         <button class="minimize-button"><i class="fa-solid fa-minus"></i></button>

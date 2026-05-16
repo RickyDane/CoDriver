@@ -190,13 +190,13 @@ let CurrentTheme = "0";
 /* Upper right search bar logic */
 
 document.querySelector(".search-bar-input").addEventListener("focusin", (e) => {
-  $(".file-searchbar").css("width", "300px");
+  $(".file-searchbar").css("width", "320px");
   IsInputFocused = true;
 });
 document
   .querySelector(".search-bar-input")
   .addEventListener("focusout", (e) => {
-    $(".file-searchbar").css("width", "200px");
+    $(".file-searchbar").css("width", "220px");
     IsInputFocused = false;
   });
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
@@ -3485,19 +3485,12 @@ async function switchView(newMode = null) {
       else ViewMode = "wrap";
     }
 
-    // Update dropdown if it exists
-    const select = document.querySelector(".view-mode-select");
-    const iconSpan = document.querySelector(".view-mode-icon-span");
-    if (select) select.value = ViewMode;
-    if (iconSpan) {
-      if (ViewMode === "wrap") {
-        iconSpan.innerHTML = '<i class="fa-solid fa-grip" style="font-size: 12px; color: var(--textColor2);"></i>';
-      } else if (ViewMode === "column") {
-        iconSpan.innerHTML = '<i class="fa-solid fa-list" style="font-size: 12px; color: var(--textColor2);"></i>';
-      } else if (ViewMode === "miller") {
-        iconSpan.innerHTML = '<i class="fa-solid fa-table-columns" style="font-size: 12px; color: var(--textColor2);"></i>';
-      }
-    }
+    // Update segmented control active state
+    document.querySelectorAll(".view-mode-btn").forEach((btn) => {
+      const isActive = btn.dataset.view === ViewMode;
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
 
     if (ViewMode == "column") {
       document.querySelectorAll(".directory-list").forEach((list) => {
@@ -3557,13 +3550,30 @@ async function switchView(newMode = null) {
   }
 }
 
+// Roving tabindex for view mode group
+document.querySelector(".view-mode-group").addEventListener("keydown", (e) => {
+  const buttons = [...document.querySelectorAll(".view-mode-btn")];
+  const current = document.activeElement;
+  const index = buttons.indexOf(current);
+  if (index === -1) return;
+
+  let next;
+  if (e.key === "ArrowRight") next = buttons[(index + 1) % buttons.length];
+  else if (e.key === "ArrowLeft") next = buttons[(index - 1 + buttons.length) % buttons.length];
+  else if (e.key === "Home") next = buttons[0];
+  else if (e.key === "End") next = buttons[buttons.length - 1];
+  else return;
+
+  e.preventDefault();
+  next.focus();
+});
+
 async function switchToDualPane() {
   if (IsDualPaneEnabled == false) {
     OrgViewMode = ViewMode;
     IsDualPaneEnabled = true;
     ViewMode = "column";
-    document.querySelector(".view-mode-select").disabled = true;
-    document.querySelector(".view-mode-container").style.opacity = "0.5";
+    document.querySelector(".view-mode-group").classList.add("disabled");
     document.querySelector(".miller-container").style.display = "none";
     if (Platform == "darwin") {
       $(".header-nav").css("padding-left", "85px");
@@ -3609,8 +3619,7 @@ async function switchToDualPane() {
     });
   } else {
     IsDualPaneEnabled = false;
-    document.querySelector(".view-mode-select").disabled = false;
-    document.querySelector(".view-mode-container").style.opacity = "1";
+    document.querySelector(".view-mode-group").classList.remove("disabled");
     $(".non-dual-pane-container")?.css("width", "calc(100vw - 150px)");
     $(".non-dual-pane-container")?.css("opacity", "1");
     $(".non-dual-pane-container")?.css("height", "100%");
@@ -4541,11 +4550,54 @@ async function getDir(number) {
   return dirPath;
 }
 
+function toggleCollapseSection(sectionEl) {
+  const sectionKey = sectionEl.dataset.section;
+  const content = sectionEl.querySelector(".collapse-content");
+  const header = sectionEl.querySelector(".collapse-header");
+  const isCollapsed = sectionEl.classList.contains("collapsed");
+
+  if (isCollapsed) {
+    sectionEl.classList.remove("collapsed");
+    content.style.maxHeight = content.scrollHeight + "px";
+    header.setAttribute("aria-expanded", "true");
+    content.addEventListener("transitionend", function handler() {
+      if (!sectionEl.classList.contains("collapsed")) {
+        content.style.maxHeight = "none";
+      }
+      content.removeEventListener("transitionend", handler);
+    });
+  } else {
+    content.style.maxHeight = content.scrollHeight + "px";
+    content.offsetHeight;
+    sectionEl.classList.add("collapsed");
+    header.setAttribute("aria-expanded", "false");
+  }
+
+  localStorage.setItem(
+    "sidebar-section-" + sectionKey,
+    isCollapsed ? "expanded" : "collapsed",
+  );
+}
+
+function restoreCollapseState(sectionEl) {
+  const sectionKey = sectionEl.dataset.section;
+  const saved = localStorage.getItem("sidebar-section-" + sectionKey);
+  if (saved === "collapsed") {
+    const content = sectionEl.querySelector(".collapse-content");
+    const header = sectionEl.querySelector(".collapse-header");
+    sectionEl.classList.add("collapsed");
+    content.style.maxHeight = "0";
+    header.setAttribute("aria-expanded", "false");
+  }
+}
+
 async function insertSiteNavButtons() {
   // Clear current stack of dynamic elements in sidebar
   $(".site-nav-bar-button").remove();
+  $(".site-nav-bar-button-fav").remove();
   $(".site-nav-bar-title").remove();
   $(".site-nav-bar > .horizontal-seperator").remove();
+  $(".collapse-section").remove();
   $(".site-nav-bar > .disk-container").remove();
 
   let disks = await invoke("list_disks");
@@ -4606,10 +4658,10 @@ async function insertSiteNavButtons() {
     button.className = "site-nav-bar-button";
     button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
     button.setAttribute("itempath", siteNavButtons[i][1]);
-    button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
+    button.onclick = siteNavButtons[i][3];
     button.ondragover = (e) => {
-      button.style.border = "1px solid var(--selectColor2)";
-      button.style.backgroundColor = "var(--selectColor3)";
+      button.style.border = "1px solid var(--tertiaryColor)";
+      button.style.backgroundColor = "var(--sidebarHover)";
       button.style.scale = "1.05";
       DraggedOverElement = button;
       MousePos = [e.clientX, e.clientY];
@@ -4622,22 +4674,35 @@ async function insertSiteNavButtons() {
     document.querySelector(".site-nav-bar").append(button);
   }
 
-  // Favorites
+  // Favorites collapsible section
   if (ArrFavorites.length > 0) {
-    let seperator = document.createElement("div");
-    seperator.className = "horizontal-seperator";
-    document.querySelector(".site-nav-bar").append(seperator);
+    const favSection = document.createElement("div");
+    favSection.className = "collapse-section";
+    favSection.dataset.section = "favorites";
 
-    let favTitle = document.createElement("p");
-    favTitle.className = "site-nav-bar-title";
-    favTitle.innerHTML = "FAVORITES";
-    document.querySelector(".site-nav-bar").append(favTitle);
+    const favHeader = document.createElement("button");
+    favHeader.className = "collapse-header";
+    favHeader.innerHTML = `
+        <div class="collapse-header-left">
+            <i class="fa-solid fa-thumbtack" style="color: var(--textColor2); font-size: 9px;" aria-hidden="true"></i>
+            <span>FAVORITES</span>
+        </div>
+        <i class="fa-solid fa-chevron-down collapse-chevron" aria-hidden="true"></i>
+    `;
+    favHeader.setAttribute("aria-expanded", "true");
+    favHeader.setAttribute("aria-controls", "favorites-content");
+    favHeader.onclick = () => toggleCollapseSection(favSection);
+
+    const favContent = document.createElement("div");
+    favContent.className = "collapse-content";
+    favContent.id = "favorites-content";
+    favContent.setAttribute("role", "region");
 
     ArrFavorites.forEach((path) => {
       let button = document.createElement("button");
-      button.className = "site-nav-bar-button";
+      button.className = "site-nav-bar-button-fav";
       let name = path.split(/[\\\/]/).pop() || path;
-      button.innerHTML = `<i class="fa-solid fa-star" style="color: #ffca28; font-size: 10px;"></i> <p>${name}</p>`;
+      button.innerHTML = `<p>${name}</p>`;
       button.setAttribute("itempath", path);
       button.title = path;
       button.onclick = async () => {
@@ -4655,40 +4720,51 @@ async function insertSiteNavButtons() {
         ]);
       };
       button.ondragover = (e) => {
-        button.style.border = "1px solid var(--selectColor2)";
-        button.style.backgroundColor = "var(--selectColor3)";
-        button.style.scale = "1.05";
+        button.style.border = "1px solid var(--tertiaryColor)";
+        button.style.backgroundColor = "var(--sidebarHover)";
         DraggedOverElement = button;
         MousePos = [e.clientX, e.clientY];
       };
       button.ondragleave = () => {
         button.style.border = "1px solid transparent";
         button.style.backgroundColor = "transparent";
-        button.style.scale = "1";
       };
-      document.querySelector(".site-nav-bar").append(button);
+      favContent.append(button);
     });
+
+    favSection.append(favHeader);
+    favSection.append(favContent);
+    document.querySelector(".site-nav-bar").append(favSection);
+    restoreCollapseState(favSection);
   }
 
-  let seperator = document.createElement("div");
-  seperator.className = "horizontal-seperator";
-  document.querySelector(".site-nav-bar").append(seperator);
+  // Disks collapsible section
+  const diskSection = document.createElement("div");
+  diskSection.className = "collapse-section";
+  diskSection.dataset.section = "disks";
+
+  const diskHeader = document.createElement("button");
+  diskHeader.className = "collapse-header";
+  diskHeader.innerHTML = `
+      <div class="collapse-header-left">
+          <i class="fa-solid fa-hard-drive" aria-hidden="true"></i>
+          <span>DISKS</span>
+      </div>
+      <i class="fa-solid fa-chevron-down collapse-chevron" aria-hidden="true"></i>
+  `;
+  diskHeader.setAttribute("aria-expanded", "true");
+  diskHeader.setAttribute("aria-controls", "disks-content");
+  diskHeader.onclick = () => toggleCollapseSection(diskSection);
+
+  const diskContent = document.createElement("div");
+  diskContent.className = "collapse-content";
+  diskContent.id = "disks-content";
+  diskContent.setAttribute("role", "region");
 
   let diskContainer = document.createElement("div");
   diskContainer.className = "disk-container";
 
-  // Available disks as site nav buttons
-  let diskButton = document.createElement("button");
-  diskButton.className = "site-nav-bar-button";
-  diskButton.onclick = () => listDisks();
-  diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Disks`;
-  document.querySelector(".site-nav-bar").append(diskButton);
-
   if (disks.length > 0) {
-    let seperator2 = document.createElement("div");
-    seperator2.className = "horizontal-seperator";
-    document.querySelector(".site-nav-bar").append(seperator2);
-
     disks.forEach((mount) => {
       let diskButton = document.createElement("button");
       diskButton.dataset.itempath = mount.path;
@@ -4703,7 +4779,6 @@ async function insertSiteNavButtons() {
         await openDirAndSwitch(mount.path);
         await listDirectories();
       };
-      // Show space left with gradient
       diskButton.style.background = `linear-gradient(to right, var(--selectColor3) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
       diskButton.style.backgroundRepeat = "no-repeat";
       if (mount.format.includes("SSHFS") || mount.is_removable == true) {
@@ -4725,7 +4800,11 @@ async function insertSiteNavButtons() {
     });
   }
 
-  document.querySelector(".site-nav-bar").append(diskContainer);
+  diskContent.append(diskContainer);
+  diskSection.append(diskHeader);
+  diskSection.append(diskContent);
+  document.querySelector(".site-nav-bar").append(diskSection);
+  restoreCollapseState(diskSection);
 }
 
 /* File operation context menu */
