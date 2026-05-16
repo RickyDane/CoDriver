@@ -376,10 +376,6 @@ document.addEventListener("mousedown", (e) => {
     !e.target.classList.contains("input-dialog") &&
     !e.target.classList.contains("confirm-popup") &&
     !e.target.classList.contains("uni-popup") &&
-    !e.target.classList.contains("soft-popup") &&
-    !e.target.closest(".soft-popup") &&
-    !e.target.classList.contains("custom-context-menu") &&
-    !e.target.closest(".custom-context-menu") &&
     !e.target.classList.contains("popup-body") &&
     !e.target.classList.contains("popup-body-content") &&
     !e.target.classList.contains("directory-entry") &&
@@ -839,11 +835,7 @@ document.onkeydown = async (e) => {
       if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
         e.preventDefault();
         e.stopPropagation();
-        const path = await showInputPopup("Input path to jump to");
-        if (path) {
-          await openDirAndSwitch(path);
-          await listDirectories();
-        }
+        showInputPopup("Input path to jump to");
       }
 
       // New folder input prompt when f7 is pressed
@@ -1602,31 +1594,33 @@ async function extractItem(item) {
 }
 
 async function showCompressPopup(item) {
+  IsPopUpOpen = true;
   let arrCompressItems = ArrSelectedItems;
   if (ArrSelectedItems.length > 1) {
     arrCompressItems = ArrSelectedItems;
   } else {
     arrCompressItems = [item];
   }
-
   let compressFileNames = "";
   if (arrCompressItems.length > 1) {
     for (let i = 0; i < arrCompressItems.length; i++) {
       compressFileNames +=
-        `<h5 style='max-width: 50vw; overflow-x: hidden; padding-right: 5px; text-overflow: ellipsis'>${escapeHtml(arrCompressItems[i].getAttribute("itemname"))}</h5>`;
+        "<h5 style='max-width: 50vw; overflow-x: hidden; padding-right: 5px; text-overflow: ellipsis'>" +
+        arrCompressItems[i].getAttribute("itemname") +
+        "</h5>";
     }
   } else {
-    compressFileNames = escapeHtml(item.getAttribute("itemname"));
+    compressFileNames = item.getAttribute("itemname");
   }
-
-  if (compressFileNames === "") return;
-
-  PopupManager.open({
-    className: "cd-popup--compression",
-    title: "Compression options",
-    icon: "fa-solid fa-compress",
-    content: `
-      <div style="padding: 10px 5px 0 10px; border-bottom: 1px solid var(--tertiaryColor); margin-bottom: 16px;">
+  if (compressFileNames != "") {
+    let popup = document.createElement("div");
+    popup.className = "uni-popup compression-popup";
+    popup.innerHTML = `
+      <div class="popup-header">
+        <i class="fa-solid fa-compress"></i>
+        <h3>Compression options</h3>
+      </div>
+      <div style="padding: 10px 5px 0 10px; border-bottom: 1px solid var(--tertiaryColor);">
         <p class="text-2">Selected item(s)</p>
         <br/>
         <div style="max-height: 50vh; max-width: 50vw; overflow-y: auto; overflow-x: hidden; text-overflow: ellipsis; white-space: nowrap">
@@ -1634,53 +1628,59 @@ async function showCompressPopup(item) {
         </div>
         <br/>
       </div>
-      <div class="popup-body-row-section">
-        <div class="popup-body-col-section" style="width: 50%;">
-          <p class="text-small">Level</p>
-          <input class="text-input compression-popup-level-input" type="number" value="1" placeholder="Default: 1" />
-        </div>
-        <div class="popup-body-col-section" style="width: 50%;">
-          <p class="text-small">Format</p>
-          <select class="select compression-popup-type-select">
-            <option value="zstd">Zstd (Level -7 - 22)</option>
-            <option value="zip">Zip (Level 1 - 9)</option>
-            <option value="density">Density (Level 1 - 3)</option>
-            <option value="br">Brotli (Level 1)</option>
-          </select>
+      <div class="popup-body">
+        <div class="popup-body-row-section">
+          <div class="popup-body-col-section" style="width: 50%;">
+            <input class="text-input compression-popup-level-input" type="number" value="1" placeholder="Default: 1" />
+          </div>
+          <div class="popup-body-col-section" style="width: 50%;">
+            <select class="select compression-popup-type-select">
+              <option value="zstd">Zstd (Level -7 - 22)</option>
+              <option value="zip">Zip (Level 1 - 9)</option>
+              <option value="density">Density (Level 1 - 3)</option>
+              <option value="br">Brotli (Level 1)</option>
+            </select>
+          </div>
         </div>
       </div>
-    `,
-    buttons: [
-      {
-        label: "Cancel",
-        icon: "fa-solid fa-xmark",
-        action: () => closeCompressPopup()
-      },
-      {
-        label: "Compress",
-        icon: "fa-solid fa-minimize",
-        primary: true,
-        action: async () => {
-          await compressItem(
-            arrCompressItems,
-            $(".compression-popup-level-input").val(),
-            $(".compression-popup-type-select").val(),
-          );
-        }
+      <div class="popup-controls">
+        <button class="icon-button" onclick="closeCompressPopup()">
+          <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+          Close
+        </button>
+        <button class="icon-button compress-item-button">
+          <div class="button-icon"><i class="fa-solid fa-minimize"></i></div>
+          Compress
+        </button>
+      </div>
+      `;
+    document.querySelector("body").append(popup);
+    document
+      .querySelector(".compress-item-button")
+      .addEventListener("click", async () => {
+        await compressItem(
+          arrCompressItems,
+          $(".compression-popup-level-input").val(),
+          $(".compression-popup-type-select").val(),
+        );
+      });
+    $(".compression-popup-level-input").on(
+      "focus",
+      () => (IsInputFocused = true),
+    );
+    $(".compression-popup-level-input").on(
+      "blur",
+      () => (IsInputFocused = false),
+    );
+    $(".compression-popup-level-input").on("keyup", (e) => {
+      if (
+        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
+        e.key == "Enter"
+      ) {
+        $(".compress-item-button").click();
       }
-    ],
-    onClose: () => {
-      IsInputFocused = false;
-    }
-  });
-
-  $(".compression-popup-level-input").on("focus", () => (IsInputFocused = true));
-  $(".compression-popup-level-input").on("blur", () => (IsInputFocused = false));
-  $(".compression-popup-level-input").on("keyup", (e) => {
-    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "Enter") {
-      $(".cd-popup--compression .btn-primary").click();
-    }
-  });
+    });
+  }
 }
 
 async function compressItem(
@@ -1783,82 +1783,56 @@ async function compressItem(
 }
 
 async function closeCompressPopup() {
-  const popup = document.querySelector(".cd-popup--compression");
-  if (popup) {
-    PopupManager.close(popup);
-  } else {
-    $(".compression-popup").remove();
-  }
+  $(".compression-popup").remove();
   IsPopUpOpen = false;
   IsInputFocused = false;
 }
 
-let currentLoadingPopup = null;
 function showLoadingPopup(msg) {
-  closeLoadingPopup();
-  currentLoadingPopup = PopupManager.open({
-    noHeader: true,
-    content: `<div style="text-align:center; padding-top:16px;">
-                <img src="resources/preloader.gif" width="32">
-                <p style="margin-top:16px; font-weight:600;">${msg}</p>
-              </div>`,
-    allowBackdropClose: false,
-    allowEscapeClose: false,
-  });
+  let body = document.querySelector("body");
+  let popup = document.createElement("div");
+  popup.innerHTML = `
+    <h4>${msg}</h4>
+    <div class="preloader"></div>
+    `;
+  popup.className = "uni-popup loading-popup";
+  body.append(popup);
+  IsPopUpOpen = true;
 }
-
 function closeLoadingPopup() {
-  if (currentLoadingPopup) {
-    PopupManager.close(currentLoadingPopup);
-    currentLoadingPopup = null;
-  }
+  $(".loading-popup").remove();
+  IsPopUpOpen = false;
 }
 
-let currentInputPopup = null;
 function showInputPopup(msg) {
-  closeInputPopup();
-  return new Promise((resolve) => {
-    currentInputPopup = PopupManager.open({
-      title: "Input Required",
-      content: `<p>${msg}</p><input type="text" id="popup-generic-input" class="text-input" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--tertiaryColor); background:var(--bg-base); color:var(--textColor); margin-top:10px;">`,
-      allowBackdropClose: false,
-      buttons: [
-        { label: "Cancel", action: () => resolve(null) },
-        {
-          label: "Confirm",
-          primary: true,
-          action: () =>
-            resolve(document.getElementById("popup-generic-input").value),
-        },
-      ],
-      onClose: () => {
-        IsInputFocused = false;
-        resolve(null);
-      },
-    });
-
-    setTimeout(() => {
-      const input = document.getElementById("popup-generic-input");
-      if (input) {
-        input.focus();
-        IsInputFocused = true;
-        input.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            const val = input.value;
-            PopupManager.close(currentInputPopup);
-            resolve(val);
-          }
-        });
-      }
-    }, 100);
+  let body = document.querySelector("body");
+  let popup = document.createElement("div");
+  popup.innerHTML = `
+    <h4 style="color: var(--textColor);">${msg}</h4>
+    <input class="text-input" placeholder="/path/to/dir" autofocus/>
+    `;
+  popup.className = "input-popup input-dialog uni-popup";
+  popup.children[1].addEventListener("keyup", async (e) => {
+    if (e.keyCode == 13) {
+      await openDirAndSwitch(popup.children[1].value);
+      await listDirectories();
+      closeInputPopup();
+    }
+  });
+  body.append(popup);
+  IsPopUpOpen = true;
+  popup.children[1].focus();
+  IsInputFocused = true;
+  popup.children[1].addEventListener("focusout", () => {
+    resetEverything();
+    IsInputFocused = false;
   });
 }
 
 function closeInputPopup() {
-  if (currentInputPopup) {
-    PopupManager.close(currentInputPopup);
-    currentInputPopup = null;
-  }
+  $(".input-popup").remove();
+  IsPopUpOpen = false;
+  IsInputFocused = false;
 }
 
 function normalizePath(path = "") {
@@ -1998,111 +1972,103 @@ async function runResolvedCopyMove(items, targetPath, shouldMove = false) {
 
 async function showDestinationConflictPopup(conflict, index, total) {
   let isFolderConflict = conflict.item.is_dir == 1 && conflict.existing.is_dir == 1;
-  
-  const content = `
-    <div class="destination-conflict-header" style="margin-bottom: 16px;">
-      <p class="destination-conflict-count text-2">Conflict ${index} of ${total}</p>
+  let popup = document.createElement("div");
+  popup.className = "uni-popup destination-conflict-popup";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-labelledby", "destination-conflict-title");
+  popup.setAttribute("aria-describedby", "destination-conflict-desc");
+  popup.innerHTML = `
+    <div class="popup-header destination-conflict-header">
+      <div class="destination-conflict-title-row">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        <h3 id="destination-conflict-title">Item already exists</h3>
+      </div>
+      <p class="destination-conflict-count">Conflict ${index} of ${total}</p>
     </div>
-    <div class="destination-conflict-body">
-      <p id="destination-conflict-desc" class="popup-body-content" style="margin-bottom: 16px;">“${escapeHtml(conflict.item.name)}” already exists in the destination.</p>
-      <div class="destination-conflict-comparison" aria-label="Item comparison" style="display: flex; gap: 16px; margin-bottom: 24px;">
-        <section class="destination-conflict-card" style="flex: 1; padding: 12px; background: var(--secondaryColor); border-radius: 8px; border: 1px solid var(--tertiaryColor);">
-          <h4 style="margin-bottom: 8px; font-size: 0.9rem; opacity: 0.8;">Incoming item</h4>
-          <p class="destination-conflict-name" title="${escapeHtml(conflict.item.path)}" style="font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(conflict.item.name)}</p>
-          <p class="text-2" style="font-size: 0.85rem; opacity: 0.7;">${escapeHtml(formatConflictMeta(conflict.item))}</p>
-          <p class="text-2" title="${escapeHtml(conflict.item.path)}" style="font-size: 0.8rem; opacity: 0.6; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">From: ${escapeHtml(normalizePath(conflict.item.path).split("/").slice(0, -1).join("/") || "/")}</p>
+    <div class="popup-body destination-conflict-body">
+      <p id="destination-conflict-desc" class="popup-body-content">“${escapeHtml(conflict.item.name)}” already exists in the destination.</p>
+      <div class="destination-conflict-comparison" aria-label="Item comparison">
+        <section class="destination-conflict-card">
+          <h4>Incoming item</h4>
+          <p class="destination-conflict-name" title="${escapeHtml(conflict.item.path)}">${escapeHtml(conflict.item.name)}</p>
+          <p class="text-2">${escapeHtml(formatConflictMeta(conflict.item))}</p>
+          <p class="text-2" title="${escapeHtml(conflict.item.path)}">From: ${escapeHtml(normalizePath(conflict.item.path).split("/").slice(0, -1).join("/") || "/")}</p>
         </section>
-        <section class="destination-conflict-card" style="flex: 1; padding: 12px; background: var(--secondaryColor); border-radius: 8px; border: 1px solid var(--tertiaryColor);">
-          <h4 style="margin-bottom: 8px; font-size: 0.9rem; opacity: 0.8;">Existing item</h4>
-          <p class="destination-conflict-name" title="${escapeHtml(conflict.existing.path)}" style="font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(conflict.existing.name)}</p>
-          <p class="text-2" style="font-size: 0.85rem; opacity: 0.7;">${escapeHtml(formatConflictMeta(conflict.existing))}</p>
-          <p class="text-2" title="${escapeHtml(conflict.destinationPath)}" style="font-size: 0.8rem; opacity: 0.6; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">In: ${escapeHtml(normalizePath(conflict.destinationPath).split("/").slice(0, -1).join("/") || "/")}</p>
+        <section class="destination-conflict-card">
+          <h4>Existing item</h4>
+          <p class="destination-conflict-name" title="${escapeHtml(conflict.existing.path)}">${escapeHtml(conflict.existing.name)}</p>
+          <p class="text-2">${escapeHtml(formatConflictMeta(conflict.existing))}</p>
+          <p class="text-2" title="${escapeHtml(conflict.destinationPath)}">In: ${escapeHtml(normalizePath(conflict.destinationPath).split("/").slice(0, -1).join("/") || "/")}</p>
         </section>
       </div>
-      <fieldset class="destination-conflict-options" style="border: none; padding: 0; margin: 0 0 20px 0;">
-        <legend style="font-weight: 600; margin-bottom: 12px;">Choose what to do</legend>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
-            <input type="radio" name="conflict-action" value="replace" style="margin-top: 4px;"> 
-            <div>
-              <span style="font-weight: 500;">Replace existing item</span>
-              <small style="display: block; opacity: 0.7; font-size: 0.8rem;">This will overwrite the existing item.</small>
-            </div>
-          </label>
-          <label class="${isFolderConflict ? "" : "is-disabled"}" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; ${isFolderConflict ? "" : "opacity: 0.5;"}">
-            <input type="radio" name="conflict-action" value="merge" ${isFolderConflict ? "" : "disabled"} style="margin-top: 4px;"> 
-            <div>
-              <span style="font-weight: 500;">Merge folders</span>
-              <small style="display: block; opacity: 0.7; font-size: 0.8rem;">${isFolderConflict ? "Combine folder contents." : "Available only when both items are folders."}</small>
-            </div>
-          </label>
-          <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
-            <input type="radio" name="conflict-action" value="duplicate" checked style="margin-top: 4px;"> 
-            <div>
-              <span style="font-weight: 500;">Keep both</span>
-              <small style="display: block; opacity: 0.7; font-size: 0.8rem;">Create a duplicate with a new name.</small>
-            </div>
-          </label>
-        </div>
+      <fieldset class="destination-conflict-options">
+        <legend>Choose what to do</legend>
+        <label><input type="radio" name="conflict-action" value="replace"> <span>Replace existing item</span><small>This will overwrite the existing item.</small></label>
+        <label class="${isFolderConflict ? "" : "is-disabled"}"><input type="radio" name="conflict-action" value="merge" ${isFolderConflict ? "" : "disabled"}> <span>Merge folders</span><small>${isFolderConflict ? "Combine folder contents." : "Available only when both items are folders."}</small></label>
+        <label><input type="radio" name="conflict-action" value="duplicate" checked> <span>Keep both</span><small>Create a duplicate with a new name.</small></label>
       </fieldset>
-      ${total > 1 ? `<label class="destination-conflict-apply-all" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding-top: 12px; border-top: 1px solid var(--tertiaryColor);"><input type="checkbox" class="destination-conflict-apply-all-input"> Apply this choice to all remaining conflicts</label>` : ""}
+      ${total > 1 ? `<label class="destination-conflict-apply-all"><input type="checkbox" class="destination-conflict-apply-all-input"> Apply this choice to all remaining conflicts</label>` : ""}
     </div>
-  `;
+    <div class="popup-controls destination-conflict-controls">
+      <button class="icon-button destination-conflict-cancel"><div class="button-icon"><i class="fa-solid fa-xmark"></i></div>Cancel</button>
+      <button class="icon-button destination-conflict-skip"><div class="button-icon"><i class="fa-solid fa-forward-step"></i></div>Skip</button>
+      <button class="icon-button destination-conflict-confirm"><div class="button-icon"><i class="fa-solid fa-check"></i></div>Continue</button>
+    </div>`;
+
+  document.querySelector(".main-container").appendChild(popup);
+  let previouslyFocused = document.activeElement;
+  IsPopUpOpen = true;
+  IsDisableShortcuts = true;
+  $(".popup-background").css("display", "block");
+  setTimeout(() => $(".popup-background").css("opacity", "1"));
+  popup.querySelector(".destination-conflict-confirm").focus();
 
   return new Promise((resolve) => {
-    let resolved = false;
-    const popupEl = PopupManager.open({
-      title: "Item already exists",
-      icon: "fa-solid fa-triangle-exclamation",
-      className: "cd-popup--conflict",
-      content: content,
-      allowBackdropClose: false,
-      allowEscapeClose: true,
-      buttons: [
-        {
-          label: "Cancel",
-          icon: "fa-solid fa-xmark",
-          action: () => {
-            const applyToAll = popupEl.querySelector(".destination-conflict-apply-all-input")?.checked ?? false;
-            resolved = true;
-            resolve({ action: "cancel", applyToAll });
-          }
-        },
-        {
-          label: "Skip",
-          icon: "fa-solid fa-forward-step",
-          action: () => {
-            const applyToAll = popupEl.querySelector(".destination-conflict-apply-all-input")?.checked ?? false;
-            resolved = true;
-            resolve({ action: "skip", applyToAll });
-          }
-        },
-        {
-          label: "Continue",
-          icon: "fa-solid fa-check",
-          primary: true,
-          action: () => {
-            const selected = popupEl.querySelector("input[name='conflict-action']:checked")?.value ?? "duplicate";
-            const applyToAll = popupEl.querySelector(".destination-conflict-apply-all-input")?.checked ?? false;
-            resolved = true;
-            resolve({ action: selected, applyToAll });
-          }
-        }
-      ],
-      onClose: () => {
-        if (!resolved) {
-          resolve({ action: "cancel", applyToAll: false });
-        }
+    let isClosed = false;
+    let focusableSelector = "button, [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
+    let close = (action) => {
+      if (isClosed) return;
+      isClosed = true;
+      let selected = popup.querySelector("input[name='conflict-action']:checked")?.value ?? "duplicate";
+      let applyToAll = popup.querySelector(".destination-conflict-apply-all-input")?.checked ?? false;
+      popup.remove();
+      $(".popup-background").css("display", "none");
+      $(".popup-background").css("opacity", "0");
+      IsPopUpOpen = false;
+      IsDisableShortcuts = false;
+      if (previouslyFocused && typeof previouslyFocused.focus === "function") {
+        previouslyFocused.focus();
       }
-    });
+      resolve({ action: action ?? selected, applyToAll });
+    };
 
-    // Handle Enter key for confirmation
-    popupEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && e.target.tagName !== "INPUT" && e.target.tagName !== "LABEL") {
-        const confirmBtn = popupEl.querySelector(".btn-primary");
-        if (confirmBtn) confirmBtn.click();
+    popup.querySelector(".destination-conflict-cancel").onclick = () => close("cancel");
+    popup.querySelector(".destination-conflict-skip").onclick = () => close("skip");
+    popup.querySelector(".destination-conflict-confirm").onclick = () => close();
+    popup.onkeydown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close("cancel");
       }
-    });
+      if (event.key === "Tab") {
+        let focusable = [...popup.querySelectorAll(focusableSelector)].filter((element) => element.offsetParent !== null);
+        if (focusable.length === 0) return;
+        let first = focusable[0];
+        let last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+      if (event.key === "Enter" && !["INPUT", "LABEL"].includes(event.target.tagName)) {
+        event.preventDefault();
+        close();
+      }
+    };
   });
 }
 
@@ -2191,145 +2157,109 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
 }
 
 function createFolderInputPrompt() {
-  const content = `
-    <p class="setting-desc" style="margin-bottom: 12px;">Enter a name for the new folder.</p>
-    <input class="text-input" type="text" placeholder="New folder" style="width: 100%;" autofocus>
-  `;
-
-  const popup = PopupManager.open({
-    title: "New Folder",
-    icon: "fa-solid fa-folder-plus",
-    content: content,
-    buttons: [
-      {
-        label: "Cancel",
-        className: "btn-cancel",
-        action: () => true,
-      },
-      {
-        label: "Create",
-        primary: true,
-        action: () => {
-          const val = popup.querySelector("input").value;
-          if (val) {
-            createFolder(val);
-            resetEverything();
-            return true;
-          }
-          return false;
-        },
-      },
-    ],
+  document.querySelectorAll(".input-dialog").forEach((item) => {
+    item.remove();
   });
-
-  const input = popup.querySelector("input");
-  input.addEventListener("focus", () => (IsInputFocused = true));
-  input.addEventListener("blur", () => (IsInputFocused = false));
-  input.addEventListener("keyup", (e) => {
-    if (e.key === "Enter" && input.value) {
-      createFolder(input.value);
+  let nameInput = document.createElement("div");
+  nameInput.className = "input-dialog uni-popup";
+  nameInput.innerHTML = `
+    <h4 class="input-dialog-headline">Type in a name for your new folder.</h4>
+    <input class="text-input" type="text" placeholder="New folder" autofocus>
+    `;
+  document.querySelector("body").append(nameInput);
+  // ContextMenu.style.display = "none";
+  nameInput.children[1].focus();
+  IsInputFocused = true;
+  IsDisableShortcuts = true;
+  IsPopUpOpen = false;
+  nameInput.addEventListener("keyup", (e) => {
+    if (e.keyCode === 13) {
+      createFolder(nameInput.children[1].value);
       resetEverything();
-      PopupManager.close(popup);
+      nameInput.remove();
     }
+  });
+  IsPopUpOpen = true;
+  nameInput.addEventListener("focusout", () => {
+    IsInputFocused = false;
+  });
+  nameInput.addEventListener("focusin", () => {
+    IsInputFocused = true;
   });
 }
 
-function createFileInputPrompt() {
-  const content = `
-    <p class="setting-desc" style="margin-bottom: 12px;">Enter a name for the new file.</p>
-    <input class="text-input" type="text" placeholder="New document" style="width: 100%;" autofocus>
-  `;
-
-  const popup = PopupManager.open({
-    title: "New File",
-    icon: "fa-solid fa-file-circle-plus",
-    content: content,
-    buttons: [
-      {
-        label: "Cancel",
-        className: "btn-cancel",
-        action: () => true,
-      },
-      {
-        label: "Create",
-        primary: true,
-        action: () => {
-          const val = popup.querySelector("input").value;
-          if (val) {
-            createFile(val);
-            resetEverything();
-            return true;
-          }
-          return false;
-        },
-      },
-    ],
-  });
-
-  const input = popup.querySelector("input");
-  input.addEventListener("focus", () => (IsInputFocused = true));
-  input.addEventListener("blur", () => (IsInputFocused = false));
-  input.addEventListener("keyup", (e) => {
-    if (e.key === "Enter" && input.value) {
-      createFile(input.value);
+function createFileInputPrompt(e) {
+  $(".input-dialog").remove();
+  let nameInput = document.createElement("div");
+  nameInput.className = "input-dialog";
+  nameInput.innerHTML = `
+    <h4 class="input-dialog-headline">Type in a name for your new file.</h4>
+    <input class="text-input" type="text" placeholder="New document" autofocus>
+    `;
+  document.querySelector("body").append(nameInput);
+  // ContextMenu.style.display = "none";
+  nameInput.children[1].focus();
+  IsInputFocused = true;
+  IsDisableShortcuts = true;
+  nameInput.addEventListener("keyup", (e) => {
+    if (e.key === "Enter") {
+      createFile(nameInput.children[1].value);
       resetEverything();
-      PopupManager.close(popup);
+      nameInput.remove();
     }
   });
-}
-
-function renameElementInputPrompt(item) {
-  unSelectAllItems();
-  const tempFilePath = item.getAttribute("itempath");
-  const tempRenameFilePath = item.getAttribute("itempath").split("/");
-  const tempFileName = tempRenameFilePath[tempRenameFilePath.length - 1].replace(
-    "'",
-    "",
-  );
-
-  const content = `
-    <p class="setting-desc" style="margin-bottom: 12px;">Enter a new name for this item.</p>
-    <input class="text-input" type="text" placeholder="document.txt" value="${tempFileName}" style="width: 100%;" autofocus>
-  `;
-
-  const popup = PopupManager.open({
-    title: "Rename Item",
-    icon: "fa-solid fa-file-pen",
-    content: content,
-    buttons: [
-      {
-        label: "Cancel",
-        className: "btn-cancel",
-        action: () => true,
-      },
-      {
-        label: "Rename",
-        primary: true,
-        action: () => {
-          const val = popup.querySelector("input").value;
-          if (val) {
-            renameElement(tempFilePath, val);
-            return true;
-          }
-          return false;
-        },
-      },
-    ],
+  IsPopUpOpen = true;
+  nameInput.addEventListener("focusout", () => {
+    IsInputFocused = false;
   });
-
-  const input = popup.querySelector("input");
-  input.addEventListener("focus", () => (IsInputFocused = true));
-  input.addEventListener("blur", () => (IsInputFocused = false));
-  input.addEventListener("keyup", (e) => {
-    if (e.key === "Enter" && input.value) {
-      renameElement(tempFilePath, input.value);
-      PopupManager.close(popup);
-    }
+  nameInput.addEventListener("focusin", () => {
+    IsInputFocused = true;
   });
 }
 
 function closeInputDialogs() {
-  PopupManager.closeAll();
+  $(".input-dialog").remove();
+  IsDisableShortcuts = false;
+  IsInputFocused = false;
+  IsPopUpOpen = false;
+}
+
+function renameElementInputPrompt(item) {
+  unSelectAllItems();
+  let tempFilePath = item.getAttribute("itempath");
+  let tempRenameFilePath = item.getAttribute("itempath").split("/");
+  let tempFileName = tempRenameFilePath[tempRenameFilePath.length - 1].replace(
+    "'",
+    "",
+  );
+  let nameInput = document.createElement("div");
+
+  nameInput.className = "input-dialog";
+  nameInput.innerHTML = `
+    <h4 class="input-dialog-headline">Type in a new name for this item.</h4>
+    <input class="text-input" type="text" placeholder="document.txt" value="${tempFileName}" required pattern="[0-9]" autofocus>
+    `;
+
+  document.querySelector("body").append(nameInput);
+  IsDisableShortcuts = true;
+  IsPopUpOpen = true;
+  nameInput.children[1].focus();
+  IsInputFocused = true;
+  nameInput.addEventListener("keydown", (e) => {
+    if (e.key == "Enter" && IsPopUpOpen == true) {
+      renameElement(tempFilePath, nameInput.children[1].value);
+      nameInput.remove();
+      IsDisableShortcuts = false;
+      IsPopUpOpen = false;
+    }
+  });
+  nameInput.addEventListener("focusout", () => {
+    IsInputFocused = false;
+  });
+  nameInput.addEventListener("focusin", () => {
+    IsInputFocused = true;
+  });
+  IsPopUpOpen = true;
 }
 
 async function createFolder(folderName) {
@@ -3743,27 +3673,26 @@ function switchHiddenFiles() {
 }
 
 let closeSettingsTimeout;
-let settingsPopupRef = null;
 
 function openSettings() {
-  if (settingsPopupRef) return;
-  
-  const settingsEl = document.querySelector(".settings-ui");
-  showSettingsTab('general', document.querySelector('.settings-sidebar-button'));
-  
-  settingsPopupRef = PopupManager.wrapLegacy(settingsEl, {
-    allowBackdropClose: true,
-    allowEscapeClose: true,
-    onClose: () => {
-      settingsPopupRef = null;
-    }
-  });
+  if (IsPopUpOpen == false) {
+    if (closeSettingsTimeout) clearTimeout(closeSettingsTimeout);
+    showSettingsTab('general', document.querySelector('.settings-sidebar-button'));
+    $(".settings-ui").css("display", "flex");
+    $(".settings-ui").addClass("active");
+    IsDisableShortcuts = true;
+    IsPopUpOpen = true;
+  }
 }
 
 async function closeSettings() {
-  if (settingsPopupRef) {
-    PopupManager.close(settingsPopupRef);
-  }
+  $(".settings-ui").removeClass("active");
+  if (closeSettingsTimeout) clearTimeout(closeSettingsTimeout);
+  closeSettingsTimeout = setTimeout(() => {
+    $(".settings-ui").css("display", "none");
+  }, 300);
+  IsDisableShortcuts = false;
+  IsPopUpOpen = false;
 }
 
 function showSettingsTab(tabName, btn) {
@@ -3887,73 +3816,64 @@ async function showProperties(item) {
     itemsToProcess = [dummyItem];
   }
 
-  let name = itemsToProcess.length > 1 ? itemsToProcess.length + " items selected" : itemsToProcess[0].getAttribute("itemname");
-  let path = itemsToProcess.length > 1 ? "Multiple paths" : itemsToProcess[0].getAttribute("itempath");
-  let ext = itemsToProcess.length > 1 ? "" : itemsToProcess[0].getAttribute("itemext");
-  let extension_description = ext ? getExtDescription(ext) : undefined;
-  let modifiedAt = itemsToProcess.length > 1 ? null : itemsToProcess[0].getAttribute("itemmodified");
+  if (IsPopUpOpen === false) {
+    let name = itemsToProcess.length > 1 ? itemsToProcess.length + " items selected" : itemsToProcess[0].getAttribute("itemname");
+    let path = itemsToProcess.length > 1 ? "Multiple paths" : itemsToProcess[0].getAttribute("itempath");
+    let ext = itemsToProcess.length > 1 ? "" : itemsToProcess[0].getAttribute("itemext");
+    let extension_description = ext ? getExtDescription(ext) : undefined;
+    let modifiedAt = itemsToProcess.length > 1 ? null : itemsToProcess[0].getAttribute("itemmodified");
 
-  const content = `
-    <div class="popup-body">
+    let popup = document.createElement("div");
+    popup.className = "uni-popup item-properties-popup";
+    popup.innerHTML = `
+      <div class="popup-header">
+      <h3>${name}</h3>
+      </div>
+      <div class="popup-body">
       ${itemsToProcess.length === 1 ? `
-      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
-        <span style="font-weight: 500; min-width: 50px;">Path:</span>
-        <button class="btn-soft" onclick="writeText('${path.replaceAll("'", "\\'")}'); showToast('Copied path to clipboard', ToastType.INFO);" style="padding: 4px 8px; font-size: 0.9rem; flex: 1; text-align: left; overflow: hidden; background: var(--secondaryColor); border: 1px solid var(--tertiaryColor); border-radius: 6px; color: var(--textColor); cursor: pointer; display: flex; align-items: center;">
-          <i class="fa-regular fa-copy" style="margin-right: 8px; opacity: 0.7;"></i>
-          <span style="max-width: 300px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${escapeHtml(path)}</span>
-        </button>
-      </div>
+      <span style="display: flex; gap: 10px; align-items: center;">
+      Path:
+      <button class="icon-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', ToastType.INFO);">
+  				<div class="button-icon">
+  				<i class="fa-regular fa-copy"></i></div>
+  				<p style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${path}</p>
+      </button>
+      </span>
       ` : ""}
-      ${extension_description ? `<div style="margin-bottom: 8px;"><span style="font-weight: 500; min-width: 50px; display: inline-block;">Type:</span> ${escapeHtml(extension_description)}</div>` : ""}
-      ${modifiedAt != null ? `<div style="margin-bottom: 8px;"><span style="font-weight: 500; min-width: 50px; display: inline-block;">Modified:</span> ${escapeHtml(modifiedAt)}</div>` : ""}
-      <div style="display: flex; align-items: center; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--tertiaryColor);">
-        <span style="font-weight: 600;">Total Size:</span>
-        <div class="properties-item-size" style="font-weight: 500;"><div class="preloader-small-invert"></div></div>
+      ${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ""}
+      ${modifiedAt != null ? `<br/><p>Modified: ${modifiedAt}</p>` : ""}
       </div>
-    </div>
-  `;
+      <div class="popup-controls" style="display: flex; justify-content: space-between;">
+    		<div style="display: flex; gap: 5px;">
+   			<div>Total Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
+    		</div>
+      <button class="icon-button" onclick="closeInfoProperties()">
+      <span class="button-icon"><i class="fa-solid fa-ban"></i></span>
+      Close
+      </button>
+      </div>
+      `;
+    document.querySelector("body").append(popup);
+    IsPopUpOpen = true;
 
-  PopupManager.open({
-    title: name,
-    icon: "fa-solid fa-circle-info",
-    className: "cd-popup--properties",
-    content: content,
-    buttons: [
-      {
-        label: "Close",
-        icon: "fa-solid fa-ban",
-        action: () => closeInfoProperties()
-      }
-    ],
-    onClose: () => {
-      invoke("cancel_size_calculation");
-      IsPopUpOpen = false;
-      IsItemPreviewOpen = false;
+    if (itemsToProcess.length === 1) {
+      await getSimpleDirInfo(
+        itemsToProcess[0].getAttribute("itempath"),
+        ".properties-item-size",
+        itemsToProcess[0].getAttribute("itemisdir") == "1",
+        "properties"
+      );
+    } else {
+      let paths = itemsToProcess.map(i => i.getAttribute("itempath"));
+      let totalSize = await invoke("get_selection_size", { paths, updateId: "properties" });
+      $(".properties-item-size").html(formatBytes(totalSize, 2));
     }
-  });
-
-  if (itemsToProcess.length === 1) {
-    await getSimpleDirInfo(
-      itemsToProcess[0].getAttribute("itempath"),
-      ".properties-item-size",
-      itemsToProcess[0].getAttribute("itemisdir") == "1",
-      "properties"
-    );
-  } else {
-    let paths = itemsToProcess.map(i => i.getAttribute("itempath"));
-    let totalSize = await invoke("get_selection_size", { paths, updateId: "properties" });
-    $(".properties-item-size").html(formatBytes(totalSize, 2));
   }
 }
 
 function closeInfoProperties() {
   invoke("cancel_size_calculation");
-  const popup = document.querySelector(".cd-popup--properties");
-  if (popup) {
-    PopupManager.close(popup);
-  } else {
-    $(".item-properties-popup")?.remove();
-  }
+  $(".item-properties-popup")?.remove();
   IsPopUpOpen = false;
   IsItemPreviewOpen = false;
 }
@@ -4076,92 +3996,100 @@ async function showItemPreview(item, isOverride = false) {
 }
 
 function showMultiRenamePopup() {
+  IsPopUpOpen = true;
+  let popup = document.createElement("div");
+  popup.className = "uni-popup multi-rename-popup";
+  popup.innerHTML = `
+    <h3 class="multi-rename-popup-header">
+  		<div style="display: flex; gap: 10px; align-items: center;">
+  		<i class="fa-solid fa-pen-to-square text" style="padding-right: 5px;"></i>
+  		<h4 class="text">Multi-Rename</h4>
+  		</div>
+    </h3>
+    <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
+  		<h4 class="text">Options</h4>
+  		<p class="text-small">If no extension is supplied the extension won't be changed</p>
+    </div>
+    <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
+    <div style="display: flex; flex-flow: row; gap: 10px;">
+  		<div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
+  		<p class="text-small">New name</p>
+  		<input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
+  		</div>
+  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+  		<p class="text-small">Start at</p>
+  		<input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
+  		</div>
+  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+  		<p class="text-small">Step by</p>
+  		<input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
+  		</div>
+  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+  		<p class="text-small">Digits</p>
+  		<input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
+  		</div>
+  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
+  		<p class="text-small">Extension</p>
+		  <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
+  		</div>
+  		</div>
+    </div>
+    <h4 class="text" style="padding: 10px; background-color: var(--secondaryColor);">Selected items to rename</h4>
+    `;
   let arrItemsToRename = ArrSelectedItems;
-  
-  let listHtml = "";
+  let list = document.createElement("div");
+  list.className = "list";
   for (let i = 0; i < arrItemsToRename.length; i++) {
-    listHtml += `<div class="list-item" style="padding: 6px 10px; border-bottom: 1px solid var(--tertiaryColor); opacity: 0.8; font-size: 0.9rem;">${escapeHtml(arrItemsToRename[i].getAttribute("itemname"))}</div>`;
+    let item = document.createElement("div");
+    item.className = "list-item";
+    item.innerHTML = `${arrItemsToRename[i].getAttribute("itemname")}`;
+    list.append(item);
   }
-
-  const content = `
-    <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px; margin-bottom: 16px;">
-      <h4 class="text">Options</h4>
-      <p class="text-small" style="opacity: 0.7;">If no extension is supplied the extension won't be changed</p>
-    </div>
-    <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); margin-bottom: 16px;">
-      <div style="display: flex; flex-flow: row; gap: 10px; flex-wrap: wrap;">
-        <div style="display: flex; flex-flow: column; gap: 5px; flex: 1; min-width: 150px;">
-          <p class="text-small">New name</p>
-          <input class="text-input multi-rename-newname" placeholder="Name" style="width: 100%;" />
-        </div>
-        <div style="display: flex; flex-flow: row; gap: 10px; flex: 1; min-width: 250px;">
-          <div style="display: flex; flex-flow: column; gap: 5px; width: 25%;">
-            <p class="text-small">Start</p>
-            <input class="text-input multi-rename-startat" placeholder="0" value="0" type="number" style="width: 100%;" />
-          </div>
-          <div style="display: flex; flex-flow: column; gap: 5px; width: 25%;">
-            <p class="text-small">Step</p>
-            <input class="text-input multi-rename-stepby" placeholder="1" value="1" type="number" style="width: 100%;" />
-          </div>
-          <div style="display: flex; flex-flow: column; gap: 5px; width: 25%;">
-            <p class="text-small">Digits</p>
-            <input class="text-input multi-rename-ndigits" placeholder="1" value="1" type="number" style="width: 100%;" />
-          </div>
-          <div style="display: flex; flex-flow: column; gap: 5px; width: 25%;">
-            <p class="text-small">Ext</p>
-            <input class="text-input multi-rename-ext" placeholder=".txt" type="text" style="width: 100%;" />
-          </div>
-        </div>
-      </div>
-    </div>
-    <h4 class="text" style="padding: 10px; background-color: var(--secondaryColor); border-radius: 8px 8px 0 0; margin-bottom: 0;">Selected items to rename</h4>
-    <div class="list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--tertiaryColor); border-top: none; border-radius: 0 0 8px 8px;">
-      ${listHtml}
-    </div>
-  `;
-
-  const popupEl = PopupManager.open({
-    title: "Multi-Rename",
-    icon: "fa-solid fa-pen-to-square",
-    className: "cd-popup--multi-rename",
-    content: content,
-    buttons: [
-      {
-        label: "Cancel",
-        icon: "fa-solid fa-xmark",
-        action: () => closeMultiRenamePopup()
-      },
-      {
-        label: "Rename",
-        icon: "fa-solid fa-pencil",
-        primary: true,
-        action: async () => {
-          await renameItemsWithFormat(
-            arrItemsToRename.map((item) => item.getAttribute("itempath")),
-            $(".multi-rename-newname").val(),
-            $(".multi-rename-startat").val(),
-            $(".multi-rename-stepby").val(),
-            $(".multi-rename-ndigits").val(),
-            $(".multi-rename-ext").val(),
-          );
-        }
-      }
-    ],
-    onClose: () => {
-      IsPopUpOpen = false;
-    }
-  });
-
+  popup.append(list);
+  let popupControls = document.createElement("div");
+  popupControls.className = "popup-controls";
+  popupControls.innerHTML = `
+    <button class="icon-button" onclick="closeMultiRenamePopup()">
+  		<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+  		Cancel
+    </button>
+    <button class="icon-button multi-rename-button-run">
+  		<div class="button-icon"><i class="fa-solid fa-pencil"></i></div>
+  		Rename
+    </button>
+    `;
+  popup.append(popupControls);
+  document.querySelector("body").append(popup);
   $(".multi-rename-newname").focus();
-  
-  popupEl.querySelectorAll("input").forEach((input) =>
+  document.querySelectorAll(".multi-rename-input").forEach((input) =>
     input.addEventListener("keyup", async (e) => {
-      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
-        const renameBtn = popupEl.querySelector(".btn-primary");
-        if (renameBtn) renameBtn.click();
+      if (
+        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
+        e.key === "Enter"
+      ) {
+        await renameItemsWithFormat(
+          arrItemsToRename.map((item) => item.getAttribute("itempath")),
+          $(".multi-rename-newname").val(),
+          $(".multi-rename-startat").val(),
+          $(".multi-rename-stepby").val(),
+          $(".multi-rename-ndigits").val(),
+          $(".multi-rename-ext").val(),
+        );
       }
     }),
   );
+  document
+    .querySelector(".multi-rename-button-run")
+    .addEventListener("click", async () => {
+      await renameItemsWithFormat(
+        arrItemsToRename.map((item) => item.getAttribute("itempath")),
+        $(".multi-rename-newname").val(),
+        $(".multi-rename-startat").val(),
+        $(".multi-rename-stepby").val(),
+        $(".multi-rename-ndigits").val(),
+        $(".multi-rename-ext").val(),
+      );
+    });
 }
 
 async function renameItemsWithFormat(
@@ -4188,13 +4116,8 @@ async function renameItemsWithFormat(
 }
 
 function closeMultiRenamePopup() {
-  const popup = document.querySelector(".cd-popup--multi-rename");
-  if (popup) {
-    PopupManager.close(popup);
-  } else {
-    $(".multi-rename-popup").remove();
-  }
   IsPopUpOpen = false;
+  $(".multi-rename-popup").remove();
 }
 
 async function closeItemPreview() {
@@ -4403,65 +4326,69 @@ async function getSetInstalledApplications(ext = "") {
 
 function showFindDuplicates(item) {
   cdCtMenu.hide();
-
-  const content = `
-    <div class="setting-card" style="margin-bottom: 20px;">
-      <div style="flex: 1; min-width: 0;">
-        <p class="setting-name">Selected folder</p>
-        <p class="setting-desc" style="word-break: break-all;">${item.getAttribute("itempath")}</p>
-      </div>
-      <div style="width: 100px; flex-shrink: 0; margin-left: 15px;">
-        <p class="setting-name">Depth</p>
-        <input type="number" class="text-input duplicates-search-depth-input" value="1" style="width: 100%;">
-      </div>
+  let popup = document.createElement("div");
+  popup.className = "uni-popup find-duplicates-popup";
+  popup.innerHTML = `
+    <div class="popup-header">
+    <h3>Duplicates</h3>
     </div>
-    
-    <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-      <i class="fa-solid fa-list-ul" style="color: var(--selectColor); font-size: 0.9rem;"></i>
-      <h4 style="margin: 0; font-size: 1rem; font-weight: 600;">Found duplicates</h4>
+    <div class="popup-body" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+    <p>Selected folder:</p>
+    <p class="text-2">${item.getAttribute("itempath")}</p>
     </div>
-    
-    <div class="list duplicates-list" style="height: 50vh; overflow-y: auto; background: var(--secondaryColor); border-radius: var(--popup-radius-lg); padding: 12px; border: 1px solid color-mix(in srgb, var(--textColor) 5%, transparent);">
+    <div>
+    <p class="text-2" style="margin-bottom: 5px;">Search depth</p>
+    <input style="width: 100px;" type="number" class="text-input duplicates-search-depth-input" value="1">
     </div>
-  `;
+    </div>
+    <div class="popup-header">
+    <h4>Found duplicates</h4>
+    </div>
+    `;
+  let list = document.createElement("div");
+  list.className = "list duplicates-list";
+  popup.append(list);
+  let popupControls = document.createElement("div");
+  popupControls.className = "popup-controls";
+  popupControls.innerHTML = `
+    <button class="icon-button" onclick="closeFindDuplicatesPopup()">
+    <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+    Cancel
+    </button>
+    <button class="icon-button duplicate-button-run">
+    <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+    Search
+    </button>
+    `;
+  popup.append(popupControls);
+  document.querySelector("body").append(popup);
+  document
+    .querySelector(".duplicates-search-depth-input")
+    .addEventListener("focus", () => (IsInputFocused = true));
+  document
+    .querySelector(".duplicates-search-depth-input")
+    .addEventListener("blur", () => (IsInputFocused = false));
+  document
+    .querySelector(".duplicate-button-run")
+    .addEventListener("click", async () => {
+      await findDuplicates(
+        item,
+        document.querySelector(".duplicates-search-depth-input").value,
+      );
+    });
+  IsPopUpOpen = true;
+}
 
-  const popup = PopupManager.open({
-    title: "Find Duplicates",
-    icon: "fa-solid fa-clone",
-    className: "soft-popup--large",
-    content: content,
-    buttons: [
-      {
-        label: "Cancel",
-        icon: "fa-solid fa-xmark",
-        className: "btn-cancel",
-        action: () => {
-          cancelOperation();
-          return true;
-        },
-      },
-      {
-        label: "Search",
-        icon: "fa-solid fa-magnifying-glass",
-        primary: true,
-        action: async () => {
-          const depthInput = popup.querySelector(".duplicates-search-depth-input");
-          await findDuplicates(item, depthInput.value);
-          return false; // Keep open to show results
-        },
-      },
-    ],
-  });
-
-  const depthInput = popup.querySelector(".duplicates-search-depth-input");
-  depthInput.addEventListener("focus", () => (IsInputFocused = true));
-  depthInput.addEventListener("blur", () => (IsInputFocused = false));
+function closeFindDuplicatesPopup() {
+  IsPopUpOpen = false;
+  cancelOperation();
+  document.querySelector(".find-duplicates-popup")?.remove();
 }
 
 async function findDuplicates(item, depth) {
   showLoadingPopup("Searching for duplicates ...");
-  const listEl = document.querySelector(".duplicates-list");
-  if (listEl) listEl.innerHTML = "";
+  document.querySelector(".list").innerHTML = "";
   IsPopUpOpen = true;
   await invoke("find_duplicates", {
     appWindow: appWindow,
@@ -4471,71 +4398,75 @@ async function findDuplicates(item, depth) {
   closeLoadingPopup();
 }
 
-async function showYtDownload(
-  url = "https://youtube.com/watch?v=dQw4w9WgXcQ",
-) {
-  cdCtMenu.hide();
-
-  const content = `
-    <div class="setting-card" style="margin-bottom: 12px; flex-direction: column; align-items: flex-start; gap: 8px;">
-      <div style="width: 100%;">
-        <p class="setting-name">YouTube URL</p>
-        <p class="setting-desc">Paste the link to the video or playlist</p>
-      </div>
-      <input type="text" class="text-input yt-url-input" style='width: 100%;' placeholder="https://youtube.com/watch?v=..." value="${url}" />
+async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
+  IsPopUpOpen = true;
+  let popup = document.createElement("div");
+  popup.className = "uni-popup yt-download-popup";
+  popup.innerHTML = `
+    <div class="popup-header">
+    <h3>Download</h3>
     </div>
-    
-    <div class="setting-card" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-      <div style="width: 100%;">
-        <p class="setting-name">Quality / Type</p>
-        <p class="setting-desc">Select preferred download format</p>
-      </div>
-      <select class="text-input select yt-quality-input" style="width: 100%;">
-        <option value="highestvideo">Highest video</option>
-        <option value="highestaudio">Highest audio</option>
-        <option value="lowestvideo">Lowest video</option>
-        <option value="lowestaudio">Lowest audio</option>
-      </select>
+    <div class="popup-body">
+    <div class="popup-body-row-section">
+    <div class="popup-body-col-section" style="width: 100%;">
+    <p>URL</p>
+    <input type="text" class="text-input yt-url-input" style='width: 100%;' placeholder="https://youtube.com/watch?v=dQw4w9WgXcQ" value="${url}" />
     </div>
-  `;
-
-  const popup = PopupManager.open({
-    title: "YouTube Download",
-    icon: "fa-brands fa-youtube",
-    content: content,
-    buttons: [
-      {
-        label: "Cancel",
-        icon: "fa-solid fa-xmark",
-        className: "btn-cancel",
-        action: () => true,
-      },
-      {
-        label: "Download",
-        icon: "fa-solid fa-download",
-        primary: true,
-        action: async () => {
-          const urlVal = popup.querySelector(".yt-url-input").value;
-          const qualityVal = popup.querySelector(".yt-quality-input").value;
-          await startYtDownload(urlVal, qualityVal);
-          return true;
-        },
-      },
-    ],
-  });
-
-  const urlInput = popup.querySelector(".yt-url-input");
-  urlInput.addEventListener("focus", () => (IsInputFocused = true));
-  urlInput.addEventListener("blur", () => (IsInputFocused = false));
+    </div>
+    <div class="popup-body-row-section">
+    <div class="popup-body-col-section">
+    <p>Type</p>
+    <select class="text-input select yt-quality-input" style="width: 100%;">
+    <option value="highestvideo">Highest video</option>
+    <option value="highestaudio">Highest audio</option>
+    <option value="lowestvideo">Lowest video</option>
+    <option value="lowestaudio">Lowest audio</option>
+    </select>
+    </div>
+    </div>
+    </div>
+    <div class="popup-controls">
+    <button class="icon-button" onclick="closeYtDownloadPopup()">
+    <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+    Cancel
+    </button>
+    <button class="icon-button yt-download-button-run">
+    <div class="button-icon"><i class="fa-solid fa-download"></i></div>
+    Download
+    </button>
+    </div>
+    `;
+  document.querySelector("body").append(popup);
+  document
+    .querySelector(".yt-url-input")
+    .addEventListener("focus", () => (IsInputFocused = true));
+  document
+    .querySelector(".yt-url-input")
+    .addEventListener("blur", () => (IsInputFocused = false));
+  document
+    .querySelector(".yt-download-button-run")
+    .addEventListener("click", async () => {
+      await startYtDownload(
+        document.querySelector(".yt-url-input").value,
+        document.querySelector(".yt-quality-input").value,
+      );
+    });
 }
 
 async function startYtDownload(
   url = "https://youtube.com/watch?v=dQw4w9WgXcQ",
   quality = "highvideo",
 ) {
+  closeYtDownloadPopup();
   await invoke("download_yt_video", { appWindow, url, quality });
   finishProgressBar();
   await listDirectories();
+}
+
+async function closeYtDownloadPopup() {
+  IsPopUpOpen = false;
+  cancelOperation();
+  document.querySelector(".yt-download-popup")?.remove();
 }
 
 async function cancelOperation() {
@@ -4545,15 +4476,12 @@ async function cancelOperation() {
 async function showExtraContextMenu(e, item) {
   $(".extra-c-menu")?.remove();
   let contextMenu = document.createElement("div");
-  contextMenu.className = "extra-c-menu custom-context-menu";
-  contextMenu.style.minWidth = "120px";
+  contextMenu.className = "extra-c-menu context-menu";
 
   for (let i = 1; i <= item.children.length; i++) {
     let cButton = document.createElement("button");
-    cButton.className = "c-item-custom";
-    cButton.style.width = "100%";
-    cButton.style.textAlign = "left";
-    cButton.innerHTML = `<i class="fa-solid fa-check-to-slot" style="margin-right: 8px; color: var(--selectColor);"></i> Keep ${i}.`;
+    cButton.className = "context-item";
+    cButton.innerHTML = `Keep ${i}.`;
     cButton.onclick = async () => {
       let excessItems = [];
       for (let j = 0; j < item.children.length; j++) {
@@ -4568,20 +4496,9 @@ async function showExtraContextMenu(e, item) {
     contextMenu.append(cButton);
   }
 
-  contextMenu.style.position = "fixed";
   contextMenu.style.left = e.clientX + "px";
   contextMenu.style.top = e.clientY + "px";
-  contextMenu.style.zIndex = "1001";
   document.querySelector("body").append(contextMenu);
-
-  // Close when clicking elsewhere
-  setTimeout(() => {
-    const closeHandler = () => {
-      contextMenu.remove();
-      document.removeEventListener("click", closeHandler);
-    };
-    document.addEventListener("click", closeHandler, { once: true });
-  }, 10);
 }
 
 async function addMillerCol(millerCol) {
@@ -4893,40 +4810,36 @@ async function insertSiteNavButtons() {
 /* File operation context menu */
 async function fileOperationContextMenu() {
   let contextMenu = document.createElement("div");
-  contextMenu.className = "custom-context-menu";
-  contextMenu.style.width = "160px";
+  contextMenu.className = "uni-popup context-menu";
   contextMenu.innerHTML = `
-    <button class="c-item-custom" style="width: 100%; text-align: left; display: flex; align-items: center; gap: 8px;">
-      <i class="fa-solid fa-copy" style="width: 16px;"></i> Copy here
-    </button>
-    <button class="c-item-custom" style="width: 100%; text-align: left; display: flex; align-items: center; gap: 8px;">
-      <i class="fa-solid fa-arrow-right-to-bracket" style="width: 16px;"></i> Move here
-    </button>
+    <button class="context-item">Copy</button>
+    <button class="context-item">Move</button>
     `;
   contextMenu.children[0].onclick = () => (FileOperation = "copy");
   contextMenu.children[1].onclick = () => (FileOperation = "move");
-  contextMenu.style.position = "fixed";
   contextMenu.style.left = MousePos[0] + "px";
   contextMenu.style.top = MousePos[1] + "px";
-  contextMenu.style.zIndex = "1001";
+  contextMenu.style.right = "unset";
+  contextMenu.style.bottom = "unset";
   document.body.appendChild(contextMenu);
-
   await new Promise((resolve) => {
-    const handler = (e) => {
-      resolve(e);
-      document.body.removeEventListener("click", handler);
-    };
-    document.body.addEventListener("click", handler, { capture: true, once: true });
-    
-    const keyHandler = (e) => {
-      if (e.key === "Escape") {
+    document.body.addEventListener(
+      "click",
+      (e) => {
         resolve(e);
-        document.body.removeEventListener("keyup", keyHandler);
-      }
-    };
-    document.body.addEventListener("keyup", keyHandler, { once: true });
+      },
+      { once: true },
+    );
+    document.body.addEventListener(
+      "keyup",
+      (e) => {
+        if (e.key === "Escape") {
+          resolve(e);
+        }
+      },
+      { once: true },
+    );
   });
-
   contextMenu.remove();
   resetBackButton();
   return FileOperation;
@@ -4946,79 +4859,117 @@ async function openConfigLocation() {
   resetEverything();
 }
 
-let currentConfirmPopup = null;
 async function showPopup(
   message = "Nothing to see here!",
   type = PopupType.CONTINUE,
   subtitle = "",
 ) {
-  closeConfirmPopup();
-
-  let primaryLabel = "Confirm";
-  let isDanger = false;
-  if (type === PopupType.DELETE) {
-    primaryLabel = "Delete";
-    isDanger = true;
+  let confirmationButton = "";
+  switch (type) {
+    case PopupType.CONTINUE:
+      confirmationButton = `
+      <button class="icon-button">
+      <div class="button-icon"><i class="fa-solid fa-check"></i></div>
+      Confirm
+      </button>
+      `;
+      break;
+    case PopupType.EXTRACT:
+      confirmationButton = `
+      <button class="icon-button">
+      <div class="button-icon"><i class="fa-solid fa-maximize"></i></div>
+      Extract
+      </button>
+      `;
+      break;
+    case PopupType.DELETE:
+      confirmationButton = `
+      <button class="icon-button delete-button">
+      <div class="button-icon"><i class="fa-solid fa-trash"></i></div>
+      Delete
+      </button>
+      `;
+      break;
+    case PopupType.PROMPT:
+      confirmationButton = `
+      <button class="icon-button">
+      <div class="button-icon"><i class="fa-solid fa-check"></i></div>
+      Confirm
+      </button>
+      `;
+      break;
   }
-  if (type === PopupType.EXTRACT) {
-    primaryLabel = "Extract";
+  let popup = document.createElement("div");
+  popup.className = "uni-popup confirm-popup";
+  popup.innerHTML = `
+    <div class="popup-header">
+    <div style="display: flex; gap: 10px; align-items: center;">
+    <i class="fa-solid fa-check"></i>
+    <h3>Confirm</h3>
+    </div>
+    </div>
+    <div class="popup-body">
+    <p class="popup-body-content">${message}</p>
+    ${subtitle ? `<p class="popup-body-content popup-body-subtitle">${subtitle}</p>` : ""}
+    <br/>
+    ${type === PopupType.PROMPT ? `<input type="password" class="text-input popup-prompt-input" placeholder="Password">` : ""}
+    </div>
+    <div class="popup-controls">
+    <button class="icon-button">
+    <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
+    Cancel
+    </button>
+    ${confirmationButton}
+    </div>
+    `;
+  document.querySelector(".main-container").appendChild(popup);
+  if (type === PopupType.PROMPT) {
+    document.querySelector(".confirm-popup input").focus();
+  } else {
+    document.querySelector(".confirm-popup button:last-child").focus();
   }
-
+  IsPopUpOpen = true;
+  $(".popup-background").css("display", "block");
+  setTimeout(() => $(".popup-background").css("opacity", "1")); // Workaround to trigger opacity transition
   return new Promise((resolve) => {
-    let contentHtml = `<p>${message}</p>`;
-    if (subtitle)
-      contentHtml += `<p class="setting-desc" style="margin-top:8px;">${subtitle}</p>`;
-    if (type === PopupType.PROMPT) {
-      contentHtml += `<input type="password" id="popup-prompt-input" class="text-input" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--tertiaryColor); background:var(--bg-base); color:var(--textColor); margin-top:16px;" placeholder="Password">`;
-    }
-
-    currentConfirmPopup = PopupManager.open({
-      title: "Confirmation",
-      content: contentHtml,
-      allowBackdropClose: false,
-      buttons: [
-        {
-          label: "Cancel",
-          action: () => {
-            resolve(type === PopupType.PROMPT ? null : false);
-          },
-        },
-        {
-          label: primaryLabel,
-          primary: !isDanger,
-          danger: isDanger,
-          action: () => {
-            if (type === PopupType.PROMPT)
-              resolve(document.getElementById("popup-prompt-input").value);
-            else resolve(true);
-          },
-        },
-      ],
-      onClose: () => resolve(type === PopupType.PROMPT ? null : false),
-    });
-
-    if (type === PopupType.PROMPT) {
-      setTimeout(() => {
-        const inp = document.getElementById("popup-prompt-input");
-        if (inp) {
-          inp.focus();
-          inp.onkeyup = (e) => {
-            if (e.key === "Enter") {
-              resolve(inp.value);
-              PopupManager.close(currentConfirmPopup);
-            }
-          };
+    let input = document.querySelector(".popup-prompt-input");
+    if (input) {
+      input.onkeyup = (event) => {
+        if (event.key === "Enter") {
+          if (type === PopupType.PROMPT) {
+            resolve($(".popup-prompt-input").val());
+          } else {
+            resolve(true);
+          }
+          closeConfirmPopup();
         }
-      }, 100);
+      };
     }
+    document.querySelector(".confirm-popup button:first-child").onclick =
+      () => {
+        if (type === PopupType.PROMPT) {
+          resolve("");
+        } else {
+          resolve(false);
+        }
+        closeConfirmPopup();
+      };
+    document.querySelector(".confirm-popup button:last-child").onclick = () => {
+      if (type === PopupType.PROMPT) {
+        resolve($(".popup-prompt-input").val());
+      } else {
+        resolve(true);
+      }
+      closeConfirmPopup();
+    };
   });
 }
 
 function closeConfirmPopup() {
-  if (currentConfirmPopup) {
-    PopupManager.close(currentConfirmPopup);
-    currentConfirmPopup = null;
-  }
+  document.querySelector(".confirm-popup")?.remove();
+  $(".popup-background").css("display", "none");
+  $(".popup-background").css("opacity", "0");
+  IsPopUpOpen = false;
 }
 
 function resetContextMenu() {

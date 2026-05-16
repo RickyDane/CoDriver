@@ -49,11 +49,6 @@
     --selectColor3: rgba(11, 100, 253, 0.25);
     --sidebarHover: rgba(255, 255, 255, 0.08);
     --sidebarFocus: rgba(255, 255, 255, 0.12);
-
-    --popup-radius-xl: 24px;
-    --popup-radius-lg: 16px;
-    --popup-radius-full: 9999px;
-    --popup-shadow-soft: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
 }
 
 html {
@@ -689,28 +684,26 @@ body {
 .settings-ui {
     display: none;
     flex-flow: column;
-    width: 80vw;
-    max-width: 900px;
+    position: fixed;
+    width: 80%;
+    max-width: 800px;
     height: 80vh;
-    max-height: 700px;
+    max-height: 600px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background-color: var(--secondaryColor);
+    z-index: 100;
+    margin: auto;
+    border-radius: 15px;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--tertiaryColor);
     overflow: hidden;
-    border-radius: var(--popup-radius-lg);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: scale(0.95) translateY(20px);
 }
-
-.soft-popup--auto {
-    width: auto;
-    max-width: min(1000px, 98vw);
-}
-
-.settings-control-group {
-    background: color-mix(in srgb, var(--secondaryColor) 40%, transparent);
-    border-radius: var(--popup-radius-lg);
-    padding: 20px;
-    margin-bottom: 16px;
-    border: 1px solid color-mix(in srgb, var(--textColor) 5%, transparent);
-}
-
 
 .settings-ui-main {
     display: flex;
@@ -960,8 +953,12 @@ input:checked + .slider:before {
     background-color: var(--sidebarHover) !important;
 }
 
-/* Settings UI Transition removed - handled by PopupManager */
-
+/* Settings UI Transition */
+.settings-ui.active {
+    display: flex;
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
 
 /* Delay for cascade effect */
 .directory-list > button:nth-child(1) { animation-delay: 0.01s; }
@@ -3096,135 +3093,3 @@ button > svg {
 .reverse-bounce {
     transition: 0.3s cubic-bezier(1.275, 0.32, 1, 0.175);
 }
-
-.soft-popup {
-    background: var(--primaryColor);
-    border-radius: var(--popup-radius-xl);
-    box-shadow: var(--popup-shadow-soft);
-    width: min(440px, 90vw);
-    overflow: hidden;
-    animation: scaleUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-    border: 1px solid color-mix(in srgb, var(--textColor) 10%, transparent);
-    color: var(--textColor);
-    z-index: 1000;
-}
-
-.soft-popup--auto {
-    width: fit-content;
-    min-width: min(400px, 90vw);
-}
-
-.soft-popup--large {
-    width: min(800px, 95vw);
-}
-
-.soft-header {
-    padding: 32px 32px 16px;
-    text-align: center;
-    position: relative;
-}
-
-.icon-wrapper {
-    width: 48px;
-    height: 48px;
-    background: color-mix(in srgb, var(--selectColor) 15%, transparent);
-    color: var(--selectColor);
-    border-radius: var(--popup-radius-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 16px;
-    font-size: 1.25rem;
-}
-
-.soft-header h3 {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-}
-
-.soft-body {
-    padding: 0 32px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.soft-footer {
-    padding: 24px 32px;
-    background: var(--secondaryColor);
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-}
-
-.btn-soft {
-    padding: 12px 24px;
-    border-radius: var(--popup-radius-full);
-    font-weight: 600;
-    font-size: 0.95rem;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s ease;
-    text-align: center;
-}
-
-.btn-primary {
-    background: var(--selectColor);
-    color: white;
-}
-
-.btn-danger {
-    background: var(--errorColor);
-    color: white;
-}
-
-.btn-cancel {
-    background: var(--tertiaryColor);
-    color: var(--textColor);
-}
-
-.soft-popup .popup-close-button {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    margin: 0;
-}
-
-@keyframes scaleUp {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes scaleDown {
-    from { opacity: 1; transform: scale(1); }
-    to { opacity: 0; transform: scale(0.95); }
-}
-
-.soft-popup.is-closing {
-    animation: scaleDown 0.2s ease forwards;
-    pointer-events: none;
-}
-
-/* Settings Cards */
-.setting-card {
-    background: var(--secondaryColor);
-    border-radius: var(--popup-radius-lg);
-    padding: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-}
-
-.setting-card:hover {
-    border-color: var(--tertiaryColor);
-    background: var(--primaryColor);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-.setting-name { font-weight: 600; }
-.setting-desc { font-size: 0.85rem; color: var(--textColor2); }
-
