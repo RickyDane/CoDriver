@@ -237,6 +237,7 @@ struct Theme {
     transparent_color_active: String,
     site_bar_color: String,
     nav_bar_color: String,
+    sidebar_top_blur_overlay_color: String,
 }
 
 #[derive(serde::Serialize)]
@@ -410,6 +411,11 @@ async fn get_themes() -> Vec<Theme> {
         let app_config_file = File::open(theme_entry.unwrap().path()).unwrap();
         let app_config_reader = BufReader::new(app_config_file);
         let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+        let site_bar_color = app_config["site_bar_color"].to_string().replace('"', "");
+        let sidebar_top_blur_overlay_color = app_config["sidebar_top_blur_overlay_color"]
+            .as_str()
+            .map(String::from)
+            .unwrap_or_else(|| site_bar_color.clone());
         vec_themes.push(Theme {
             name: app_config["name"].to_string().replace('"', ""),
             primary_color: app_config["primary_color"].to_string().replace('"', ""),
@@ -422,8 +428,9 @@ async fn get_themes() -> Vec<Theme> {
             transparent_color_active: app_config["transparent_color_active"]
                 .to_string()
                 .replace('"', ""),
-            site_bar_color: app_config["site_bar_color"].to_string().replace('"', ""),
+            site_bar_color,
             nav_bar_color: app_config["nav_bar_color"].to_string().replace('"', ""),
+            sidebar_top_blur_overlay_color,
         })
     }
     vec_themes

@@ -185,9 +185,6 @@
                         <i class="fa-solid fa-sliders"></i>
                         <p>Settings</p>
                     </span>
-                    <button class="settings-close-btn" onclick="closeSettings()">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
                 </div>
 
                 <div class="settings-ui-body">
@@ -357,10 +354,16 @@
                         <i class="fa-solid fa-rotate-left"></i>
                         Reset to Defaults
                     </button>
-                    <button class="settings-save-btn" onclick="saveConfig(); closeSettings()">
-                        <i class="fa-solid fa-check"></i>
-                        Save Changes
-                    </button>
+                    <div class="settings-footer-actions">
+                        <button class="settings-cancel-btn" onclick="closeSettings()">
+                            <i class="fa-solid fa-xmark"></i>
+                            Cancel
+                        </button>
+                        <button class="settings-save-btn" onclick="saveConfig(); closeSettings()">
+                            <i class="fa-solid fa-check"></i>
+                            Save Changes
+                        </button>
+                    </div>
                 </div>
             </div>
 
