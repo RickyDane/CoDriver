@@ -114,26 +114,68 @@ async function getThumbnail(imagePath) {
 }
 
 async function getSimpleDirInfo(path = "", classToFill = "", isDir = false, updateId = null) {
-  $(classToFill).html(
-    `<div style="display: flex; gap: 10px;">
-      <div class="preloader-small-invert"></div>
-      Loading ...
-    </div>`,
-  );
-  await invoke("get_simple_dir_info", { path, appWindow, classToFill, updateId }).then(
-    (simpleDirInfo) => {
-      $(classToFill).html(
-        formatBytes(simpleDirInfo.size) +
-          " - " +
-          simpleDirInfo.count_elements +
-          (isDir == true && simpleDirInfo.count_elements > 1
-            ? " items"
-            : " item"),
-      );
-      return simpleDirInfo;
-    },
-  );
-  return null;
+  setSizeCalculationLoading(classToFill);
+  try {
+    const simpleDirInfo = await invoke("get_simple_dir_info", { path, appWindow, classToFill, updateId });
+    if (!shouldApplySizeCalculationUpdate(updateId)) return simpleDirInfo;
+    $(classToFill).html(
+      formatBytes(simpleDirInfo.size) +
+        " - " +
+        simpleDirInfo.count_elements +
+        (isDir == true && simpleDirInfo.count_elements > 1
+          ? " items"
+          : " item"),
+    );
+    return simpleDirInfo;
+  } catch (error) {
+    if (!shouldApplySizeCalculationUpdate(updateId)) throw error;
+    $(classToFill).html("Unable to calculate size");
+    throw error;
+  }
+}
+
+function shouldApplySizeCalculationUpdate(updateId) {
+  if (
+    typeof updateId === "string" &&
+    updateId.startsWith("properties-") &&
+    typeof isPropertiesSizeUpdateCurrent === "function"
+  ) {
+    return isPropertiesSizeUpdateCurrent(updateId);
+  }
+
+  return true;
+}
+
+function setSizeCalculationLoading(target, progressText = "") {
+  const container = typeof target === "string" ? document.querySelector(target) : target;
+  if (!container) return;
+
+  let loading = container.querySelector(".size-calc-loading");
+  if (!loading) {
+    loading = document.createElement("div");
+    loading.className = "size-calc-loading";
+    loading.style.display = "flex";
+    loading.style.gap = "10px";
+    loading.style.alignItems = "center";
+
+    const spinner = document.createElement("div");
+    spinner.className = "preloader-small-invert";
+
+    const label = document.createElement("span");
+    label.append("Calculating ...");
+
+    const progress = document.createElement("span");
+    progress.className = "size-calc-progress";
+    label.append(progress);
+
+    loading.append(spinner, label);
+    container.replaceChildren(loading);
+  }
+
+  const progress = loading.querySelector(".size-calc-progress");
+  if (progress) {
+    progress.textContent = progressText ? ` ${progressText}` : "";
+  }
 }
 
 function formatBytes(bytes, decimals = 2) {
@@ -143,6 +185,12 @@ function formatBytes(bytes, decimals = 2) {
   const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
+const SIZE_CALC_LIMIT_BYTES = 10_000_000_000;
+
+function formatSizeWithLimit(bytes, decimals = 2) {
+  return Number(bytes) > SIZE_CALC_LIMIT_BYTES ? "10GB+" : formatBytes(bytes, decimals);
 }
 
 async function writeLog(log) {

@@ -76,6 +76,8 @@ lazy_static! {
     static ref IS_SEARCHING: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     pub static ref IS_SIZE_CALC_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
         Arc::new(std::sync::atomic::AtomicBool::new(false));
+    pub static ref IS_SELECTION_SIZE_CALC_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
+        Arc::new(std::sync::atomic::AtomicBool::new(false));
 }
 
 // static mut IS_SEARCHING: bool = false;
@@ -175,12 +177,14 @@ fn main() {
             find_duplicates,
             cancel_operation,
             cancel_size_calculation,
+            cancel_selection_size_calculation,
             get_df_dir,
             // download_yt_video,
             get_app_icns,
             get_thumbnail,
             get_simple_dir_info,
             get_selection_size,
+            get_capped_selection_size,
             get_themes,
             stop_searching,
             get_file_content,
@@ -1896,6 +1900,11 @@ async fn cancel_size_calculation() {
 }
 
 #[tauri::command]
+async fn cancel_selection_size_calculation() {
+    IS_SELECTION_SIZE_CALC_CANCELLED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[tauri::command]
 async fn get_df_dir(number: u8) -> String {
     match number {
         0 => desktop_dir()
@@ -2160,13 +2169,27 @@ async fn get_thumbnail(image_path: String) -> String {
 #[tauri::command]
 async fn get_selection_size(paths: Vec<String>, update_id: String) -> u64 {
     IS_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
-    crate::utils::ACCUMULATED_SIZE.store(0, std::sync::atomic::Ordering::Relaxed);
-    crate::utils::ACCUMULATED_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
 
     let mut total_size = 0;
     for path in paths {
         total_size += crate::utils::dir_info_incremental(path, Some(&update_id)).size;
         if IS_SIZE_CALC_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
+    }
+    total_size
+}
+
+#[tauri::command]
+async fn get_capped_selection_size(paths: Vec<String>, update_id: String) -> u64 {
+    IS_SELECTION_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
+
+    let mut total_size = 0;
+    let mut state = crate::utils::SizeCalcState::new_selection_capped();
+    for path in paths {
+        total_size +=
+            crate::utils::dir_info_incremental_capped(path, Some(&update_id), &mut state).size;
+        if state.should_stop() {
             break;
         }
     }
@@ -2181,8 +2204,6 @@ async fn get_simple_dir_info(
     update_id: Option<String>,
 ) -> crate::utils::SimpleDirInfo {
     IS_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
-    crate::utils::ACCUMULATED_SIZE.store(0, std::sync::atomic::Ordering::Relaxed);
-    crate::utils::ACCUMULATED_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
 
     crate::utils::dir_info_incremental(path, update_id.as_deref())
 }

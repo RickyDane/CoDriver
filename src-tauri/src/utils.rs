@@ -32,15 +32,16 @@ use tokio::task;
 use zip::write::FileOptions;
 use zip::ZipWriter;
 
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[allow(unused_imports)]
 use crate::ISCANCELED;
-use crate::{COPY_COUNTER, IS_SEARCHING, IS_SIZE_CALC_CANCELLED, TOTAL_BYTES_COPIED, WINDOW};
+use crate::{
+    COPY_COUNTER, IS_SEARCHING, IS_SELECTION_SIZE_CALC_CANCELLED, IS_SIZE_CALC_CANCELLED,
+    TOTAL_BYTES_COPIED, WINDOW,
+};
 
-pub static ACCUMULATED_SIZE: AtomicU64 = AtomicU64::new(0);
-pub static ACCUMULATED_COUNT: AtomicU64 = AtomicU64::new(0);
-pub static LAST_EMIT: AtomicU64 = AtomicU64::new(0);
+pub const SIZE_CALC_LIMIT_BYTES: u64 = 10_000_000_000;
 
 const CHUNK_SIZE: usize = 64 * 1024;
 const MAGIC: u32 = 0xDE_AD;
@@ -657,10 +658,72 @@ pub fn dir_info(path: String) -> SimpleDirInfo {
 }
 
 pub fn dir_info_incremental(path: String, update_id: Option<&str>) -> SimpleDirInfo {
+    let mut state = SizeCalcState::new(None);
+    dir_info_with_state(path, update_id, &mut state)
+}
+
+pub fn dir_info_incremental_capped(
+    path: String,
+    update_id: Option<&str>,
+    state: &mut SizeCalcState,
+) -> SimpleDirInfo {
+    dir_info_with_state(path, update_id, state)
+}
+
+pub struct SizeCalcState {
+    total_size: u64,
+    total_count: u64,
+    last_emit: u64,
+    limit_bytes: Option<u64>,
+    limit_reached: bool,
+    use_selection_cancel: bool,
+}
+
+impl SizeCalcState {
+    pub fn new(limit_bytes: Option<u64>) -> Self {
+        Self {
+            total_size: 0,
+            total_count: 0,
+            last_emit: 0,
+            limit_bytes,
+            limit_reached: false,
+            use_selection_cancel: false,
+        }
+    }
+
+    pub fn new_selection_capped() -> Self {
+        Self {
+            use_selection_cancel: true,
+            ..Self::new(Some(SIZE_CALC_LIMIT_BYTES))
+        }
+    }
+
+    pub fn is_limit_reached(&self) -> bool {
+        self.limit_reached
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        if self.use_selection_cancel {
+            IS_SELECTION_SIZE_CALC_CANCELLED.load(Ordering::Relaxed)
+        } else {
+            IS_SIZE_CALC_CANCELLED.load(Ordering::Relaxed)
+        }
+    }
+
+    pub fn should_stop(&self) -> bool {
+        self.is_cancelled() || self.is_limit_reached()
+    }
+}
+
+fn dir_info_with_state(
+    path: String,
+    update_id: Option<&str>,
+    state: &mut SizeCalcState,
+) -> SimpleDirInfo {
     if Path::new(&path).is_file() {
         let size = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
         if let Some(id) = update_id {
-            accumulate_and_emit(size, 1, id);
+            accumulate_and_emit(size, 1, id, state);
         }
         return SimpleDirInfo {
             size,
@@ -681,10 +744,10 @@ pub fn dir_info_incremental(path: String, update_id: Option<&str>) -> SimpleDirI
     let mut count_elements = 0;
 
     for entry in entries {
-        if IS_SIZE_CALC_CANCELLED.load(Ordering::Relaxed) {
+        if state.should_stop() {
             return SimpleDirInfo {
-                size: 0,
-                count_elements: 0,
+                size,
+                count_elements,
             };
         }
         if let Ok(entry) = entry {
@@ -694,11 +757,14 @@ pub fn dir_info_incremental(path: String, update_id: Option<&str>) -> SimpleDirI
                 size += file_size;
                 count_elements += 1;
                 if let Some(id) = update_id {
-                    accumulate_and_emit(file_size, 1, id);
+                    accumulate_and_emit(file_size, 1, id, state);
                 }
             } else if file_type.is_dir() {
-                let d_info =
-                    dir_info_incremental(entry.path().to_string_lossy().to_string(), update_id);
+                let d_info = dir_info_with_state(
+                    entry.path().to_string_lossy().to_string(),
+                    update_id,
+                    state,
+                );
                 size += d_info.size;
                 count_elements += d_info.count_elements;
             }
@@ -718,21 +784,26 @@ pub fn dir_info_incremental(path: String, update_id: Option<&str>) -> SimpleDirI
     }
 }
 
-fn accumulate_and_emit(size: u64, count: u64, id: &str) {
-    let new_total_size = ACCUMULATED_SIZE.fetch_add(size, Ordering::Relaxed) + size;
-    let new_total_count = ACCUMULATED_COUNT.fetch_add(count, Ordering::Relaxed) + count;
+fn accumulate_and_emit(size: u64, count: u64, id: &str, state: &mut SizeCalcState) {
+    state.total_size += size;
+    state.total_count += count;
+
+    if let Some(limit_bytes) = state.limit_bytes {
+        if state.total_size > limit_bytes {
+            state.limit_reached = true;
+        }
+    }
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_millis() as u64;
-    let last = LAST_EMIT.load(Ordering::Relaxed);
 
-    if now - last > 100 {
+    if now - state.last_emit > 100 || state.limit_reached {
         // Throttle to 10 updates per second
-        LAST_EMIT.store(now, Ordering::Relaxed);
+        state.last_emit = now;
         if let Some(window) = WINDOW.get() {
-            let _ = window.emit("size-update", (id, new_total_size, new_total_count));
+            let _ = window.emit("size-update", (id, state.total_size, state.total_count));
         }
     }
 }

@@ -2997,15 +2997,36 @@ listen("size-update", (event) => {
     let selectionInfo = document.querySelector(".selection-info");
     if (selectionInfo) {
       if (ArrSelectedItems.length === 1) {
-        selectionInfo.textContent = ArrSelectedItems[0].getAttribute("itemname") + " (" + formatBytes(size, 2) + ")";
+        selectionInfo.textContent = ArrSelectedItems[0].getAttribute("itemname") + " (" + formatSizeWithLimit(size, 2) + ")";
       } else {
-        selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatBytes(size, 2) + ")";
+        selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatSizeWithLimit(size, 2) + ")";
       }
     }
-  } else if (id === "properties") {
-    $(".properties-item-size").html(formatBytes(size, 2));
+  } else if (id === activePropertiesSizeUpdateId && isPropertiesSizeCalculationActive) {
+    setSizeCalculationLoading(".properties-item-size", formatBytes(size, 2));
   }
 });
+
+let currentPropertiesSizeRequestId = 0;
+let activePropertiesSizeUpdateId = null;
+let isPropertiesSizeCalculationActive = false;
+
+function startPropertiesSizeCalculation() {
+  activePropertiesSizeUpdateId = `properties-${++currentPropertiesSizeRequestId}`;
+  isPropertiesSizeCalculationActive = true;
+  return activePropertiesSizeUpdateId;
+}
+
+function finishPropertiesSizeCalculation(updateId) {
+  if (activePropertiesSizeUpdateId === updateId) {
+    isPropertiesSizeCalculationActive = false;
+    activePropertiesSizeUpdateId = null;
+  }
+}
+
+function isPropertiesSizeUpdateCurrent(updateId) {
+  return activePropertiesSizeUpdateId === updateId && isPropertiesSizeCalculationActive;
+}
 
 let currentSelectionRequestId = 0;
 async function updateSelectionInfo(shouldCalculate = true) {
@@ -3020,8 +3041,10 @@ async function updateSelectionInfo(shouldCalculate = true) {
     if (ArrSelectedItems.length == 1) {
       let item = ArrSelectedItems[0];
       let size = item.getAttribute("itemsize");
+      let rawSize = item.getAttribute("itemrawsize");
+      let displaySize = rawSize ? formatSizeWithLimit(rawSize, 2) : size;
       selectionInfo.textContent =
-        item.getAttribute("itemname") + (size ? " (" + size + ")" : "");
+        item.getAttribute("itemname") + (displaySize ? " (" + displaySize + ")" : "");
     } else {
       selectionInfo.textContent = ArrSelectedItems.length + " items selected";
     }
@@ -3029,7 +3052,7 @@ async function updateSelectionInfo(shouldCalculate = true) {
   }
 
   let requestId = ++currentSelectionRequestId;
-  await invoke("cancel_size_calculation");
+  await invoke("cancel_selection_size_calculation");
   selectionInfo.innerHTML = '<div class="preloader-small-invert"></div>';
 
   if (ArrSelectedItems.length == 1) {
@@ -3037,17 +3060,19 @@ async function updateSelectionInfo(shouldCalculate = true) {
     let size = item.getAttribute("itemsize");
     if (item.getAttribute("itemisdir") == "1") {
       let paths = [item.getAttribute("itempath")];
-      let totalSize = await invoke("get_selection_size", { paths, updateId: "selection" });
+      let totalSize = await invoke("get_capped_selection_size", { paths, updateId: "selection" });
       if (requestId !== currentSelectionRequestId) return;
-      selectionInfo.textContent = item.getAttribute("itemname") + " (" + formatBytes(totalSize, 2) + ")";
+      selectionInfo.textContent = item.getAttribute("itemname") + " (" + formatSizeWithLimit(totalSize, 2) + ")";
     } else {
-      selectionInfo.textContent = item.getAttribute("itemname") + (size ? " (" + size + ")" : "");
+      let rawSize = item.getAttribute("itemrawsize");
+      let displaySize = rawSize ? formatSizeWithLimit(rawSize, 2) : size;
+      selectionInfo.textContent = item.getAttribute("itemname") + (displaySize ? " (" + displaySize + ")" : "");
     }
   } else {
     let paths = ArrSelectedItems.map(item => item.getAttribute("itempath"));
-    let totalSize = await invoke("get_selection_size", { paths, updateId: "selection" });
+    let totalSize = await invoke("get_capped_selection_size", { paths, updateId: "selection" });
     if (requestId !== currentSelectionRequestId) return;
-    selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatBytes(totalSize, 2) + ")";
+    selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatSizeWithLimit(totalSize, 2) + ")";
   }
 }
 
@@ -4115,22 +4140,42 @@ async function showProperties(item) {
   document.querySelector("body").append(popup);
   popup.classList.add("popup-enter");
   IsPopUpOpen = true;
+  const propertiesUpdateId = startPropertiesSizeCalculation();
 
   if (!isMulti) {
-    await getSimpleDirInfo(
-      first.getAttribute("itempath"),
-      ".properties-item-size",
-      isDir,
-      "properties"
-    );
+    try {
+      await getSimpleDirInfo(
+        first.getAttribute("itempath"),
+        ".properties-item-size",
+        isDir,
+        propertiesUpdateId
+      );
+      finishPropertiesSizeCalculation(propertiesUpdateId);
+    } catch (error) {
+      if (!isPropertiesSizeUpdateCurrent(propertiesUpdateId)) return;
+      finishPropertiesSizeCalculation(propertiesUpdateId);
+      writeLog(error);
+      $(".properties-item-size").html("Unable to calculate size");
+    }
   } else {
     const paths = itemsToProcess.map((i) => i.getAttribute("itempath"));
-    const totalSize = await invoke("get_selection_size", { paths, updateId: "properties" });
-    $(".properties-item-size").html(formatBytes(totalSize, 2));
+    setSizeCalculationLoading(".properties-item-size");
+    try {
+      const totalSize = await invoke("get_selection_size", { paths, updateId: propertiesUpdateId });
+      if (!isPropertiesSizeUpdateCurrent(propertiesUpdateId)) return;
+      finishPropertiesSizeCalculation(propertiesUpdateId);
+      $(".properties-item-size").html(formatBytes(totalSize, 2));
+    } catch (error) {
+      if (!isPropertiesSizeUpdateCurrent(propertiesUpdateId)) return;
+      finishPropertiesSizeCalculation(propertiesUpdateId);
+      writeLog(error);
+      $(".properties-item-size").html("Unable to calculate size");
+    }
   }
 }
 
 function closeInfoProperties() {
+  finishPropertiesSizeCalculation(activePropertiesSizeUpdateId);
   invoke("cancel_size_calculation");
   let popup = document.querySelector(".item-properties-popup");
   if (popup) {
