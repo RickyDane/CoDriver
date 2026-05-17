@@ -282,9 +282,16 @@ document.addEventListener("keydown", async (e) => {
   }
 
   // :quicksearch :instantsearch
+  const activeEl = document.activeElement;
+  const isFormElementFocused =
+    activeEl &&
+    /^(INPUT|TEXTAREA|SELECT)$/.test(activeEl.tagName) &&
+    !activeEl.disabled &&
+    !activeEl.classList.contains("instant-search-input");
   if (
     IsInputFocused === false &&
     IsPopUpOpen === false &&
+    isFormElementFocused === false &&
     IsMetaDown === false &&
     IsCtrlDown === false &&
     IsShiftDown === false &&
@@ -333,6 +340,7 @@ async function resetEverything() {
   closeCompressPopup();
   closeYtDownloadPopup();
   closeInfoProperties();
+  closeActiveActionsPopup();
   finishProgressBar();
   closeInputDialogs();
   unSelectAllItems();
@@ -1571,21 +1579,12 @@ async function copyItem(item, toCut = false, fromInternal = false) {
 }
 
 async function extractItem(item) {
-  let compressFilePath = item.getAttribute("itempath");
-  let compressFileName = compressFilePath
-    .split("/")
-    [compressFilePath.split("/").length - 1].replace("'", "");
-  // ContextMenu.style.display = "none";
-  let isExtracting = await showPopup(
-    "Do you want to extract " + compressFileName + "?",
-    PopupType.EXTRACT,
-  );
-  if (isExtracting == true) {
-    // ContextMenu.style.display = "none";
-    let extractFilePath = item.getAttribute("itempath");
-    let extractFileName = item.getAttribute("itemname");
+  const isExtracting = await showExtractPopup(item);
+  if (isExtracting === true) {
+    const extractFilePath = item.getAttribute("itempath");
+    const extractFileName = item.getAttribute("itemname");
     if (extractFileName != "") {
-      let fromPath = extractFilePath.toString();
+      const fromPath = extractFilePath.toString();
       await invoke("extract_item", { fromPath, appWindow });
       showToast("Extraction done", ToastType.SUCCESS);
       await listDirectories();
@@ -1593,95 +1592,182 @@ async function extractItem(item) {
   }
 }
 
-async function showCompressPopup(item) {
+async function showExtractPopup(item) {
+  if (IsPopUpOpen !== false) return false;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  const name = item.getAttribute("itemname");
+  const ext = (item.getAttribute("itemext") || "").replace(".", "").toUpperCase();
+
+  const popup = document.createElement("div");
+  popup.className = "extract-popup props-card";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Extract archive");
+  popup.innerHTML = `
+    <header class="props-card__topbar">
+      <span class="props-card__topbar-title">Extract archive</span>
+    </header>
+
+    <section class="props-card__hero">
+      <div class="props-card__thumb"><i class="fa-solid fa-file-zipper"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(name)}">${escHtml(name)}</h2>
+        <div class="props-card__meta">
+          <span>Archive</span>
+          ${ext ? `<span class="props-card__chip">${escHtml(ext)}</span>` : ""}
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-regular fa-folder-open"></i>Destination</dt>
+        <dd class="props-card__value">
+          <span class="props-card__path">${escHtml(CurrentDir)}</span>
+        </dd>
+      </div>
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" data-extract-cancel>
+        <i class="fa-solid fa-xmark"></i><span>Close</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary" data-extract-confirm>
+        <i class="fa-solid fa-maximize"></i><span>Extract</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
   IsPopUpOpen = true;
-  let arrCompressItems = ArrSelectedItems;
-  if (ArrSelectedItems.length > 1) {
-    arrCompressItems = ArrSelectedItems;
-  } else {
-    arrCompressItems = [item];
-  }
-  let compressFileNames = "";
-  if (arrCompressItems.length > 1) {
-    for (let i = 0; i < arrCompressItems.length; i++) {
-      compressFileNames +=
-        "<h5 style='max-width: 50vw; overflow-x: hidden; padding-right: 5px; text-overflow: ellipsis'>" +
-        arrCompressItems[i].getAttribute("itemname") +
-        "</h5>";
-    }
-  } else {
-    compressFileNames = item.getAttribute("itemname");
-  }
-  if (compressFileNames != "") {
-    let popup = document.createElement("div");
-    popup.className = "uni-popup compression-popup";
-    popup.innerHTML = `
-      <div class="popup-header">
-        <i class="fa-solid fa-compress"></i>
-        <h3>Compression options</h3>
-      </div>
-      <div style="padding: 10px 5px 0 10px; border-bottom: 1px solid var(--tertiaryColor);">
-        <p class="text-2">Selected item(s)</p>
-        <br/>
-        <div style="max-height: 50vh; max-width: 50vw; overflow-y: auto; overflow-x: hidden; text-overflow: ellipsis; white-space: nowrap">
-          ${compressFileNames}
-        </div>
-        <br/>
-      </div>
-      <div class="popup-body">
-        <div class="popup-body-row-section">
-          <div class="popup-body-col-section" style="width: 50%;">
-            <input class="text-input compression-popup-level-input" type="number" value="1" placeholder="Default: 1" />
-          </div>
-          <div class="popup-body-col-section" style="width: 50%;">
-            <select class="select compression-popup-type-select">
-              <option value="zstd">Zstd (Level -7 - 22)</option>
-              <option value="zip">Zip (Level 1 - 9)</option>
-              <option value="density">Density (Level 1 - 3)</option>
-              <option value="br">Brotli (Level 1)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="popup-controls">
-        <button class="icon-button" onclick="closeCompressPopup()">
-          <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-          Close
-        </button>
-        <button class="icon-button compress-item-button">
-          <div class="button-icon"><i class="fa-solid fa-minimize"></i></div>
-          Compress
-        </button>
-      </div>
-      `;
-    document.querySelector("body").append(popup);
-    popup.classList.add("popup-enter");
-    document
-      .querySelector(".compress-item-button")
-      .addEventListener("click", async () => {
-        await compressItem(
-          arrCompressItems,
-          $(".compression-popup-level-input").val(),
-          $(".compression-popup-type-select").val(),
-        );
-      });
-    $(".compression-popup-level-input").on(
-      "focus",
-      () => (IsInputFocused = true),
-    );
-    $(".compression-popup-level-input").on(
-      "blur",
-      () => (IsInputFocused = false),
-    );
-    $(".compression-popup-level-input").on("keyup", (e) => {
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.key == "Enter"
-      ) {
-        $(".compress-item-button").click();
-      }
+
+  return new Promise((resolve) => {
+    let isClosed = false;
+    const finish = (ok) => {
+      if (isClosed) return;
+      isClosed = true;
+      popup.classList.add("popup-exit");
+      popup.addEventListener("animationend", () => {
+        popup.remove();
+        IsPopUpOpen = false;
+        resolve(ok);
+      }, { once: true });
+    };
+    popup.querySelector("[data-extract-cancel]").onclick = () => finish(false);
+    popup.querySelector("[data-extract-confirm]").onclick = () => finish(true);
+    popup.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); finish(false); }
+      if (e.key === "Enter")  { e.preventDefault(); finish(true);  }
     });
-  }
+    popup.querySelector("[data-extract-confirm]").focus();
+  });
+}
+
+async function showCompressPopup(item) {
+  if (IsPopUpOpen !== false) return;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  const arrCompressItems = ArrSelectedItems.length > 1 ? ArrSelectedItems : [item];
+  if (!arrCompressItems.length || !arrCompressItems[0]) return;
+
+  const isMulti = arrCompressItems.length > 1;
+  const heroName = isMulti
+    ? `${arrCompressItems.length} items`
+    : arrCompressItems[0].getAttribute("itemname");
+  const heroKind = isMulti ? "Multiple selection" : "Single item";
+
+  const itemsListHtml = isMulti
+    ? `<ul class="props-card__items-list">
+         ${arrCompressItems.map((i) => {
+           const n = i.getAttribute("itemname");
+           return `<li title="${escHtml(n)}">${escHtml(n)}</li>`;
+         }).join("")}
+       </ul>`
+    : "";
+
+  const popup = document.createElement("div");
+  popup.className = "compression-popup props-card props-card--wide";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Compress items");
+  popup.innerHTML = `
+    <header class="props-card__topbar">
+      <span class="props-card__topbar-title">Compress</span>
+    </header>
+
+    <section class="props-card__hero">
+      <div class="props-card__thumb"><i class="fa-solid fa-file-zipper"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(heroName)}">${escHtml(heroName)}</h2>
+        <div class="props-card__meta">
+          <span>${escHtml(heroKind)}</span>
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-file-code"></i>Format</dt>
+        <dd class="props-card__value">
+          <select class="props-card__input compression-popup-type-select">
+            <option value="zstd">Zstd (Level -7 - 22)</option>
+            <option value="zip">Zip (Level 1 - 9)</option>
+            <option value="density">Density (Level 1 - 3)</option>
+            <option value="br">Brotli (Level 1)</option>
+          </select>
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-gauge-high"></i>Level</dt>
+        <dd class="props-card__value">
+          <input type="number" class="props-card__input compression-popup-level-input" value="1" placeholder="Default: 1" />
+        </dd>
+      </div>
+      ${itemsListHtml ? `
+      <div class="props-card__row props-card__row--block">
+        <dt class="props-card__label"><i class="fa-regular fa-rectangle-list"></i>Items</dt>
+        <dd class="props-card__value">${itemsListHtml}</dd>
+      </div>` : ""}
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" onclick="closeCompressPopup()">
+        <i class="fa-solid fa-xmark"></i><span>Close</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary compress-item-button">
+        <i class="fa-solid fa-minimize"></i><span>Compress</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  popup.querySelector(".compress-item-button").addEventListener("click", async () => {
+    await compressItem(
+      arrCompressItems,
+      $(".compression-popup-level-input").val(),
+      $(".compression-popup-type-select").val(),
+    );
+  });
+
+  const levelInput = popup.querySelector(".compression-popup-level-input");
+  levelInput.addEventListener("focus", () => (IsInputFocused = true));
+  levelInput.addEventListener("blur", () => (IsInputFocused = false));
+  levelInput.addEventListener("keyup", (e) => {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+      popup.querySelector(".compress-item-button").click();
+    }
+  });
 }
 
 async function compressItem(
@@ -2489,7 +2575,6 @@ async function applyPlatformFeatures() {
     headerNav.style.boxShadow = "none";
     $(".site-nav-bar").css("padding-top", "50px");
     $(".search-bar-input").attr("placeholder", "Cmd + F");
-    $(".settings-ui-header").css("padding", "5px 5px 5px 100px");
   } else {
     appWindow.setDecorations(false);
     $(".windows-linux-titlebar-buttons").css("display", "flex");
@@ -3893,7 +3978,6 @@ async function showProperties(item) {
   } else if (item != null) {
     itemsToProcess = [item];
   } else {
-    // Current directory properties
     let dummyItem = document.createElement("div");
     dummyItem.setAttribute("itemname", CurrentDir);
     dummyItem.setAttribute("itempath", CurrentDir);
@@ -3902,59 +3986,124 @@ async function showProperties(item) {
     itemsToProcess = [dummyItem];
   }
 
-  if (IsPopUpOpen === false) {
-    let name = itemsToProcess.length > 1 ? itemsToProcess.length + " items selected" : itemsToProcess[0].getAttribute("itemname");
-    let path = itemsToProcess.length > 1 ? "Multiple paths" : itemsToProcess[0].getAttribute("itempath");
-    let ext = itemsToProcess.length > 1 ? "" : itemsToProcess[0].getAttribute("itemext");
-    let extension_description = ext ? getExtDescription(ext) : undefined;
-    let modifiedAt = itemsToProcess.length > 1 ? null : itemsToProcess[0].getAttribute("itemmodified");
+  if (IsPopUpOpen !== false) return;
 
-    let popup = document.createElement("div");
-    popup.className = "uni-popup item-properties-popup";
-    popup.innerHTML = `
-      <div class="popup-header">
-      <h3>${name}</h3>
-      </div>
-      <div class="popup-body">
-      ${itemsToProcess.length === 1 ? `
-      <span style="display: flex; gap: 10px; align-items: center;">
-      Path:
-      <button class="icon-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', ToastType.INFO);">
-  				<div class="button-icon">
-  				<i class="fa-regular fa-copy"></i></div>
-  				<p style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${path}</p>
-      </button>
-      </span>
-      ` : ""}
-      ${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ""}
-      ${modifiedAt != null ? `<br/><p>Modified: ${modifiedAt}</p>` : ""}
-      </div>
-      <div class="popup-controls" style="display: flex; justify-content: space-between;">
-    		<div style="display: flex; gap: 5px;">
-   			<div>Total Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
-    		</div>
-      <button class="icon-button" onclick="closeInfoProperties()">
-      <span class="button-icon"><i class="fa-solid fa-ban"></i></span>
-      Close
-      </button>
-      </div>
-      `;
-    document.querySelector("body").append(popup);
-    popup.classList.add("popup-enter");
-    IsPopUpOpen = true;
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+  const escJs = (s) => String(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
-    if (itemsToProcess.length === 1) {
-      await getSimpleDirInfo(
-        itemsToProcess[0].getAttribute("itempath"),
-        ".properties-item-size",
-        itemsToProcess[0].getAttribute("itemisdir") == "1",
-        "properties"
-      );
-    } else {
-      let paths = itemsToProcess.map(i => i.getAttribute("itempath"));
-      let totalSize = await invoke("get_selection_size", { paths, updateId: "properties" });
-      $(".properties-item-size").html(formatBytes(totalSize, 2));
-    }
+  const isMulti = itemsToProcess.length > 1;
+  const first = itemsToProcess[0];
+  const name = isMulti
+    ? `${itemsToProcess.length} items selected`
+    : first.getAttribute("itemname");
+  const path = isMulti ? null : first.getAttribute("itempath");
+  const ext = isMulti ? "" : (first.getAttribute("itemext") || "");
+  const isDir = !isMulti && first.getAttribute("itemisdir") === "1";
+  const modifiedAt = isMulti ? null : first.getAttribute("itemmodified");
+  const extDesc = ext ? getExtDescription(ext) : undefined;
+
+  let kindLabel;
+  let iconHtml;
+  let chipHtml = "";
+  if (isMulti) {
+    kindLabel = "Mixed selection";
+    iconHtml = `<i class="fa-solid fa-layer-group"></i>`;
+  } else if (isDir) {
+    kindLabel = "Folder";
+    iconHtml = `<i class="fa-solid fa-folder"></i>`;
+  } else {
+    const extUpper = ext ? ext.replace(".", "").toUpperCase() : "";
+    kindLabel = extDesc || (extUpper ? `${extUpper} file` : "File");
+    iconHtml = `<i class="fa-regular fa-file-lines"></i>`;
+    if (extUpper) chipHtml = `<span class="props-card__chip">${escHtml(extUpper)}</span>`;
+  }
+
+  const popup = document.createElement("div");
+  popup.className = "item-properties-popup props-card";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Item properties");
+
+  const locationRow = path
+    ? `
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-regular fa-folder-open"></i>Location</dt>
+        <dd class="props-card__value">
+          <button class="props-card__copy" title="Copy path to clipboard"
+            onclick="writeText('${escJs(path)}'); showToast('Copied path to clipboard', ToastType.INFO);">
+            <span class="props-card__path">${escHtml(path)}</span>
+            <i class="fa-regular fa-copy props-card__copy-icon"></i>
+          </button>
+        </dd>
+      </div>`
+    : `
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-regular fa-folder-open"></i>Location</dt>
+        <dd class="props-card__value props-card__value--muted">Multiple paths</dd>
+      </div>`;
+
+  const modifiedRow = modifiedAt
+    ? `
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-regular fa-clock"></i>Modified</dt>
+        <dd class="props-card__value">${escHtml(modifiedAt)}</dd>
+      </div>`
+    : "";
+
+  popup.innerHTML = `
+    <header class="props-card__topbar">
+      <span class="props-card__topbar-title">Properties</span>
+    </header>
+
+    <section class="props-card__hero">
+      <div class="props-card__thumb">${iconHtml}</div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(name)}">${escHtml(name)}</h2>
+        <div class="props-card__meta">
+          <span class="props-card__kind">${escHtml(kindLabel)}</span>
+          ${chipHtml}
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      ${locationRow}
+      ${modifiedRow}
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-database"></i>Size</dt>
+        <dd class="props-card__value">
+          <span class="properties-item-size props-card__size">
+            <span class="props-card__skeleton"></span>
+          </span>
+        </dd>
+      </div>
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" onclick="closeInfoProperties()">
+        <i class="fa-solid fa-xmark"></i>
+        <span>Close</span>
+      </button>
+    </footer>
+  `;
+
+  document.querySelector("body").append(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  if (!isMulti) {
+    await getSimpleDirInfo(
+      first.getAttribute("itempath"),
+      ".properties-item-size",
+      isDir,
+      "properties"
+    );
+  } else {
+    const paths = itemsToProcess.map((i) => i.getAttribute("itempath"));
+    const totalSize = await invoke("get_selection_size", { paths, updateId: "properties" });
+    $(".properties-item-size").html(formatBytes(totalSize, 2));
   }
 }
 
@@ -4229,7 +4378,11 @@ async function closeItemPreview() {
   $(".item-preview-popup").fadeOut(200, () => {
     $(".item-preview-popup")?.remove();
   });
-  $(".item-properties-popup")?.remove();
+  let propsPopup = document.querySelector(".item-properties-popup");
+  if (propsPopup) {
+    propsPopup.classList.add("popup-exit");
+    propsPopup.addEventListener("animationend", () => propsPopup?.remove(), { once: true });
+  }
   IsPopUpOpen = false;
   IsItemPreviewOpen = false;
 }
@@ -4414,6 +4567,11 @@ function checkColorMode(appConfig) {
   r.style.setProperty(
     "--siteBarColor",
     appConfig.themes[themeId].site_bar_color,
+  );
+  r.style.setProperty(
+    "--sidebarTopBlurOverlayColor",
+    appConfig.themes[themeId].sidebar_top_blur_overlay_color ||
+      appConfig.themes[themeId].site_bar_color,
   );
   r.style.setProperty("--navBarColor", appConfig.themes[themeId].nav_bar_color);
 }

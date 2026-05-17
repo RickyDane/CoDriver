@@ -176,24 +176,115 @@ async function stopSearching() {
 }
 
 function createNewAction(actionId, actionName, actionDescription, path) {
-  let newAction = new ActiveAction(
+  const newAction = new ActiveAction(
     actionName,
     actionDescription,
     actionId,
     path,
   );
   ArrActiveActions.push(newAction);
-  $(".active-actions-container").append(newAction.getHTMLElement());
+  renderActiveActionsPill();
+  refreshActiveActionsPopup();
 }
 
 function removeAction(actionId) {
   ArrActiveActions = ArrActiveActions.filter(
     (action) => action.id !== actionId,
   );
-  $(`.active-action-${actionId}`).css("opacity", "0");
+  const row = document.querySelector(`.active-action-${actionId}`);
+  if (row) {
+    row.style.opacity = "0";
+    setTimeout(() => row.remove(), 250);
+  }
+  renderActiveActionsPill();
+  refreshActiveActionsPopup();
+}
+
+function renderActiveActionsPill() {
+  const container = document.querySelector(".active-actions-container");
+  if (!container) return;
+  if (ArrActiveActions.length === 0) {
+    container.innerHTML = "";
+    closeActiveActionsPopup();
+    return;
+  }
+  let pill = container.querySelector(".active-actions-pill");
+  if (!pill) {
+    container.innerHTML = `
+      <button class="active-actions-pill" type="button"
+        onclick="toggleActiveActionsPopup(event)"
+        aria-label="Show active actions">
+        <span class="active-actions-pill__spinner"><div class="preloader-small-invert"></div></span>
+        <span class="active-actions-pill__label">Actions</span>
+        <span class="active-actions-pill__count">0</span>
+      </button>
+    `;
+    pill = container.querySelector(".active-actions-pill");
+  }
+  pill.querySelector(".active-actions-pill__count").textContent = ArrActiveActions.length;
+  pill.setAttribute("title", `${ArrActiveActions.length} active action${ArrActiveActions.length === 1 ? "" : "s"}`);
+}
+
+function toggleActiveActionsPopup(event) {
+  event?.stopPropagation();
+  if (document.querySelector(".active-actions-popup")) {
+    closeActiveActionsPopup();
+  } else {
+    showActiveActionsPopup();
+  }
+}
+
+function showActiveActionsPopup() {
+  if (document.querySelector(".active-actions-popup")) return;
+  if (ArrActiveActions.length === 0) return;
+
+  const popup = document.createElement("div");
+  popup.className = "active-actions-popup";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "false");
+  popup.setAttribute("aria-label", "Active actions");
+  popup.innerHTML = `
+    <header class="active-actions-popup__header">
+      <span class="active-actions-popup__title">Active actions</span>
+      <span class="active-actions-popup__count">${ArrActiveActions.length}</span>
+    </header>
+    <div class="active-actions-popup__list"></div>
+  `;
+  document.body.appendChild(popup);
+  refreshActiveActionsPopup();
+  requestAnimationFrame(() => popup.classList.add("is-open"));
+
   setTimeout(() => {
-    $(`.active-action-${actionId}`).remove();
-  }, 300);
+    document.addEventListener("pointerdown", handleActiveActionsOutsideClick);
+  }, 0);
+}
+
+function closeActiveActionsPopup() {
+  const popup = document.querySelector(".active-actions-popup");
+  if (!popup) return;
+  document.removeEventListener("pointerdown", handleActiveActionsOutsideClick);
+  popup.classList.remove("is-open");
+  popup.classList.add("is-closing");
+  setTimeout(() => {
+    popup.remove();
+  }, 180);
+}
+
+function handleActiveActionsOutsideClick(event) {
+  if (event.target.closest(".active-actions-popup") || event.target.closest(".active-actions-pill")) return;
+  closeActiveActionsPopup();
+}
+
+function refreshActiveActionsPopup() {
+  const list = document.querySelector(".active-actions-popup__list");
+  if (!list) return;
+  if (ArrActiveActions.length === 0) {
+    closeActiveActionsPopup();
+    return;
+  }
+  const count = document.querySelector(".active-actions-popup__count");
+  if (count) count.textContent = ArrActiveActions.length;
+  list.innerHTML = ArrActiveActions.map((a) => a.getHTMLElement()).join("");
 }
 
 function endsWith(text, divider = ".", ends = []) {

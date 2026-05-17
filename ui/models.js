@@ -13,14 +13,16 @@ class ActiveAction {
         document.querySelector(".active-action-"+this.id)?.remove();
     }
     getHTMLElement() {
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+        const tooltip = esc(`${this.name}${this.description ? " — " + this.description : ""}`);
         return `
-            <div onclick="openDirAndSwitch('${this.path}')" class="active-action bounce active-action-${this.id}">
-                <div class="active-action-header">
-                    <div class="preloader-small-invert"></div>
-                    <p>${this.name}</p>
+            <div class="active-action active-action-${this.id}"
+                 title="${tooltip}">
+                <div class="active-action__spinner"><div class="preloader-small-invert"></div></div>
+                <div class="active-action__text">
+                    <p class="active-action__name">${esc(this.name)}</p>
+                    <p class="active-action__desc">${esc(this.description)}</p>
                 </div>
-                <div class="horizontal-seperator"></div>
-                <p class="action-description">${this.description}</p>
             </div>
         `;
     }
