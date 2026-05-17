@@ -189,17 +189,37 @@ let CurrentTheme = "0";
 
 /* Upper right search bar logic */
 
+function updateFileSearchbarState(forceCancelVisible = null) {
+  const searchInput = document.querySelector(".search-bar-input");
+  const searchbar = document.querySelector(".file-searchbar");
+  const cancelButton = document.querySelector(".cancel-search-button");
+  if (!searchInput) return;
+
+  if (typeof forceCancelVisible !== "boolean") forceCancelVisible = null;
+
+  const hasValue = searchInput.value.trim().length > 0;
+  searchbar?.classList.toggle("has-value", hasValue);
+  cancelButton?.classList.toggle(
+    "is-visible",
+    forceCancelVisible ?? hasValue,
+  );
+}
+
 document.querySelector(".search-bar-input").addEventListener("focusin", (e) => {
-  $(".file-searchbar").css("width", "320px");
+  $(".file-searchbar").css("width", "clamp(220px, 30vw, 320px)");
   IsInputFocused = true;
 });
 document
   .querySelector(".search-bar-input")
   .addEventListener("focusout", (e) => {
-    $(".file-searchbar").css("width", "220px");
+    $(".file-searchbar").css("width", "clamp(180px, 22vw, 240px)");
     IsInputFocused = false;
   });
+document
+  .querySelector(".search-bar-input")
+  .addEventListener("input", updateFileSearchbarState);
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
+  updateFileSearchbarState();
   if (e.keyCode === 13) {
     let fileName = $(".search-bar-input").val();
     searchFor(fileName);
@@ -269,6 +289,8 @@ document.addEventListener("keydown", async (e) => {
       goUp(false, true);
     }
     await resetEverything();
+    document.querySelector(".search-bar-input").value = "";
+    updateFileSearchbarState();
     $(".search-bar-input").blur();
     // Close all popups etc.
     // ContextMenu.style.display = "none";
@@ -2574,14 +2596,14 @@ async function applyPlatformFeatures() {
     // headerNav.style.borderBottom = "none";
     headerNav.style.boxShadow = "none";
     $(".site-nav-bar").css("padding-top", "50px");
-    $(".search-bar-input").attr("placeholder", "Cmd + F");
+    $(".file-searchbar-shortcut").text("⌘F");
   } else {
     appWindow.setDecorations(false);
     $(".windows-linux-titlebar-buttons").css("display", "flex");
     $(".minimize-button").on("click", () => appWindow.minimize());
     $(".maximize-button").on("click", () => appWindow.toggleMaximize());
     $(".close-button").on("click", () => appWindow.close());
-    $(".search-bar-input").attr("placeholder", "Ctrl + F");
+    $(".file-searchbar-shortcut").text("Ctrl+F");
   }
   DefaultFileIcon = await resolveResource("resources/file-icon.png");
   DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
@@ -3498,7 +3520,7 @@ async function searchFor(
   if (IsSearching === true) return;
   if (fileName.length > 1 || isQuickSearch == true) {
     $(".is-file-searching").css("display", "block");
-    document.querySelector(".cancel-search-button").style.display = "block";
+    updateFileSearchbarState(true);
     if (IsDualPaneEnabled === true) {
       if (SelectedItemPaneSide === "left") {
         $(".dual-pane-left").html("");
@@ -3598,8 +3620,9 @@ function closeSearchBar() {
 }
 
 async function cancelSearch() {
-  document.querySelector(".cancel-search-button").style.display = "none";
+  document.querySelector(".cancel-search-button").classList.remove("is-visible");
   document.querySelector(".search-bar-input").value = "";
+  updateFileSearchbarState();
   await invoke("stop_searching");
   // await listDirectories();
 }

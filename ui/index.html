@@ -71,12 +71,14 @@
                 </div>
                 <div data-tauri-drag-region class="header-nav-right-container"
                     style="display: flex; flex-flow: row; gap: 10px; justify-content: flex-end; align-items: center; width: 100%;">
-                    <div class="file-searchbar">
-                        <input class="search-bar-input text-input" type="text" placeholder="Cmd / Ctrl + F" />
-                        <button class="search-button" onclick="searchFor($('.search-bar-input').val())"><i
-                                class="fa-solid fa-magnifying-glass"></i></button>
-                        <button class="cancel-search-button" onclick="cancelSearch()"><i
-                                class="fa-solid fa-xmark"></i></button>
+                    <div class="file-searchbar" role="search">
+                        <i class="fa-solid fa-magnifying-glass file-searchbar-icon" aria-hidden="true"></i>
+                        <input class="search-bar-input text-input" type="search" placeholder="Search files" aria-label="Search files" />
+                        <kbd class="file-searchbar-shortcut">⌘F</kbd>
+                        <button class="search-button" aria-label="Search files" onclick="searchFor($('.search-bar-input').val())"><i
+                                class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                        <button class="cancel-search-button" aria-label="Cancel search" onclick="cancelSearch()"><i
+                                class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                     </div>
                     <div class="view-mode-group" role="group" aria-label="View mode">
                         <button class="view-mode-btn active" data-view="wrap" onclick="switchView('wrap')" aria-pressed="true" title="Grid view">
