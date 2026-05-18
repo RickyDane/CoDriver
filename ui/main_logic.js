@@ -1446,7 +1446,7 @@ async function getCurrentDir() {
   return await invoke("get_current_dir");
 }
 
-async function setCurrentDir(currentDir = "", dualPaneSide = "") {
+async function setCurrentDir(currentDir = "", dualPaneSide = "", syncBackend = true) {
   try {
     if (currentDir == "") return;
 
@@ -1454,15 +1454,17 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "") {
       SelectedItemPaneSide = dualPaneSide;
     }
 
-    await invoke("set_dir", { currentDir }).then(async (isSuccess) => {
+    if (syncBackend) {
+      const isSuccess = await invoke("set_dir", { currentDir });
       if (isSuccess === false) {
         alert("Switching directory failed. Probably no permissions.");
         return;
       }
+    }
 
-      // Setting the current path on the bottom
-      updateCurrentPath(currentDir, dualPaneSide);
-    });
+    // Setting the current path on the bottom. Some navigation commands already
+    // changed the backend current dir; avoid invoking set_dir twice in those paths.
+    updateCurrentPath(currentDir, dualPaneSide);
 
     if (dualPaneSide == "left") {
       LeftDualPanePath = currentDir;
@@ -2597,7 +2599,7 @@ async function checkAppConfig() {
         let path = appConfig.launch_path;
         let isSwitched = await invoke("open_dir", { path });
         if (isSwitched === true) {
-          await setCurrentDir(path, "left");
+          await setCurrentDir(path, "left", false);
           await listDirectories();
         }
       } else {
@@ -2608,7 +2610,7 @@ async function checkAppConfig() {
       let path = appConfig.launch_path;
       let isSwitched = await invoke("open_dir", { path });
       if (isSwitched === true) {
-        await setCurrentDir(path, "left");
+        await setCurrentDir(path, "left", false);
         await listDirectories();
       } else {
         alert(
@@ -2923,7 +2925,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
           } else {
             await listDirectories();
           }
-          await setCurrentDir(path);
+          await setCurrentDir(path, "", false);
         } else {
           if (dualPaneSide == "left") {
             LeftDualPanePath = path;
@@ -2931,7 +2933,7 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
             RightDualPanePath = path;
           }
           SelectedItemPaneSide = dualPaneSide;
-          await setCurrentDir(path, SelectedItemPaneSide);
+          await setCurrentDir(path, SelectedItemPaneSide, false);
           await listDirectories();
         }
         await unSelectAllItems();
@@ -3174,7 +3176,7 @@ async function goHome() {
   try {
     await invoke("go_home");
     await listDirectories();
-    await setCurrentDir(await getCurrentDir());
+    await setCurrentDir(await getCurrentDir(), "", false);
   } catch (error) {
     console.error(error);
   }
@@ -3193,7 +3195,7 @@ async function goBack() {
     await invoke("go_back", { isDualPane: IsDualPaneEnabled });
     await listDirectories();
   }
-  await setCurrentDir(await getCurrentDir(), SelectedItemPaneSide);
+  await setCurrentDir(await getCurrentDir(), SelectedItemPaneSide, false);
 }
 
 function goUp(isSwitched = false, toFirst = false) {
@@ -3538,7 +3540,7 @@ async function goToDir(directory) {
     } else {
       await showItems(items);
     }
-    await setCurrentDir(await getCurrentDir());
+    await setCurrentDir(await getCurrentDir(), "", false);
   });
 }
 
@@ -3692,7 +3694,11 @@ async function cancelSearch() {
   document.querySelector(".cancel-search-button").classList.remove("is-visible");
   document.querySelector(".search-bar-input").value = "";
   updateFileSearchbarState();
-  await invoke("stop_searching");
+  if (IsSearching || IsFullSearching) {
+    await invoke("stop_searching");
+    IsSearching = false;
+    IsFullSearching = false;
+  }
   // await listDirectories();
 }
 
@@ -3807,7 +3813,7 @@ async function switchToDualPane() {
       .forEach((item) => (item.style.display = "flex"));
     document.querySelector(".switch-dualpane-view-button").innerHTML =
       `<i class="fa-regular fa-rectangle-xmark"></i>`;
-    await setCurrentDir(await getCurrentDir());
+    await setCurrentDir(await getCurrentDir(), "", false);
     await invoke("list_dirs").then(async (items) => {
       await showItems(items, "left");
       await showItems(items, "right");
@@ -5345,9 +5351,14 @@ async function fileOperationContextMenu() {
 }
 
 async function openDirAndSwitch(path) {
+  const isSwitched = await invoke("open_dir", { path });
+  if (isSwitched !== true) {
+    alert("Could not open directory");
+    return;
+  }
+
   await configBackButton(CurrentDir);
-  await invoke("open_dir", { path });
-  await setCurrentDir(path);
+  await setCurrentDir(path, "", false);
   await listDirectories();
   await unSelectAllItems();
 }
