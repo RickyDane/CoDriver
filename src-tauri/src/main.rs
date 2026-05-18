@@ -1057,22 +1057,30 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
         let source = item.source_path.replace("\\", "/");
         let mut destination = item.destination_path.replace("\\", "/");
         let source_path = Path::new(&source);
-        let destination_path = Path::new(&destination);
-
-        if let Err(err) = validate_copy_destination(source_path, destination_path) {
-            wng_log(format!(
-                "Skipping unsafe copy from '{}' to '{}': {}",
-                source, destination, err
-            ));
-            errors.push(err);
-            continue;
-        }
 
         let copy_result = match item.policy.as_str() {
             "replace" => {
+                let destination_path = Path::new(&destination);
+                if let Err(err) = validate_copy_destination(source_path, destination_path) {
+                    wng_log(format!(
+                        "Skipping unsafe copy from '{}' to '{}': {}",
+                        source, destination, err
+                    ));
+                    errors.push(err);
+                    continue;
+                }
                 replace_path_safely(source_path, destination_path, total_bytes, counter).await
             }
             "merge" => {
+                let destination_path = Path::new(&destination);
+                if let Err(err) = validate_copy_destination(source_path, destination_path) {
+                    wng_log(format!(
+                        "Skipping unsafe copy from '{}' to '{}': {}",
+                        source, destination, err
+                    ));
+                    errors.push(err);
+                    continue;
+                }
                 if source_path.is_dir() && destination_path.is_dir() {
                     copy_to_preserving_existing(
                         destination.clone(),
@@ -1086,12 +1094,32 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
                 }
             }
             "duplicate" => {
+                let destination_path = Path::new(&destination);
                 destination = get_available_path(destination_path);
+                let destination_path = Path::new(&destination);
+                if let Err(err) = validate_copy_destination(source_path, destination_path) {
+                    wng_log(format!(
+                        "Skipping unsafe copy from '{}' to '{}': {}",
+                        source, destination, err
+                    ));
+                    errors.push(err);
+                    continue;
+                }
                 copy_to(destination.clone(), source.clone(), total_bytes, counter).await
             }
             _ => {
+                let destination_path = Path::new(&destination);
                 if destination_path.exists() {
                     destination = get_available_path(destination_path);
+                }
+                let destination_path = Path::new(&destination);
+                if let Err(err) = validate_copy_destination(source_path, destination_path) {
+                    wng_log(format!(
+                        "Skipping unsafe copy from '{}' to '{}': {}",
+                        source, destination, err
+                    ));
+                    errors.push(err);
+                    continue;
                 }
                 copy_to(destination.clone(), source.clone(), total_bytes, counter).await
             }

@@ -1573,18 +1573,23 @@ async function deleteItems() {
   if (isConfirm == true) {
     let actionId = new Date().getMilliseconds();
     createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
-    for (let i = 0; i < arr.length; i++) {
-      let actFileName = arr[i];
-      await invoke("delete_item", { actFileName });
+    window.IsDeletingItems = true;
+    try {
+      for (let i = 0; i < arr.length; i++) {
+        let actFileName = arr[i];
+        await invoke("delete_item", { actFileName });
+      }
+      IsCopyToCut = false;
+      if (Platform != "darwin") {
+        await listDirectories();
+      }
+      ArrSelectedItems = [];
+      showToast("Deletion of items is done", ToastType.INFO);
+    } finally {
+      window.IsDeletingItems = false;
+      removeAction(actionId);
+      scheduleDiskUsageRefresh();
     }
-    IsCopyToCut = false;
-    if (Platform != "darwin") {
-      await listDirectories();
-    }
-    ArrSelectedItems = [];
-    showToast("Deletion of items is done", ToastType.INFO);
-    removeAction(actionId);
-    scheduleDiskUsageRefresh();
   }
 }
 
@@ -2004,6 +2009,11 @@ function joinPath(base = "", name = "") {
   return `${normalizedBase}/${name}`;
 }
 
+function comparablePath(path = "") {
+  let normalized = normalizePath(path);
+  return ["darwin", "windows"].includes(Platform) ? normalized.toLowerCase() : normalized;
+}
+
 function escapeHtml(value = "") {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -2044,12 +2054,17 @@ function isConflictActionValid(action, conflict) {
   return conflict.item.is_dir == 1 && conflict.existing.is_dir == 1;
 }
 
-async function resolveCopyMoveConflicts(items, targetPath) {
+async function resolveCopyMoveConflicts(items, targetPath, shouldMove = false) {
   let resolvedItems = [];
   let conflicts = [];
 
   for (let item of items) {
     let destinationPath = joinPath(targetPath, item.name);
+    if (shouldMove && comparablePath(item.path) === comparablePath(destinationPath)) {
+      showToast("Cannot move item onto itself", ToastType.ERROR);
+      writeLog(`Move skipped: source and destination are the same path (${item.path})`);
+      continue;
+    }
     let conflict = await getDestinationConflict(item, destinationPath);
     if (conflict) {
       conflicts.push(conflict);
@@ -2096,7 +2111,7 @@ async function resolveCopyMoveConflicts(items, targetPath) {
 async function runResolvedCopyMove(items, targetPath, shouldMove = false) {
   if (!targetPath || items.length === 0) return [];
 
-  let resolvedItems = await resolveCopyMoveConflicts(items, targetPath);
+  let resolvedItems = await resolveCopyMoveConflicts(items, targetPath, shouldMove);
   if (resolvedItems === null) {
     showToast("Operation cancelled", ToastType.INFO);
     return [];

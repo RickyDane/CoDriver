@@ -726,6 +726,68 @@ body {
   text-overflow: ellipsis;
 }
 
+.active-action--progress {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.active-action__progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.active-action__percent {
+  flex: 0 0 auto;
+  min-width: 34px;
+  text-align: right;
+  color: var(--textColor2);
+  font-size: 13px;
+  font-weight: 800 !important;
+}
+
+.active-action__progress-track {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--tertiaryColor) 70%, transparent);
+}
+
+.active-action__progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background-color: var(--selectColor2);
+  transition: width 0.16s ease;
+}
+
+.active-action__progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--textColor2);
+  font-size: 10px;
+  font-weight: 600 !important;
+}
+
+.active-action__count,
+.active-action__speed {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-action__speed {
+  flex: 0 0 auto;
+}
+
 /* .titlebar {
 	height: 40px;
 	padding: 0px 10px;
@@ -3636,88 +3698,6 @@ button > svg {
   font-size: var(--fontSize);
   color: var(--textColor);
   font-weight: 300;
-}
-
-/* Progressbar */
-.progress-bar-container-popup {
-  display: block;
-  scale: 0;
-  opacity: 0;
-  margin: auto;
-  width: 300px;
-  height: 0;
-  padding: 0 5px;
-  background-color: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: var(--glass-border);
-  border-radius: var(--glass-radius);
-  box-shadow: var(--glass-shadow);
-  flex-flow: column;
-  justify-content: center;
-  align-items: center;
-  gap: 5px;
-  z-index: 3;
-  transition:
-    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    scale 0.3s ease-in-out,
-    opacity 0.3s ease-in-out,
-    height 0.3s ease-in-out,
-    padding 0.3s ease-in-out;
-}
-
-.progress-bar-main-percentage {
-  display: flex;
-  justify-content: center;
-  flex-flow: column;
-  align-items: center;
-  justify-content: enter;
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  min-height: 48px;
-  border-radius: 24px;
-  background-color: var(--primaryColor);
-  color: var(--textColor2);
-}
-
-.progress-bar-detail-info {
-  font-size: var(--fontSize);
-  color: var(--textColor2);
-}
-
-.progress-bar-current-file-text {
-  max-width: 175px;
-}
-
-.progress-bar-current-file-ext {
-  max-width: 50px;
-}
-
-.progress-bar-current-file-text,
-.progress-bar-current-file-ext {
-  font-size: var(--fontSize2);
-  color: var(--textColor);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.progress-bar-main-progress {
-  margin: 0px 5px 5px 5px;
-  width: calc(100% - 10px);
-  height: 5px;
-  border-radius: 5px;
-  background-color: var(--transparentColor);
-}
-
-.progress-bar-main-progress-fill {
-  width: 45%;
-  height: 100%;
-  border-radius: 5px;
-  background-color: var(--selectColor2);
 }
 
 .ds-selector {

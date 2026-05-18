@@ -565,43 +565,73 @@ function getIconForFile(item, itemsCount) {
   return fileIcon;
 }
 
+let FileOpProgressActionId = null;
+
+function getOrCreateFileOpAction(name = "File operation", description = "Preparing…") {
+  if (FileOpProgressActionId) {
+    const existing = ArrActiveActions.find((a) => a.id === FileOpProgressActionId);
+    if (existing) return existing;
+  }
+  FileOpProgressActionId = `fileop-${Date.now()}`;
+  const action = new ActiveAction(name, description, FileOpProgressActionId, "", true);
+  action.progress = 0;
+  ArrActiveActions.push(action);
+  renderActiveActionsPill();
+  refreshActiveActionsPopup();
+  return action;
+}
+
 function showProgressbar() {
-  let progressBarContainer = document.querySelector(".progress-bar-container-popup");
-  progressBarContainer.style.display = "block";
-  progressBarContainer.style.scale = "1";
-  progressBarContainer.style.opacity = "1";
-  progressBarContainer.style.height = "fit-content";
+  getOrCreateFileOpAction();
 }
 
 function updateProgressBar(totalPercentage, elementsPercentage, countElements, currentElementNumber, currentFile, currentSpeed) {
-  if (countElements == 1) {
-    document.querySelector('.progress-bar-main-percentage').innerHTML = `${totalPercentage.toFixed(0)}%`;
+  const action = getOrCreateFileOpAction();
+  action.progress = totalPercentage;
+  action.currentFile = currentFile;
+  action.countLabel = countElements > 1
+    ? `${currentElementNumber} / ${countElements} · ${elementsPercentage.toFixed(0)}%`
+    : `${currentElementNumber} / ${countElements}`;
+  action.speedLabel = `${currentSpeed.toFixed(0)} MB/s`;
+
+  const row = document.querySelector(`.active-action-${action.id}`);
+  if (row) {
+    const fill = row.querySelector(".active-action__progress-fill");
+    if (fill) fill.style.width = `${totalPercentage}%`;
+    const pct = row.querySelector(".active-action__percent");
+    if (pct) pct.textContent = `${Math.round(totalPercentage)}%`;
+    const file = row.querySelector(".active-action__current-file");
+    if (file) file.textContent = currentFile;
+    const count = row.querySelector(".active-action__count");
+    if (count) count.textContent = action.countLabel;
+    const speed = row.querySelector(".active-action__speed");
+    if (speed) speed.textContent = action.speedLabel;
   } else {
-    document.querySelector('.progress-bar-main-percentage').innerHTML = `
-      <span>${elementsPercentage.toFixed(0)}%</span>
-      <span style="font-size: x-small">${totalPercentage.toFixed(0)}%</span>
-    `;
+    refreshActiveActionsPopup();
   }
-  document.querySelector('.progress-bar-detail-info').innerText = `${currentElementNumber} of ${countElements} - ${currentSpeed.toFixed(0)} MB/s`;
-  document.querySelector('.progress-bar-current-file-text').innerText = `${currentFile}`;
-  if (currentFile.split('.').length > 1) {
-    document.querySelector('.progress-bar-current-file-ext').innerText = `(.${currentFile.split('.')[currentFile.split('.').length - 1]})`;
-  } else {
-    document.querySelector('.progress-bar-current-file-ext').innerText = ``;
-  }
-  document.querySelector('.progress-bar-main-progress-fill').style.width = `${totalPercentage}%`;
 }
 
 function finishProgressBar(time = 0) {
-  console.log(time);
-  document.querySelector('.progress-bar-detail-info').innerText += ` - in ${time.toFixed(2)} seconds`;
-  document.querySelector('.progress-bar-main-percentage').innerHTML = `<i class="fas fa-check" style="color: green; width: 24px; height: 24px;"></i>`;
-  let progressBarContainer = document.querySelector(".progress-bar-container-popup");
+  const id = FileOpProgressActionId;
+  if (!id) return;
+  const action = ArrActiveActions.find((a) => a.id === id);
+  if (action) {
+    action.progress = 100;
+    action.speedLabel = time ? `done in ${time.toFixed(2)}s` : "done";
+  }
+  const row = document.querySelector(`.active-action-${id}`);
+  if (row) {
+    const fill = row.querySelector(".active-action__progress-fill");
+    if (fill) fill.style.width = `100%`;
+    const pct = row.querySelector(".active-action__percent");
+    if (pct) pct.innerHTML = `<i class="fas fa-check" style="color: var(--successColor, #4ade80);"></i>`;
+    const speed = row.querySelector(".active-action__speed");
+    if (speed && action) speed.textContent = action.speedLabel;
+  }
   setTimeout(() => {
-    progressBarContainer.style.scale = "0";
-    progressBarContainer.style.opacity = "0";
-    progressBarContainer.style.height= "0";
-  }, 3000);
+    if (FileOpProgressActionId === id) FileOpProgressActionId = null;
+    removeAction(id);
+  }, 1500);
 }
 
 function tryLoadCachedImage(imageId, imageType, imageUrl) {

@@ -101,7 +101,15 @@ listen("fs-mount-changed", (event) => {
 listen("watcher-event", (event) => {
   setTimeout(async () => {
     if (event.payload.type == "create") { refreshView(); window.scheduleDiskUsageRefresh?.(); console.log("FS-Event: File was created")}
-    if (event.payload.type == "remove") { refreshView(); window.scheduleDiskUsageRefresh?.(); console.log("FS-Event: File was removed")}
+    if (event.payload.type == "remove") {
+      if (window.IsDeletingItems) {
+        console.log("FS-Event: File was removed (refresh suppressed — active delete)");
+      } else {
+        refreshView();
+        console.log("FS-Event: File was removed");
+      }
+      window.scheduleDiskUsageRefresh?.();
+    }
     if (event.payload.type == "rename") { refreshView(); window.scheduleDiskUsageRefresh?.(); console.log("FS-Event: File was renamed")}
     // if (event.payload.type == "modify") { refreshView(); console.log("FS-Event: File was modified")}
   }, 100);
