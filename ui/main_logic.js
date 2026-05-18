@@ -398,8 +398,15 @@ document.addEventListener("mousedown", (e) => {
     goBack();
   }
 
+  // Right-click is handled by the contextmenu event. Closing here causes the
+  // empty-area menu to flash before item-specific menus are shown.
+  if (e.button === 2) {
+    return;
+  }
+
   // Check if your click is outside of important elements
   if (
+    !e.target.closest(".context-menu") &&
     !e.target.classList.contains("context-item-icon") &&
     !e.target.classList.contains("context-item") &&
     !e.target.classList.contains("open-with-item") &&
@@ -472,7 +479,17 @@ document.addEventListener("mousedown", (e) => {
 // Open context menu for pasting for example
 // :context open
 document.addEventListener("contextmenu", (e) => {
-  // cdCtMenu.setupItems();
+  if (e.target.closest(".context-menu")) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+
+  if (e.target.closest(".item-link") || e.target.closest(".disk-item")) {
+    return;
+  }
+
+  cdCtMenu.setSelectedItem(null);
   cdCtMenu.show(e);
   return;
   e.preventDefault();
@@ -1194,6 +1211,8 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     // :item_right_click :context_menu / showItems()
     // Open context menu when right-clicking on file/folder
     item.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       cdCtMenu.setSelectedItem(item);
       cdCtMenu.show(e);
     });
@@ -1398,6 +1417,8 @@ async function addSingleItem(
   // :item_right_click :context_menu | addSingleItem()
   // Open context menu when right-clicking on file/folder
   itemLink.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     cdCtMenu.setSelectedItem(itemLink);
     cdCtMenu.show(e);
   });
@@ -2692,6 +2713,7 @@ async function listDisks() {
       });
       itemLink.addEventListener("contextmenu", (e) => {
         e.preventDefault();
+        e.stopPropagation();
         cdCtMenu.setSelectedItem(itemLink);
         cdCtMenu.show(e);
       });
@@ -5039,7 +5061,7 @@ async function insertSiteNavButtons() {
             <i class="fa-solid fa-thumbtack" style="color: var(--textColor2); font-size: 9px;" aria-hidden="true"></i>
             <span>FAVORITES</span>
         </div>
-        <i class="fa-solid fa-chevron-down collapse-chevron" aria-hidden="true"></i>
+        <i class="fa-solid fa-chevron-up collapse-chevron" aria-hidden="true"></i>
     `;
     favHeader.setAttribute("aria-expanded", "true");
     favHeader.setAttribute("aria-controls", "favorites-content");
@@ -5102,7 +5124,7 @@ async function insertSiteNavButtons() {
           <i class="fa-solid fa-hard-drive" aria-hidden="true"></i>
           <span>DISKS</span>
       </div>
-      <i class="fa-solid fa-chevron-down collapse-chevron" aria-hidden="true"></i>
+      <i class="fa-solid fa-chevron-up collapse-chevron" aria-hidden="true"></i>
   `;
   diskHeader.setAttribute("aria-expanded", "true");
   diskHeader.setAttribute("aria-controls", "disks-content");

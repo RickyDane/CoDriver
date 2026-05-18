@@ -159,6 +159,7 @@ class CDContextMenu {
 
   show(e) {
     e.preventDefault();
+    this.hideSubMenu();
     if (this._closeTimeout) {
       clearTimeout(this._closeTimeout);
       this._closeTimeout = null;
