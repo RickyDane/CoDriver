@@ -1651,10 +1651,6 @@ async function showExtractPopup(item) {
   popup.setAttribute("aria-modal", "true");
   popup.setAttribute("aria-label", "Extract archive");
   popup.innerHTML = `
-    <header class="props-card__topbar">
-      <span class="props-card__topbar-title">Extract archive</span>
-    </header>
-
     <section class="props-card__hero">
       <div class="props-card__thumb"><i class="fa-solid fa-file-zipper"></i></div>
       <div class="props-card__heading">
@@ -1742,10 +1738,6 @@ async function showCompressPopup(item) {
   popup.setAttribute("aria-modal", "true");
   popup.setAttribute("aria-label", "Compress items");
   popup.innerHTML = `
-    <header class="props-card__topbar">
-      <span class="props-card__topbar-title">Compress</span>
-    </header>
-
     <section class="props-card__hero">
       <div class="props-card__thumb"><i class="fa-solid fa-file-zipper"></i></div>
       <div class="props-card__heading">
@@ -1760,7 +1752,7 @@ async function showCompressPopup(item) {
       <div class="props-card__row">
         <dt class="props-card__label"><i class="fa-solid fa-file-code"></i>Format</dt>
         <dd class="props-card__value">
-          <select class="props-card__input compression-popup-type-select">
+          <select class="props-card__input compression-popup-type-select" style="cursor: pointer;">
             <option value="zstd">Zstd (Level -7 - 22)</option>
             <option value="zip">Zip (Level 1 - 9)</option>
             <option value="density">Density (Level 1 - 3)</option>
@@ -4123,10 +4115,6 @@ async function showProperties(item) {
     : "";
 
   popup.innerHTML = `
-    <header class="props-card__topbar">
-      <span class="props-card__topbar-title">Properties</span>
-    </header>
-
     <section class="props-card__hero">
       <div class="props-card__thumb">${iconHtml}</div>
       <div class="props-card__heading">
@@ -4311,9 +4299,6 @@ async function showItemPreview(item, isOverride = false) {
       return;
   }
   popup.innerHTML = `
-    <div class="popup-header">
-    <h3>Name: ${name}</h3>
-    </div>
     ${module}
     `;
   IsPopUpOpen = true;

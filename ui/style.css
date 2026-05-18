@@ -54,11 +54,11 @@
   --glass-bg: color-mix(in srgb, var(--primaryColor) 85%, transparent);
   --glass-border: 1px solid
     color-mix(in srgb, var(--tertiaryColor) 50%, transparent);
-  --glass-blur: blur(24px) saturate(1.4);
+  --glass-blur: blur(10px) saturate(1.2);
   --glass-shadow:
     0 8px 32px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2),
     inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
-  --glass-radius: 12px;
+  --glass-radius: 15px;
   --glass-header-bg: color-mix(in srgb, var(--secondaryColor) 80%, transparent);
   --glass-border-subtle: 1px solid
     color-mix(in srgb, var(--tertiaryColor) 35%, transparent);
@@ -83,17 +83,26 @@ body {
 }
 
 .codriver-name {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
   width: calc(100% - 10px);
   text-align: center;
   border-radius: 10px;
-  padding: 2px;
+  padding: 5px;
   margin: 5px;
   font-weight: bolder !important;
   background-color: var(--primaryColor);
-  border: 1px solid var(--tertiaryColor);
-  line-height: 21px;
   color: var(--textColor);
-  box-shadow: 0px 0px 5px 2px var(--transparentColorActive);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 8px 24px rgba(0, 0, 0, 0.25);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition:
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .explorer-container {
@@ -892,13 +901,10 @@ body {
   right: 0;
   bottom: 0;
   background-color: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   z-index: 100;
   margin: auto;
-  border-radius: var(--glass-radius);
-  box-shadow: var(--glass-shadow);
-  border: var(--glass-border);
+  border: 1px solid var(--primaryColor);
+  border-radius: 15px;
   overflow: hidden;
   opacity: 0;
   transition:
@@ -909,6 +915,11 @@ body {
     transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   transform: scale(0.96) translateY(12px);
   font-size: var(--fontSize);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.12);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .settings-ui.active {
@@ -977,8 +988,7 @@ body {
 
 /* Sidebar */
 .settings-sidebar {
-  width: 200px;
-  background-color: color-mix(in srgb, var(--secondaryColor) 60%, transparent);
+  background-color: var(--siteBarColor);
   border-right: 1px solid var(--tertiaryColor);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -1020,19 +1030,28 @@ body {
 }
 
 .settings-sidebar-button.active {
-  background-color: var(--transparentColor);
+  background-color: var(--primaryColor);
   color: var(--textColor);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.12);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition:
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .settings-sidebar-button.active::before {
   content: "";
   position: absolute;
   left: 6px;
-  top: 25%;
-  bottom: 25%;
+  top: 30%;
+  bottom: 30%;
   margin: auto;
-  width: 3px;
-  border-radius: 2px;
+  width: 2px;
+  border-radius: 1px;
   background-color: var(--selectColor2);
 }
 
@@ -2723,12 +2742,12 @@ button > svg {
   top: 0;
   left: 0;
   background-color: var(--glass-bg);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.12);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border-radius: var(--glass-radius);
-  box-shadow: var(--glass-shadow);
-  z-index: 999;
-  border: var(--glass-border);
   transition:
     width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     border-color 0.18s ease,
@@ -3124,7 +3143,6 @@ button > svg {
   height: fit-content;
   max-height: 90vh;
   max-width: 90vw;
-  background-color: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: var(--glass-border);
@@ -3143,7 +3161,6 @@ button > svg {
 
 .item-preview-popup > div > img {
   min-height: 30vh !important;
-  height: 90vh;
   max-width: 90vw;
   min-height: 0;
   object-fit: contain;
@@ -3174,8 +3191,10 @@ button > svg {
 }
 
 .module-container {
-  overflow-x: auto;
-  overflow-y: auto !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: fit-content;
+  width: fit-content;
   max-height: 60vh;
   max-width: 100%;
   display: flex;
@@ -4171,12 +4190,6 @@ button > svg {
 .compression-popup .props-card__hero {
   padding: 10px 14px 6px;
   gap: 10px;
-}
-.compression-popup .props-card__thumb {
-  width: 38px;
-  height: 38px;
-  font-size: 15px;
-  border-radius: 9px;
 }
 .compression-popup .props-card__name {
   font-size: var(--fontSize);
