@@ -1584,6 +1584,7 @@ async function deleteItems() {
     ArrSelectedItems = [];
     showToast("Deletion of items is done", ToastType.INFO);
     removeAction(actionId);
+    scheduleDiskUsageRefresh();
   }
 }
 
@@ -1631,6 +1632,7 @@ async function extractItem(item) {
       await invoke("extract_item", { fromPath, appWindow });
       showToast("Extraction done", ToastType.SUCCESS);
       await listDirectories();
+      scheduleDiskUsageRefresh();
     }
   }
 }
@@ -1902,6 +1904,7 @@ async function compressItem(
   }
   isCompressingDone = true;
   removeAction(actionId);
+  scheduleDiskUsageRefresh();
 }
 
 async function closeCompressPopup() {
@@ -2114,6 +2117,9 @@ async function runResolvedCopyMove(items, targetPath, shouldMove = false) {
   }
   if (shouldMove && copiedSources.length > 0) {
     await invoke("arr_delete_items", { arrItems: copiedSources });
+  }
+  if (copiedSources.length > 0) {
+    scheduleDiskUsageRefresh();
   }
   return copiedSources;
 }
@@ -2418,17 +2424,20 @@ async function createFolder(folderName) {
   let isDualPaneEnabled = IsDualPaneEnabled;
   await invoke("create_folder", { folderName, isDualPaneEnabled });
   listDirectories();
+  scheduleDiskUsageRefresh();
 }
 
 async function createFile(fileName) {
   await invoke("create_file", { fileName });
   listDirectories();
+  scheduleDiskUsageRefresh();
 }
 
 async function renameElement(path, newName) {
   await invoke("rename_element", { path, newName, appWindow });
   IsInputFocused = false;
   await listDirectories();
+  scheduleDiskUsageRefresh();
 }
 
 async function showAppInfo() {
@@ -3395,8 +3404,14 @@ async function setDiskDropdowns() {
   rightDiskDropdown.innerHTML = "";
 
   for (let i = 0; i < disks.length; i++) {
-    leftDiskDropdown.innerHTML += `<option value="${disks[i].path}">${disks[i].name != "" ? disks[i].name : "/"}</option>`;
-    rightDiskDropdown.innerHTML += `<option value="${disks[i].path}">${disks[i].name != "" ? disks[i].name : "/"}</option>`;
+    let leftOption = document.createElement("option");
+    let rightOption = document.createElement("option");
+    leftOption.value = disks[i].path;
+    rightOption.value = disks[i].path;
+    leftOption.textContent = displayDiskName(disks[i].name);
+    rightOption.textContent = displayDiskName(disks[i].name);
+    leftDiskDropdown.append(leftOption);
+    rightDiskDropdown.append(rightOption);
   }
 }
 
@@ -4434,6 +4449,7 @@ async function renameItemsWithFormat(
     ext,
   });
   await listDirectories();
+  scheduleDiskUsageRefresh();
 }
 
 function closeMultiRenamePopup() {
@@ -4810,6 +4826,7 @@ async function startYtDownload(
   await invoke("download_yt_video", { appWindow, url, quality });
   finishProgressBar();
   await listDirectories();
+  scheduleDiskUsageRefresh();
 }
 
 async function closeYtDownloadPopup() {
@@ -4850,6 +4867,7 @@ async function showExtraContextMenu(e, item) {
       item.remove();
       contextMenu.remove();
       await invoke("arr_delete_items", { arrItems: excessItems });
+      scheduleDiskUsageRefresh();
     };
     contextMenu.append(cButton);
   }
@@ -4947,6 +4965,143 @@ function restoreCollapseState(sectionEl) {
     content.style.maxHeight = "0";
     header.setAttribute("aria-expanded", "false");
   }
+}
+
+function markSelectedDisk(path) {
+  document.querySelectorAll(".disk-site-nav-button").forEach((button) => {
+    button.classList.remove("active");
+  });
+}
+
+function displayDiskName(rawName = "") {
+  let name = rawName != null && rawName !== "" ? String(rawName) : "/";
+  if (name.length >= 2) {
+    let first = name[0];
+    let last = name[name.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      return name.slice(1, -1) || "/";
+    }
+  }
+  return name;
+}
+
+function getDiskUsedPercentage(mount) {
+  let capacity = parseFloat(mount?.capacity);
+  let avail = parseFloat(mount?.avail);
+  let rawUsedPercentage = 100 - (100 / capacity) * avail;
+  return Number.isFinite(rawUsedPercentage)
+    ? Math.min(100, Math.max(0, rawUsedPercentage))
+    : 0;
+}
+
+function updateSidebarDiskButtonUsage(button, mount) {
+  let usedPercentage = getDiskUsedPercentage(mount).toFixed(2);
+  let displayName = displayDiskName(mount?.name);
+  let nameLabel = button.querySelector(".disk-nav-name");
+  let usageLabel = button.querySelector(".disk-nav-usage");
+  let progressFill = button.querySelector(".disk-nav-progress-fill");
+
+  if (nameLabel) nameLabel.textContent = displayName;
+  if (usageLabel) usageLabel.textContent = `${usedPercentage}%`;
+  if (progressFill) progressFill.style.width = `${usedPercentage}%`;
+  button.title = `${displayName} • ${usedPercentage}% used`;
+}
+
+let DiskUsageRefreshTimer = null;
+
+function scheduleDiskUsageRefresh(delay = 250) {
+  clearTimeout(DiskUsageRefreshTimer);
+  DiskUsageRefreshTimer = setTimeout(() => {
+    refreshDiskSidebarUsage();
+  }, delay);
+}
+
+async function refreshDiskSidebarUsage() {
+  try {
+    let disks = await invoke("list_disks");
+    let disksByPath = new Map(disks.map((disk) => [disk.path, disk]));
+    document.querySelectorAll(".disk-site-nav-button").forEach((button) => {
+      let path = button.dataset.itempath || button.getAttribute("itempath") || "";
+      let mount = disksByPath.get(path);
+      if (mount) updateSidebarDiskButtonUsage(button, mount);
+    });
+  } catch (error) {
+    writeLog(`Failed to refresh disk usage: ${error}`);
+  }
+}
+
+window.scheduleDiskUsageRefresh = scheduleDiskUsageRefresh;
+
+function createSidebarDiskButton(mount, pathOverride = "") {
+  const path = pathOverride || mount.path || "";
+  const name = displayDiskName(mount.name);
+  const usedPercentage = getDiskUsedPercentage(mount).toFixed(2);
+  const diskButton = document.createElement("button");
+
+  diskButton.dataset.itempath = path;
+  diskButton.setAttribute("itempath", path);
+  diskButton.className = "site-nav-bar-button disk-site-nav-button";
+  diskButton.title = `${name} • ${usedPercentage}% used`;
+
+  const treeElbow = document.createElement("span");
+  treeElbow.className = "disk-tree-elbow";
+  treeElbow.setAttribute("aria-hidden", "true");
+
+  const icon = document.createElement("i");
+  icon.className = "fa-solid fa-hard-drive disk-nav-icon";
+  icon.setAttribute("aria-hidden", "true");
+
+  const copy = document.createElement("span");
+  copy.className = "disk-nav-copy";
+
+  const nameLabel = document.createElement("span");
+  nameLabel.className = "disk-nav-name";
+  nameLabel.textContent = name;
+
+  const usageLabel = document.createElement("span");
+  usageLabel.className = "disk-nav-usage";
+  usageLabel.textContent = `${usedPercentage}%`;
+
+  const usageRow = document.createElement("span");
+  usageRow.className = "disk-nav-usage-row";
+
+  const progressTrack = document.createElement("span");
+  progressTrack.className = "disk-nav-progress-track";
+  progressTrack.setAttribute("aria-hidden", "true");
+
+  const progressFill = document.createElement("span");
+  progressFill.className = "disk-nav-progress-fill";
+  progressFill.style.width = `${usedPercentage}%`;
+
+  progressTrack.append(progressFill);
+  usageRow.append(usageLabel, progressTrack);
+  copy.append(nameLabel, usageRow);
+  diskButton.append(treeElbow, icon, copy);
+
+  diskButton.onclick = async () => {
+    await openDirAndSwitch(path);
+    await listDirectories();
+    markSelectedDisk(path);
+  };
+
+  if (mount.format.includes("SSHFS") || mount.is_removable == true) {
+    diskButton.oncontextmenu = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showCustomContextMenu(e, [
+        {
+          name: "Unmount",
+          icon: "fa-solid fa-eject",
+          onclick: () =>
+            mount.format.includes("SSHFS")
+              ? unmountNetworkDrive(mount)
+              : unmountDrive(mount),
+        },
+      ]);
+    };
+  }
+
+  return diskButton;
 }
 
 async function insertSiteNavButtons() {
@@ -5099,7 +5254,7 @@ async function insertSiteNavButtons() {
 
   // Disks collapsible section
   const diskSection = document.createElement("div");
-  diskSection.className = "collapse-section";
+  diskSection.className = "collapse-section disk-collapse-section";
   diskSection.dataset.section = "disks";
 
   const diskHeader = document.createElement("button");
@@ -5125,37 +5280,7 @@ async function insertSiteNavButtons() {
 
   if (disks.length > 0) {
     disks.forEach((mount) => {
-      let diskButton = document.createElement("button");
-      diskButton.dataset.itempath = mount.path;
-      diskButton.className = "site-nav-bar-button disk-site-nav-button";
-      diskButton.innerHTML = `
-          <i class="fa-solid fa-hard-drive"></i>
-          <div style="width: 100%; display: flex; flex-flow: column;">
-            <p style="width: 90%; font-size: x-small; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mount.name != "" ? mount.name : "/"}</p>
-            <div style="font-size: x-small; color: var(--textColor2)">${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%</div>
-          </div>`;
-      diskButton.onclick = async () => {
-        await openDirAndSwitch(mount.path);
-        await listDirectories();
-      };
-      diskButton.style.background = `linear-gradient(to right, var(--selectColor3) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
-      diskButton.style.backgroundRepeat = "no-repeat";
-      if (mount.format.includes("SSHFS") || mount.is_removable == true) {
-        diskButton.oncontextmenu = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          showCustomContextMenu(e, [
-            {
-              name: "Unmount",
-              onclick: () =>
-                mount.format.includes("SSHFS")
-                  ? unmountNetworkDrive(mount)
-                  : unmountDrive(mount),
-            },
-          ]);
-        };
-      }
-      diskContainer.append(diskButton);
+      diskContainer.append(createSidebarDiskButton(mount));
     });
   }
 
@@ -5353,8 +5478,19 @@ function showCustomContextMenu(e, contextMenuItems = [{}]) {
   customContextMenu.className = "custom-context-menu";
   contextMenuItems.map((item) => {
     let newButton = document.createElement("button");
-    newButton.innerHTML = item.name;
     newButton.className = "c-item-custom";
+    if (item.icon) {
+      let icon = document.createElement("i");
+      icon.className = `c-item-custom-icon ${item.icon}`;
+      icon.setAttribute("aria-hidden", "true");
+
+      let label = document.createElement("span");
+      label.textContent = item.name;
+
+      newButton.append(icon, label);
+    } else {
+      newButton.textContent = item.name;
+    }
     newButton.onclick = () => {
       item.onclick();
       closeCustomContextMenu();
@@ -5412,47 +5548,14 @@ async function handleMountChanges() {
 
 async function addNewMount(payload) {
   let path = payload.paths[0];
-  let name = path.split("/")[path.split("/").length - 1];
-  let diskButton = document.createElement("button");
-
   let mount = await invoke("get_disk_info", { path });
-
-  diskButton.dataset.itempath = path.replaceAll('"', "");
-  diskButton.className = "site-nav-bar-button disk-site-nav-button";
-  diskButton.innerHTML = `
-      <i class="fa-solid fa-hard-drive"></i>
-      <div style="width: 100%; display: flex; flex-flow: column;">
-      <p style="width: 90%; font-size: x-small; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mount.name != "" ? mount.name.replaceAll('"', "") : "/"}</p>
-        <div style="float: right; font-size: x-small; color: var(--textColor2)">${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%</div>
-      </div>`;
-  diskButton.onclick = async () => {
-    await openDirAndSwitch(path);
-    await listDirectories();
-  };
-  // Show space left with gradient
-  diskButton.style.background = `linear-gradient(to right, var(--selectColor3) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
-  diskButton.style.backgroundRepeat = "no-repeat";
-  console.log(mount);
-  diskButton.oncontextmenu = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    showCustomContextMenu(e, [
-      {
-        name: "Unmount",
-        onclick: () =>
-          mount.format.includes("SSHFS")
-            ? unmountNetworkDrive(mount)
-            : unmountDrive(mount),
-      },
-    ]);
-  };
-  document.querySelector(".disk-container").append(diskButton);
+  document.querySelector(".disk-container")?.append(createSidebarDiskButton(mount, path));
 }
 
 async function removeMount(mount) {
   let path = mount.paths[0];
-  let diskButton = document.querySelector(
-    `.disk-site-nav-button[data-itempath="${path}"]`,
+  let diskButton = Array.from(document.querySelectorAll(".disk-site-nav-button")).find(
+    (button) => button.dataset.itempath === path,
   );
   if (!diskButton) return;
   diskButton.remove();

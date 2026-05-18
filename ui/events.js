@@ -100,9 +100,9 @@ listen("fs-mount-changed", (event) => {
 
 listen("watcher-event", (event) => {
   setTimeout(async () => {
-    if (event.payload.type == "create") { refreshView(); console.log("FS-Event: File was created")}
-    if (event.payload.type == "remove") { refreshView(); console.log("FS-Event: File was removed")}
-    if (event.payload.type == "rename") { refreshView(); console.log("FS-Event: File was renamed")}
+    if (event.payload.type == "create") { refreshView(); window.scheduleDiskUsageRefresh?.(); console.log("FS-Event: File was created")}
+    if (event.payload.type == "remove") { refreshView(); window.scheduleDiskUsageRefresh?.(); console.log("FS-Event: File was removed")}
+    if (event.payload.type == "rename") { refreshView(); window.scheduleDiskUsageRefresh?.(); console.log("FS-Event: File was renamed")}
     // if (event.payload.type == "modify") { refreshView(); console.log("FS-Event: File was modified")}
   }, 100);
 });
@@ -118,4 +118,7 @@ listen("update-progress-bar", (event) => {
 
 listen("finish-progress-bar", (event) => {
   finishProgressBar(event.payload);
+  if (typeof window.scheduleDiskUsageRefresh === "function") {
+    window.scheduleDiskUsageRefresh();
+  }
 });

@@ -49,6 +49,7 @@
   --selectColor3: rgba(11, 100, 253, 0.25);
   --sidebarHover: rgba(255, 255, 255, 0.08);
   --sidebarFocus: rgba(255, 255, 255, 0.12);
+  --sidebarConnector: rgba(255, 255, 255, 0.18);
 
   /* Popup glassmorphism tokens */
   --glass-bg: color-mix(in srgb, var(--primaryColor) 85%, transparent);
@@ -365,36 +366,156 @@ body {
   background-color: var(--sidebarFocus) !important;
 }
 
-.disk-site-nav-button {
-  height: 35px;
-  min-height: 35px;
-  color: var(--textColor);
-  /*text-shadow: 0 0 5px rgba(0, 0, 0, 0.75);*/
-  border: 1px solid transparent;
-  box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.1);
-  background-color: var(--secondaryColor);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 8px 24px rgba(0, 0, 0, 0.12);
-  transition:
-    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    background-color 0.2s ease !important;
-}
-.disk-site-nav-button:hover {
-  background-color: var(--sidebarHover) !important;
-}
-
 .disk-container {
   display: flex;
   flex-flow: column;
   width: 100%;
-  margin-top: 5px;
+  margin-top: 0;
   gap: 2px;
+  padding: 0 0 2px 0;
   overflow-y: auto;
   overflow-x: hidden;
   flex-shrink: 0;
+  position: relative;
+}
+
+.disk-container::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: -5px;
+  bottom: 16px;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--sidebarConnector) 70%, transparent),
+    color-mix(in srgb, var(--sidebarConnector) 35%, transparent)
+  );
+  pointer-events: none;
+}
+
+.disk-site-nav-button {
+  width: calc(100% - 18px);
+  min-height: 34px;
+  height: 34px;
+  margin-left: 16px;
+  padding: 4px 7px 4px 6px;
+  gap: 6px;
+  position: relative;
+  isolation: isolate;
+  color: var(--textColor);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  box-shadow: none;
+  overflow: visible;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.12s ease !important;
+}
+
+.disk-site-nav-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: transparent;
+  opacity: 0;
+  z-index: -1;
+}
+
+.disk-site-nav-button:hover {
+  background-color: var(--sidebarHover) !important;
+  border-color: color-mix(in srgb, var(--tertiaryColor) 45%, transparent) !important;
+}
+
+.disk-site-nav-button:focus-visible {
+  background-color: color-mix(in srgb, var(--sidebarFocus) 78%, transparent) !important;
+  border-color: color-mix(in srgb, var(--selectColor2) 55%, transparent) !important;
+  box-shadow: none;
+}
+
+.disk-site-nav-button .disk-tree-elbow {
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  width: 7px;
+  height: 1px;
+  background: color-mix(in srgb, var(--sidebarConnector) 65%, transparent);
+  pointer-events: none;
+}
+
+.disk-nav-icon {
+  color: var(--textColor2);
+  font-size: 10px;
+  width: 11px;
+  text-align: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.disk-nav-copy {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-flow: column;
+  gap: 2px;
+  line-height: 1.15;
+}
+
+.disk-nav-name,
+.disk-nav-usage,
+.disk-nav-usage-row {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.disk-nav-name {
+  width: 100%;
+  font-size: calc(var(--fontSize) * 0.9);
+  color: var(--textColor);
+}
+
+.disk-nav-usage {
+  font-size: calc(var(--fontSize) * 0.76);
+  color: var(--textColor2);
+  flex: 0 0 auto;
+}
+
+.disk-nav-usage-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.disk-nav-progress-track {
+  flex: 1 1 auto;
+  min-width: 18px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--textColor2) 18%, transparent);
+}
+
+.disk-nav-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--selectColor2) 72%, var(--textColor2));
+  transition: width 0.18s ease;
+}
+
+.disk-site-nav-button:hover .disk-nav-icon {
+  color: var(--textColor);
+}
+
+.disk-site-nav-button:hover .disk-nav-progress-fill {
+  background: var(--selectColor2);
 }
 .disk-container::-webkit-scrollbar {
   padding: 5px;
@@ -2193,6 +2314,20 @@ button > svg {
   color: var(--textColor2);
 }
 
+.disk-collapse-section {
+  margin-top: 4px;
+}
+
+.disk-collapse-section .collapse-header {
+  height: 30px;
+  min-height: 30px;
+  color: var(--textColor3);
+}
+
+.disk-collapse-section .collapse-header-left > i {
+  color: color-mix(in srgb, var(--selectColor2) 75%, var(--textColor2));
+}
+
 .collapse-chevron {
   font-size: 9px;
   color: var(--textColor2);
@@ -3756,6 +3891,9 @@ button > svg {
     box-shadow 0.18s ease;
 }
 .c-item-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 7px 10px;
   border: none;
   border-radius: 8px;
@@ -3766,6 +3904,11 @@ button > svg {
   background-color: transparent;
   color: var(--textColor);
   font-size: var(--fontSize);
+}
+.c-item-custom-icon {
+  width: 14px;
+  text-align: center;
+  color: var(--textColor2);
 }
 .c-item-custom:hover {
   background-color: var(--sidebarHover);
