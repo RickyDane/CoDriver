@@ -2250,6 +2250,7 @@ async fn ai_upscale_image(
     from_path: String,
     aspect_ratio: String,
     output_path: String,
+    creative: bool,
 ) -> Result<(), String> {
     use base64::prelude::*;
     
@@ -2273,6 +2274,12 @@ async fn ai_upscale_image(
         api_key
     );
 
+    let description_prompt = if creative {
+        "Analyze this image and write a highly detailed, descriptive, professional prompt to re-generate this exact image in ultra-high resolution. Focus on preserving the core layout and subject matter, but creatively enhance details, textures, clarity, lighting, and visual appeal for an outstanding aesthetic result. Only output the prompt, nothing else."
+    } else {
+        "Analyze this image and write a highly detailed, descriptive prompt to re-generate this exact image in ultra-high resolution. You must instruct the generator to keep the image exactly as-is: do not creatively re-interpret, do not add or subtract subjects, and preserve the original composition, layout, color palette, text, and overall style completely. The goal is a high-fidelity super-resolution upscale that maintains total fidelity to the original. Only output the prompt, nothing else."
+    };
+
     let gemini_payload = serde_json::json!({
         "contents": [
             {
@@ -2284,7 +2291,7 @@ async fn ai_upscale_image(
                         }
                     },
                     {
-                        "text": "Analyze this image and write a highly detailed, descriptive, professional prompt to re-generate this exact image in ultra-high resolution. Focus on preserving all key elements, colors, subject matter, composition, and style, but enhance details, textures, and clarity. Only output the prompt, nothing else."
+                        "text": description_prompt
                     }
                 ]
             }
@@ -2317,11 +2324,17 @@ async fn ai_upscale_image(
         .trim()
         .to_string();
 
-    // 2. Call gemini-3.1-flash-image-preview (Nano Banana Flash 2) to generate the high-res image
+    // 2. Call gemini-3.1-flash-image-preview to generate the high-res image
     let imagen_url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key={}",
         api_key
     );
+
+    let final_instruction = if creative {
+        format!("Creatively enhance and upscale this image to ultra-high resolution based on this description: {}. Focus on maintaining the core subject and layout, but feel free to beautify details, lighting, and textures.", detailed_prompt)
+    } else {
+        format!("Upscale this image to ultra-high resolution based on this description: {}. You must keep this image exactly as-is: do not change the subject, character's face, hair, orientation, posture, style, colors, background, or lighting. Maintain total visual identity and pixel structure fidelity to the original.", detailed_prompt)
+    };
 
     let imagen_payload = serde_json::json!({
         "contents": [
@@ -2329,7 +2342,13 @@ async fn ai_upscale_image(
                 "role": "user",
                 "parts": [
                     {
-                        "text": detailed_prompt
+                        "inlineData": {
+                            "mimeType": mime_type,
+                            "data": img_base64
+                        }
+                    },
+                    {
+                        "text": final_instruction
                     }
                 ]
             }

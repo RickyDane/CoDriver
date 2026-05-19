@@ -1940,11 +1940,11 @@ async function showImageEditPopup(item) {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
   })[c]);
 
-  const upscaleItem = item || ArrSelectedItems[0];
-  if (!upscaleItem) return;
+  const editItem = item || ArrSelectedItems[0];
+  if (!editItem) return;
 
-  const path = upscaleItem.getAttribute("itempath");
-  const filename = upscaleItem.getAttribute("itemname");
+  const path = editItem.getAttribute("itempath");
+  const filename = editItem.getAttribute("itemname");
 
   let width = 0;
   let height = 0;
@@ -1974,12 +1974,15 @@ async function showImageEditPopup(item) {
       <button class="modal-tab-button active" data-tab="upscale" style="background: rgba(255, 255, 255, 0.08); border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor); cursor: pointer; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--selectColor2); margin-bottom: -1px; transition: all 0.15s ease;">
         <i class="fa-solid fa-expand"></i><span>Image Upscale</span>
       </button>
+      <button class="modal-tab-button" data-tab="enhance" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Enhancement</span>
+      </button>
       <button class="modal-tab-button" data-tab="style" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
         <i class="fa-solid fa-palette"></i><span>Edit Style</span>
       </button>
     </div>
 
-    <!-- Upscale Tab View -->
+    <!-- Image Upscale Tab View -->
     <div class="upscale-tab-view">
       <dl class="props-card__list">
         <div class="props-card__row">
@@ -2036,14 +2039,12 @@ async function showImageEditPopup(item) {
             <input type="text" class="props-card__input upscale-filename-input" value="" />
           </dd>
         </div>
-
         <div class="props-card__row">
           <dt class="props-card__label"><i class="fa-solid fa-arrows-left-right"></i>Size</dt>
           <dd class="props-card__value upscale-resolution-preview" style="font-family: monospace; font-size: 12px; color: var(--textColor2);">
             Fetching dimensions...
           </dd>
         </div>
-
         <div class="upscale-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
           <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
             <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>Gemini API Key is not configured.
@@ -2055,7 +2056,45 @@ async function showImageEditPopup(item) {
       </dl>
     </div>
 
-    <!-- Style Tab View -->
+    <!-- AI Enhancement Tab View -->
+    <div class="enhance-tab-view" style="display: none;">
+      <dl class="props-card__list">
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-vector-square"></i>Aspect Ratio</dt>
+          <dd class="props-card__value">
+            <select class="props-card__input enhance-aspect-select" style="cursor: pointer;">
+              <option value="1:1" selected>1:1 Square (1024x1024)</option>
+              <option value="16:9">16:9 Widescreen (1024x576)</option>
+              <option value="9:16">9:16 Portrait (576x1024)</option>
+              <option value="4:3">4:3 Standard (1024x768)</option>
+              <option value="3:4">3:4 Tall (768x1024)</option>
+            </select>
+          </dd>
+        </div>
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-file-signature"></i>Filename</dt>
+          <dd class="props-card__value">
+            <input type="text" class="props-card__input enhance-filename-input" value="" />
+          </dd>
+        </div>
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-info-circle"></i>Method</dt>
+          <dd class="props-card__value" style="font-size: 12px; color: var(--textColor2); line-height: 1.4;">
+            Analyzes and creatively regenerates a high-fidelity, high-resolution counterpart of your image using Gemini 3.1 Flash Image.
+          </dd>
+        </div>
+        <div class="enhance-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
+          <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
+            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>Gemini API Key is not configured.
+          </p>
+          <button class="props-card__btn" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="closeUpscalePopup(); openSettings(); showSettingsTab('ai', document.querySelector('.settings-sidebar button[onclick*=\\'ai\\']'));">
+            <i class="fa-solid fa-key" style="font-size: 10px;"></i>Configure Key
+          </button>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Edit Style Tab View -->
     <div class="style-tab-view" style="display: none;">
       <dl class="props-card__list">
         <div class="props-card__row">
@@ -2064,14 +2103,12 @@ async function showImageEditPopup(item) {
             <input type="text" class="props-card__input style-prompt-input" placeholder="e.g. Convert to cyberpunk oil painting" value="" />
           </dd>
         </div>
-
         <div class="props-card__row">
           <dt class="props-card__label"><i class="fa-solid fa-file-signature"></i>Filename</dt>
           <dd class="props-card__value">
             <input type="text" class="props-card__input style-filename-input" value="" />
           </dd>
         </div>
-
         <div class="style-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
           <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
             <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>Gemini API Key is not configured.
@@ -2090,8 +2127,11 @@ async function showImageEditPopup(item) {
       <button class="props-card__btn props-card__btn--primary upscale-item-button">
         <i class="fa-solid fa-arrows-up-to-line"></i><span>Upscale</span>
       </button>
+      <button class="props-card__btn props-card__btn--primary enhance-item-button" style="display: none;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i><span>Enhance</span>
+      </button>
       <button class="props-card__btn props-card__btn--primary style-item-button" style="display: none;">
-        <i class="fa-solid fa-wand-magic-sparkles"></i><span>Apply Style</span>
+        <i class="fa-solid fa-palette"></i><span>Apply Style</span>
       </button>
     </footer>
   `;
@@ -2102,6 +2142,7 @@ async function showImageEditPopup(item) {
 
   const scaleSelect = popup.querySelector(".upscale-scale-select");
   const filenameInput = popup.querySelector(".upscale-filename-input");
+  const enhanceFilenameInput = popup.querySelector(".enhance-filename-input");
   const styleFilenameInput = popup.querySelector(".style-filename-input");
   const resPreview = popup.querySelector(".upscale-resolution-preview");
   const methodSelect = popup.querySelector(".upscale-method-select");
@@ -2110,7 +2151,40 @@ async function showImageEditPopup(item) {
   const baseName = dotIndex !== -1 ? filename.substring(0, dotIndex) : filename;
   const extName = dotIndex !== -1 ? filename.substring(dotIndex) : "";
   filenameInput.value = `${baseName}_4x${extName}`;
+  enhanceFilenameInput.value = `${baseName}_ai_enhanced${extName}`;
   styleFilenameInput.value = `${baseName}_styled${extName}`;
+
+  const updateMethodFields = () => {
+    const method = methodSelect.value;
+    const standardRows = popup.querySelectorAll(".upscale-standard-row");
+    const aiRows = popup.querySelectorAll(".upscale-ai-row");
+    const apiKeyWarning = popup.querySelector(".upscale-api-key-warning");
+
+    if (method === "ai") {
+      standardRows.forEach(r => r.style.display = "none");
+      aiRows.forEach(r => r.style.display = "flex");
+
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) {
+        apiKeyWarning.style.display = "block";
+        popup.querySelector(".upscale-item-button").disabled = true;
+      } else {
+        apiKeyWarning.style.display = "none";
+        popup.querySelector(".upscale-item-button").disabled = false;
+      }
+
+      resPreview.innerHTML = `<span style="color: var(--textColor); font-weight: bold;"><i class="fa-solid fa-expand" style="margin-right: 6px; color: var(--selectColor2);"></i>AI Super-Resolution (Fidelity-preserving)</span>`;
+      filenameInput.value = `${baseName}_ai_upscaled${extName}`;
+    } else {
+      standardRows.forEach(r => r.style.display = "flex");
+      aiRows.forEach(r => r.style.display = "none");
+      apiKeyWarning.style.display = "none";
+      popup.querySelector(".upscale-item-button").disabled = false;
+      updateResolutionPreview();
+    }
+  };
+
+  methodSelect.addEventListener("change", updateMethodFields);
 
   // Tabs switching logic
   popup.querySelectorAll(".modal-tab-button").forEach(btn => {
@@ -2133,13 +2207,36 @@ async function showImageEditPopup(item) {
       
       if (tabName === "upscale") {
         popup.querySelector(".upscale-tab-view").style.display = "block";
+        popup.querySelector(".enhance-tab-view").style.display = "none";
         popup.querySelector(".style-tab-view").style.display = "none";
         popup.querySelector(".upscale-item-button").style.display = "inline-flex";
+        popup.querySelector(".enhance-item-button").style.display = "none";
         popup.querySelector(".style-item-button").style.display = "none";
+        updateMethodFields();
+      } else if (tabName === "enhance") {
+        popup.querySelector(".upscale-tab-view").style.display = "none";
+        popup.querySelector(".enhance-tab-view").style.display = "block";
+        popup.querySelector(".style-tab-view").style.display = "none";
+        popup.querySelector(".upscale-item-button").style.display = "none";
+        popup.querySelector(".enhance-item-button").style.display = "inline-flex";
+        popup.querySelector(".style-item-button").style.display = "none";
+        
+        // Validate API key for Enhance tab
+        const apiKey = getGeminiApiKey();
+        const enhanceWarning = popup.querySelector(".enhance-api-key-warning");
+        if (!apiKey) {
+          enhanceWarning.style.display = "block";
+          popup.querySelector(".enhance-item-button").disabled = true;
+        } else {
+          enhanceWarning.style.display = "none";
+          popup.querySelector(".enhance-item-button").disabled = false;
+        }
       } else {
         popup.querySelector(".upscale-tab-view").style.display = "none";
+        popup.querySelector(".enhance-tab-view").style.display = "none";
         popup.querySelector(".style-tab-view").style.display = "block";
         popup.querySelector(".upscale-item-button").style.display = "none";
+        popup.querySelector(".enhance-item-button").style.display = "none";
         popup.querySelector(".style-item-button").style.display = "inline-flex";
         
         // Check API key for Style tab
@@ -2169,41 +2266,12 @@ async function showImageEditPopup(item) {
     }
   };
 
-  const updateMethodFields = () => {
-    const method = methodSelect.value;
-    const standardRows = popup.querySelectorAll(".upscale-standard-row");
-    const aiRows = popup.querySelectorAll(".upscale-ai-row");
-    const apiKeyWarning = popup.querySelector(".upscale-api-key-warning");
-
-    if (method === "ai") {
-      standardRows.forEach(r => r.style.display = "none");
-      aiRows.forEach(r => r.style.display = "flex");
-
-      const apiKey = getGeminiApiKey();
-      if (!apiKey) {
-        apiKeyWarning.style.display = "block";
-        popup.querySelector(".upscale-item-button").disabled = true;
-      } else {
-        apiKeyWarning.style.display = "none";
-        popup.querySelector(".upscale-item-button").disabled = false;
-      }
-
-      resPreview.innerHTML = `<span style="color: var(--textColor); font-weight: bold;"><i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 6px; color: #a855f7;"></i>AI Super-Resolution (Gemini)</span>`;
-      filenameInput.value = `${baseName}_ai_enhanced${extName}`;
-    } else {
-      standardRows.forEach(r => r.style.display = "flex");
-      aiRows.forEach(r => r.style.display = "none");
-      apiKeyWarning.style.display = "none";
-      popup.querySelector(".upscale-item-button").disabled = false;
-      updateResolutionPreview();
-    }
-  };
-
   scaleSelect.addEventListener("change", updateResolutionPreview);
-  methodSelect.addEventListener("change", updateMethodFields);
 
   filenameInput.addEventListener("focus", () => (IsInputFocused = true));
   filenameInput.addEventListener("blur", () => (IsInputFocused = false));
+  enhanceFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
+  enhanceFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
   styleFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
   styleFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
 
@@ -2219,6 +2287,12 @@ async function showImageEditPopup(item) {
   filenameInput.addEventListener("keyup", (e) => {
     if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
       popup.querySelector(".upscale-item-button").click();
+    }
+  });
+
+  enhanceFilenameInput.addEventListener("keyup", (e) => {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+      popup.querySelector(".enhance-item-button").click();
     }
   });
 
@@ -2244,7 +2318,7 @@ async function showImageEditPopup(item) {
       createNewAction(
         actionId,
         "AI Upscaling",
-        `${filename} via Gemini AI`,
+        `${filename} via Gemini AI (as-is)`,
         path
       );
 
@@ -2254,6 +2328,7 @@ async function showImageEditPopup(item) {
           fromPath: path,
           aspectRatio,
           outputPath,
+          creative: false,
         });
         showToast("AI Upscaling completed successfully", ToastType.SUCCESS);
       } catch (error) {
@@ -2287,6 +2362,46 @@ async function showImageEditPopup(item) {
         removeAction(actionId);
         await listDirectories();
       }
+    }
+  });
+
+  popup.querySelector(".enhance-item-button").addEventListener("click", async () => {
+    const outName = enhanceFilenameInput.value.trim();
+    if (!outName) {
+      alert("Please enter an output filename");
+      return;
+    }
+
+    const dir = path.substring(0, path.lastIndexOf('/'));
+    const outputPath = dir + "/" + outName;
+
+    closeUpscalePopup();
+
+    let actionId = crypto.randomUUID();
+    const apiKey = getGeminiApiKey();
+    const aspectRatio = popup.querySelector(".enhance-aspect-select").value;
+
+    createNewAction(
+      actionId,
+      "AI Enhancing",
+      `${filename} via Gemini AI (creative)`,
+      path
+    );
+
+    try {
+      await invoke("ai_upscale_image", {
+        apiKey,
+        fromPath: path,
+        aspectRatio,
+        outputPath,
+        creative: true,
+      });
+      showToast("AI Enhancement completed successfully", ToastType.SUCCESS);
+    } catch (error) {
+      showToast(`AI Enhancement failed: ${error}`, ToastType.ERROR);
+    } finally {
+      removeAction(actionId);
+      await listDirectories();
     }
   });
 
@@ -2326,7 +2441,7 @@ async function showImageEditPopup(item) {
       });
       showToast("Image styling completed successfully", ToastType.SUCCESS);
     } catch (error) {
-      showToast(`Image styling failed: ${error}`, ToastType.ERROR);
+      showToast("Image styling failed: " + error, ToastType.ERROR);
     } finally {
       removeAction(actionId);
       await listDirectories();

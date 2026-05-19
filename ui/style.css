@@ -4529,9 +4529,12 @@ button>svg {
   width: min(520px, 92vw);
 }
 
-.compression-popup.props-card.props-card--wide,
-.upscale-popup.props-card.props-card--wide {
+.compression-popup.props-card.props-card--wide {
   width: min(420px, 92vw);
+}
+
+.upscale-popup.props-card.props-card--wide {
+  width: min(480px, 92vw);
 }
 
 .compression-popup .props-card__hero,
