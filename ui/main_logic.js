@@ -80,11 +80,14 @@ const cdCtMenu = new CDContextMenu();
 // :drag / Selec items via dragging
 
 ds.subscribe("DS:select", async (payload) => {
+  const isShift = window.event ? window.event.shiftKey : false;
+  const isCtrl = window.event ? window.event.ctrlKey : false;
+  const isMeta = window.event ? window.event.metaKey : false;
   if (
     payload.item == SelectedElement ||
-    IsShiftDown === true ||
-    IsCtrlDown === true ||
-    IsMetaDown === true ||
+    isShift === true ||
+    isCtrl === true ||
+    isMeta === true ||
     ArrSelectedItems.find(
       (itemOfArray) =>
         itemOfArray.getAttribute("itempath") ==
@@ -114,10 +117,8 @@ let CurrentDir = "/";
 let IsShowDisks = false;
 let IsShowHiddenFiles = false;
 
-let IsMetaDown = false;
-let IsCtrlDown = false;
-let IsShiftDown = false;
-let IsAltDown = false;
+
+
 
 let IsQuickSearchOpen = false;
 let ConfiguredPathOne = "";
@@ -281,9 +282,9 @@ async function stopFullSearch() {
 }
 
 document.addEventListener("keydown", async (e) => {
-  if (IsAltDown == true) return;
-  if (IsMetaDown == true) return;
-  if (IsCtrlDown == true) return;
+  if (e.altKey) return;
+  if (e.metaKey) return;
+  if (e.ctrlKey) return;
   if (e.key === "Escape") {
     if (IsQuickSearchOpen == true) {
       goUp(false, true);
@@ -314,9 +315,9 @@ document.addEventListener("keydown", async (e) => {
     IsInputFocused === false &&
     IsPopUpOpen === false &&
     isFormElementFocused === false &&
-    IsMetaDown === false &&
-    IsCtrlDown === false &&
-    IsShiftDown === false &&
+    !e.metaKey &&
+    !e.ctrlKey &&
+    !e.shiftKey &&
     !isShortcut(e.key) &&
     e.key != " "
   ) {
@@ -395,7 +396,7 @@ async function resetEverything() {
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
   if (e.buttons == 8) {
-    goBack();
+    goBack(e);
   }
 
   // Right-click is handled by the contextmenu event. Closing here causes the
@@ -489,7 +490,7 @@ document.addEventListener("contextmenu", (e) => {
     return;
   }
 
-  cdCtMenu.setSelectedItem(null);
+  cdCtMenu.setSelectedItem(null, e);
   cdCtMenu.show(e);
   return;
   e.preventDefault();
@@ -618,10 +619,6 @@ function isShortcut(key) {
 document.onkeydown = async (e) => {
   if (IsDisableShortcuts === false) {
     // Shortcut for jumping to configured directory
-    if (e.metaKey && Platform == "darwin") IsMetaDown = true;
-    if (e.ctrlKey && Platform != "darwin") IsCtrlDown = true;
-    if (e.key == "Shift") IsShiftDown = true;
-    if (e.key == "Alt") IsAltDown = true;
     if (e.altKey && e.code == "Digit1") {
       if (ConfiguredPathOne == "") return;
       openItem(null, SelectedItemPaneSide, ConfiguredPathOne);
@@ -649,7 +646,7 @@ document.onkeydown = async (e) => {
       }
       // check if backspace is pressed
       if (e.keyCode == 8 && IsPopUpOpen == false) {
-        goBack();
+        goBack(e);
         e.preventDefault();
         e.stopPropagation();
       }
@@ -661,7 +658,6 @@ document.onkeydown = async (e) => {
         if (isToMove == true) {
           IsCopyToCut = true;
           await pasteItem();
-          IsShiftDown = false;
         }
       }
       // check if f5 is pressed
@@ -713,21 +709,17 @@ document.onkeydown = async (e) => {
       }
 
       // Open disk dropdown / :dropdown :disk_dropdown
-      if (e.key == "F1" && (IsMetaDown == true || IsAltDown == true)) {
+      if (e.key == "F1" && (e.metaKey || e.altKey)) {
         let diskDropdown = document.querySelector(".left-disk-dropdown");
         let evt = document.createEvent("MouseEvents");
         evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
         diskDropdown.dispatchEvent(evt);
-        IsAltDown = false;
-        IsMetaDown = false;
-      } else if (e.key == "F2" && (IsMetaDown == true || IsAltDown == true)) {
+      } else if (e.key == "F2" && (e.metaKey || e.altKey)) {
         SelectedItemPaneSide = "right";
         let diskDropdown = document.querySelector(".right-disk-dropdown");
         let evt = document.createEvent("MouseEvents");
         evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
         diskDropdown.dispatchEvent(evt);
-        IsAltDown = false;
-        IsMetaDown = false;
       }
     } else if (IsItemPreviewOpen == true && IsDualPaneEnabled === true) {
       // check if arrow up is pressed
@@ -746,7 +738,7 @@ document.onkeydown = async (e) => {
 
     // Check if cmd / ctrl + shift + c is pressed
     if (
-      ((Platform != "darwin" && IsCtrlDown && e.altKey) ||
+      ((Platform != "darwin" && e.ctrlKey && e.altKey) ||
         (Platform == "darwin" && e.shiftKey)) &&
       e.key == "c"
     ) {
@@ -933,7 +925,7 @@ document.onkeydown = async (e) => {
           IsInputFocused === false &&
           ArrSelectedItems.length == 0
         ) {
-          goBack();
+          goBack(e);
           e.preventDefault();
           e.stopPropagation();
         }
@@ -946,7 +938,7 @@ document.onkeydown = async (e) => {
       IsInputFocused === false
     ) {
       if (
-        (IsMetaDown || IsCtrlDown || e.key == "Super") &&
+        (e.metaKey || e.ctrlKey || e.key == "Super") &&
         e.key.toLowerCase() == "k"
       ) {
         showCompressPopup(ArrSelectedItems[0]);
@@ -1003,10 +995,6 @@ document.onkeydown = async (e) => {
 // Reset key toggle
 document.onkeyup = (e) => {
   if (e.key == "G" || e.key == "g") IsGDown = false;
-  if (e.keyCode === 91 && Platform == "darwin") IsMetaDown = false;
-  if (e.key == "Control" && Platform != "darwin") IsCtrlDown = false;
-  if (e.key == "Shift") IsShiftDown = false;
-  if (e.key == "Alt") IsAltDown = false;
 };
 
 /* End of shortcut config */
@@ -1097,7 +1085,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     let itemLink = document.createElement("button");
     itemLink.setAttribute(
       "onclick",
-      "interactWithItem(this, '" + dualPaneSide + "')",
+      "interactWithItem(this, '" + dualPaneSide + "', null, event)",
     );
     let itemIconId = crypto.randomUUID();
     itemLink.setAttribute("itemiconid", itemIconId);
@@ -1213,7 +1201,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     item.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      cdCtMenu.setSelectedItem(item);
+      cdCtMenu.setSelectedItem(item, e);
       cdCtMenu.show(e);
     });
 
@@ -1325,7 +1313,7 @@ async function addSingleItem(
   let itemLink = document.createElement("button");
   itemLink.setAttribute(
     "onclick",
-    "interactWithItem(this, '" + dualPaneSide + "')",
+    "interactWithItem(this, '" + dualPaneSide + "', null, event)",
   );
   let itemIconId = crypto.randomUUID();
   itemLink.setAttribute("itemiconid", itemIconId);
@@ -1419,7 +1407,7 @@ async function addSingleItem(
   itemLink.addEventListener("contextmenu", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    cdCtMenu.setSelectedItem(itemLink);
+    cdCtMenu.setSelectedItem(itemLink, e);
     cdCtMenu.show(e);
   });
 
@@ -2738,7 +2726,7 @@ async function listDisks() {
       itemButton.style.width = "100%";
       itemLink.addEventListener("click", async (e) => {
         e.preventDefault();
-        await interactWithItem(itemLink, "");
+        await interactWithItem(itemLink, "", null, e);
       });
       itemLink.addEventListener("dblclick", async (e) => {
         e.preventDefault();
@@ -2747,7 +2735,7 @@ async function listDisks() {
       itemLink.addEventListener("contextmenu", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        cdCtMenu.setSelectedItem(itemLink);
+        cdCtMenu.setSelectedItem(itemLink, e);
         cdCtMenu.show(e);
       });
       itemLink.append(itemButton);
@@ -2829,6 +2817,7 @@ async function interactWithItem(
   element = null,
   dualPaneSide = "",
   shortcutPath = null,
+  e = null,
 ) {
   let isDir = element?.getAttribute("itemisdir");
   if (dualPaneSide == "left") {
@@ -2841,25 +2830,28 @@ async function interactWithItem(
     document.querySelector(".dual-pane-left").style.boxShadow = "none";
   }
 
+  const isMeta = e ? e.metaKey : (window.event ? window.event.metaKey : false);
+  const isShift = e ? e.shiftKey : (window.event ? window.event.shiftKey : false);
+
   // Interaction mode: Select
   if (
     element != null &&
     element != SelectedItemToOpen &&
     IsSelectMode == true &&
-    (isDir == 0 || ViewMode != "miller" || IsMetaDown == true)
+    (isDir == 0 || ViewMode != "miller" || isMeta == true)
   ) {
-    if (IsShiftDown === true) {
+    if (isShift === true) {
       if (IsDualPaneEnabled === false) {
         let firstIndex = parseInt(SelectedElement.getAttribute("itemindex"));
         let lastIndex = parseInt(element.getAttribute("itemindex"));
         unSelectAllItems();
         if (firstIndex < lastIndex) {
           for (let i = firstIndex; i <= lastIndex; i++) {
-            selectItem(DirectoryList.children[i]);
+            selectItem(DirectoryList.children[i], "", false, true, e);
           }
         } else {
           for (let i = firstIndex; i >= lastIndex; i--) {
-            selectItem(DirectoryList.children[i]);
+            selectItem(DirectoryList.children[i], "", false, true, e);
           }
         }
       } else {
@@ -2871,39 +2863,39 @@ async function interactWithItem(
           unSelectAllItems();
           if (firstIndex < lastIndex) {
             for (let i = firstIndex; i <= lastIndex; i++) {
-              selectItem(LeftPaneItemCollection.children[i]);
+              selectItem(LeftPaneItemCollection.children[i], "", false, true, e);
             }
           } else {
             for (let i = firstIndex; i >= lastIndex; i--) {
-              selectItem(LeftPaneItemCollection.children[i]);
+              selectItem(LeftPaneItemCollection.children[i], "", false, true, e);
             }
           }
         } else {
           let firstIndex = parseInt(
-            SelectedElement?.getAttribute("itemindex") ?? ß,
+            SelectedElement?.getAttribute("itemindex") ?? 0,
           );
           let lastIndex = parseInt(element.getAttribute("itemindex"));
           unSelectAllItems();
           if (firstIndex < lastIndex) {
             for (let i = firstIndex; i <= lastIndex; i++) {
-              selectItem(RightPaneItemCollection.children[i]);
+              selectItem(RightPaneItemCollection.children[i], "", false, true, e);
             }
           } else {
             for (let i = firstIndex; i >= lastIndex; i--) {
-              selectItem(RightPaneItemCollection.children[i]);
+              selectItem(RightPaneItemCollection.children[i], "", false, true, e);
             }
           }
         }
       }
     } else {
-      await selectItem(element);
+      await selectItem(element, "", false, true, e);
     }
   }
   // Interaction mode: Open item
   else if (
     (element != null &&
       (element == SelectedItemToOpen || IsSelectMode == false)) ||
-    (isDir == 1 && ViewMode == "miller" && IsMetaDown == false)
+    (isDir == 1 && ViewMode == "miller" && isMeta == false)
   ) {
     await openItem(element, dualPaneSide, shortcutPath);
   }
@@ -2969,6 +2961,7 @@ async function selectItem(
   dualPaneSide = "",
   isNotReset = false,
   triggerCalculation = true,
+  e = null,
 ) {
   if (element == null || element == undefined) {
     return;
@@ -2978,12 +2971,16 @@ async function selectItem(
   let path = element?.getAttribute("itempath");
   let index = element?.getAttribute("itemindex");
 
+  const isMeta = e ? e.metaKey : (window.event ? window.event.metaKey : false);
+  const isCtrl = e ? e.ctrlKey : (window.event ? window.event.ctrlKey : false);
+  const isShift = e ? e.shiftKey : (window.event ? window.event.shiftKey : false);
+
   // Reset colored selection
   if (
     SelectedElement != null &&
-    IsMetaDown == false &&
-    IsCtrlDown == false &&
-    IsShiftDown == false &&
+    isMeta == false &&
+    isCtrl == false &&
+    isShift == false &&
     isNotReset === false
   ) {
     ArrSelectedItems.forEach((item) => {
@@ -3199,8 +3196,11 @@ async function goHome() {
   }
 }
 
-async function goBack() {
-  console.log("Going back", IsMetaDown, IsAltDown, IsCtrlDown);
+async function goBack(e = null) {
+  const isMeta = e ? e.metaKey : (window.event ? window.event.metaKey : false);
+  const isAlt = e ? e.altKey : (window.event ? window.event.altKey : false);
+  const isCtrl = e ? e.ctrlKey : (window.event ? window.event.ctrlKey : false);
+  console.log("Going back", isMeta, isAlt, isCtrl);
   if (IsDualPaneEnabled === true) {
     if (SelectedItemPaneSide == "left") {
       LeftPaneItemIndex = LastLeftPaneIndex ?? 0;
@@ -3208,7 +3208,7 @@ async function goBack() {
       RightPaneItemIndex = LastRightPaneIndex ?? 0;
     }
   }
-  if (IsMetaDown == false) {
+  if (isMeta == false) {
     await invoke("go_back", { isDualPane: IsDualPaneEnabled });
     await listDirectories();
   }

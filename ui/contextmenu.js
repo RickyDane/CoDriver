@@ -180,13 +180,15 @@ class CDContextMenu {
     }, 120);
   }
 
-  setSelectedItem(item) {
+  setSelectedItem(item, e = null) {
     this.selectedItem = item;
     this.setupItems();
     if (!ArrSelectedItems.includes(item)) {
+      const isMeta = e ? e.metaKey : (window.event ? window.event.metaKey : false);
+      const isCtrl = e ? e.ctrlKey : (window.event ? window.event.ctrlKey : false);
       if (ArrSelectedItems.length === 0) {
         selectItem(item, "", true, false);
-      } else if (IsMetaDown || IsCtrlDown) {
+      } else if (isMeta || isCtrl) {
         selectItem(item, "", true, false);
       } else {
         unSelectAllItems();
