@@ -1450,6 +1450,21 @@ async function setCurrentDir(currentDir = "", dualPaneSide = "", syncBackend = t
   try {
     if (currentDir == "") return;
 
+    if (IsDualPaneEnabled && typeof comparisonActive !== "undefined" && comparisonActive) {
+      clearComparisonVisuals();
+      comparisonActive = false;
+      comparisonResults = null;
+      const syncBtn = document.getElementById("dual-pane-sync-btn");
+      if (syncBtn) {
+        syncBtn.setAttribute("disabled", "true");
+        syncBtn.classList.add("disabled");
+      }
+      const clearBtn = document.getElementById("dual-pane-clear-btn");
+      if (clearBtn) {
+        clearBtn.style.display = "none";
+      }
+    }
+
     if (dualPaneSide != "") {
       SelectedItemPaneSide = dualPaneSide;
     }
@@ -2163,14 +2178,14 @@ async function showDestinationConflictPopup(conflict, index, total) {
         <section class="destination-conflict-card">
           <h4>Incoming item</h4>
           <p class="destination-conflict-name" title="${escapeHtml(conflict.item.path)}">${escapeHtml(conflict.item.name)}</p>
-          <p class="text-2">${escapeHtml(formatConflictMeta(conflict.item))}</p>
-          <p class="text-2" title="${escapeHtml(conflict.item.path)}">From: ${escapeHtml(normalizePath(conflict.item.path).split("/").slice(0, -1).join("/") || "/")}</p>
+          <p class="text-2"><i class="fa-regular fa-clock" style="font-size: 11px;"></i> ${escapeHtml(formatConflictMeta(conflict.item))}</p>
+          <p class="text-2" title="${escapeHtml(conflict.item.path)}"><i class="fa-solid fa-folder-open" style="font-size: 11px;"></i> From: ${escapeHtml(normalizePath(conflict.item.path).split("/").slice(0, -1).join("/") || "/")}</p>
         </section>
         <section class="destination-conflict-card">
           <h4>Existing item</h4>
           <p class="destination-conflict-name" title="${escapeHtml(conflict.existing.path)}">${escapeHtml(conflict.existing.name)}</p>
-          <p class="text-2">${escapeHtml(formatConflictMeta(conflict.existing))}</p>
-          <p class="text-2" title="${escapeHtml(conflict.destinationPath)}">In: ${escapeHtml(normalizePath(conflict.destinationPath).split("/").slice(0, -1).join("/") || "/")}</p>
+          <p class="text-2"><i class="fa-regular fa-clock" style="font-size: 11px;"></i> ${escapeHtml(formatConflictMeta(conflict.existing))}</p>
+          <p class="text-2" title="${escapeHtml(conflict.destinationPath)}"><i class="fa-solid fa-location-dot" style="font-size: 11px;"></i> In: ${escapeHtml(normalizePath(conflict.destinationPath).split("/").slice(0, -1).join("/") || "/")}</p>
         </section>
       </div>
       <fieldset class="destination-conflict-options">
@@ -2790,21 +2805,23 @@ async function refreshView() {
 }
 
 async function refreshBothViews(dualPaneSide = "") {
-  switch (dualPaneSide) {
-    case "left":
-      await setCurrentDir(RightDualPanePath, "right");
-      await listDirectories();
-      await setCurrentDir(LeftDualPanePath, "left");
-      await listDirectories();
-      goUp(false, true);
-      break;
-    case "right":
-      await setCurrentDir(LeftDualPanePath, "left");
-      await listDirectories();
-      await setCurrentDir(RightDualPanePath, "right");
-      await listDirectories();
-      goUp(false, true);
-      break;
+  if (IsDualPaneEnabled == true) {
+    const origSide = dualPaneSide || SelectedItemPaneSide || "left";
+    const otherSide = origSide === "left" ? "right" : "left";
+    const origPath = origSide === "left" ? LeftDualPanePath : RightDualPanePath;
+    const otherPath = origSide === "left" ? RightDualPanePath : LeftDualPanePath;
+
+    // Refresh the inactive pane first
+    await setCurrentDir(otherPath, otherSide);
+    await listDirectories();
+
+    // Refresh the active pane second, ensuring focus and state remain on the correct side
+    await setCurrentDir(origPath, origSide);
+    await listDirectories();
+
+    goUp(false, true);
+  } else {
+    await listDirectories();
   }
 }
 
@@ -3882,6 +3899,9 @@ async function switchToDualPane() {
     document.querySelector(".switch-dualpane-view-button").innerHTML =
       `<i class="fa-solid fa-table-columns"></i>`;
     await switchView(OrgViewMode);
+    if (typeof clearComparison === "function") {
+      clearComparison();
+    }
   }
   await saveConfig(false, false);
 }
@@ -5585,6 +5605,398 @@ async function removeMount(mount) {
   );
   if (!diskButton) return;
   diskButton.remove();
+}
+
+// --- Dual Pane Directory Comparison & Sync Features ---
+var comparisonActive = false;
+var comparisonResults = null;
+
+function compareDualPanes() {
+  if (!IsDualPaneEnabled) return;
+  
+  // Get all items in left and right panes
+  const leftItems = Array.from(document.querySelectorAll(".dual-pane-left .item-link"));
+  const rightItems = Array.from(document.querySelectorAll(".dual-pane-right .item-link"));
+  
+  // Clear any previous badges / classes
+  clearComparisonVisuals();
+  
+  if (leftItems.length === 0 && rightItems.length === 0) {
+    showToast("No items to compare.", ToastType.INFO);
+    return;
+  }
+  
+  // Store results for sync operation
+  comparisonResults = {
+    leftOnly: [],     // Paths of items only in left pane
+    rightOnly: [],    // Paths of items only in right pane
+    different: [],    // Paths of items in left pane that are different from right pane
+    identical: []     // Paths of identical items
+  };
+  
+  // Map right items by name for quick lookup
+  const rightMap = new Map();
+  rightItems.forEach(item => {
+    const name = item.getAttribute("itemname");
+    const isDir = item.getAttribute("itemisdir");
+    const rawSize = parseInt(item.getAttribute("itemrawsize")) || 0;
+    const modified = item.getAttribute("itemmodified");
+    const path = item.getAttribute("itempath");
+    if (name && name !== "..") {
+      rightMap.set(name + "|" + isDir, { item, rawSize, modified, path });
+    }
+  });
+  
+  // Map left items by name for quick lookup
+  const leftMap = new Map();
+  leftItems.forEach(item => {
+    const name = item.getAttribute("itemname");
+    const isDir = item.getAttribute("itemisdir");
+    const rawSize = parseInt(item.getAttribute("itemrawsize")) || 0;
+    const modified = item.getAttribute("itemmodified");
+    const path = item.getAttribute("itempath");
+    if (name && name !== "..") {
+      leftMap.set(name + "|" + isDir, { item, rawSize, modified, path });
+    }
+  });
+  
+  // 1. Process Left Items
+  leftItems.forEach(item => {
+    const name = item.getAttribute("itemname");
+    const isDir = item.getAttribute("itemisdir");
+    const leftRawSize = parseInt(item.getAttribute("itemrawsize")) || 0;
+    const leftModified = item.getAttribute("itemmodified");
+    const leftPath = item.getAttribute("itempath");
+    
+    if (!name || name === "..") return;
+    
+    const key = name + "|" + isDir;
+    if (rightMap.has(key)) {
+      const rightItem = rightMap.get(key);
+      const isSizeDiff = leftRawSize !== rightItem.rawSize;
+      const isModifiedDiff = leftModified !== rightItem.modified;
+      
+      if (isSizeDiff || isModifiedDiff) {
+        // Different / Mismatched
+        markItem(item, "different", "Mismatch");
+        markItem(rightItem.item, "different", "Mismatch");
+        comparisonResults.different.push({
+          leftPath: leftPath,
+          rightPath: rightItem.path,
+          name: name,
+          isDir: isDir === "1",
+          leftSize: leftRawSize,
+          rightSize: rightItem.rawSize,
+          leftModified: leftModified,
+          rightModified: rightItem.modified
+        });
+      } else {
+        // Identical
+        markItem(item, "identical");
+        markItem(rightItem.item, "identical");
+        comparisonResults.identical.push({ leftPath, rightPath: rightItem.path });
+      }
+    } else {
+      // Left only
+      markItem(item, "left-only", "New");
+      comparisonResults.leftOnly.push({
+        path: leftPath,
+        name: name,
+        isDir: isDir === "1"
+      });
+    }
+  });
+  
+  // 2. Process Right Items for Right-Only
+  rightItems.forEach(item => {
+    const name = item.getAttribute("itemname");
+    const isDir = item.getAttribute("itemisdir");
+    const rightPath = item.getAttribute("itempath");
+    
+    if (!name || name === "..") return;
+    
+    const key = name + "|" + isDir;
+    if (!leftMap.has(key)) {
+      // Right only
+      markItem(item, "right-only", "New");
+      comparisonResults.rightOnly.push({
+        path: rightPath,
+        name: name,
+        isDir: isDir === "1"
+      });
+    }
+  });
+  
+  comparisonActive = true;
+  document.getElementById("dual-pane-clear-btn").style.display = "inline-flex";
+  
+  // Enable/disable sync button depending on results
+  const hasDiffs = comparisonResults.leftOnly.length > 0 || 
+                   comparisonResults.rightOnly.length > 0 || 
+                   comparisonResults.different.length > 0;
+                     
+  const syncBtn = document.getElementById("dual-pane-sync-btn");
+  if (syncBtn) {
+    if (hasDiffs) {
+      syncBtn.removeAttribute("disabled");
+      syncBtn.classList.remove("disabled");
+      showToast(`Comparison complete. Found differences to sync.`, ToastType.SUCCESS);
+    } else {
+      syncBtn.setAttribute("disabled", "true");
+      syncBtn.classList.add("disabled");
+      showToast(`Comparison complete. Directories are identical!`, ToastType.SUCCESS);
+    }
+  }
+}
+
+function markItem(itemEl, type, label = "") {
+  const rowEl = itemEl.querySelector(".dual-pane-list-item");
+  if (!rowEl) return;
+  
+  rowEl.classList.add(`compare-${type}`);
+  
+  if (label) {
+    if (rowEl.querySelector(".compare-badge")) return;
+    
+    // Find the first span (where name is located)
+    const nameSpan = rowEl.querySelector(".item-button-list-info-span");
+    if (nameSpan) {
+      const badge = document.createElement("span");
+      badge.className = `compare-badge badge-${type}`;
+      badge.innerHTML = label;
+      nameSpan.appendChild(badge);
+    }
+  }
+}
+
+function clearComparisonVisuals() {
+  const items = document.querySelectorAll(".dual-pane-container .dual-pane-list-item");
+  items.forEach(item => {
+    item.classList.remove("compare-left-only", "compare-right-only", "compare-different", "compare-identical");
+    const badge = item.querySelector(".compare-badge");
+    if (badge) badge.remove();
+  });
+}
+
+function clearComparison() {
+  clearComparisonVisuals();
+  comparisonActive = false;
+  comparisonResults = null;
+  
+  const syncBtn = document.getElementById("dual-pane-sync-btn");
+  if (syncBtn) {
+    syncBtn.setAttribute("disabled", "true");
+    syncBtn.classList.add("disabled");
+  }
+  
+  const clearBtn = document.getElementById("dual-pane-clear-btn");
+  if (clearBtn) {
+    clearBtn.style.display = "none";
+  }
+  showToast("Comparison highlights cleared.", ToastType.INFO);
+}
+
+function showSyncPopup() {
+  if (!comparisonResults) return;
+  
+  // Set paths
+  document.getElementById("sync-left-path").innerText = LeftDualPanePath;
+  document.getElementById("sync-left-path").setAttribute("title", LeftDualPanePath);
+  document.getElementById("sync-right-path").innerText = RightDualPanePath;
+  document.getElementById("sync-right-path").setAttribute("title", RightDualPanePath);
+  
+  // Set stats
+  document.getElementById("sync-stat-left-only").innerText = comparisonResults.leftOnly.length;
+  document.getElementById("sync-stat-right-only").innerText = comparisonResults.rightOnly.length;
+  document.getElementById("sync-stat-different").innerText = comparisonResults.different.length;
+  
+  // Set default checkbox state
+  document.getElementById("sync-delete-extraneous").checked = false;
+  
+  // Handle select changed
+  const modeSelect = document.getElementById("sync-direction-select");
+  const deleteCheckbox = document.getElementById("sync-delete-extraneous");
+  
+  const handleModeChange = () => {
+    if (modeSelect.value === "two-way") {
+      deleteCheckbox.checked = false;
+      deleteCheckbox.setAttribute("disabled", "true");
+    } else {
+      deleteCheckbox.removeAttribute("disabled");
+    }
+  };
+  
+  modeSelect.addEventListener("change", handleModeChange);
+  handleModeChange();
+  
+  // Open dialog with smooth transitions
+  $(".popup-background").css("display", "block");
+  setTimeout(() => $(".popup-background").css("opacity", "1"));
+  
+  document.querySelector(".sync-directory-container").style.display = "flex";
+  IsPopUpOpen = true;
+  IsDisableShortcuts = true;
+}
+
+function closeSyncPopup() {
+  document.querySelector(".sync-directory-container").style.display = "none";
+  $(".popup-background").css("display", "none");
+  $(".popup-background").css("opacity", "0");
+  IsPopUpOpen = false;
+  IsDisableShortcuts = false;
+}
+
+async function executeSync() {
+  if (!comparisonResults) {
+    showToast("Please run comparison first.", ToastType.ERROR);
+    return;
+  }
+  
+  const mode = document.getElementById("sync-direction-select").value;
+  const deleteExtraneous = document.getElementById("sync-delete-extraneous").checked;
+  
+  const itemsToCopy = [];
+  const itemsToDelete = [];
+  
+  if (mode === "left-to-right") {
+    // 1. Copy leftOnly items to right
+    comparisonResults.leftOnly.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.path,
+        destination_path: RightDualPanePath + "/" + item.name,
+        policy: "replace"
+      });
+    });
+    
+    // 2. Copy different items from left to right
+    comparisonResults.different.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.leftPath,
+        destination_path: item.rightPath,
+        policy: "replace"
+      });
+    });
+    
+    // 3. Delete rightOnly items if deleteExtraneous
+    if (deleteExtraneous) {
+      comparisonResults.rightOnly.forEach(item => {
+        itemsToDelete.push(item.path);
+      });
+    }
+  } else if (mode === "right-to-left") {
+    // 1. Copy rightOnly items to left
+    comparisonResults.rightOnly.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.path,
+        destination_path: LeftDualPanePath + "/" + item.name,
+        policy: "replace"
+      });
+    });
+    
+    // 2. Copy different items from right to left
+    comparisonResults.different.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.rightPath,
+        destination_path: item.leftPath,
+        policy: "replace"
+      });
+    });
+    
+    // 3. Delete leftOnly items if deleteExtraneous
+    if (deleteExtraneous) {
+      comparisonResults.leftOnly.forEach(item => {
+        itemsToDelete.push(item.path);
+      });
+    }
+  } else if (mode === "two-way") {
+    // 1. Copy leftOnly items to right
+    comparisonResults.leftOnly.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.path,
+        destination_path: RightDualPanePath + "/" + item.name,
+        policy: "replace"
+      });
+    });
+    
+    // 2. Copy rightOnly items to left
+    comparisonResults.rightOnly.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.path,
+        destination_path: LeftDualPanePath + "/" + item.name,
+        policy: "replace"
+      });
+    });
+    
+    // 3. Compare modification date of different items, and copy the newer one
+    comparisonResults.different.forEach(item => {
+      let leftTime = Date.parse(item.leftModified) || 0;
+      let rightTime = Date.parse(item.rightModified) || 0;
+      
+      if (leftTime >= rightTime) {
+        itemsToCopy.push({
+          source_path: item.leftPath,
+          destination_path: item.rightPath,
+          policy: "replace"
+        });
+      } else {
+        itemsToCopy.push({
+          source_path: item.rightPath,
+          destination_path: item.leftPath,
+          policy: "replace"
+        });
+      }
+    });
+  }
+
+  closeSyncPopup();
+
+  // Perform deletions first
+  if (itemsToDelete.length > 0) {
+    try {
+      window.IsDeletingItems = true;
+      await invoke("arr_delete_items", { arrItems: itemsToDelete });
+      showToast(`Successfully deleted ${itemsToDelete.length} extraneous items.`, ToastType.SUCCESS);
+    } catch (err) {
+      showToast(`Failed to delete extraneous items: ${err}`, ToastType.ERROR);
+      window.IsDeletingItems = false;
+      return;
+    } finally {
+      window.IsDeletingItems = false;
+    }
+  }
+  
+  // Perform copies
+  if (itemsToCopy.length > 0) {
+    try {
+      const result = await invoke("arr_copy_paste_resolved", { items: itemsToCopy });
+      let copiedSources = Array.isArray(result) ? result : (result?.copied_sources ?? []);
+      let errors = Array.isArray(result) ? [] : (result?.errors ?? []);
+      
+      if (errors.length > 0) {
+        showToast(`${errors.length} item(s) failed to sync.`, ToastType.ERROR);
+      } else {
+        showToast(`Synchronization complete! Synced ${copiedSources.length} item(s).`, ToastType.SUCCESS);
+      }
+    } catch (err) {
+      showToast(`Synchronization failed: ${err}`, ToastType.ERROR);
+    }
+  } else {
+    showToast("Nothing to sync.", ToastType.INFO);
+  }
+
+  // Clear state and refresh
+  clearComparisonVisuals();
+  comparisonActive = false;
+  comparisonResults = null;
+  
+  const syncBtn = document.getElementById("dual-pane-sync-btn");
+  if (syncBtn) {
+    syncBtn.setAttribute("disabled", "true");
+    syncBtn.classList.add("disabled");
+  }
+  document.getElementById("dual-pane-clear-btn").style.display = "none";
+  
+  await refreshBothViews("left");
 }
 
 (async () => {

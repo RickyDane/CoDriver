@@ -2564,7 +2564,13 @@ async fn get_single_item_info(path: String) -> Result<FDir, String> {
     let size = metadata.len();
     let is_dir = metadata.is_dir();
     let file_ext = path.split(".").last().unwrap_or("").into();
-    let file_date = format!("{:?}", metadata.modified().unwrap());
+    let file_date = match metadata.modified() {
+        Ok(mod_time) => {
+            let dt: chrono::DateTime<chrono::Local> = mod_time.into();
+            dt.to_string()
+        }
+        Err(_) => "-".into(),
+    };
 
     Ok(FDir {
         name: name,

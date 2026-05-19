@@ -110,6 +110,11 @@
                                 <option value="2">Disk 2</option>
                             </select>
                         </div>
+                        <div class="dual-pane-actions">
+                            <button class="dual-pane-btn" onclick="compareDualPanes()" title="Compare Left & Right directories"><i class="fa-solid fa-code-compare"></i> Compare</button>
+                            <button class="dual-pane-btn disabled" id="dual-pane-sync-btn" onclick="showSyncPopup()" title="Sync directories" disabled><i class="fa-solid fa-rotate"></i> Sync</button>
+                            <button class="dual-pane-btn" id="dual-pane-clear-btn" onclick="clearComparison()" title="Clear comparison highlights" style="display: none;"><i class="fa-solid fa-xmark"></i> Clear</button>
+                        </div>
                         <div class="dual-pane-disk-dropdown right">
                             <i class="fa-solid fa-hdd" style="font-size: 12px; color: var(--textColor);"></i>
                             <select class="right-disk-dropdown" onchange="navigateToDisk(this.value, 'right')">
@@ -457,6 +462,65 @@
                 </div>
                 <div class="ftp-loader">
                     <div class="preloader-invert"></div>
+                </div>
+            </div>
+
+            <!-- :sync | Directory Sync UI -->
+            <div class="sync-directory-container uni-popup" style="display: none;">
+                <div class="popup-header">
+                    <div style="display: flex; gap: 20px; align-items: center;">
+                        <i class="fa-solid fa-rotate"></i>
+                        <h3>Synchronize Directories</h3>
+                    </div>
+                </div>
+                <div class="popup-body">
+                    <div class="popup-body-col-section">
+                        <p class="popup-body-subtitle">Sync Mode</p>
+                        <select id="sync-direction-select" class="text-input">
+                            <option value="left-to-right">Left ➔ Right (Mirror Left to Right)</option>
+                            <option value="right-to-left">Right ➔ Left (Mirror Right to Left)</option>
+                            <option value="two-way">Two-way Sync (Merge & Update Both)</option>
+                        </select>
+                    </div>
+
+                    <div class="sync-stats-container">
+                        <div class="sync-stats-row">
+                            <span class="label">Left folder:</span>
+                            <span id="sync-left-path" class="value"></span>
+                        </div>
+                        <div class="sync-stats-row">
+                            <span class="label">Right folder:</span>
+                            <span id="sync-right-path" class="value"></span>
+                        </div>
+                        <hr class="sync-separator">
+                        <div class="sync-stats-row">
+                            <span class="label left-only-label"><i class="fa-solid fa-plus"></i> Left-only items:</span>
+                            <span id="sync-stat-left-only" class="count-value">0</span>
+                        </div>
+                        <div class="sync-stats-row">
+                            <span class="label right-only-label"><i class="fa-solid fa-plus"></i> Right-only items:</span>
+                            <span id="sync-stat-right-only" class="count-value">0</span>
+                        </div>
+                        <div class="sync-stats-row">
+                            <span class="label mismatch-label"><i class="fa-solid fa-triangle-exclamation"></i> Mismatched items:</span>
+                            <span id="sync-stat-different" class="count-value">0</span>
+                        </div>
+                    </div>
+
+                    <div class="sync-toggle-row">
+                        <label class="switch">
+                            <input id="sync-delete-extraneous" type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                        <div class="sync-toggle-label-container">
+                            <p class="sync-toggle-title">Delete extraneous items</p>
+                            <p class="sync-toggle-desc">Delete files in destination that do not exist in source.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="popup-controls">
+                    <button class="icon-button" onclick="closeSyncPopup()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
+                    <button class="icon-button" onclick="executeSync()"><span class="button-icon"><i class="fa-solid fa-play"></i></span>Start Sync</button>
                 </div>
             </div>
 
