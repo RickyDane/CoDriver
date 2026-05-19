@@ -3377,7 +3377,8 @@ button>svg {
   padding: 10px 15px;
 }
 
-.compression-popup {
+.compression-popup,
+.upscale-popup {
   width: fit-content;
   height: fit-content;
   overflow: hidden;
@@ -4528,47 +4529,57 @@ button>svg {
   width: min(520px, 92vw);
 }
 
-.compression-popup.props-card.props-card--wide {
+.compression-popup.props-card.props-card--wide,
+.upscale-popup.props-card.props-card--wide {
   width: min(420px, 92vw);
 }
 
-.compression-popup .props-card__hero {
+.compression-popup .props-card__hero,
+.upscale-popup .props-card__hero {
   padding: 10px 14px 6px;
   gap: 10px;
 }
 
-.compression-popup .props-card__name {
+.compression-popup .props-card__name,
+.upscale-popup .props-card__name {
   font-size: var(--fontSize);
   -webkit-line-clamp: 1;
 }
 
-.compression-popup .props-card__list {
+.compression-popup .props-card__list,
+.upscale-popup .props-card__list {
   padding: 2px 8px 6px;
   gap: 2px;
 }
 
-.compression-popup .props-card__row {
+.compression-popup .props-card__row,
+.upscale-popup .props-card__row {
   padding: 5px 8px;
 }
 
-.compression-popup .props-card__row--block {
+.compression-popup .props-card__row--block,
+.upscale-popup .props-card__row--block {
   gap: 4px;
 }
 
-.compression-popup .props-card__input {
+.compression-popup .props-card__input,
+.upscale-popup .props-card__input {
   padding: 4px 8px;
 }
 
-.compression-popup select.props-card__input {
+.compression-popup select.props-card__input,
+.upscale-popup select.props-card__input {
   padding-right: 22px;
 }
 
-.compression-popup .props-card__items-list {
+.compression-popup .props-card__items-list,
+.upscale-popup .props-card__items-list {
   max-height: 120px;
   padding: 4px 6px;
 }
 
-.compression-popup .props-card__footer {
+.compression-popup .props-card__footer,
+.upscale-popup .props-card__footer {
   padding: 8px 12px;
 }
 

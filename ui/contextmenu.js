@@ -21,6 +21,11 @@ class CDContextMenu {
         icon: "fa-solid fa-box",
         action: () => showCompressPopup(this.selectedItem),
       },
+      {
+        label: "Image edit",
+        icon: "fa-solid fa-image-portrait",
+        action: () => showImageEditPopup(this.selectedItem),
+      },
     ],
     [
       {
@@ -342,6 +347,12 @@ class CDContextMenu {
         return !ArrFavorites.includes(path);
       } else if (item.label === "Eject Disk") {
         return this.selectedItem?.getAttribute("itemisremovable") !== "1";
+      } else if (item.label === "Image upscaling") {
+        if (!this.selectedItem) return true;
+        if (this.selectedItem.getAttribute("itemisdir") === "1") return true;
+        let path = this.selectedItem.getAttribute("itempath");
+        let ext = "." + path.split(".").pop().toLowerCase();
+        return !isImage(ext);
       }
     }
   }

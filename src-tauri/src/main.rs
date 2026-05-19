@@ -182,6 +182,10 @@ fn main() {
             // download_yt_video,
             get_app_icns,
             get_thumbnail,
+            get_image_dimensions,
+            upscale_image,
+            ai_upscale_image,
+            ai_style_image,
             get_simple_dir_info,
             get_selection_size,
             get_capped_selection_size,
@@ -263,6 +267,7 @@ struct AppConfig {
     current_theme: String,
     font_size: i32,
     is_window_transparency: String,
+    gemini_api_key: String,
 }
 
 #[tauri::command]
@@ -331,6 +336,7 @@ async fn check_app_config() -> AppConfig {
             current_theme: "0".to_string(),
             font_size: 12,
             is_window_transparency: "0".to_string(),
+            gemini_api_key: "".to_string(),
         };
         let _ = serde_json::to_writer_pretty(
             File::create(
@@ -380,8 +386,8 @@ async fn check_app_config() -> AppConfig {
         search_depth: app_config["search_depth"]
             .to_string()
             .parse::<i32>()
-            .unwrap(),
-        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
+            .unwrap_or(10),
+        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap_or(1000),
         is_image_preview: app_config["is_image_preview"].to_string().replace('"', ""),
         is_select_mode: app_config["is_select_mode"].to_string().replace('"', ""),
         arr_favorites: app_config["arr_favorites"]
@@ -399,6 +405,10 @@ async fn check_app_config() -> AppConfig {
         is_window_transparency: app_config["is_window_transparency"]
             .to_string()
             .replace('"', ""),
+        gemini_api_key: app_config["gemini_api_key"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", ""),
     }
 }
 
@@ -1665,6 +1675,7 @@ async fn save_config(
     current_theme: String,
     font_size: i32,
     is_window_transparency: String,
+    gemini_api_key: String,
 ) {
     let app_config_file = File::open(
         app_config_dir(&Config::default())
@@ -1692,6 +1703,7 @@ async fn save_config(
         current_theme: current_theme.replace("\\", "/"),
         font_size,
         is_window_transparency: is_window_transparency.replace("\\", ""),
+        gemini_api_key: gemini_api_key.replace("\\", ""),
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
@@ -2192,6 +2204,286 @@ async fn get_thumbnail(image_path: String) -> String {
         )
         .expect("Couldn't save thumbnail");
     new_thumbnail_path.to_string_lossy().to_string()
+}
+
+#[tauri::command]
+async fn get_image_dimensions(path: String) -> Result<(u32, u32), String> {
+    let img = image::open(&path)
+        .map_err(|e| format!("Failed to open image: {}", e))?;
+    Ok((img.width(), img.height()))
+}
+
+#[tauri::command]
+async fn upscale_image(
+    from_path: String,
+    scale_factor: f32,
+    filter_type: String,
+    output_path: String,
+) -> Result<(), String> {
+    let img = image::open(&from_path)
+        .map_err(|e| format!("Failed to open image: {}", e))?;
+
+    let filter = match filter_type.to_lowercase().as_str() {
+        "nearest" => image::imageops::FilterType::Nearest,
+        "triangle" => image::imageops::FilterType::Triangle,
+        "catmull_rom" => image::imageops::FilterType::CatmullRom,
+        "gaussian" => image::imageops::FilterType::Gaussian,
+        "lanczos3" | _ => image::imageops::FilterType::Lanczos3,
+    };
+
+    let width = img.width();
+    let height = img.height();
+    let new_width = (width as f32 * scale_factor).round() as u32;
+    let new_height = (height as f32 * scale_factor).round() as u32;
+
+    let res = img.resize(new_width, new_height, filter);
+
+    res.save(&output_path)
+        .map_err(|e| format!("Failed to save upscaled image: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn ai_upscale_image(
+    api_key: String,
+    from_path: String,
+    aspect_ratio: String,
+    output_path: String,
+) -> Result<(), String> {
+    use base64::prelude::*;
+    
+    let ext = from_path.split('.').last().unwrap_or("").to_lowercase();
+    let mime_type = match ext.as_str() {
+        "png" => "image/png",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        _ => "image/jpeg",
+    };
+
+    let img_bytes = std::fs::read(&from_path)
+        .map_err(|e| format!("Failed to read source image: {}", e))?;
+    let img_base64 = BASE64_STANDARD.encode(&img_bytes);
+
+    let client = reqwest::Client::new();
+
+    // 1. Call Gemini 2.5 Flash to generate a detailed prompt
+    let gemini_url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={}",
+        api_key
+    );
+
+    let gemini_payload = serde_json::json!({
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "inlineData": {
+                            "mimeType": mime_type,
+                            "data": img_base64
+                        }
+                    },
+                    {
+                        "text": "Analyze this image and write a highly detailed, descriptive, professional prompt to re-generate this exact image in ultra-high resolution. Focus on preserving all key elements, colors, subject matter, composition, and style, but enhance details, textures, and clarity. Only output the prompt, nothing else."
+                    }
+                ]
+            }
+        ]
+    });
+
+    let gemini_resp = client
+        .post(&gemini_url)
+        .header("Content-Type", "application/json")
+        .header("x-goog-api-key", &api_key)
+        .json(&gemini_payload)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request to Gemini failed: {}", e))?;
+
+    let gemini_status = gemini_resp.status();
+    if !gemini_status.is_success() {
+        let err_text = gemini_resp.text().await.unwrap_or_default();
+        return Err(format!("Gemini API error ({}): {}", gemini_status, err_text));
+    }
+
+    let gemini_json: serde_json::Value = gemini_resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Gemini response JSON: {}", e))?;
+
+    let detailed_prompt = gemini_json["candidates"][0]["content"]["parts"][0]["text"]
+        .as_str()
+        .ok_or_else(|| format!("Invalid response format from Gemini: {:?}", gemini_json))?
+        .trim()
+        .to_string();
+
+    // 2. Call gemini-3.1-flash-image-preview (Nano Banana Flash 2) to generate the high-res image
+    let imagen_url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key={}",
+        api_key
+    );
+
+    let imagen_payload = serde_json::json!({
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": detailed_prompt
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {
+            "responseModalities": ["TEXT", "IMAGE"],
+            "imageConfig": {
+                "aspectRatio": aspect_ratio
+            }
+        }
+    });
+
+    let imagen_resp = client
+        .post(&imagen_url)
+        .header("Content-Type", "application/json")
+        .header("x-goog-api-key", &api_key)
+        .json(&imagen_payload)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request to Gemini Image model failed: {}", e))?;
+
+    let imagen_status = imagen_resp.status();
+    if !imagen_status.is_success() {
+        let err_text = imagen_resp.text().await.unwrap_or_default();
+        return Err(format!("Gemini Image API error ({}): {}", imagen_status, err_text));
+    }
+
+    let imagen_json: serde_json::Value = imagen_resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Gemini Image response JSON: {}", e))?;
+
+    let parts = imagen_json["candidates"][0]["content"]["parts"]
+        .as_array()
+        .ok_or_else(|| format!("Invalid response format from Gemini Image model: {:?}", imagen_json))?;
+
+    let mut b64_output = None;
+    for part in parts {
+        if let Some(inline_data) = part.get("inlineData") {
+            if let Some(data) = inline_data.get("data").and_then(|d| d.as_str()) {
+                b64_output = Some(data);
+                break;
+            }
+        }
+    }
+
+    let b64_data = b64_output.ok_or_else(|| {
+        format!("No image data found in response parts: {:?}", imagen_json)
+    })?;
+
+    let decoded_bytes = BASE64_STANDARD.decode(b64_data)
+        .map_err(|e| format!("Failed to decode Gemini Image base64 output: {}", e))?;
+
+    std::fs::write(&output_path, &decoded_bytes)
+        .map_err(|e| format!("Failed to write enhanced image file: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn ai_style_image(
+    api_key: String,
+    from_path: String,
+    prompt: String,
+    output_path: String,
+) -> Result<(), String> {
+    use base64::prelude::*;
+    
+    let ext = from_path.split('.').last().unwrap_or("").to_lowercase();
+    let mime_type = match ext.as_str() {
+        "png" => "image/png",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        _ => "image/jpeg",
+    };
+
+    let img_bytes = std::fs::read(&from_path)
+        .map_err(|e| format!("Failed to read source image: {}", e))?;
+    let img_base64 = BASE64_STANDARD.encode(&img_bytes);
+
+    let client = reqwest::Client::new();
+
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key={}",
+        api_key
+    );
+
+    let payload = serde_json::json!({
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "inlineData": {
+                            "mimeType": mime_type,
+                            "data": img_base64
+                        }
+                    },
+                    {
+                        "text": format!("Edit and restyle this image. Maintain the overall layout, content, and subject, but apply the following stylistic style instructions: {}. Generate only the resulting image.", prompt)
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {
+            "responseModalities": ["TEXT", "IMAGE"]
+        }
+    });
+
+    let resp = client
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .header("x-goog-api-key", &api_key)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request to Gemini Image model failed: {}", e))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let err_text = resp.text().await.unwrap_or_default();
+        return Err(format!("Gemini Image API error ({}): {}", status, err_text));
+    }
+
+    let json: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Gemini Image response JSON: {}", e))?;
+
+    let parts = json["candidates"][0]["content"]["parts"]
+        .as_array()
+        .ok_or_else(|| format!("Invalid response format from Gemini Image model: {:?}", json))?;
+
+    let mut b64_output = None;
+    for part in parts {
+        if let Some(inline_data) = part.get("inlineData") {
+            if let Some(data) = inline_data.get("data").and_then(|d| d.as_str()) {
+                b64_output = Some(data);
+                break;
+            }
+        }
+    }
+
+    let b64_data = b64_output.ok_or_else(|| {
+        format!("No image data found in response parts: {:?}", json)
+    })?;
+
+    let decoded_bytes = BASE64_STANDARD.decode(b64_data)
+        .map_err(|e| format!("Failed to decode Gemini Image base64 output: {}", e))?;
+
+    std::fs::write(&output_path, &decoded_bytes)
+        .map_err(|e| format!("Failed to write styled image file: {}", e))?;
+
+    Ok(())
 }
 
 #[tauri::command]

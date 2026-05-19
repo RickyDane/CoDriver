@@ -196,6 +196,10 @@
                             <i class="fa-solid fa-flask"></i>
                             <span>Experimental</span>
                         </button>
+                        <button class="settings-sidebar-button" onclick="showSettingsTab('ai', this)">
+                            <i class="fa-solid fa-robot"></i>
+                            <span>AI Settings</span>
+                        </button>
                     </div>
 
                     <div class="settings-content">
@@ -334,6 +338,20 @@
                                         <input id="show-dual-pane" type="checkbox" class="show-dual-pane-checkbox">
                                         <span class="slider"></span>
                                     </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI Settings Tab -->
+                        <div id="settings-tab-ai" class="settings-tab-content">
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">Gemini AI Configuration</h3>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Gemini API Key</p>
+                                        <p class="settings-hint">Enter your Google AI Studio Gemini API key to enable AI upscaling</p>
+                                    </div>
+                                    <input type="password" class="text-input gemini-api-key-input" placeholder="AIzaSy..." style="width: 250px;" />
                                 </div>
                             </div>
                         </div>
