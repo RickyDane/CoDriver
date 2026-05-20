@@ -2176,15 +2176,17 @@ async function showImageEditPopup(item) {
   const filenameInput = popup.querySelector(".upscale-filename-input");
   const enhanceFilenameInput = popup.querySelector(".enhance-filename-input");
   const styleFilenameInput = popup.querySelector(".style-filename-input");
+  const bgRemoveFilenameInput = popup.querySelector(".bg-remove-filename-input");
   const resPreview = popup.querySelector(".upscale-resolution-preview");
   const methodSelect = popup.querySelector(".upscale-method-select");
 
-  const dotIndex = filename.lastIndexOf('.');
+  const dotIndex = filename.lastIndexOf(".");
   const baseName = dotIndex !== -1 ? filename.substring(0, dotIndex) : filename;
   const extName = dotIndex !== -1 ? filename.substring(dotIndex) : "";
   filenameInput.value = `${baseName}_4x${extName}`;
   enhanceFilenameInput.value = `${baseName}_ai_enhanced${extName}`;
   styleFilenameInput.value = `${baseName}_styled${extName}`;
+  bgRemoveFilenameInput.value = `${baseName}_no_bg.png`;
 
   const updateMethodFields = () => {
     const method = methodSelect.value;
@@ -2241,17 +2243,23 @@ async function showImageEditPopup(item) {
         popup.querySelector(".upscale-tab-view").style.display = "block";
         popup.querySelector(".enhance-tab-view").style.display = "none";
         popup.querySelector(".style-tab-view").style.display = "none";
+        popup.querySelector(".bg-remove-tab-view").style.display = "none";
+
         popup.querySelector(".upscale-item-button").style.display = "inline-flex";
         popup.querySelector(".enhance-item-button").style.display = "none";
         popup.querySelector(".style-item-button").style.display = "none";
+        popup.querySelector(".bg-remove-item-button").style.display = "none";
         updateMethodFields();
       } else if (tabName === "enhance") {
         popup.querySelector(".upscale-tab-view").style.display = "none";
         popup.querySelector(".enhance-tab-view").style.display = "block";
         popup.querySelector(".style-tab-view").style.display = "none";
+        popup.querySelector(".bg-remove-tab-view").style.display = "none";
+
         popup.querySelector(".upscale-item-button").style.display = "none";
         popup.querySelector(".enhance-item-button").style.display = "inline-flex";
         popup.querySelector(".style-item-button").style.display = "none";
+        popup.querySelector(".bg-remove-item-button").style.display = "none";
         
         // Validate API key for Enhance tab
         const apiKey = getGeminiApiKey();
@@ -2263,13 +2271,16 @@ async function showImageEditPopup(item) {
           enhanceWarning.style.display = "none";
           popup.querySelector(".enhance-item-button").disabled = false;
         }
-      } else {
+      } else if (tabName === "style") {
         popup.querySelector(".upscale-tab-view").style.display = "none";
         popup.querySelector(".enhance-tab-view").style.display = "none";
         popup.querySelector(".style-tab-view").style.display = "block";
+        popup.querySelector(".bg-remove-tab-view").style.display = "none";
+
         popup.querySelector(".upscale-item-button").style.display = "none";
         popup.querySelector(".enhance-item-button").style.display = "none";
         popup.querySelector(".style-item-button").style.display = "inline-flex";
+        popup.querySelector(".bg-remove-item-button").style.display = "none";
         
         // Check API key for Style tab
         const apiKey = getGeminiApiKey();
@@ -2280,6 +2291,27 @@ async function showImageEditPopup(item) {
         } else {
           styleWarning.style.display = "none";
           popup.querySelector(".style-item-button").disabled = false;
+        }
+      } else if (tabName === "bgremove") {
+        popup.querySelector(".upscale-tab-view").style.display = "none";
+        popup.querySelector(".enhance-tab-view").style.display = "none";
+        popup.querySelector(".style-tab-view").style.display = "none";
+        popup.querySelector(".bg-remove-tab-view").style.display = "block";
+
+        popup.querySelector(".upscale-item-button").style.display = "none";
+        popup.querySelector(".enhance-item-button").style.display = "none";
+        popup.querySelector(".style-item-button").style.display = "none";
+        popup.querySelector(".bg-remove-item-button").style.display = "inline-flex";
+
+        // Validate API key for BG Remove tab
+        const apiKey = getGeminiApiKey();
+        const bgRemoveWarning = popup.querySelector(".bg-remove-api-key-warning");
+        if (!apiKey) {
+          bgRemoveWarning.style.display = "block";
+          popup.querySelector(".bg-remove-item-button").disabled = true;
+        } else {
+          bgRemoveWarning.style.display = "none";
+          popup.querySelector(".bg-remove-item-button").disabled = false;
         }
       }
     });
@@ -2306,6 +2338,8 @@ async function showImageEditPopup(item) {
   enhanceFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
   styleFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
   styleFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
+  bgRemoveFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
+  bgRemoveFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
 
   const promptInput = popup.querySelector(".style-prompt-input");
   promptInput.addEventListener("focus", () => (IsInputFocused = true));
