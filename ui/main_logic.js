@@ -1980,6 +1980,9 @@ async function showImageEditPopup(item) {
       <button class="modal-tab-button" data-tab="style" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
         <i class="fa-solid fa-palette"></i><span>Edit Style</span>
       </button>
+      <button class="modal-tab-button" data-tab="bgremove" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
+        <i class="fa-solid fa-scissors"></i><span>Remove Background</span>
+      </button>
     </div>
 
     <!-- Image Upscale Tab View -->
@@ -2120,6 +2123,32 @@ async function showImageEditPopup(item) {
       </dl>
     </div>
 
+    <!-- Remove Background Tab View -->
+    <div class="bg-remove-tab-view" style="display: none;">
+      <dl class="props-card__list">
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-file-signature"></i>Filename</dt>
+          <dd class="props-card__value">
+            <input type="text" class="props-card__input bg-remove-filename-input" value="" />
+          </dd>
+        </div>
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-info-circle"></i>Method</dt>
+          <dd class="props-card__value" style="font-size: 12px; color: var(--textColor2); line-height: 1.4;">
+            Uses Gemini AI to automatically detect the main subject and remove the background, saving the result as a transparent PNG.
+          </dd>
+        </div>
+        <div class="bg-remove-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
+          <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
+            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>Gemini API Key is not configured.
+          </p>
+          <button class="props-card__btn" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="closeUpscalePopup(); openSettings(); showSettingsTab('ai', document.querySelector('.settings-sidebar button[onclick*=\\'ai\\']'));">
+            <i class="fa-solid fa-key" style="font-size: 10px;"></i>Configure Key
+          </button>
+        </div>
+      </dl>
+    </div>
+
     <footer class="props-card__footer">
       <button class="props-card__btn" onclick="closeUpscalePopup()">
         <i class="fa-solid fa-xmark"></i><span>Close</span>
@@ -2132,6 +2161,9 @@ async function showImageEditPopup(item) {
       </button>
       <button class="props-card__btn props-card__btn--primary style-item-button" style="display: none;">
         <i class="fa-solid fa-palette"></i><span>Apply Style</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary bg-remove-item-button" style="display: none;">
+        <i class="fa-solid fa-scissors"></i><span>Remove Background</span>
       </button>
     </footer>
   `;
@@ -5095,7 +5127,9 @@ function evalCurrentLoad(available, total) {
 
 async function showFtpConfig() {
   if (IsPopUpOpen == false) {
-    document.querySelector(".ftp-connect-container").style.display = "block";
+    let popup = document.querySelector(".ftp-connect-container");
+    popup.style.display = "block";
+    popup.classList.add("popup-enter");
     IsPopUpOpen = true;
     document.querySelectorAll(".ftp-popup-input").forEach(
       (input) =>
@@ -5109,7 +5143,12 @@ async function showFtpConfig() {
 }
 
 function closeFtpConfig() {
-  $(".ftp-connect-container").css("display", "none");
+  let popup = document.querySelector(".ftp-connect-container");
+  popup.classList.add("popup-exit");
+  popup.addEventListener("animationend", () => {
+    popup.style.display = "none";
+    popup.classList.remove("popup-exit");
+  }, { once: true });
   $(".ftp-loader").css("display", "none");
   IsPopUpOpen = false;
 }
