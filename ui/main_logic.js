@@ -2196,7 +2196,7 @@ async function showImageEditPopup(item) {
 
     if (method === "ai") {
       standardRows.forEach(r => r.style.display = "none");
-      aiRows.forEach(r => r.style.display = "flex");
+      aiRows.forEach(r => r.style.display = "grid");
 
       const apiKey = getGeminiApiKey();
       if (!apiKey) {
@@ -2210,7 +2210,7 @@ async function showImageEditPopup(item) {
       resPreview.innerHTML = `<span style="color: var(--textColor); font-weight: bold;"><i class="fa-solid fa-expand" style="margin-right: 6px; color: var(--selectColor2);"></i>AI Super-Resolution (Fidelity-preserving)</span>`;
       filenameInput.value = `${baseName}_ai_upscaled${extName}`;
     } else {
-      standardRows.forEach(r => r.style.display = "flex");
+      standardRows.forEach(r => r.style.display = "grid");
       aiRows.forEach(r => r.style.display = "none");
       apiKeyWarning.style.display = "none";
       popup.querySelector(".upscale-item-button").disabled = false;
