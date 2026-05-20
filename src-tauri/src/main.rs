@@ -186,6 +186,7 @@ fn main() {
             upscale_image,
             ai_upscale_image,
             ai_style_image,
+            remove_background,
             get_simple_dir_info,
             get_selection_size,
             get_capped_selection_size,
@@ -2501,6 +2502,102 @@ async fn ai_style_image(
 
     std::fs::write(&output_path, &decoded_bytes)
         .map_err(|e| format!("Failed to write styled image file: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn remove_background(
+    api_key: String,
+    from_path: String,
+    output_path: String,
+) -> Result<(), String> {
+    use base64::prelude::*;
+
+    let ext = from_path.split('.').last().unwrap_or("").to_lowercase();
+    let mime_type = match ext.as_str() {
+        "png" => "image/png",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        _ => "image/jpeg",
+    };
+
+    let img_bytes = std::fs::read(&from_path)
+        .map_err(|e| format!("Failed to read source image: {}", e))?;
+    let img_base64 = BASE64_STANDARD.encode(&img_bytes);
+
+    let client = reqwest::Client::new();
+
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key={}",
+        api_key
+    );
+
+    let payload = serde_json::json!({
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "inlineData": {
+                            "mimeType": mime_type,
+                            "data": img_base64
+                        }
+                    },
+                    {
+                        "text": "Remove the background from this image. Return only the subject on a transparent background. Generate only the resulting image."
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {
+            "responseModalities": ["TEXT", "IMAGE"]
+        }
+    });
+
+    let resp = client
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .header("x-goog-api-key", &api_key)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request to Gemini Image model failed: {}", e))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let err_text = resp.text().await.unwrap_or_default();
+        return Err(format!("Gemini Image API error ({}): {}", status, err_text));
+    }
+
+    let json: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Gemini Image response JSON: {}", e))?;
+
+    let parts = json["candidates"][0]["content"]["parts"]
+        .as_array()
+        .ok_or_else(|| format!("Invalid response format from Gemini Image model: {:?}", json))?;
+
+    let mut b64_output = None;
+    for part in parts {
+        if let Some(inline_data) = part.get("inlineData") {
+            if let Some(data) = inline_data.get("data").and_then(|d| d.as_str()) {
+                b64_output = Some(data);
+                break;
+            }
+        }
+    }
+
+    let b64_data = b64_output.ok_or_else(|| {
+        format!("No image data found in response parts: {:?}", json)
+    })?;
+
+    let decoded_bytes = BASE64_STANDARD.decode(b64_data)
+        .map_err(|e| format!("Failed to decode Gemini Image base64 output: {}", e))?;
+
+    std::fs::write(&output_path, &decoded_bytes)
+        .map_err(|e| format!("Failed to write background-removed image file: {}", e))?;
 
     Ok(())
 }
