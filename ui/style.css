@@ -1143,6 +1143,7 @@ body {
   align-items: center;
   background-color: var(--glass-header-bg);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: var(--glass-border-subtle);
   padding: 10px 10px 10px 15px;
   border-radius: 12px 12px 0 0;
@@ -1767,10 +1768,13 @@ label {
   margin: auto;
   height: fit-content;
   max-height: 70vh;
-  background-color: var(--primaryColor);
+  background-color: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   overflow-y: auto;
-  border-radius: 10px;
-  box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow);
+  border: var(--glass-border);
   color: var(--textColor);
   z-index: 98;
 }
@@ -3300,13 +3304,13 @@ button>svg {
   flex-flow: column;
   justify-content: center;
   align-items: center;
-  background-color: var(--primaryColor);
+  background-color: var(--glass-bg);
   gap: 10px;
   padding: 5px;
-  border-radius: 10px;
+  border-radius: var(--glass-radius);
   width: fit-content;
   height: fit-content;
-  box-shadow: 0px 0px 10px 1px var(--transparentColorActive);
+  box-shadow: var(--glass-shadow);
   padding-bottom: 10px;
   z-index: 999 !important;
   color: var(--textColor);
@@ -3329,14 +3333,14 @@ button>svg {
   flex-flow: column;
   justify-content: center;
   align-items: center;
-  background-color: var(--primaryColor);
+  background-color: var(--glass-bg);
   gap: 10px;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: var(--glass-radius);
   width: fit-content;
   min-width: 300px;
   height: fit-content;
-  box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--glass-shadow);
 }
 
 .uni-popup {
@@ -3369,6 +3373,7 @@ button>svg {
 .multi-rename-popup-header {
   background-color: var(--glass-header-bg);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: var(--glass-border-subtle);
   display: flex;
   flex-flow: row;
@@ -3502,12 +3507,13 @@ button>svg {
 }
 
 .popup-close-button:active {
-  background-color: var(--tr ansparentColorActive);
+  background-color: var(--transparentColorActive);
 }
 
 .popup-header {
   background-color: var(--glass-header-bg);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   flex-flow: row;
   align-items: center;
@@ -3544,6 +3550,7 @@ button>svg {
   border-top: var(--glass-border-subtle);
   background-color: color-mix(in srgb, var(--primaryColor) 60%, transparent);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--textColor);
 }
 

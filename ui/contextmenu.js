@@ -347,7 +347,7 @@ class CDContextMenu {
         return !ArrFavorites.includes(path);
       } else if (item.label === "Eject Disk") {
         return this.selectedItem?.getAttribute("itemisremovable") !== "1";
-      } else if (item.label === "Image upscaling") {
+      } else if (item.label === "Image edit") {
         if (!this.selectedItem) return true;
         if (this.selectedItem.getAttribute("itemisdir") === "1") return true;
         let path = this.selectedItem.getAttribute("itempath");
