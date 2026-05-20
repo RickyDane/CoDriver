@@ -2362,6 +2362,12 @@ async function showImageEditPopup(item) {
     }
   });
 
+  bgRemoveFilenameInput.addEventListener("keyup", (e) => {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+      popup.querySelector(".bg-remove-item-button").click();
+    }
+  });
+
   popup.querySelector(".upscale-item-button").addEventListener("click", async () => {
     const method = methodSelect.value;
     const outName = filenameInput.value.trim();
@@ -2508,6 +2514,46 @@ async function showImageEditPopup(item) {
       showToast("Image styling completed successfully", ToastType.SUCCESS);
     } catch (error) {
       showToast("Image styling failed: " + error, ToastType.ERROR);
+    } finally {
+      removeAction(actionId);
+      await listDirectories();
+    }
+  });
+
+  popup.querySelector(".bg-remove-item-button").addEventListener("click", async () => {
+    let outName = bgRemoveFilenameInput.value.trim();
+    if (!outName) {
+      alert("Please enter an output filename");
+      return;
+    }
+    if (!outName.toLowerCase().endsWith(".png")) {
+      outName += ".png";
+    }
+
+    const dir = path.substring(0, path.lastIndexOf('/'));
+    const outputPath = dir + "/" + outName;
+
+    closeUpscalePopup();
+
+    let actionId = crypto.randomUUID();
+    const apiKey = getGeminiApiKey();
+
+    createNewAction(
+      actionId,
+      "Background Removal",
+      `${filename} via Gemini AI`,
+      path
+    );
+
+    try {
+      await invoke("remove_background", {
+        apiKey,
+        fromPath: path,
+        outputPath,
+      });
+      showToast("Background removal completed successfully", ToastType.SUCCESS);
+    } catch (error) {
+      showToast(`Background removal failed: ${error}`, ToastType.ERROR);
     } finally {
       removeAction(actionId);
       await listDirectories();
