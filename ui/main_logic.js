@@ -1541,24 +1541,9 @@ function updateCurrentPath(currentDir, dualPaneSide) {
 }
 
 async function deleteItems() {
-  // ContextMenu.style.display = "none";
-  let msg = "Do you really want to delete:<br/><br/>";
-  for (let i = 0; i < ArrSelectedItems.length; i++) {
-    if (i == 0) {
-      msg +=
-        "<span class='confirm-popup-item'>" +
-        ArrSelectedItems[i].getAttribute("itemname") +
-        "</span>";
-    } else {
-      msg +=
-        "<br/><span class='confirm-popup-item'>" +
-        ArrSelectedItems[i].getAttribute("itemname") +
-        "</span>";
-    }
-  }
-  let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
-  let isConfirm = await showPopup(msg, PopupType.DELETE);
-  if (isConfirm == true) {
+  const isConfirm = await showDeletePopup();
+  if (isConfirm === true) {
+    let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
     let actionId = new Date().getMilliseconds();
     createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
     window.IsDeletingItems = true;
@@ -1579,6 +1564,122 @@ async function deleteItems() {
       scheduleDiskUsageRefresh();
     }
   }
+}
+
+async function showDeletePopup() {
+  if (IsPopUpOpen !== false) return false;
+  if (!ArrSelectedItems.length) return false;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  const items = ArrSelectedItems;
+  const count = items.length;
+  const fileCount = items.filter(i => i.getAttribute("itemisdir") !== "1").length;
+  const folderCount = count - fileCount;
+  const totalRawSize = items.reduce((sum, i) => sum + (parseInt(i.getAttribute("itemrawsize")) || 0), 0);
+
+  const heroName = count === 1
+    ? items[0].getAttribute("itemname")
+    : `${count} items`;
+  const heroMeta = count === 1
+    ? (items[0].getAttribute("itemisdir") === "1" ? "Folder" : "File")
+    : [
+        folderCount > 0 ? `${folderCount} folder${folderCount > 1 ? "s" : ""}` : "",
+        fileCount > 0 ? `${fileCount} file${fileCount > 1 ? "s" : ""}` : ""
+      ].filter(Boolean).join(", ");
+
+  const heroIcon = count === 1 && items[0].getAttribute("itemisdir") === "1"
+    ? "fa-solid fa-folder"
+    : "fa-solid fa-trash-can";
+
+  const itemsListHtml = `<ul class="props-card__items-list">
+    ${items.map((item) => {
+      const name = item.getAttribute("itemname");
+      const isDir = item.getAttribute("itemisdir") === "1";
+      const ext = (item.getAttribute("itemext") || "").replace(".", "").toUpperCase();
+      const size = item.getAttribute("itemsize") || "—";
+      const modified = item.getAttribute("itemmodified") || "";
+      const icon = isDir ? "fa-solid fa-folder" : "fa-regular fa-file";
+      return `<li class="props-card__item-li" title="${escHtml(name)}">
+        <div class="props-card__item-row">
+          <i class="${icon} props-card__item-icon"></i>
+          <span class="props-card__item-name">${escHtml(name)}</span>
+          <span class="props-card__item-meta">${isDir ? "Folder" : escHtml(ext)}</span>
+          <span class="props-card__item-size">${escHtml(size)}</span>
+        </div>
+      </li>`;
+    }).join("")}
+  </ul>`;
+
+  const popup = document.createElement("div");
+  popup.className = "delete-popup props-card";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Delete items");
+  popup.innerHTML = `
+    <section class="props-card__hero delete-popup__hero">
+      <div class="props-card__thumb delete-popup__thumb"><i class="${heroIcon}"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(heroName)}">${escHtml(heroName)}</h2>
+        <div class="props-card__meta">
+          <span>${escHtml(heroMeta)}</span>
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-weight-hanging"></i>Total size</dt>
+        <dd class="props-card__value"><span class="props-card__size">${escHtml(formatBytes(totalRawSize, 2))}</span></dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-regular fa-folder-open"></i>Location</dt>
+        <dd class="props-card__value">
+          <span class="props-card__path">${escHtml(CurrentDir)}</span>
+        </dd>
+      </div>
+      <div class="props-card__row props-card__row--block">
+        <dt class="props-card__label"><i class="fa-regular fa-rectangle-list"></i>Items</dt>
+        <dd class="props-card__value">${itemsListHtml}</dd>
+      </div>
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" data-delete-cancel>
+        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+      </button>
+      <button class="props-card__btn props-card__btn--danger" data-delete-confirm>
+        <i class="fa-solid fa-trash"></i><span>Delete</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  return new Promise((resolve) => {
+    let isClosed = false;
+    const finish = (ok) => {
+      if (isClosed) return;
+      isClosed = true;
+      popup.classList.add("popup-exit");
+      popup.addEventListener("animationend", () => {
+        popup.remove();
+        IsPopUpOpen = false;
+        resolve(ok);
+      }, { once: true });
+    };
+    popup.querySelector("[data-delete-cancel]").onclick = () => finish(false);
+    popup.querySelector("[data-delete-confirm]").onclick = () => finish(true);
+    popup.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); finish(false); }
+      if (e.key === "Enter")  { e.preventDefault(); finish(true);  }
+    });
+    popup.querySelector("[data-delete-confirm]").focus();
+  });
 }
 
 async function copyItem(item, toCut = false, fromInternal = false) {
@@ -1720,9 +1821,20 @@ async function showCompressPopup(item) {
 
   const itemsListHtml = isMulti
     ? `<ul class="props-card__items-list">
-         ${arrCompressItems.map((i) => {
-           const n = i.getAttribute("itemname");
-           return `<li title="${escHtml(n)}">${escHtml(n)}</li>`;
+         ${arrCompressItems.map((item) => {
+           const name = item.getAttribute("itemname");
+           const isDir = item.getAttribute("itemisdir") === "1";
+           const ext = (item.getAttribute("itemext") || "").replace(".", "").toUpperCase();
+           const size = item.getAttribute("itemsize") || "—";
+           const icon = isDir ? "fa-solid fa-folder" : "fa-regular fa-file";
+           return `<li class="props-card__item-li" title="${escHtml(name)}">
+             <div class="props-card__item-row">
+               <i class="${icon} props-card__item-icon"></i>
+               <span class="props-card__item-name">${escHtml(name)}</span>
+               <span class="props-card__item-meta">${isDir ? "Folder" : escHtml(ext)}</span>
+               <span class="props-card__item-size">${escHtml(size)}</span>
+             </div>
+           </li>`;
          }).join("")}
        </ul>`
     : "";
@@ -1952,7 +2064,7 @@ async function showImageEditPopup(item) {
     </section>
 
     <!-- Navigation Tabs -->
-    <div class="modal-tabs" style="display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--tertiaryColor); margin-bottom: 16px;">
+    <div class="modal-tabs" style="display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--tertiaryColor); margin-bottom: 10px;">
       <button class="modal-tab-button active" data-tab="upscale" style="background: rgba(255, 255, 255, 0.08); border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor); cursor: pointer; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--selectColor2); margin-bottom: -1px; transition: all 0.15s ease;">
         <i class="fa-solid fa-expand"></i><span>Image Upscale</span>
       </button>
@@ -3621,7 +3733,7 @@ function isPropertiesSizeUpdateCurrent(updateId) {
 }
 
 let currentSelectionRequestId = 0;
-async function updateSelectionInfo(shouldCalculate = true) {
+async function updateSelectionInfo() {
   let selectionInfo = document.querySelector(".selection-info");
   if (!selectionInfo) return;
   if (ArrSelectedItems.length == 0) {
@@ -3629,42 +3741,22 @@ async function updateSelectionInfo(shouldCalculate = true) {
     return;
   }
 
-  if (!shouldCalculate) {
-    if (ArrSelectedItems.length == 1) {
-      let item = ArrSelectedItems[0];
+  // Cancel any existing background selection size calculation
+  await invoke("cancel_selection_size_calculation");
+
+  if (ArrSelectedItems.length == 1) {
+    let item = ArrSelectedItems[0];
+    if (item.getAttribute("itemisdir") == "1") {
+      selectionInfo.textContent = item.getAttribute("itemname");
+    } else {
       let size = item.getAttribute("itemsize");
       let rawSize = item.getAttribute("itemrawsize");
       let displaySize = rawSize ? formatSizeWithLimit(rawSize, 2) : size;
       selectionInfo.textContent =
         item.getAttribute("itemname") + (displaySize ? " (" + displaySize + ")" : "");
-    } else {
-      selectionInfo.textContent = ArrSelectedItems.length + " items selected";
-    }
-    return;
-  }
-
-  let requestId = ++currentSelectionRequestId;
-  await invoke("cancel_selection_size_calculation");
-  selectionInfo.innerHTML = '<div class="preloader-small-invert"></div>';
-
-  if (ArrSelectedItems.length == 1) {
-    let item = ArrSelectedItems[0];
-    let size = item.getAttribute("itemsize");
-    if (item.getAttribute("itemisdir") == "1") {
-      let paths = [item.getAttribute("itempath")];
-      let totalSize = await invoke("get_capped_selection_size", { paths, updateId: "selection" });
-      if (requestId !== currentSelectionRequestId) return;
-      selectionInfo.textContent = item.getAttribute("itemname") + " (" + formatSizeWithLimit(totalSize, 2) + ")";
-    } else {
-      let rawSize = item.getAttribute("itemrawsize");
-      let displaySize = rawSize ? formatSizeWithLimit(rawSize, 2) : size;
-      selectionInfo.textContent = item.getAttribute("itemname") + (displaySize ? " (" + displaySize + ")" : "");
     }
   } else {
-    let paths = ArrSelectedItems.map(item => item.getAttribute("itempath"));
-    let totalSize = await invoke("get_capped_selection_size", { paths, updateId: "selection" });
-    if (requestId !== currentSelectionRequestId) return;
-    selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatSizeWithLimit(totalSize, 2) + ")";
+    selectionInfo.textContent = ArrSelectedItems.length + " items selected";
   }
 }
 
@@ -6504,9 +6596,9 @@ async function showDuplicateFinderPopup(path) {
     body.style.padding = "14px";
     body.style.position = "";
     body.innerHTML = `
-      <div class="duplicate-finder-setup" style="display: flex; flex-direction: column; gap: 20px; padding: 40px 24px; align-items: center; justify-content: center; max-width: 440px; margin: 0 auto; width: 100%;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; margin-bottom: 4px;">
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: color-mix(in srgb, var(--selectColor2) 15%, transparent); display: flex; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--selectColor2) 30%, transparent); margin-bottom: 6px; filter: drop-shadow(0 0 8px rgba(11, 100, 253, 0.25));">
+      <div class="duplicate-finder-setup" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 24px; align-items: center; justify-content: center; max-width: 440px; margin: 0 auto; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; margin-bottom: 0px;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--selectColor2) 15%, transparent); display: flex; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--selectColor2) 30%, transparent); margin-bottom: 2px; filter: drop-shadow(0 0 8px rgba(11, 100, 253, 0.25));">
             <i class="fa-solid fa-sliders" style="font-size: 18px; color: #4da3ff;"></i>
           </div>
           <h3 style="font-size: 14px; font-weight: 700; color: var(--textColor); letter-spacing: 0.5px;">Scan Configuration</h3>
@@ -6526,7 +6618,7 @@ async function showDuplicateFinderPopup(path) {
           <span style="font-size: 10.5px; opacity: 0.5; line-height: 1.4; text-align: left;">Sets directory recursion depth. E.g., depth 1 scans only the root folder.</span>
         </div>
 
-        <button class="props-card__btn props-card__btn--primary" id="btn-dup-start-scan" style="width: 100%; padding: 11px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border-radius: 8px; margin-top: 8px; box-shadow: 0 4px 12px rgba(11, 100, 253, 0.25);">
+        <button class="props-card__btn props-card__btn--primary" id="btn-dup-start-scan" style="width: 100%; padding: 11px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border-radius: 8px; margin-top: 2px; box-shadow: 0 4px 12px rgba(11, 100, 253, 0.25);">
           <i class="fa-solid fa-play"></i><span>Start Scanning</span>
         </button>
       </div>
@@ -6572,8 +6664,8 @@ async function showDuplicateFinderPopup(path) {
     
     // Transition body to scanning state with Stop button
     body.innerHTML = `
-      <div class="duplicate-finder-scanning" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 50px 0;">
-        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 32px; color: #4da3ff; filter: drop-shadow(0 0 12px rgba(77, 163, 255, 0.8)); margin-bottom: 8px;"></i>
+      <div class="duplicate-finder-scanning" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 30px 0;">
+        <div class="preloader-small-invert" style="width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; border-width: 3px; margin-bottom: 8px;"></div>
         <span style="font-size: var(--fontSize); opacity: 0.85;">Scanning directory structure recursively...</span>
         <span style="font-size: 11px; opacity: 0.6; text-align: center; max-width: 80%; margin-bottom: 12px;">Evaluating files for duplicate content. Please wait.</span>
         <button class="props-card__btn props-card__btn--primary" id="btn-dup-stop-scan" style="background: var(--errorColor); border-color: var(--errorColor); cursor: pointer; padding: 6px 16px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">

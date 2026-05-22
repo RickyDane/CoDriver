@@ -2972,9 +2972,9 @@ button>svg {
 }
 
 .context-menu {
-  min-width: 160px;
+  min-width: 170px;
   height: fit-content;
-  padding: 5px;
+  padding: 4px;
   display: flex;
   flex-flow: column;
   align-items: stretch;
@@ -2983,7 +2983,7 @@ button>svg {
   left: 0;
   z-index: 10000;
   background-color: var(--glass-bg);
-  border-radius: 10px;
+  border-radius: 8px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 8px 24px rgba(0, 0, 0, 0.12);
@@ -2999,12 +2999,12 @@ button>svg {
   color: var(--textColor);
   width: 100%;
   height: fit-content;
-  min-height: 32px;
+  min-height: 26px;
   background-color: transparent;
-  border-radius: 8px;
+  border-radius: 6px;
   margin: 0px 0;
-  padding: 5px 10px;
-  gap: 5px;
+  padding: 3px 8px;
+  gap: 4px;
   cursor: pointer;
   text-align: left;
   display: flex;
@@ -3077,7 +3077,7 @@ button>svg {
 .context-item-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
   flex: 1;
   min-width: 0;
 }
@@ -3087,9 +3087,9 @@ button>svg {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
+  width: 16px;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 12px;
   opacity: 0.7;
   transition: opacity 0.12s ease;
 }
@@ -3131,7 +3131,7 @@ button>svg {
 /* Divider / separator between groups */
 .context-divider {
   height: 1px;
-  margin: 4px 8px;
+  margin: 3px 8px;
   background-color: var(--tertiaryColor);
   border: none;
   flex-shrink: 0;
@@ -4343,6 +4343,11 @@ button>svg {
   border-radius: 8px;
 }
 
+.props-card__row:has(.props-card__input) {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
 .props-card__label {
   display: inline-flex;
   align-items: center;
@@ -4498,63 +4503,6 @@ button>svg {
   width: min(520px, 92vw);
 }
 
-.compression-popup.props-card.props-card--wide {
-  width: min(420px, 92vw);
-}
-
-.upscale-popup.props-card.props-card--wide {
-  width: min(480px, 92vw);
-}
-
-.compression-popup .props-card__hero,
-.upscale-popup .props-card__hero {
-  padding: 10px 14px 6px;
-  gap: 10px;
-}
-
-.compression-popup .props-card__name,
-.upscale-popup .props-card__name {
-  font-size: var(--fontSize);
-  -webkit-line-clamp: 1;
-}
-
-.compression-popup .props-card__list,
-.upscale-popup .props-card__list {
-  padding: 2px 8px 6px;
-  gap: 2px;
-}
-
-.compression-popup .props-card__row,
-.upscale-popup .props-card__row {
-  padding: 5px 8px;
-}
-
-.compression-popup .props-card__row--block,
-.upscale-popup .props-card__row--block {
-  gap: 4px;
-}
-
-.compression-popup .props-card__input,
-.upscale-popup .props-card__input {
-  padding: 4px 8px;
-}
-
-.compression-popup select.props-card__input,
-.upscale-popup select.props-card__input {
-  padding-right: 22px;
-}
-
-.compression-popup .props-card__items-list,
-.upscale-popup .props-card__items-list {
-  max-height: 120px;
-  padding: 4px 6px;
-}
-
-.compression-popup .props-card__footer,
-.upscale-popup .props-card__footer {
-  padding: 8px 12px;
-}
-
 .props-card__input {
   width: 100%;
   padding: 6px 10px;
@@ -4622,6 +4570,93 @@ select.props-card__input {
 
 .props-card__items-list li:nth-child(odd) {
   background-color: color-mix(in srgb, var(--tertiaryColor) 20%, transparent);
+}
+
+/* =====================================================================
+   .delete-popup — delete confirmation modal
+   ===================================================================== */
+.delete-popup.props-card {
+  width: min(480px, 92vw);
+}
+
+.props-card__items-list {
+  max-height: 180px;
+  gap: 4px;
+}
+
+.props-card__items-list li.props-card__item-li {
+  padding: 0 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.props-card__item-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  min-height: 34px;
+  box-sizing: border-box;
+}
+
+.props-card__item-icon {
+  font-size: 13px;
+  color: var(--textColor2);
+  text-align: center;
+}
+
+.props-card__item-name {
+  font-size: var(--fontSize);
+  color: var(--textColor);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.props-card__item-meta {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: color-mix(in srgb, var(--tertiaryColor) 60%, transparent);
+  color: var(--textColor2);
+  white-space: nowrap;
+}
+
+.props-card__item-size {
+  font-size: var(--fontSize);
+  color: var(--textColor2);
+  white-space: nowrap;
+  text-align: right;
+  min-width: 60px;
+}
+
+/* Danger button variant */
+.props-card__btn--danger {
+  background-color: #ef4444;
+  border-color: #ef4444;
+  color: white;
+  font-weight: 600;
+}
+
+.props-card__btn--danger:hover {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+.props-card__btn--danger:active {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+  transform: scale(0.97);
+}
+
+.props-card__btn--danger:focus {
+  outline: 2px dotted #ef4444;
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4859,7 +4894,7 @@ select.props-card__input {
    Duplicate Finder Styles
    ===================================================================== */
 .duplicate-finder-popup.props-card.props-card--wide {
-  width: min(760px, 95vw);
+  width: min(480px, 95vw);
 }
 
 .duplicate-group-card {
