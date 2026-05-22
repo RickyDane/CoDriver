@@ -1,0 +1,167 @@
+# AI Developer & Agent Onboarding Guide (AGENTS.md)
+
+Welcome, agent! This document serves as your technical manual and architectural reference for developing, debugging, and extending **CoDriver**. Refer to this guide to align with existing design patterns, technology choices, and structural constraints.
+
+---
+
+## 🚀 Repository Identity & Mission
+
+**CoDriver** is a high-performance, cross-platform desktop file explorer built with **Tauri v1** and **Rust**.
+- **No path caching**: Directory exploration is done in real-time, relying on the raw speed of Rust, concurrent disk access (`rayon` & `jwalk`), and CPU power.
+- **Cross-platform**: Native feel on Windows, macOS, and Linux.
+- **Rich features**: Includes dual-pane layout, miller columns, quick file preview (images, PDFs, video, code), drag-and-drop, multi-format archive compression/extraction, SSHFS mount integration, and Gemini AI-powered features (like image background removal).
+
+---
+
+## 📂 Directory Structure
+
+Here is a map of the repository's major files and folders:
+
+```
+CoDriver/
+├── .vscode/               # Workspace settings for VS Code
+├── .zed/                  # Workspace settings for Zed
+├── arch/                  # Architecture-specific scripts/files
+├── docs/                  # Specifications, plans, release notes, and documentation
+│   ├── design/            # UI/UX mockups and feature specs
+│   └── superpowers/       # Active sprint specifications and plans
+├── memories/              # AI-agent working state and project context
+│   └── project_context.md # High-level summary of active sprints and tech stacks
+├── snap/                  # Snap packaging configurations (Linux)
+├── src-tauri/             # Rust backend code (Tauri Core)
+│   ├── src/
+│   │   ├── applications.rs # Desktop application integration helpers
+│   │   ├── main.rs         # Entry point, state, and Tauri command declarations (heavy)
+│   │   ├── utils.rs        # Heavy duty FS operations, watchers, compression
+│   │   └── window_tauri_ext.rs # Platform window custom styling integrations
+│   ├── Cargo.toml         # Rust crate dependency map
+│   └── tauri.conf.json    # Tauri configuration (window sizes, allowlists, assets)
+├── ui/                    # Frontend assets loaded by Tauri (Vanilla JS + jQuery)
+│   ├── index.html         # Main app shell & modal containers
+│   ├── main_logic.js      # Core UI state manager and operation orchestration (heavy)
+│   ├── events.js          # Global listeners for Tauri-emitted backend events
+│   ├── contextmenu.js     # Custom right-click menu management
+│   ├── utils.js           # Shared DOM and IPC helpers
+│   ├── models.js          # Core JS model definitions (e.g. ActiveAction, Popups)
+│   └── style.css          # Premium glassmorphism design system & styles
+└── README.md              # Public orientation document
+```
+
+---
+
+## 💻 Tech Stack & Architecture
+
+### 1. The Frontend (ui/)
+- **Core UI Structure**: Single-page application built on pure HTML5 and vanilla CSS.
+- **DOM Orchestration**: Uses **jQuery** (`$`) for event handling, animations, and DOM manipulation. Avoid introducing complex front-end frameworks (React, Vue, etc.) as the project structure relies on global namespace orchestration.
+- **Visual Design**: Sleek glassmorphism theme defined in `ui/style.css` leveraging modern CSS variables (e.g., `--primaryColor`, `--textColor`, `--glass-blur`). Features responsive grid/list/miller layouts.
+- **Third-Party Libraries**:
+  - `DragSelect` (`ds.min.js`) for click-and-drag file selections.
+  - `Font Awesome` (`font-awesome/`) for clean iconography.
+
+### 2. The Backend (src-tauri/)
+- **Core**: **Tauri v1** (Tauri v2 is *not* currently adopted).
+- **Disk Walking**: **jwalk** and **walkdir** for highly parallel directory traversals.
+- **Concurrency**: **rayon** for multi-threaded operation mapping.
+- **FS Watching**: **notify** crate registers platform-specific filesystem watchers to push live updates to the UI.
+- **Archive Integrations**: `sevenz-rust`, `zip`, `tar`, `flate2`, `zstd`, `brotlic`, `density-rs`.
+
+---
+
+## 🔄 IPC & Tauri Command Integration
+
+Communication between the frontend and the backend is done via Tauri's IPC bridge.
+
+```mermaid
+sequenceDiagram
+    participant UI as ui/main_logic.js
+    participant IPC as Tauri Invoke Bridge
+    participant Rust as src-tauri/src/main.rs
+    participant FS as Local Filesystem
+
+    UI->>IPC: invoke("open_dir", { path: "/Users/..." })
+    IPC->>Rust: open_dir(path)
+    Rust->>FS: Read directory entries
+    FS-->>Rust: Entries vector
+    Rust-->>IPC: FDir Array
+    IPC-->>UI: Array of JS objects
+```
+
+### IPC Convention
+1. **Rust Command Declaration** (`src-tauri/src/main.rs`):
+   ```rust
+   #[tauri::command]
+   fn your_command_name(custom_argument: String) -> Result<String, String> {
+       // Backend logic
+       Ok("Success".into())
+   }
+   ```
+2. **Registration**: Ensure your command is registered inside the `.invoke_handler` list in `main.rs`:
+   ```rust
+   .invoke_handler(tauri::generate_handler![
+       list_dirs,
+       // ...
+       your_command_name
+   ])
+   ```
+3. **JS Invocation** (`ui/main_logic.js`):
+   Tauri bridges snake_case Rust arguments to camelCase JS properties automatically.
+   ```javascript
+   const result = await invoke("your_command_name", { customArgument: "value" });
+   ```
+
+---
+
+## 🎨 UI & Styling Guidelines
+
+To maintain visual excellence, follow these rules:
+1. **Glassmorphism Theme**: Always utilize the design system's variables from `style.css` rather than static colors.
+   ```css
+   background: var(--glass-bg);
+   border: var(--glass-border);
+   backdrop-filter: var(--glass-blur);
+   ```
+2. **Modals & Popups**: Use the existing `.popup-background` and `.uni-popup` structure. Modals are shown by dynamically changing their CSS class or rendering content inside them and displaying `.popup-background`.
+3. **Prevent Placeholder Assets**: When displaying visual helpers, do not use dead layout placeholders. Generate or use proper icon sheets and local resources found in `ui/resources/` or `ui/font-awesome`.
+
+---
+
+## 🛠️ Key Developer Workflows & Recipes
+
+### 1. Working with Paths
+> [!CAUTION]
+> **Path Separator Trap**: Paths are highly platform-dependent. Always normalize paths by replacing double-backslashes `\\` with forward slashes `/` where appropriate on the frontend, and verify that your path adjustments are Windows-safe.
+
+### 2. State & Focus Flags
+When implementing new keyboard shortcuts or popups, protect the global UI namespace by checking the state flags in `main_logic.js`:
+- `IsPopUpOpen`: Set to `true` when a modal/popup is visible. Prevents general explorer keyboard events (like navigating or deleting) from triggering.
+- `IsInputFocused`: Set to `true` when an `<input>` is active. Prevents search shortcuts or navigation commands from intercepting typing.
+- `IsDisableShortcuts`: Use to globally silence key interception.
+
+### 3. File Operations & Progress Bars
+File operations are handled asynchronously to keep the UI smooth:
+- Selecting items buffers them in `ArrSelectedItems` or `ArrCopyItems` (for copy/cut).
+- Invoking `arr_copy_paste` runs chunked operations in the Rust backend.
+- Rust emits events like `"update-progress-bar"` and `"finish-progress-bar"` which are picked up in `ui/events.js` to update the `.active-actions-container` layout.
+
+### 4. Running a Local Build
+Ensure you have the tauri-cli installed:
+```bash
+cargo install tauri-cli
+```
+Run the development environment locally:
+```bash
+cargo tauri dev
+```
+
+---
+
+## 🤖 AI Guidelines & Prompt Engineering
+
+When developing or debugging this repository, you should prioritize:
+1. **Vanilla Style Preservation**: Do not attempt to refactor the jQuery layout into modern JS frameworks (React, Vue, Svelte) unless explicitly requested.
+2. **Keep Calculations in Rust**: Heavy calculations, recursive walks, filtering, and heavy text parsing should always reside on the Rust backend (`utils.rs` or `main.rs`) to maintain high desktop performance.
+3. **Graceful IPC Failures**: Always wrap Tauri commands in JS `try/catch` and display human-readable notifications using the global toast notification functions:
+   ```javascript
+   showToast("Action failed: " + error, ToastType.ERROR);
+   ```

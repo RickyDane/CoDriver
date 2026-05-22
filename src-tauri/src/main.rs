@@ -43,11 +43,10 @@ use tauri::{Manager, Window, WindowEvent};
 use window_vibrancy::apply_vibrancy;
 use zip_extensions::*;
 mod utils;
-use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
     copy_to, copy_to_preserving_existing, count_entries, create_new_action, dbg_log, err_log,
-    format_bytes, remove_action, show_progressbar, success_log, unpack_tar, wng_log, DirWalker,
+    remove_action, show_progressbar, success_log, unpack_tar, wng_log, DirWalker,
     DirWalkerEntry,
 };
 #[cfg(target_os = "macos")]
@@ -58,7 +57,6 @@ mod applications;
 #[allow(unused)]
 use applications::{get_apps, open_file_with};
 use lazy_static::lazy_static;
-use substring::Substring;
 
 use crate::utils::{
     compress_items, dir_info, extract_brotli_tar, extract_from_density, extract_tar_bz2,
@@ -83,15 +81,7 @@ lazy_static! {
 
 // static mut IS_SEARCHING: bool = false;
 
-// #[cfg(target_os = "windows")]
-// const SLASH: &str = "\\";
-#[cfg(target_os = "windows")]
-const ASSET_LOCATION: &str = "https://asset.localhost/";
 
-// #[cfg(not(target_os = "windows"))]
-// const SLASH: &str = "/";
-#[cfg(not(target_os = "windows"))]
-const ASSET_LOCATION: &str = "asset://localhost/";
 
 const GEMINI_MODEL_TEXT: &str = "gemini-1.5-flash";
 const GEMINI_MODEL_IMAGE: &str = "gemini-3.1-flash-image-preview";
@@ -178,19 +168,16 @@ fn main() {
             arr_compress_items,
             get_installed_apps,
             open_with,
-            find_duplicates,
             cancel_operation,
             cancel_size_calculation,
             cancel_selection_size_calculation,
             get_df_dir,
-            // download_yt_video,
             get_app_icns,
             get_thumbnail,
             get_image_dimensions,
             upscale_image,
             ai_upscale_image,
             ai_style_image,
-            remove_background,
             get_simple_dir_info,
             get_selection_size,
             get_capped_selection_size,
@@ -1792,146 +1779,7 @@ async fn get_installed_apps(extension: String) -> Vec<(String, String)> {
 async fn open_with(_file_path: String, _app_path: String) {
     #[cfg(not(target_os = "linux"))]
     open_file_with(_file_path, _app_path);
-}
 
-#[tauri::command]
-async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Vec<DirWalkerEntry>> {
-    let files = DirWalker::new()
-        .depth(depth)
-        .run(&path)
-        .ext(vec![
-            "png", "jpg", "jpeg", "txt", "svg", "gif", "mp4", "mp3", "wav", "pdf", "docx", "xlsx",
-            "doc", "zip", "rar", "7z", "dmg", "iso", "exe", "msi", "jar", "deb", "sh", "py", "htm",
-            "html",
-        ])
-        .get_items();
-    let mut seen_items: Vec<DirWalkerEntry> = Vec::new();
-    let mut duplicates: Vec<Vec<DirWalkerEntry>> = Vec::new();
-    for item in files.into_par_iter().collect::<Vec<DirWalkerEntry>>() {
-        let seen_item = seen_items.par_iter().find_any(|x| {
-            x.is_file
-                && x.size == item.size
-                && x.size > 0
-                && x.name.contains(item.name.substring(0, item.name.len() - 3))
-        });
-        if seen_item.is_some() {
-            if duplicates.is_empty() {
-                duplicates.push(vec![seen_item.unwrap().clone(), item.clone()]);
-            } else {
-                let collection = duplicates.par_iter_mut().find_any(|x| {
-                    x[0].size == seen_item.unwrap().size
-                        && x[0].size > 0
-                        && x[0]
-                            .name
-                            .contains(item.name.substring(0, item.name.len() - 3))
-                });
-                if collection.is_some() {
-                    collection.unwrap().push(item.clone());
-                } else {
-                    duplicates.push(vec![item.clone(), seen_item.unwrap().clone()]);
-                }
-            }
-        } else {
-            seen_items.push(item);
-        }
-    }
-    for (idx, arr_duplicate) in duplicates.clone().iter().enumerate() {
-        let var_idx = &idx.clone().to_string();
-        let mut inner_html = String::new();
-        let mut js_query = String::new()
-            + "
-            var duplicate"
-            + var_idx
-            + " = document.createElement('div');
-            duplicate"
-            + var_idx
-            + ".setAttribute('itempaneside', '');
-            duplicate"
-            + var_idx
-            + ".setAttribute('itemisdir', '0');
-            duplicate"
-            + var_idx
-            + ".setAttribute('itemext', '');
-            duplicate"
-            + var_idx
-            + ".setAttribute('isftp', '0');
-            duplicate"
-            + var_idx
-            + ".className = 'list-item duplicate-item';
-        ";
-        for (idx, item) in arr_duplicate.clone().iter().enumerate() {
-            inner_html.push_str(
-                &(String::new()
-                    + "
-                <div style='display: flex; align-items: center; justify-content: space-between;'>
-                    <div>
-                        <h4>"
-                    + &item.name
-                    + "</h3>
-                        <h4 class='text-2'>"
-                    + &item.path
-                    + "</h4>
-                        <h4 class='text-2'>"
-                    + &format_bytes(item.size)
-                    + "</h4>
-                    </div>
-            "),
-            );
-            if item.name.ends_with("jpg")
-                || item.name.ends_with("jpeg")
-                || item.name.ends_with("png")
-                || item.name.ends_with("gif")
-                || item.name.ends_with("svg")
-                || item.name.ends_with("webp")
-                || item.name.ends_with("jfif")
-                || item.name.ends_with("tiff")
-            {
-                inner_html.push_str(&(String::new()+"
-                    <img style='box-shadow: 0px 0px 10px 1px var(--transparentColorActive); border-radius: 5px;' width='64px' height='auto' src='"+ASSET_LOCATION+""+&item.path+"'>
-                </div>
-                "));
-            } else {
-                inner_html.push_str(
-                    &(String::new()
-                        + "
-                    </div>
-                "),
-                );
-            }
-            js_query.push_str(
-                &(String::new()
-                    + "
-                duplicate"
-                    + var_idx
-                    + ".setAttribute('"
-                    + &format!("itempath-{}", idx)
-                    + "', '"
-                    + &item.path
-                    + "');
-            "),
-            );
-        }
-        js_query.push_str(
-            &(String::new()
-                + "
-            duplicate"
-                + var_idx
-                + ".innerHTML = `"
-                + &inner_html
-                + "`;
-            duplicate"
-                + var_idx
-                + ".oncontextmenu = (e) => showExtraContextMenu(e, duplicate"
-                + var_idx
-                + ");
-            document.querySelector('.duplicates-list').append(duplicate"
-                + var_idx
-                + ");
-        "),
-        );
-        let _ = app_window.eval(&js_query);
-    }
-    duplicates
 }
 
 #[tauri::command]
@@ -1980,53 +1828,6 @@ async fn get_df_dir(number: u8) -> String {
     }
 }
 
-// #[tauri::command]
-// async fn download_yt_video(app_window: Window, url: String, quality: String) {
-//     let action_id = create_new_action(
-//         &app_window,
-//         "Downloading ...".into(),
-//         url.clone(),
-//         &"".into(),
-//     );
-//     dbg_log(format!("Downloading {} as {}", url, quality));
-//     let chosen_quality = match quality.as_str() {
-//         "lowestvideo" => VideoQuality::LowestVideo,
-//         "lowestaudio" => VideoQuality::LowestAudio,
-//         "highestvideo" => VideoQuality::HighestVideo,
-//         "highestaudio" => VideoQuality::HighestAudio,
-//         _ => VideoQuality::HighestVideo,
-//     };
-
-//     dbg_log(format!("Chosen quality: {:?}", chosen_quality));
-
-//     let video_options = VideoOptions {
-//         quality: chosen_quality,
-//         filter: VideoSearchOptions::Video,
-//         ..Default::default()
-//     };
-
-//     let video = Video::new_with_options(url, video_options).unwrap();
-
-//     let stream = video.stream().await;
-//     if stream.is_err() {
-//         let _ = &app_window.eval("alert('Failed to retrieve source')");
-//         remove_action(action_id);
-//         return;
-//     }
-//     let stream = stream.unwrap();
-//     let video_info = video.get_basic_info().await.unwrap();
-//     let mut file = File::create(video_info.video_details.title.to_owned() + ".mp4").unwrap();
-//     let _total_size = stream.content_length() as f32;
-//     let mut downloaded: u64 = 0;
-//     let sw = Stopwatch::start_new();
-
-//     while let Some(chunk) = stream.chunk().await.unwrap_or_default() {
-//         file.write_all(&chunk).unwrap();
-//         downloaded += chunk.len() as u64;
-//         let _speed = calc_transfer_speed(downloaded, sw.elapsed_ms());
-//     }
-//     remove_action(action_id);
-// }
 
 #[tauri::command]
 async fn get_app_icns(_path: String) -> String {
@@ -2052,8 +1853,10 @@ async fn get_app_icns(_path: String) -> String {
                 + icns.file_name().unwrap().to_str().unwrap()
                 + ".png";
 
-            if PathBuf::from(new_img_path.clone()).exists() {
-                return new_img_path;
+            if let Ok(metadata) = fs::metadata(&new_img_path) {
+                if metadata.len() > 0 {
+                    return new_img_path;
+                }
             }
 
             let file = BufReader::new(File::open(icns.to_string_lossy().to_string()).unwrap());
@@ -2146,15 +1949,20 @@ async fn get_app_icns(_path: String) -> String {
 
             // Save additional icon to read from codriver
             let image = image.unwrap();
-            if !PathBuf::from(&new_img_path).exists() {
-                let file = File::create(&new_img_path);
-                if file.is_err() {
-                    return icns.to_string_lossy().to_string();
+            let mut should_write = true;
+            if let Ok(metadata) = fs::metadata(&new_img_path) {
+                if metadata.len() > 0 {
+                    should_write = false;
                 }
-                let file = file.unwrap();
-                BufWriter::new(&file);
-                image.write_png(file).unwrap();
-                dbg_log(format!("Writing image to: {}", new_img_path));
+            }
+            if should_write {
+                if let Ok(file) = File::create(&new_img_path) {
+                    let mut writer = BufWriter::new(file);
+                    if image.write_png(&mut writer).is_ok() {
+                        let _ = writer.flush();
+                        dbg_log(format!("Writing image to: {}", new_img_path));
+                    }
+                }
             }
 
             new_img_path
@@ -2449,41 +2257,7 @@ async fn ai_style_image(
     save_gemini_image(&output_path, b64_data).await
 }
 
-#[tauri::command]
-async fn remove_background(
-    api_key: String,
-    from_path: String,
-    output_path: String,
-) -> Result<(), String> {
-    let (mime_type, img_base64) = get_image_data(&from_path)?;
 
-    let payload = serde_json::json!({
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {
-                        "inlineData": {
-                            "mimeType": mime_type,
-                            "data": img_base64
-                        }
-                    },
-                    {
-                        "text": "Remove the background from this image. Return only the subject on a transparent background. Generate only the resulting image."
-                    }
-                ]
-            }
-        ],
-        "generationConfig": {
-            "responseModalities": ["TEXT", "IMAGE"]
-        }
-    });
-
-    let json = call_gemini_api(&api_key, GEMINI_MODEL_IMAGE, payload).await?;
-    let b64_data = extract_gemini_image(&json)?;
-
-    save_gemini_image(&output_path, b64_data).await
-}
 
 #[tauri::command]
 async fn get_selection_size(paths: Vec<String>, update_id: String) -> u64 {
@@ -2690,62 +2464,165 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
             }
             let thumbnail_size = 50;
             let mut bytes = Vec::new();
+
+            // 1. Check supported formats (excluding ICNS for now)
+            let supported_formats = vec![
+                "png", "jpg", "jpeg", "gif", "webp", "tiff", "tif", "bmp", "ico", "avif"
+            ];
+
+            // 2. Handle ICNS on macOS
+            #[cfg(target_os = "macos")]
+            if item.image_type == "icns" {
+                let mut decoded = false;
+                if let Ok(file) = File::open(&item.image_url) {
+                    if let Ok(icon_family) = IconFamily::read(BufReader::new(file)) {
+                        let mut icns_image = icon_family.get_icon_with_type(IconType::RGBA32_512x512_2x);
+                        if icns_image.is_err() {
+                            icns_image = icon_family.get_icon_with_type(IconType::RGBA32_512x512);
+                            if icns_image.is_err() {
+                                icns_image = icon_family.get_icon_with_type(IconType::RGBA32_256x256_2x);
+                                if icns_image.is_err() {
+                                    icns_image = icon_family.get_icon_with_type(IconType::RGBA32_256x256);
+                                    if icns_image.is_err() {
+                                        icns_image = icon_family.get_icon_with_type(IconType::RGBA32_128x128_2x);
+                                        if icns_image.is_err() {
+                                            icns_image = icon_family.get_icon_with_type(IconType::RGBA32_128x128);
+                                            if icns_image.is_err() {
+                                                icns_image = icon_family.get_icon_with_type(IconType::RGBA32_64x64);
+                                                if icns_image.is_err() {
+                                                    icns_image = icon_family.get_icon_with_type(IconType::RGBA32_32x32_2x);
+                                                    if icns_image.is_err() {
+                                                        icns_image = icon_family.get_icon_with_type(IconType::RGBA32_32x32);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if let Ok(icon) = icns_image {
+                            let mut png_bytes = Vec::new();
+                            if icon.write_png(&mut png_bytes).is_ok() {
+                                if let Ok(image) = image::load_from_memory(&png_bytes) {
+                                    if image
+                                        .thumbnail(thumbnail_size, thumbnail_size)
+                                        .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
+                                        .is_ok()
+                                    {
+                                        decoded = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if decoded && !bytes.is_empty() {
+                    let data = BASE64_STANDARD.encode(&bytes);
+                    let _ = &app_window.eval(&format!(
+                        "setItemImage('{}', '{}', '{}')",
+                        data, &item.image_id, &item.image_url
+                    ));
+                } else {
+                    let _ = WINDOW
+                        .get()
+                        .unwrap()
+                        .emit("set_default_image", (&item.image_id, &item.image_url));
+                }
+                return;
+            }
+
+            // 3. Fallback for completely unsupported types (e.g. svg or non-macOS icns)
+            if !supported_formats.contains(&item.image_type.as_str()) {
+                let _ = WINDOW
+                    .get()
+                    .unwrap()
+                    .emit("set_default_image", (&item.image_id, &item.image_url));
+                return;
+            }
+
+            // 4. Standard image loading & decoding
             match ImageReader::open(&item.image_url) {
                 Ok(image) => {
+                    let mut decoded = false;
                     match image.decode() {
                         Ok(image) if item.image_type == String::from("png") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("gif") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Gif)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("webp") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::WebP)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image)
                             if item.image_type == String::from("jpg")
                                 || item.image_type == String::from("jpeg") =>
                         {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Jpeg)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("tiff") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Tiff)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("ico") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Ico)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("avif") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Avif)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("bmp") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Bmp)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(_) => {
-                            // If image type not supported (yet?), try default way
                             let _ = WINDOW
                                 .get()
                                 .unwrap()
@@ -2756,29 +2633,23 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
                                 .get()
                                 .unwrap()
                                 .emit("set_default_image", (&item.image_id, &item.image_url));
-                            err_log(format!("Failed to decode/load image: {}", err));
+                            dbg_log(format!("Failed to decode/load image: {}", err));
                         }
                     }
-                    let data = BASE64_STANDARD.encode(&bytes);
-                    // let _ = &app_window.eval(&format!("tryLoadCachedImage({}, {}, {})", &item.image_id, &item.image_type, &item.image_url));
-                    let _ = &app_window.eval(&format!(
-                        "setItemImage('{}', '{}', '{}')",
-                        data, &item.image_id, &item.image_url
-                    ));
-                    // let _ = WINDOW.get().unwrap().emit(
-                    //     "set-item-image",
-                    //     format!(
-                    //         "{{\"data\": \"{}\", \"id\": \"{}\", \"url\": \"{}\" }}",
-                    //         data, item.image_id, item.image_url
-                    //     ),
-                    // );
+                    if decoded && !bytes.is_empty() {
+                        let data = BASE64_STANDARD.encode(&bytes);
+                        let _ = &app_window.eval(&format!(
+                            "setItemImage('{}', '{}', '{}')",
+                            data, &item.image_id, &item.image_url
+                        ));
+                    }
                 }
                 Err(err) => {
                     let _ = WINDOW
                         .get()
                         .unwrap()
                         .emit("set_default_image", (item.image_id, item.image_url));
-                    err_log(format!("Failed to load image: {}", err));
+                    dbg_log(format!("Failed to load image: {}", err));
                 }
             }
         });

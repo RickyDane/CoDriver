@@ -362,7 +362,6 @@ async function resetEverything() {
   closeMultiRenamePopup();
   closeCompressPopup();
   closeUpscalePopup();
-  closeYtDownloadPopup();
   closeInfoProperties();
   closeActiveActionsPopup();
   finishProgressBar();
@@ -370,7 +369,6 @@ async function resetEverything() {
   unSelectAllItems();
   closeConfirmPopup();
   closeCustomContextMenu();
-  closeFindDuplicatesPopup();
   resetBackButton();
   $(".popup-background").css("display", "none");
   IsPopUpOpen = false;
@@ -447,12 +445,6 @@ document.addEventListener("mousedown", (e) => {
     // Reset context menu
     resetContextMenu();
 
-    // document
-    //   .querySelector(".c-item-duplicates")
-    //   .setAttribute("disabled", "true");
-    // document
-    //   .querySelector(".c-item-duplicates")
-    //   .classList.add("c-item-disabled");
     unSelectAllItems();
     if (DraggedOverElement != null) {
       DraggedOverElement.style.filter = "none";
@@ -520,16 +512,6 @@ document.addEventListener("contextmenu", (e) => {
         .querySelector(".c-item-paste")
         .classList.remove("c-item-disabled");
     }
-
-    // Currently disabled due to issues with download functionality
-    // document.querySelector(".c-item-ytdownload").replaceWith(document.querySelector(".c-item-ytdownload").cloneNode(true));
-    // document.querySelector(".c-item-ytdownload").addEventListener(
-    // 		"click",
-    // 		async () => {
-    //  			await showYtDownload();
-    // 		},
-    // 		{ once: true },
-    // );
   }
 });
 
@@ -1980,9 +1962,6 @@ async function showImageEditPopup(item) {
       <button class="modal-tab-button" data-tab="style" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
         <i class="fa-solid fa-palette"></i><span>Edit Style</span>
       </button>
-      <button class="modal-tab-button" data-tab="bgremove" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
-        <i class="fa-solid fa-scissors"></i><span>Remove Background</span>
-      </button>
     </div>
 
     <!-- Image Upscale Tab View -->
@@ -2123,32 +2102,6 @@ async function showImageEditPopup(item) {
       </dl>
     </div>
 
-    <!-- Remove Background Tab View -->
-    <div class="bg-remove-tab-view" style="display: none;">
-      <dl class="props-card__list">
-        <div class="props-card__row">
-          <dt class="props-card__label"><i class="fa-solid fa-file-signature"></i>Filename</dt>
-          <dd class="props-card__value">
-            <input type="text" class="props-card__input bg-remove-filename-input" value="" />
-          </dd>
-        </div>
-        <div class="props-card__row">
-          <dt class="props-card__label"><i class="fa-solid fa-info-circle"></i>Method</dt>
-          <dd class="props-card__value" style="font-size: 12px; color: var(--textColor2); line-height: 1.4;">
-            Uses Gemini AI to automatically detect the main subject and remove the background, saving the result as a transparent PNG.
-          </dd>
-        </div>
-        <div class="bg-remove-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
-          <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
-            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>Gemini API Key is not configured.
-          </p>
-          <button class="props-card__btn" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="closeUpscalePopup(); openSettings(); showSettingsTab('ai', document.querySelector('.settings-sidebar button[onclick*=\\'ai\\']'));">
-            <i class="fa-solid fa-key" style="font-size: 10px;"></i>Configure Key
-          </button>
-        </div>
-      </dl>
-    </div>
-
     <footer class="props-card__footer">
       <button class="props-card__btn" onclick="closeUpscalePopup()">
         <i class="fa-solid fa-xmark"></i><span>Close</span>
@@ -2162,9 +2115,6 @@ async function showImageEditPopup(item) {
       <button class="props-card__btn props-card__btn--primary style-item-button" style="display: none;">
         <i class="fa-solid fa-palette"></i><span>Apply Style</span>
       </button>
-      <button class="props-card__btn props-card__btn--primary bg-remove-item-button" style="display: none;">
-        <i class="fa-solid fa-scissors"></i><span>Remove Background</span>
-      </button>
     </footer>
   `;
 
@@ -2176,7 +2126,6 @@ async function showImageEditPopup(item) {
   const filenameInput = popup.querySelector(".upscale-filename-input");
   const enhanceFilenameInput = popup.querySelector(".enhance-filename-input");
   const styleFilenameInput = popup.querySelector(".style-filename-input");
-  const bgRemoveFilenameInput = popup.querySelector(".bg-remove-filename-input");
   const resPreview = popup.querySelector(".upscale-resolution-preview");
   const methodSelect = popup.querySelector(".upscale-method-select");
 
@@ -2186,7 +2135,6 @@ async function showImageEditPopup(item) {
   filenameInput.value = `${baseName}_4x${extName}`;
   enhanceFilenameInput.value = `${baseName}_ai_enhanced${extName}`;
   styleFilenameInput.value = `${baseName}_styled${extName}`;
-  bgRemoveFilenameInput.value = `${baseName}_no_bg.png`;
 
   const updateMethodFields = () => {
     const method = methodSelect.value;
@@ -2243,23 +2191,19 @@ async function showImageEditPopup(item) {
         popup.querySelector(".upscale-tab-view").style.display = "block";
         popup.querySelector(".enhance-tab-view").style.display = "none";
         popup.querySelector(".style-tab-view").style.display = "none";
-        popup.querySelector(".bg-remove-tab-view").style.display = "none";
 
         popup.querySelector(".upscale-item-button").style.display = "inline-flex";
         popup.querySelector(".enhance-item-button").style.display = "none";
         popup.querySelector(".style-item-button").style.display = "none";
-        popup.querySelector(".bg-remove-item-button").style.display = "none";
         updateMethodFields();
       } else if (tabName === "enhance") {
         popup.querySelector(".upscale-tab-view").style.display = "none";
         popup.querySelector(".enhance-tab-view").style.display = "block";
         popup.querySelector(".style-tab-view").style.display = "none";
-        popup.querySelector(".bg-remove-tab-view").style.display = "none";
 
         popup.querySelector(".upscale-item-button").style.display = "none";
         popup.querySelector(".enhance-item-button").style.display = "inline-flex";
         popup.querySelector(".style-item-button").style.display = "none";
-        popup.querySelector(".bg-remove-item-button").style.display = "none";
         
         // Validate API key for Enhance tab
         const apiKey = getGeminiApiKey();
@@ -2275,12 +2219,10 @@ async function showImageEditPopup(item) {
         popup.querySelector(".upscale-tab-view").style.display = "none";
         popup.querySelector(".enhance-tab-view").style.display = "none";
         popup.querySelector(".style-tab-view").style.display = "block";
-        popup.querySelector(".bg-remove-tab-view").style.display = "none";
 
         popup.querySelector(".upscale-item-button").style.display = "none";
         popup.querySelector(".enhance-item-button").style.display = "none";
         popup.querySelector(".style-item-button").style.display = "inline-flex";
-        popup.querySelector(".bg-remove-item-button").style.display = "none";
         
         // Check API key for Style tab
         const apiKey = getGeminiApiKey();
@@ -2291,27 +2233,6 @@ async function showImageEditPopup(item) {
         } else {
           styleWarning.style.display = "none";
           popup.querySelector(".style-item-button").disabled = false;
-        }
-      } else if (tabName === "bgremove") {
-        popup.querySelector(".upscale-tab-view").style.display = "none";
-        popup.querySelector(".enhance-tab-view").style.display = "none";
-        popup.querySelector(".style-tab-view").style.display = "none";
-        popup.querySelector(".bg-remove-tab-view").style.display = "block";
-
-        popup.querySelector(".upscale-item-button").style.display = "none";
-        popup.querySelector(".enhance-item-button").style.display = "none";
-        popup.querySelector(".style-item-button").style.display = "none";
-        popup.querySelector(".bg-remove-item-button").style.display = "inline-flex";
-
-        // Validate API key for BG Remove tab
-        const apiKey = getGeminiApiKey();
-        const bgRemoveWarning = popup.querySelector(".bg-remove-api-key-warning");
-        if (!apiKey) {
-          bgRemoveWarning.style.display = "block";
-          popup.querySelector(".bg-remove-item-button").disabled = true;
-        } else {
-          bgRemoveWarning.style.display = "none";
-          popup.querySelector(".bg-remove-item-button").disabled = false;
         }
       }
     });
@@ -2338,8 +2259,7 @@ async function showImageEditPopup(item) {
   enhanceFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
   styleFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
   styleFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
-  bgRemoveFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
-  bgRemoveFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
+
 
   const promptInput = popup.querySelector(".style-prompt-input");
   promptInput.addEventListener("focus", () => (IsInputFocused = true));
@@ -2362,11 +2282,7 @@ async function showImageEditPopup(item) {
     }
   });
 
-  bgRemoveFilenameInput.addEventListener("keyup", (e) => {
-    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
-      popup.querySelector(".bg-remove-item-button").click();
-    }
-  });
+
 
   popup.querySelector(".upscale-item-button").addEventListener("click", async () => {
     const method = methodSelect.value;
@@ -2520,45 +2436,7 @@ async function showImageEditPopup(item) {
     }
   });
 
-  popup.querySelector(".bg-remove-item-button").addEventListener("click", async () => {
-    let outName = bgRemoveFilenameInput.value.trim();
-    if (!outName) {
-      alert("Please enter an output filename");
-      return;
-    }
-    if (!outName.toLowerCase().endsWith(".png")) {
-      outName += ".png";
-    }
 
-    const dir = path.substring(0, path.lastIndexOf('/'));
-    const outputPath = dir + "/" + outName;
-
-    closeUpscalePopup();
-
-    let actionId = crypto.randomUUID();
-    const apiKey = getGeminiApiKey();
-
-    createNewAction(
-      actionId,
-      "Background Removal",
-      `${filename} via Gemini AI`,
-      path
-    );
-
-    try {
-      await invoke("remove_background", {
-        apiKey,
-        fromPath: path,
-        outputPath,
-      });
-      showToast("Background removal completed successfully", ToastType.SUCCESS);
-    } catch (error) {
-      showToast(`Background removal failed: ${error}`, ToastType.ERROR);
-    } finally {
-      removeAction(actionId);
-      await listDirectories();
-    }
-  });
 
   try {
     const dims = await invoke("get_image_dimensions", { path });
@@ -5389,204 +5267,12 @@ async function getSetInstalledApplications(ext = "") {
   );
 }
 
-function showFindDuplicates(item) {
-  cdCtMenu.hide();
-  let popup = document.createElement("div");
-  popup.className = "uni-popup find-duplicates-popup";
-  popup.innerHTML = `
-    <div class="popup-header">
-    <h3>Duplicates</h3>
-    </div>
-    <div class="popup-body" style="display: flex; justify-content: space-between; align-items: center;">
-    <div>
-    <p>Selected folder:</p>
-    <p class="text-2">${item.getAttribute("itempath")}</p>
-    </div>
-    <div>
-    <p class="text-2" style="margin-bottom: 5px;">Search depth</p>
-    <input style="width: 100px;" type="number" class="text-input duplicates-search-depth-input" value="1">
-    </div>
-    </div>
-    <div class="popup-header">
-    <h4>Found duplicates</h4>
-    </div>
-    `;
-  let list = document.createElement("div");
-  list.className = "list duplicates-list";
-  popup.append(list);
-  let popupControls = document.createElement("div");
-  popupControls.className = "popup-controls";
-  popupControls.innerHTML = `
-    <button class="icon-button" onclick="closeFindDuplicatesPopup()">
-    <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-    Cancel
-    </button>
-    <button class="icon-button duplicate-button-run">
-    <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-    Search
-    </button>
-    `;
-  popup.append(popupControls);
-  document.querySelector("body").append(popup);
-  popup.classList.add("popup-enter");
-  document
-    .querySelector(".duplicates-search-depth-input")
-    .addEventListener("focus", () => (IsInputFocused = true));
-  document
-    .querySelector(".duplicates-search-depth-input")
-    .addEventListener("blur", () => (IsInputFocused = false));
-  document
-    .querySelector(".duplicate-button-run")
-    .addEventListener("click", async () => {
-      await findDuplicates(
-        item,
-        document.querySelector(".duplicates-search-depth-input").value,
-      );
-    });
-  IsPopUpOpen = true;
-}
 
-function closeFindDuplicatesPopup() {
-  let popup = document.querySelector(".find-duplicates-popup");
-  if (popup) {
-    popup.classList.add("popup-exit");
-    popup.addEventListener("animationend", () => {
-      popup?.remove();
-      IsPopUpOpen = false;
-      cancelOperation();
-    }, { once: true });
-  } else {
-    IsPopUpOpen = false;
-    cancelOperation();
-  }
-}
-
-async function findDuplicates(item, depth) {
-  showLoadingPopup("Searching for duplicates ...");
-  document.querySelector(".list").innerHTML = "";
-  IsPopUpOpen = true;
-  await invoke("find_duplicates", {
-    appWindow: appWindow,
-    path: item.getAttribute("itempath"),
-    depth: parseInt(depth),
-  });
-  closeLoadingPopup();
-}
-
-async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
-  IsPopUpOpen = true;
-  let popup = document.createElement("div");
-  popup.className = "uni-popup yt-download-popup";
-  popup.innerHTML = `
-    <div class="popup-header">
-    <h3>Download</h3>
-    </div>
-    <div class="popup-body">
-    <div class="popup-body-row-section">
-    <div class="popup-body-col-section" style="width: 100%;">
-    <p>URL</p>
-    <input type="text" class="text-input yt-url-input" style='width: 100%;' placeholder="https://youtube.com/watch?v=dQw4w9WgXcQ" value="${url}" />
-    </div>
-    </div>
-    <div class="popup-body-row-section">
-    <div class="popup-body-col-section">
-    <p>Type</p>
-    <select class="text-input select yt-quality-input" style="width: 100%;">
-    <option value="highestvideo">Highest video</option>
-    <option value="highestaudio">Highest audio</option>
-    <option value="lowestvideo">Lowest video</option>
-    <option value="lowestaudio">Lowest audio</option>
-    </select>
-    </div>
-    </div>
-    </div>
-    <div class="popup-controls">
-    <button class="icon-button" onclick="closeYtDownloadPopup()">
-    <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-    Cancel
-    </button>
-    <button class="icon-button yt-download-button-run">
-    <div class="button-icon"><i class="fa-solid fa-download"></i></div>
-    Download
-    </button>
-    </div>
-    `;
-  document.querySelector("body").append(popup);
-  popup.classList.add("popup-enter");
-  document
-    .querySelector(".yt-url-input")
-    .addEventListener("focus", () => (IsInputFocused = true));
-  document
-    .querySelector(".yt-url-input")
-    .addEventListener("blur", () => (IsInputFocused = false));
-  document
-    .querySelector(".yt-download-button-run")
-    .addEventListener("click", async () => {
-      await startYtDownload(
-        document.querySelector(".yt-url-input").value,
-        document.querySelector(".yt-quality-input").value,
-      );
-    });
-}
-
-async function startYtDownload(
-  url = "https://youtube.com/watch?v=dQw4w9WgXcQ",
-  quality = "highvideo",
-) {
-  closeYtDownloadPopup();
-  await invoke("download_yt_video", { appWindow, url, quality });
-  finishProgressBar();
-  await listDirectories();
-  scheduleDiskUsageRefresh();
-}
-
-async function closeYtDownloadPopup() {
-  let popup = document.querySelector(".yt-download-popup");
-  if (popup) {
-    popup.classList.add("popup-exit");
-    popup.addEventListener("animationend", () => {
-      popup?.remove();
-      IsPopUpOpen = false;
-      cancelOperation();
-    }, { once: true });
-  } else {
-    IsPopUpOpen = false;
-    cancelOperation();
-  }
-}
 
 async function cancelOperation() {
   await invoke("cancel_operation");
 }
 
-async function showExtraContextMenu(e, item) {
-  $(".extra-c-menu")?.remove();
-  let contextMenu = document.createElement("div");
-  contextMenu.className = "extra-c-menu context-menu";
-
-  for (let i = 1; i <= item.children.length; i++) {
-    let cButton = document.createElement("button");
-    cButton.className = "context-item";
-    cButton.innerHTML = `Keep ${i}.`;
-    cButton.onclick = async () => {
-      let excessItems = [];
-      for (let j = 0; j < item.children.length; j++) {
-        if (j != i - 1) {
-          excessItems.push(item.getAttribute("itempath-" + j));
-        }
-      }
-      item.remove();
-      contextMenu.remove();
-      await invoke("arr_delete_items", { arrItems: excessItems });
-      scheduleDiskUsageRefresh();
-    };
-    contextMenu.append(cButton);
-  }
-
-  contextMenu.style.left = e.clientX + "px";
-  contextMenu.style.top = e.clientY + "px";
-  document.querySelector("body").append(contextMenu);
-}
 
 async function addMillerCol(millerCol) {
   CurrentMillerCol = millerCol;

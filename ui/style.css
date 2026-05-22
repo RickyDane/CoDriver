@@ -3575,44 +3575,6 @@ button>svg {
   color: var(--textColor2);
 }
 
-/* Duplicates */
-
-.find-duplicates-popup {
-  width: 50%;
-  height: fit-content;
-  z-index: 100;
-  color: var(--textColor);
-}
-
-.duplicates-list {
-  height: 50vh !important;
-  will-change: transform;
-  color: var(--textColor);
-}
-
-.duplicate-item {
-  display: flex;
-  flex-flow: column;
-  gap: 5px;
-  color: var(--textColor);
-}
-
-.duplicate-item>div>div>h4 {
-  width: calc(100% - 20px);
-  text-overflow: ellipsis;
-  word-break: break-all;
-  overflow: hidden;
-  color: var(--textColor);
-}
-
-/*  Yt-downloader */
-
-.yt-download-popup {
-  width: 50%;
-  height: fit-content;
-  color: var(--textColor);
-}
-
 .llm-prompt-input-popup {
   width: 50%;
   height: fit-content;
