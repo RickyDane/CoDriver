@@ -156,6 +156,7 @@ let IsSearching = false;
 let FoundItemsCountIndex = 0;
 
 let IsImagePreview = false;
+let IsAiEnabled = false;
 let CurrentFtpPath = "";
 let IsCopyToCut = false;
 let Platform = "";
@@ -407,6 +408,8 @@ document.addEventListener("mousedown", (e) => {
   // Check if your click is outside of important elements
   if (
     !e.target.closest(".context-menu") &&
+    !e.target.closest(".props-card") &&
+    !e.target.closest(".delete-popup") &&
     !e.target.classList.contains("context-item-icon") &&
     !e.target.classList.contains("context-item") &&
     !e.target.classList.contains("open-with-item") &&
@@ -1541,9 +1544,11 @@ function updateCurrentPath(currentDir, dualPaneSide) {
 }
 
 async function deleteItems() {
+  if (!ArrSelectedItems.length) return;
+  // Cache the paths immediately before they could be cleared or modified
+  let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
   const isConfirm = await showDeletePopup();
   if (isConfirm === true) {
-    let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
     let actionId = new Date().getMilliseconds();
     createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
     window.IsDeletingItems = true;
@@ -1553,9 +1558,7 @@ async function deleteItems() {
         await invoke("delete_item", { actFileName });
       }
       IsCopyToCut = false;
-      if (Platform != "darwin") {
-        await listDirectories();
-      }
+      await listDirectories();
       ArrSelectedItems = [];
       showToast("Deletion of items is done", ToastType.INFO);
     } finally {
@@ -1578,7 +1581,6 @@ async function showDeletePopup() {
   const count = items.length;
   const fileCount = items.filter(i => i.getAttribute("itemisdir") !== "1").length;
   const folderCount = count - fileCount;
-  const totalRawSize = items.reduce((sum, i) => sum + (parseInt(i.getAttribute("itemrawsize")) || 0), 0);
 
   const heroName = count === 1
     ? items[0].getAttribute("itemname")
@@ -1632,7 +1634,7 @@ async function showDeletePopup() {
     <dl class="props-card__list">
       <div class="props-card__row">
         <dt class="props-card__label"><i class="fa-solid fa-weight-hanging"></i>Total size</dt>
-        <dd class="props-card__value"><span class="props-card__size">${escHtml(formatBytes(totalRawSize, 2))}</span></dd>
+        <dd class="props-card__value"><span class="props-card__size"><span class="props-card__skeleton"></span></span></dd>
       </div>
       <div class="props-card__row">
         <dt class="props-card__label"><i class="fa-regular fa-folder-open"></i>Location</dt>
@@ -1660,11 +1662,53 @@ async function showDeletePopup() {
   popup.classList.add("popup-enter");
   IsPopUpOpen = true;
 
+  const deleteUpdateId = startDeleteSizeCalculation();
+
+  // Calculate size in the background
+  (async () => {
+    if (count === 1) {
+      const isDir = items[0].getAttribute("itemisdir") === "1";
+      try {
+        await getSimpleDirInfo(
+          items[0].getAttribute("itempath"),
+          ".props-card__size",
+          isDir,
+          deleteUpdateId
+        );
+        finishDeleteSizeCalculation(deleteUpdateId);
+      } catch (error) {
+        if (isDeleteSizeUpdateCurrent(deleteUpdateId)) {
+          finishDeleteSizeCalculation(deleteUpdateId);
+          writeLog(error);
+          $(".props-card__size").html("Unable to calculate size");
+        }
+      }
+    } else {
+      const paths = items.map((i) => i.getAttribute("itempath"));
+      setSizeCalculationLoading(".props-card__size");
+      try {
+        const totalSize = await invoke("get_selection_size", { paths, updateId: deleteUpdateId });
+        if (isDeleteSizeUpdateCurrent(deleteUpdateId)) {
+          finishDeleteSizeCalculation(deleteUpdateId);
+          $(".props-card__size").html(formatBytes(totalSize, 2));
+        }
+      } catch (error) {
+        if (isDeleteSizeUpdateCurrent(deleteUpdateId)) {
+          finishDeleteSizeCalculation(deleteUpdateId);
+          writeLog(error);
+          $(".props-card__size").html("Unable to calculate size");
+        }
+      }
+    }
+  })();
+
   return new Promise((resolve) => {
     let isClosed = false;
     const finish = (ok) => {
       if (isClosed) return;
       isClosed = true;
+      finishDeleteSizeCalculation(deleteUpdateId);
+      invoke("cancel_size_calculation");
       popup.classList.add("popup-exit");
       popup.addEventListener("animationend", () => {
         popup.remove();
@@ -2047,6 +2091,25 @@ async function showImageEditPopup(item) {
     return document.querySelector(".gemini-api-key-input")?.value.trim() || "";
   };
 
+  const tabsHtml = IsAiEnabled ? `
+    <!-- Navigation Tabs -->
+    <div class="modal-tabs" style="display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--tertiaryColor); margin-bottom: 10px;">
+      <button class="modal-tab-button active" data-tab="upscale" style="background: rgba(255, 255, 255, 0.08); border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor); cursor: pointer; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--selectColor2); margin-bottom: -1px; transition: all 0.15s ease;">
+        <i class="fa-solid fa-expand"></i><span>Image Upscale</span>
+      </button>
+      <button class="modal-tab-button" data-tab="enhance" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Enhancement</span>
+      </button>
+      <button class="modal-tab-button" data-tab="style" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
+        <i class="fa-solid fa-palette"></i><span>Edit Style</span>
+      </button>
+    </div>
+  ` : '';
+
+  const aiMethodOption = IsAiEnabled ? `
+              <option value="ai">AI Super-Resolution</option>
+  ` : '';
+
   const popup = document.createElement("div");
   popup.className = "upscale-popup props-card props-card--wide";
   popup.setAttribute("role", "dialog");
@@ -2063,18 +2126,7 @@ async function showImageEditPopup(item) {
       </div>
     </section>
 
-    <!-- Navigation Tabs -->
-    <div class="modal-tabs" style="display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--tertiaryColor); margin-bottom: 10px;">
-      <button class="modal-tab-button active" data-tab="upscale" style="background: rgba(255, 255, 255, 0.08); border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor); cursor: pointer; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--selectColor2); margin-bottom: -1px; transition: all 0.15s ease;">
-        <i class="fa-solid fa-expand"></i><span>Image Upscale</span>
-      </button>
-      <button class="modal-tab-button" data-tab="enhance" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
-        <i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Enhancement</span>
-      </button>
-      <button class="modal-tab-button" data-tab="style" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
-        <i class="fa-solid fa-palette"></i><span>Edit Style</span>
-      </button>
-    </div>
+    ${tabsHtml}
 
     <!-- Image Upscale Tab View -->
     <div class="upscale-tab-view">
@@ -2084,7 +2136,7 @@ async function showImageEditPopup(item) {
           <dd class="props-card__value">
             <select class="props-card__input upscale-method-select" style="cursor: pointer;">
               <option value="standard" selected>Standard (Algorithms)</option>
-              <option value="ai">AI Super-Resolution</option>
+              ${aiMethodOption}
             </select>
           </dd>
         </div>
@@ -2284,7 +2336,7 @@ async function showImageEditPopup(item) {
   popup.querySelectorAll(".modal-tab-button").forEach(btn => {
     btn.addEventListener("click", () => {
       const tabName = btn.getAttribute("data-tab");
-      
+
       popup.querySelectorAll(".modal-tab-button").forEach(b => {
         b.classList.remove("active");
         b.style.color = "var(--textColor2)";
@@ -2292,13 +2344,13 @@ async function showImageEditPopup(item) {
         b.style.backgroundColor = "transparent";
         b.style.borderBottom = "2px solid transparent";
       });
-      
+
       btn.classList.add("active");
       btn.style.color = "var(--textColor)";
       btn.style.fontWeight = "bold";
       btn.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
       btn.style.borderBottom = "2px solid var(--selectColor2)";
-      
+
       if (tabName === "upscale") {
         popup.querySelector(".upscale-tab-view").style.display = "block";
         popup.querySelector(".enhance-tab-view").style.display = "none";
@@ -2316,7 +2368,7 @@ async function showImageEditPopup(item) {
         popup.querySelector(".upscale-item-button").style.display = "none";
         popup.querySelector(".enhance-item-button").style.display = "inline-flex";
         popup.querySelector(".style-item-button").style.display = "none";
-        
+
         // Validate API key for Enhance tab
         const apiKey = getGeminiApiKey();
         const enhanceWarning = popup.querySelector(".enhance-api-key-warning");
@@ -2335,7 +2387,7 @@ async function showImageEditPopup(item) {
         popup.querySelector(".upscale-item-button").style.display = "none";
         popup.querySelector(".enhance-item-button").style.display = "none";
         popup.querySelector(".style-item-button").style.display = "inline-flex";
-        
+
         // Check API key for Style tab
         const apiKey = getGeminiApiKey();
         const styleWarning = popup.querySelector(".style-api-key-warning");
@@ -2367,30 +2419,32 @@ async function showImageEditPopup(item) {
 
   filenameInput.addEventListener("focus", () => (IsInputFocused = true));
   filenameInput.addEventListener("blur", () => (IsInputFocused = false));
-  enhanceFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
-  enhanceFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
-  styleFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
-  styleFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
 
+  if (IsAiEnabled) {
+    enhanceFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
+    enhanceFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
+    styleFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
+    styleFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
 
-  const promptInput = popup.querySelector(".style-prompt-input");
-  promptInput.addEventListener("focus", () => (IsInputFocused = true));
-  promptInput.addEventListener("blur", () => (IsInputFocused = false));
-  promptInput.addEventListener("keyup", (e) => {
-    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
-      popup.querySelector(".style-item-button").click();
-    }
-  });
+    const promptInput = popup.querySelector(".style-prompt-input");
+    promptInput.addEventListener("focus", () => (IsInputFocused = true));
+    promptInput.addEventListener("blur", () => (IsInputFocused = false));
+    promptInput.addEventListener("keyup", (e) => {
+      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+        popup.querySelector(".style-item-button").click();
+      }
+    });
+
+    enhanceFilenameInput.addEventListener("keyup", (e) => {
+      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+        popup.querySelector(".enhance-item-button").click();
+      }
+    });
+  }
 
   filenameInput.addEventListener("keyup", (e) => {
     if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
       popup.querySelector(".upscale-item-button").click();
-    }
-  });
-
-  enhanceFilenameInput.addEventListener("keyup", (e) => {
-    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
-      popup.querySelector(".enhance-item-button").click();
     }
   });
 
@@ -2465,88 +2519,90 @@ async function showImageEditPopup(item) {
     }
   });
 
-  popup.querySelector(".enhance-item-button").addEventListener("click", async () => {
-    const outName = enhanceFilenameInput.value.trim();
-    if (!outName) {
-      alert("Please enter an output filename");
-      return;
-    }
+  if (IsAiEnabled) {
+    popup.querySelector(".enhance-item-button").addEventListener("click", async () => {
+      const outName = enhanceFilenameInput.value.trim();
+      if (!outName) {
+        alert("Please enter an output filename");
+        return;
+      }
 
-    const dir = path.substring(0, path.lastIndexOf('/'));
-    const outputPath = dir + "/" + outName;
+      const dir = path.substring(0, path.lastIndexOf('/'));
+      const outputPath = dir + "/" + outName;
 
-    closeUpscalePopup();
+      closeUpscalePopup();
 
-    let actionId = crypto.randomUUID();
-    const apiKey = getGeminiApiKey();
-    const aspectRatio = popup.querySelector(".enhance-aspect-select").value;
+      let actionId = crypto.randomUUID();
+      const apiKey = getGeminiApiKey();
+      const aspectRatio = popup.querySelector(".enhance-aspect-select").value;
 
-    createNewAction(
-      actionId,
-      "AI Enhancing",
-      `${filename} via Gemini AI (creative)`,
-      path
-    );
+      createNewAction(
+        actionId,
+        "AI Enhancing",
+        `${filename} via Gemini AI (creative)`,
+        path
+      );
 
-    try {
-      await invoke("ai_upscale_image", {
-        apiKey,
-        fromPath: path,
-        aspectRatio,
-        outputPath,
-        creative: true,
-      });
-      showToast("AI Enhancement completed successfully", ToastType.SUCCESS);
-    } catch (error) {
-      showToast(`AI Enhancement failed: ${error}`, ToastType.ERROR);
-    } finally {
-      removeAction(actionId);
-      await listDirectories();
-    }
-  });
+      try {
+        await invoke("ai_upscale_image", {
+          apiKey,
+          fromPath: path,
+          aspectRatio,
+          outputPath,
+          creative: true,
+        });
+        showToast("AI Enhancement completed successfully", ToastType.SUCCESS);
+      } catch (error) {
+        showToast(`AI Enhancement failed: ${error}`, ToastType.ERROR);
+      } finally {
+        removeAction(actionId);
+        await listDirectories();
+      }
+    });
 
-  popup.querySelector(".style-item-button").addEventListener("click", async () => {
-    const prompt = popup.querySelector(".style-prompt-input").value.trim();
-    if (!prompt) {
-      alert("Please enter a style prompt");
-      return;
-    }
-    const outName = styleFilenameInput.value.trim();
-    if (!outName) {
-      alert("Please enter an output filename");
-      return;
-    }
+    popup.querySelector(".style-item-button").addEventListener("click", async () => {
+      const prompt = popup.querySelector(".style-prompt-input").value.trim();
+      if (!prompt) {
+        alert("Please enter a style prompt");
+        return;
+      }
+      const outName = styleFilenameInput.value.trim();
+      if (!outName) {
+        alert("Please enter an output filename");
+        return;
+      }
 
-    const dir = path.substring(0, path.lastIndexOf('/'));
-    const outputPath = dir + "/" + outName;
+      const dir = path.substring(0, path.lastIndexOf('/'));
+      const outputPath = dir + "/" + outName;
 
-    closeUpscalePopup();
+      closeUpscalePopup();
 
-    let actionId = crypto.randomUUID();
-    const apiKey = getGeminiApiKey();
+      let actionId = crypto.randomUUID();
+      const apiKey = getGeminiApiKey();
 
-    createNewAction(
-      actionId,
-      "Styling Image",
-      `${filename} to ${prompt}`,
-      path
-    );
+      createNewAction(
+        actionId,
+        "Styling Image",
+        `${filename} to ${prompt}`,
+        path
+      );
 
-    try {
-      await invoke("ai_style_image", {
-        apiKey,
-        fromPath: path,
-        prompt,
-        outputPath,
-      });
-      showToast("Image styling completed successfully", ToastType.SUCCESS);
-    } catch (error) {
-      showToast("Image styling failed: " + error, ToastType.ERROR);
-    } finally {
-      removeAction(actionId);
-      await listDirectories();
-    }
-  });
+      try {
+        await invoke("ai_style_image", {
+          apiKey,
+          fromPath: path,
+          prompt,
+          outputPath,
+        });
+        showToast("Image styling completed successfully", ToastType.SUCCESS);
+      } catch (error) {
+        showToast("Image styling failed: " + error, ToastType.ERROR);
+      } finally {
+        removeAction(actionId);
+        await listDirectories();
+      }
+    });
+  }
 
 
 
@@ -3238,6 +3294,19 @@ async function checkAppConfig() {
 
     document.querySelector(".gemini-api-key-input").value = appConfig.gemini_api_key || "";
 
+    if (appConfig.is_ai_enabled && appConfig.is_ai_enabled.includes("1")) {
+      document.querySelector(".ai-enabled-checkbox").checked = true;
+      IsAiEnabled = true;
+    } else {
+      document.querySelector(".ai-enabled-checkbox").checked = false;
+      IsAiEnabled = false;
+    }
+
+    const geminiApiRow = document.querySelector(".gemini-api-key-row");
+    if (geminiApiRow) {
+      geminiApiRow.style.display = IsAiEnabled ? "flex" : "none";
+    }
+
     if (appConfig.is_window_transparency && appConfig.is_window_transparency.includes("1")) {
       document.querySelector(".window-transparency-checkbox").checked = true;
       document.body.style.opacity = "0.78";
@@ -3708,6 +3777,8 @@ listen("size-update", (event) => {
     }
   } else if (id === activePropertiesSizeUpdateId && isPropertiesSizeCalculationActive) {
     setSizeCalculationLoading(".properties-item-size", formatBytes(size, 2));
+  } else if (id === activeDeleteSizeUpdateId && isDeleteSizeCalculationActive) {
+    setSizeCalculationLoading(".props-card__size", formatBytes(size, 2));
   }
 });
 
@@ -3730,6 +3801,27 @@ function finishPropertiesSizeCalculation(updateId) {
 
 function isPropertiesSizeUpdateCurrent(updateId) {
   return activePropertiesSizeUpdateId === updateId && isPropertiesSizeCalculationActive;
+}
+
+let currentDeleteSizeRequestId = 0;
+let activeDeleteSizeUpdateId = null;
+let isDeleteSizeCalculationActive = false;
+
+function startDeleteSizeCalculation() {
+  activeDeleteSizeUpdateId = `delete-${++currentDeleteSizeRequestId}`;
+  isDeleteSizeCalculationActive = true;
+  return activeDeleteSizeUpdateId;
+}
+
+function finishDeleteSizeCalculation(updateId) {
+  if (activeDeleteSizeUpdateId === updateId) {
+    isDeleteSizeCalculationActive = false;
+    activeDeleteSizeUpdateId = null;
+  }
+}
+
+function isDeleteSizeUpdateCurrent(updateId) {
+  return activeDeleteSizeUpdateId === updateId && isDeleteSizeCalculationActive;
 }
 
 let currentSelectionRequestId = 0;
@@ -4614,6 +4706,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     ".window-transparency-checkbox",
   ).checked;
   let geminiApiKey = document.querySelector(".gemini-api-key-input").value.trim();
+  let isAiEnabled = document.querySelector(".ai-enabled-checkbox").checked;
 
   if (isOpenInTerminal == true) {
     isOpenInTerminal = "1";
@@ -4645,6 +4738,13 @@ async function saveConfig(isToReload = true, isVerbose = true) {
   } else {
     isWindowTransparency = "0";
   }
+  if (isAiEnabled == true) {
+    isAiEnabled = "1";
+    IsAiEnabled = true;
+  } else {
+    isAiEnabled = "0";
+    IsAiEnabled = false;
+  }
 
   // Apply font size immediately
   document.documentElement.style.setProperty("--fontSize", fontSize + "px");
@@ -4673,6 +4773,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     fontSize,
     isWindowTransparency,
     geminiApiKey,
+    isAiEnabled,
   });
   if (isVerbose === true) {
     showToast("Settings have been saved", ToastType.INFO);
@@ -4699,6 +4800,7 @@ async function resetSettingsToDefaults() {
   document.getElementById("font-size-value").textContent = "12px";
   document.querySelector(".window-transparency-checkbox").checked = false;
   document.querySelector(".gemini-api-key-input").value = "";
+  document.querySelector(".ai-enabled-checkbox").checked = false;
 
   await saveConfig(true, true);
   showToast("Settings reset to defaults", ToastType.INFO);
@@ -4923,11 +5025,19 @@ async function showItemPreview(item, isOverride = false) {
       `;
       break;
     case ".pdf":
+      module = `
+      <div class="pdf-loader-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; width: 40vw; height: 60vh; gap: 15px; color: var(--textColor);">
+        <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px;"></div>
+        <span style="font-size: var(--fontSize); opacity: 0.8;">Loading ...</span>
+      </div>
+      <iframe class="pdf-preview-iframe" decoding="async" style="display: none; width: 40vw; height: 60vh; border: none;"></iframe>
+      `;
+      break;
     case ".html":
     case ".xhtml":
     case ".htm":
       popup.style.backgroundColor = "white";
-      module = `<iframe decoding="async" src="${convertFileSrc(path)}" />>`;
+      module = `<iframe decoding="async" src="${convertFileSrc(path)}"></iframe>`;
       break;
     case ".mp4":
     case ".mkv":
@@ -4996,6 +5106,23 @@ async function showItemPreview(item, isOverride = false) {
   let img = popup.querySelector("img");
   if (img) {
     img.src = convertFileSrc(item.getAttribute("itempath"));
+  }
+  if (ext.toLowerCase() === ".pdf") {
+    const iframe = popup.querySelector(".pdf-preview-iframe");
+    const loader = popup.querySelector(".pdf-loader-container");
+    if (iframe && loader) {
+      invoke("get_file_base64", { path })
+        .then((base64Data) => {
+          iframe.src = "data:application/pdf;base64," + base64Data;
+          loader.style.display = "none";
+          iframe.style.display = "block";
+          popup.style.backgroundColor = "white";
+        })
+        .catch((error) => {
+          writeLog("Failed to load PDF preview: " + error);
+          loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load PDF preview</span>`;
+        });
+    }
   }
   popup.children[0].addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
@@ -6061,19 +6188,19 @@ var comparisonResults = null;
 
 function compareDualPanes() {
   if (!IsDualPaneEnabled) return;
-  
+
   // Get all items in left and right panes
   const leftItems = Array.from(document.querySelectorAll(".dual-pane-left .item-link"));
   const rightItems = Array.from(document.querySelectorAll(".dual-pane-right .item-link"));
-  
+
   // Clear any previous badges / classes
   clearComparisonVisuals();
-  
+
   if (leftItems.length === 0 && rightItems.length === 0) {
     showToast("No items to compare.", ToastType.INFO);
     return;
   }
-  
+
   // Store results for sync operation
   comparisonResults = {
     leftOnly: [],     // Paths of items only in left pane
@@ -6081,7 +6208,7 @@ function compareDualPanes() {
     different: [],    // Paths of items in left pane that are different from right pane
     identical: []     // Paths of identical items
   };
-  
+
   // Map right items by name for quick lookup
   const rightMap = new Map();
   rightItems.forEach(item => {
@@ -6094,7 +6221,7 @@ function compareDualPanes() {
       rightMap.set(name + "|" + isDir, { item, rawSize, modified, path });
     }
   });
-  
+
   // Map left items by name for quick lookup
   const leftMap = new Map();
   leftItems.forEach(item => {
@@ -6107,7 +6234,7 @@ function compareDualPanes() {
       leftMap.set(name + "|" + isDir, { item, rawSize, modified, path });
     }
   });
-  
+
   // 1. Process Left Items
   leftItems.forEach(item => {
     const name = item.getAttribute("itemname");
@@ -6115,15 +6242,15 @@ function compareDualPanes() {
     const leftRawSize = parseInt(item.getAttribute("itemrawsize")) || 0;
     const leftModified = item.getAttribute("itemmodified");
     const leftPath = item.getAttribute("itempath");
-    
+
     if (!name || name === "..") return;
-    
+
     const key = name + "|" + isDir;
     if (rightMap.has(key)) {
       const rightItem = rightMap.get(key);
       const isSizeDiff = leftRawSize !== rightItem.rawSize;
       const isModifiedDiff = leftModified !== rightItem.modified;
-      
+
       if (isSizeDiff || isModifiedDiff) {
         // Different / Mismatched
         markItem(item, "different", "Mismatch");
@@ -6154,15 +6281,15 @@ function compareDualPanes() {
       });
     }
   });
-  
+
   // 2. Process Right Items for Right-Only
   rightItems.forEach(item => {
     const name = item.getAttribute("itemname");
     const isDir = item.getAttribute("itemisdir");
     const rightPath = item.getAttribute("itempath");
-    
+
     if (!name || name === "..") return;
-    
+
     const key = name + "|" + isDir;
     if (!leftMap.has(key)) {
       // Right only
@@ -6174,15 +6301,15 @@ function compareDualPanes() {
       });
     }
   });
-  
+
   comparisonActive = true;
   document.getElementById("dual-pane-clear-btn").style.display = "inline-flex";
-  
+
   // Enable/disable sync button depending on results
-  const hasDiffs = comparisonResults.leftOnly.length > 0 || 
-                   comparisonResults.rightOnly.length > 0 || 
+  const hasDiffs = comparisonResults.leftOnly.length > 0 ||
+                   comparisonResults.rightOnly.length > 0 ||
                    comparisonResults.different.length > 0;
-                     
+
   const syncBtn = document.getElementById("dual-pane-sync-btn");
   if (syncBtn) {
     if (hasDiffs) {
@@ -6200,12 +6327,12 @@ function compareDualPanes() {
 function markItem(itemEl, type, label = "") {
   const rowEl = itemEl.querySelector(".dual-pane-list-item");
   if (!rowEl) return;
-  
+
   rowEl.classList.add(`compare-${type}`);
-  
+
   if (label) {
     if (rowEl.querySelector(".compare-badge")) return;
-    
+
     // Find the first span (where name is located)
     const nameSpan = rowEl.querySelector(".item-button-list-info-span");
     if (nameSpan) {
@@ -6230,13 +6357,13 @@ function clearComparison() {
   clearComparisonVisuals();
   comparisonActive = false;
   comparisonResults = null;
-  
+
   const syncBtn = document.getElementById("dual-pane-sync-btn");
   if (syncBtn) {
     syncBtn.setAttribute("disabled", "true");
     syncBtn.classList.add("disabled");
   }
-  
+
   const clearBtn = document.getElementById("dual-pane-clear-btn");
   if (clearBtn) {
     clearBtn.style.display = "none";
@@ -6246,25 +6373,25 @@ function clearComparison() {
 
 function showSyncPopup() {
   if (!comparisonResults) return;
-  
+
   // Set paths
   document.getElementById("sync-left-path").innerText = LeftDualPanePath;
   document.getElementById("sync-left-path").setAttribute("title", LeftDualPanePath);
   document.getElementById("sync-right-path").innerText = RightDualPanePath;
   document.getElementById("sync-right-path").setAttribute("title", RightDualPanePath);
-  
+
   // Set stats
   document.getElementById("sync-stat-left-only").innerText = comparisonResults.leftOnly.length;
   document.getElementById("sync-stat-right-only").innerText = comparisonResults.rightOnly.length;
   document.getElementById("sync-stat-different").innerText = comparisonResults.different.length;
-  
+
   // Set default checkbox state
   document.getElementById("sync-delete-extraneous").checked = false;
-  
+
   // Handle select changed
   const modeSelect = document.getElementById("sync-direction-select");
   const deleteCheckbox = document.getElementById("sync-delete-extraneous");
-  
+
   const handleModeChange = () => {
     if (modeSelect.value === "two-way") {
       deleteCheckbox.checked = false;
@@ -6273,14 +6400,14 @@ function showSyncPopup() {
       deleteCheckbox.removeAttribute("disabled");
     }
   };
-  
+
   modeSelect.addEventListener("change", handleModeChange);
   handleModeChange();
-  
+
   // Open dialog with smooth transitions
   $(".popup-background").css("display", "block");
   setTimeout(() => $(".popup-background").css("opacity", "1"));
-  
+
   document.querySelector(".sync-directory-container").style.display = "flex";
   IsPopUpOpen = true;
   IsDisableShortcuts = true;
@@ -6299,13 +6426,13 @@ async function executeSync() {
     showToast("Please run comparison first.", ToastType.ERROR);
     return;
   }
-  
+
   const mode = document.getElementById("sync-direction-select").value;
   const deleteExtraneous = document.getElementById("sync-delete-extraneous").checked;
-  
+
   const itemsToCopy = [];
   const itemsToDelete = [];
-  
+
   if (mode === "left-to-right") {
     // 1. Copy leftOnly items to right
     comparisonResults.leftOnly.forEach(item => {
@@ -6315,7 +6442,7 @@ async function executeSync() {
         policy: "replace"
       });
     });
-    
+
     // 2. Copy different items from left to right
     comparisonResults.different.forEach(item => {
       itemsToCopy.push({
@@ -6324,7 +6451,7 @@ async function executeSync() {
         policy: "replace"
       });
     });
-    
+
     // 3. Delete rightOnly items if deleteExtraneous
     if (deleteExtraneous) {
       comparisonResults.rightOnly.forEach(item => {
@@ -6340,7 +6467,7 @@ async function executeSync() {
         policy: "replace"
       });
     });
-    
+
     // 2. Copy different items from right to left
     comparisonResults.different.forEach(item => {
       itemsToCopy.push({
@@ -6349,7 +6476,7 @@ async function executeSync() {
         policy: "replace"
       });
     });
-    
+
     // 3. Delete leftOnly items if deleteExtraneous
     if (deleteExtraneous) {
       comparisonResults.leftOnly.forEach(item => {
@@ -6365,7 +6492,7 @@ async function executeSync() {
         policy: "replace"
       });
     });
-    
+
     // 2. Copy rightOnly items to left
     comparisonResults.rightOnly.forEach(item => {
       itemsToCopy.push({
@@ -6374,12 +6501,12 @@ async function executeSync() {
         policy: "replace"
       });
     });
-    
+
     // 3. Compare modification date of different items, and copy the newer one
     comparisonResults.different.forEach(item => {
       let leftTime = Date.parse(item.leftModified) || 0;
       let rightTime = Date.parse(item.rightModified) || 0;
-      
+
       if (leftTime >= rightTime) {
         itemsToCopy.push({
           source_path: item.leftPath,
@@ -6412,14 +6539,14 @@ async function executeSync() {
       window.IsDeletingItems = false;
     }
   }
-  
+
   // Perform copies
   if (itemsToCopy.length > 0) {
     try {
       const result = await invoke("arr_copy_paste_resolved", { items: itemsToCopy });
       let copiedSources = Array.isArray(result) ? result : (result?.copied_sources ?? []);
       let errors = Array.isArray(result) ? [] : (result?.errors ?? []);
-      
+
       if (errors.length > 0) {
         showToast(`${errors.length} item(s) failed to sync.`, ToastType.ERROR);
       } else {
@@ -6436,14 +6563,14 @@ async function executeSync() {
   clearComparisonVisuals();
   comparisonActive = false;
   comparisonResults = null;
-  
+
   const syncBtn = document.getElementById("dual-pane-sync-btn");
   if (syncBtn) {
     syncBtn.setAttribute("disabled", "true");
     syncBtn.classList.add("disabled");
   }
   document.getElementById("dual-pane-clear-btn").style.display = "none";
-  
+
   await refreshBothViews("left");
 }
 
@@ -6541,10 +6668,10 @@ async function showDuplicateFinderPopup(path) {
     selectedFilePaths.forEach(file => {
       totalSize += filePathToSize.get(file) || 0;
     });
-    
+
     popup.querySelector("#dup-selected-count").innerText = `Selected: ${selectedFilePaths.size} files`;
     popup.querySelector("#dup-reclaim-size").innerText = `Reclaimable: ${formatBytes(totalSize)}`;
-    
+
     const deleteBtn = popup.querySelector("#btn-dup-delete");
     if (selectedFilePaths.size > 0) {
       deleteBtn.removeAttribute("disabled");
@@ -6613,7 +6740,7 @@ async function showDuplicateFinderPopup(path) {
               <span>Unlimited</span>
             </label>
           </div>
-          
+
           <input type="number" id="dup-depth-input" min="1" value="${currentDepthValue}" class="props-card__input" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--tertiaryColor); border-radius: 8px; color: var(--textColor); font-size: 13px; font-family: monospace; transition: all 0.2s;" />
           <span style="font-size: 10.5px; opacity: 0.5; line-height: 1.4; text-align: left;">Sets directory recursion depth. E.g., depth 1 scans only the root folder.</span>
         </div>
@@ -6661,7 +6788,7 @@ async function showDuplicateFinderPopup(path) {
     }
 
     const body = popup.querySelector(".duplicate-finder-body");
-    
+
     // Transition body to scanning state with Stop button
     body.innerHTML = `
       <div class="duplicate-finder-scanning" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 30px 0;">
@@ -6685,7 +6812,7 @@ async function showDuplicateFinderPopup(path) {
     try {
       const results = await invoke("find_duplicates", { path, maxDepth });
       isSearching = false;
-      
+
       if (!results || results.length === 0) {
         body.style.height = "";
         body.style.padding = "14px";
@@ -6709,7 +6836,7 @@ async function showDuplicateFinderPopup(path) {
         };
       } else {
         popup.querySelector(".duplicate-finder-actions-bar").style.display = "flex";
-        
+
         // Populate path to size map
         filePathToSize.clear();
         results.forEach(group => {
@@ -6793,7 +6920,7 @@ async function showDuplicateFinderPopup(path) {
               const file = fileObj.path;
               const modified = fileObj.modified;
               const isChecked = selectedFilePaths.has(file);
-              
+
               // Compute relative path from the scanned root folder
               let displayPath = file;
               if (file.toLowerCase().startsWith(path.toLowerCase())) {
@@ -7016,7 +7143,7 @@ async function showDuplicateFinderPopup(path) {
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 320px; gap: 14px; padding: 20px 10px;">
                 <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 32px; color: #4da3ff; filter: drop-shadow(0 0 12px rgba(77, 163, 255, 0.8)); margin-bottom: 4px;"></i>
                 <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">Deleting duplicates...</span>
-                
+
                 <div style="width: 100%; background: rgba(255, 255, 255, 0.08); height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; border: 1px solid rgba(255, 255, 255, 0.05);">
                   <div id="dup-delete-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--selectColor2), #4da3ff); box-shadow: 0 0 8px rgba(77, 163, 255, 0.6); transition: width 0.15s ease-out; border-radius: 3px;"></div>
                 </div>
@@ -7139,4 +7266,12 @@ async function showDuplicateFinderPopup(path) {
   await checkAppConfig();
   await insertSiteNavButtons();
   cdCtMenu.setupItems();
+
+  // Handle AI toggle visibility of API key row dynamically
+  document.querySelector(".ai-enabled-checkbox")?.addEventListener("change", (e) => {
+    const apiRow = document.querySelector(".gemini-api-key-row");
+    if (apiRow) {
+      apiRow.style.display = e.target.checked ? "flex" : "none";
+    }
+  });
 })();

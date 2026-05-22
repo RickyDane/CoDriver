@@ -186,6 +186,7 @@ fn main() {
             get_themes,
             stop_searching,
             get_file_content,
+            get_file_base64,
             open_config_location,
             log,
             get_config_location,
@@ -264,6 +265,7 @@ struct AppConfig {
     font_size: i32,
     is_window_transparency: String,
     gemini_api_key: String,
+    is_ai_enabled: String,
 }
 
 #[tauri::command]
@@ -333,6 +335,7 @@ async fn check_app_config() -> AppConfig {
             font_size: 12,
             is_window_transparency: "0".to_string(),
             gemini_api_key: "".to_string(),
+            is_ai_enabled: "0".to_string(),
         };
         let _ = serde_json::to_writer_pretty(
             File::create(
@@ -405,6 +408,10 @@ async fn check_app_config() -> AppConfig {
             .to_string()
             .replace('"', "")
             .replace("null", ""),
+        is_ai_enabled: app_config["is_ai_enabled"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "0"),
     }
 }
 
@@ -1865,6 +1872,7 @@ async fn save_config(
     font_size: i32,
     is_window_transparency: String,
     gemini_api_key: String,
+    is_ai_enabled: String,
 ) {
     let app_config_file = File::open(
         app_config_dir(&Config::default())
@@ -1893,6 +1901,7 @@ async fn save_config(
         font_size,
         is_window_transparency: is_window_transparency.replace("\\", ""),
         gemini_api_key: gemini_api_key.replace("\\", ""),
+        is_ai_enabled: is_ai_enabled.replace("\\", ""),
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
@@ -2507,6 +2516,12 @@ async fn get_file_content(path: String) -> String {
         return json_string_pretty;
     }
     content
+}
+
+#[tauri::command]
+async fn get_file_base64(path: String) -> Result<String, String> {
+    let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+    Ok(BASE64_STANDARD.encode(&bytes))
 }
 
 #[tauri::command]

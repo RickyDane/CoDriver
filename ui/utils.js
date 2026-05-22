@@ -648,7 +648,13 @@ function tryLoadCachedImage(imageId, imageType, imageUrl) {
 
   if (element && loader && data) {
     element.style.display = "block";
-    element.src = `data:image/${imageType};base64,${data}`;
+    if (data === imageUrl) {
+      element.src = convertFileSrc(data);
+    } else {
+      let ext = imageType.toLowerCase();
+      let type = ext === "icns" ? "png" : (ext === "jpg" ? "jpeg" : (ext === "tif" ? "tiff" : ext));
+      element.src = `data:image/${type};base64,${data}`;
+    }
     loader.style.display = "none";
   }
 }
@@ -659,7 +665,9 @@ function setItemImage(base64, imageId, imageUrl) {
 
   if (element && loader && base64) {
     element.style.display = "block";
-    element.src = `data:image/${imageUrl.split(".").pop()};base64,${base64}`;
+    let ext = imageUrl.split(".").pop().toLowerCase();
+    let type = ext === "icns" ? "png" : (ext === "jpg" ? "jpeg" : (ext === "tif" ? "tiff" : ext));
+    element.src = `data:image/${type};base64,${base64}`;
     loader.style.display = "none";
   }
 

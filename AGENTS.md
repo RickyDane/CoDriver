@@ -123,6 +123,10 @@ To maintain visual excellence, follow these rules:
    ```
 2. **Modals & Popups**: Use the existing `.popup-background` and `.uni-popup` structure. Modals are shown by dynamically changing their CSS class or rendering content inside them and displaying `.popup-background`.
 3. **Prevent Placeholder Assets**: When displaying visual helpers, do not use dead layout placeholders. Generate or use proper icon sheets and local resources found in `ui/resources/` or `ui/font-awesome`.
+4. **Asynchronous Previews & Circular Loaders**: When displaying large or heavy preview elements (such as PDF files) in modals, avoid setting the resource source immediately inside the HTML template to prevent the UI from freezing. Instead:
+   - Immediately display the modal container with a centered circular progress loader (using the style of the indicators from the action items, e.g. `.preloader-invert` or `.preloader-small-invert`).
+   - Load the resource asynchronously in the background by dynamically setting the target element's `src` attribute.
+   - Listen to the `"load"` event of the element, and once fired, hide the loading indicator, make the preview visible, and transition the background properties (e.g. to a solid white background for high PDF legibility).
 
 ---
 

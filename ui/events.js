@@ -41,7 +41,9 @@ listen("set-item-image", (event) => {
 
   if (element && loader && base64) {
     element.style.display = "block";
-    element.src = `data:image/${payload.url.split(".").pop()};base64,${base64}`;
+    let ext = payload.url.split(".").pop().toLowerCase();
+    let type = ext === "icns" ? "png" : (ext === "jpg" ? "jpeg" : (ext === "tif" ? "tiff" : ext));
+    element.src = `data:image/${type};base64,${base64}`;
     loader.style.display = "none";
   }
 
