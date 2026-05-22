@@ -384,100 +384,189 @@
             </div>
 
             <!-- :fullsearch | Dual pane search UI -->
-            <div class="search-full-container uni-popup">
-                <div class="popup-header">
-                    <span style="display: flex; gap: 20px; align-items: center;">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <p>Search</p>
-                    </span>
-                </div>
-                <div class="popup-body">
-                    <div class="popup-body-col-section">
-                        <p class="text-small">Search input</p>
-                        <input class="full-dualpane-search-input trigger-for-full-search text-input" type="text"
-                            placeholder="example.txt" />
+            <div class="search-full-container props-card" style="display: none;">
+                <section class="props-card__hero">
+                    <div class="props-card__thumb"><i class="fa-solid fa-magnifying-glass"></i></div>
+                    <div class="props-card__heading">
+                        <h2 class="props-card__name">Search Files</h2>
+                        <div class="props-card__meta">
+                            <span>System</span>
+                            <span class="props-card__chip">Search</span>
+                        </div>
                     </div>
-                    <div class="popup-body-col-section">
-                        <p class="text-small">File content</p>
-                        <input class="full-dualpane-search-file-content-input trigger-for-full-search text-input"
-                            type="text" placeholder="A long, long time ago in a galaxy far far away..." />
+                </section>
+
+                <dl class="props-card__list">
+                    <!-- Row 1: Search Input -->
+                    <div class="props-card__row">
+                        <dt class="props-card__label"><i class="fa-solid fa-font"></i>Input</dt>
+                        <dd class="props-card__value">
+                            <input class="props-card__input full-dualpane-search-input trigger-for-full-search" type="text"
+                                placeholder="example.txt (supports globs)" />
+                        </dd>
                     </div>
-                    <div class="popup-body-col-section">
-                        <p class="text-small">Max count of search results (0 = off)</p>
-                        <input style="width: 100px;" type="number"
-                            class="number-input trigger-for-full-search full-search-max-items-input" placeholder="1000"
-                            value="1000" />
+                    <!-- Row 2: File Content -->
+                    <div class="props-card__row">
+                        <dt class="props-card__label"><i class="fa-solid fa-align-left"></i>Content</dt>
+                        <dd class="props-card__value">
+                            <input class="props-card__input full-dualpane-search-file-content-input trigger-for-full-search"
+                                type="text" placeholder="Text inside files (optional)" />
+                        </dd>
                     </div>
-                    <div class="popup-body-col-section">
-                        <p class="text-small">Search depth (0 = off)</p>
-                        <input style="width: 100px;" type="number"
-                            class="number-input trigger-for-full-search full-search-search-depth-input" placeholder="10"
-                            value="10" />
+                    <!-- Row 3: Max count -->
+                    <div class="props-card__row">
+                        <dt class="props-card__label"><i class="fa-solid fa-list-ol"></i>Limit</dt>
+                        <dd class="props-card__value">
+                            <input type="number"
+                                class="props-card__input trigger-for-full-search full-search-max-items-input" placeholder="1000 (0 = off)"
+                                value="1000" />
+                        </dd>
                     </div>
-                </div>
-                <div class="popup-controls">
-                    <!-- show current file which is being searched -->
-                    <div style="width: 50%; display: flex; align-items: center; gap: 15px; margin-left: 10px;">
-                        <div class="preloader-small-invert full-searching-loader" style="display: none;"></div>
-                        <p class="text-2 warbing-text fullsearch-current-file"></p>
+                    <!-- Row 4: Search depth -->
+                    <div class="props-card__row">
+                        <dt class="props-card__label"><i class="fa-solid fa-sitemap"></i>Depth</dt>
+                        <dd class="props-card__value">
+                            <input type="number"
+                                class="props-card__input trigger-for-full-search full-search-search-depth-input" placeholder="10 (0 = off)"
+                                value="10" />
+                        </dd>
                     </div>
-                    <div style="width: 50%; display: flex; flex-flow: row; gap: 5px; justify-content: flex-end;">
-                        <button class="icon-button" onclick="closeFullSearchContainer()">
-                            <div class="button-icon"><i class="fa-solid fa-ban"></i></div>
-                            Close
-                        </button>
-                        <button class="fullsearch-search-button icon-button" onclick="startFullSearch()">
-                            <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-                            Start
-                            <div class="fullsearch-loader preloader-small-invert" style="display: none;"></div>
-                        </button>
+                    
+                    <!-- Search Progress Indicator (Row 5) -->
+                    <div class="props-card__row fullsearch-progress-row" style="grid-template-columns: 1fr; display: none; padding-top: 4px; padding-bottom: 4px;">
+                        <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                            <div class="full-searching-loader" style="display: none;">
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <p class="text-2 warbing-text fullsearch-current-file" style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(var(--fontSize) * 0.92); color: var(--textColor2);"></p>
+                        </div>
                     </div>
-                </div>
+                </dl>
+
+                <footer class="props-card__footer">
+                    <button class="props-card__btn" onclick="closeFullSearchContainer()">
+                        <i class="fa-solid fa-xmark"></i><span>Close</span>
+                    </button>
+                    <button class="props-card__btn props-card__btn--primary fullsearch-search-button" onclick="startFullSearch()">
+                        <i class="fa-solid fa-magnifying-glass"></i><span>Search</span>
+                    </button>
+                </footer>
             </div>
 
             <!-- :ftp | FTP connection UI -->
-            <div class="ftp-connect-container uni-popup">
-                <div class="popup-header">
-                    <div style="display: flex; gap: 20px; align-items: center;">
-                        <i class="fa-solid fa-gears"></i>
-                        <h3>SSHFS - Connection</h3>
+            <div class="ftp-connect-container props-card" style="display: none;">
+                <section class="props-card__hero">
+                    <div class="props-card__thumb"><i class="fa-solid fa-server"></i></div>
+                    <div class="props-card__heading">
+                        <h2 class="props-card__name">FTP Connection</h2>
+                        <div class="props-card__meta">
+                            <span>Network</span>
+                            <span class="props-card__chip">FTP</span>
+                        </div>
                     </div>
+                </section>
+
+                <!-- Scrollable Wrapper for Modal Content -->
+                <div class="props-card__scroll-wrap">
+                    <!-- FTP Tabs Navigation -->
+                    <div class="ftp-tabs-nav">
+                        <button class="ftp-tab-btn active" data-target="discovered" onclick="switchFtpTab('discovered')">
+                            <i class="fa-solid fa-satellite-dish"></i><span>Discovered</span>
+                        </button>
+                        <button class="ftp-tab-btn" data-target="saved" onclick="switchFtpTab('saved')">
+                            <i class="fa-solid fa-bookmark"></i><span>Saved Profiles</span>
+                        </button>
+                    </div>
+
+                    <!-- FTP Discovery Section -->
+                    <div class="ftp-discovery-section">
+                        <div class="ftp-discovery-header">
+                            <span class="ftp-discovery-title">
+                                <i class="fa-solid fa-satellite-dish"></i>Discovered Servers
+                            </span>
+                            <button class="ftp-discovery-refresh-btn" onclick="startFtpDiscovery(event)">
+                                <i class="fa-solid fa-arrows-rotate"></i>Refresh
+                            </button>
+                        </div>
+                        <div class="ftp-discovery-list">
+                            <!-- Dynamic content loaded via JS -->
+                        </div>
+                    </div>
+
+                    <!-- FTP Saved Section -->
+                    <div class="ftp-saved-section" style="display: none;">
+                        <div class="ftp-saved-header">
+                            <span class="ftp-saved-title">
+                                <i class="fa-solid fa-bookmark"></i>Saved Profiles
+                            </span>
+                        </div>
+                        <div class="ftp-saved-list">
+                            <!-- Dynamic content loaded via JS -->
+                        </div>
+                    </div>
+
+                    <dl class="props-card__list">
+                        <!-- Row 1: Name -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-tag"></i>Name</dt>
+                            <dd class="props-card__value">
+                                <input type="text" class="props-card__input ftp-dirname-input ftp-popup-input" placeholder="e.g. My FTP Server" required />
+                            </dd>
+                        </div>
+                        <!-- Row 2: Hostname -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-globe"></i>Host</dt>
+                            <dd class="props-card__value">
+                                <input type="text" class="props-card__input ftp-hostname-input ftp-popup-input" placeholder="e.g. 127.0.0.1" required />
+                            </dd>
+                        </div>
+                        <!-- Row 3: Port -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-plug"></i>Port</dt>
+                            <dd class="props-card__value">
+                                <input type="number" class="props-card__input ftp-port-input ftp-popup-input" value="21" required />
+                            </dd>
+                        </div>
+                        <!-- Row 4: Username -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-user"></i>User</dt>
+                            <dd class="props-card__value">
+                                <input type="text" class="props-card__input ftp-username-input ftp-popup-input" placeholder="user" required />
+                            </dd>
+                        </div>
+                        <!-- Row 5: Password -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-lock"></i>Password</dt>
+                            <dd class="props-card__value">
+                                <input type="password" class="props-card__input ftp-password-input ftp-popup-input" placeholder="***************" required />
+                            </dd>
+                        </div>
+                        <!-- Row 6: Path -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-folder"></i>Path</dt>
+                            <dd class="props-card__value">
+                                <input type="text" class="props-card__input ftp-path-input ftp-popup-input" placeholder="/" />
+                            </dd>
+                        </div>
+                    </dl>
                 </div>
-                <div class="popup-body">
-                    <div class="popup-body-col-section">
-                        <h3 class="text-2">This process needs the program to be run as root!</h3>
+
+                <footer class="props-card__footer">
+                    <div class="ftp-save-profile-footer">
+                        <input type="checkbox" id="ftp-save-checkbox" />
+                        <label for="ftp-save-checkbox">
+                            <span>Save Profile</span>
+                        </label>
                     </div>
-                    <div class="popup-body-col-section">
-                        <div class="popup-body-col-section">
-                            <p>Name</p>
-                            <input type="text" class="text-input ftp-dirname-input ftp-popup-input" placeholder="ftp-connection" required />
-                        </div>
-                    </div>
-                    <div class="popup-body-row-section">
-                        <div class="popup-body-col-section">
-                            <p>Hostname</p>
-                            <input type="text" class="text-input ftp-hostname-input ftp-popup-input" placeholder="127.0.0.1" required />
-                        </div>
-                        <div class="popup-body-col-section">
-                            <p>Remote path</p>
-                            <input type="text" class="text-input ftp-path-input ftp-popup-input" placeholder="/" />
-                        </div>
-                    </div>
-                    <div class="popup-body-row-section">
-                        <div class="popup-body-col-section">
-                            <p>Username</p>
-                            <input type="text" class="text-input ftp-username-input ftp-popup-input" placeholder="user" required />
-                        </div>
-                        <div class="popup-body-col-section">
-                            <p>Password</p>
-                            <input type="password" class="text-input ftp-password-input ftp-popup-input" placeholder="***************" required />
-                        </div>
-                    </div>
-                </div>
-                <div class="popup-controls">
-                    <button class="icon-button" onclick="closeFtpConfig()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
-                    <button class="icon-button" onclick="connectToFtp()"><span class="button-icon"><i class="fa-solid fa-forward"></i></span>Connect</button>
-                </div>
+                    <button class="props-card__btn" onclick="closeFtpConfig()">
+                        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+                    </button>
+                    <button class="props-card__btn props-card__btn--primary" onclick="connectToFtp()">
+                        <i class="fa-solid fa-plug"></i><span>Connect</span>
+                    </button>
+                </footer>
+
                 <div class="ftp-loader">
                     <div class="preloader-invert"></div>
                 </div>

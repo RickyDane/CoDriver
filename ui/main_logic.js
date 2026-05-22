@@ -235,10 +235,10 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 async function startFullSearch() {
   if (IsFullSearching == false) {
     IsFullSearching = true;
-    $(".full-searching-loader").css("display", "block");
+    $(".full-searching-loader").css("display", "inline-flex");
+    $(".fullsearch-progress-row").css("display", "grid");
     $(".fullsearch-search-button").html(`
-      <div class="button-icon"><i class="fa-solid fa-stop"></i></div>
-      Stop
+      <i class="fa-solid fa-stop"></i><span>Stop</span>
       `);
     document
       .querySelector(".fullsearch-search-button")
@@ -270,10 +270,10 @@ async function stopFullSearch() {
     );
   IsFullSearching = false;
   $(".full-searching-loader").css("display", "none");
+  $(".fullsearch-progress-row").css("display", "none");
   $(".fullsearch-current-file").html("");
   $(".fullsearch-search-button").html(`
-    <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-    Search
+    <i class="fa-solid fa-magnifying-glass"></i><span>Search</span>
     `);
   document
     .querySelector(".fullsearch-search-button")
@@ -463,7 +463,7 @@ document.addEventListener("mousedown", (e) => {
   ) {
     closeInputDialogs();
   }
-  if (!e.target.classList.contains("c-item-custom")) {
+  if (!e.target.closest(".custom-context-menu")) {
     closeCustomContextMenu();
   }
   $(".site-nav-bar-button").css("border", "1px solid transparent");
@@ -1480,17 +1480,27 @@ function updateCurrentPath(currentDir, dualPaneSide) {
     CurrentDir = currentDir;
     let currentDirContainer = document.querySelector(".current-path");
     currentDirContainer.innerHTML = "";
+    
+    let isFtp = currentDir.startsWith("ftp://");
     let currentPathTracker = "/";
     if (Platform != "darwin" && Platform.includes("win")) {
       currentPathTracker = "";
     }
-
-    if (currentDir.endsWith("/")) {
-      currentDir = currentDir.substring(currentDir.length - 1);
+    
+    if (isFtp) {
+      currentPathTracker = "ftp://";
     }
 
-    if (currentDir.startsWith("/")) {
-      currentDir = currentDir.substring(1, currentDir.length);
+    if (currentDir.endsWith("/") && currentDir !== "ftp://") {
+      currentDir = currentDir.substring(0, currentDir.length - 1);
+    }
+
+    if (!isFtp) {
+      if (currentDir.startsWith("/")) {
+        currentDir = currentDir.substring(1);
+      }
+    } else {
+      currentDir = currentDir.substring(6); // remove "ftp://"
     }
 
     let counter = 0;
@@ -1500,12 +1510,16 @@ function updateCurrentPath(currentDir, dualPaneSide) {
       let pathItem = document.createElement("button");
       pathItem.textContent = path;
       pathItem.className = "path-item";
-      currentPathTracker += path + "/";
+      
+      if (isFtp && counter == 0) {
+        currentPathTracker += path; // e.g. ftp://connectionName
+      } else {
+        currentPathTracker += (currentPathTracker.endsWith("/") ? "" : "/") + path;
+      }
+      
       pathItem.setAttribute(
         "itempath",
-        currentPathTracker.endsWith("/")
-          ? currentPathTracker.substring(0, currentPathTracker.length - 1)
-          : currentPathTracker,
+        currentPathTracker
       );
       pathItem.setAttribute("itempaneside", dualPaneSide);
       pathItem.setAttribute("itemisdir", 1);
@@ -1528,6 +1542,7 @@ function updateCurrentPath(currentDir, dualPaneSide) {
         pathItem.style.backgroundColor = "var(--transparentColor)";
         pathItem.style.scale = "1";
       };
+      
       let divider = document.createElement("i");
       divider.className = "fa fa-chevron-right";
       divider.style.color = "var(--textColor)";
@@ -3472,6 +3487,7 @@ async function listDisks() {
 function isEjectableDisk(item) {
   const path = item.path?.replace(/"/g, "") ?? "";
   if (!path || path === "/") return false;
+  if (path.startsWith("ftp://") || path.includes("sshfs") || path.startsWith("/tmp/codriver-sshfs-mount")) return true;
   if (Platform === "darwin") {
     return item.is_removable === true && path.startsWith("/Volumes/");
   }
@@ -4314,7 +4330,14 @@ async function ejectDisk(item) {
   try {
     const message = await invoke("eject_disk", { path });
     showToast(message || "Disk ejected", ToastType.SUCCESS);
-    await listDisks();
+    await insertSiteNavButtons();
+    if (IsShowDisks) {
+      await listDisks();
+    }
+    const currentDir = await invoke("get_current_dir");
+    if (currentDir.startsWith(path)) {
+      await goHome();
+    }
   } catch (error) {
     showToast(`Failed to eject disk: ${error}`, ToastType.ERROR, 5000);
   }
@@ -5007,6 +5030,7 @@ async function showItemPreview(item, isOverride = false) {
   IsItemPreviewOpen = true;
   let module = "";
   let moduleImgId = crypto.randomUUID();
+  let isFtp = path.startsWith("ftp://");
   switch (ext.toLowerCase()) {
     case ".png":
     case ".icns":
@@ -5018,11 +5042,23 @@ async function showItemPreview(item, isOverride = false) {
     case ".ico":
     case ".jfif":
     case ".avif":
-      module = `
-      <div class="module-container">
-      <img class="${moduleImgId}" decoding="async" src="resources/preloader_big.gif" width="100%" height="100%" />
-      </div>
-      `;
+      if (isFtp) {
+        module = `
+        <div class="image-loader-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 300px; min-height: 300px; gap: 15px; color: var(--textColor);">
+          <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px;"></div>
+          <span style="font-size: var(--fontSize); opacity: 0.8;">Loading image...</span>
+        </div>
+        <div class="module-container" style="display: none;">
+          <img class="${moduleImgId}" decoding="async" width="100%" height="100%" />
+        </div>
+        `;
+      } else {
+        module = `
+        <div class="module-container">
+        <img class="${moduleImgId}" decoding="async" src="resources/preloader_big.gif" width="100%" height="100%" />
+        </div>
+        `;
+      }
       break;
     case ".pdf":
       module = `
@@ -5036,8 +5072,18 @@ async function showItemPreview(item, isOverride = false) {
     case ".html":
     case ".xhtml":
     case ".htm":
-      popup.style.backgroundColor = "white";
-      module = `<iframe decoding="async" src="${convertFileSrc(path)}"></iframe>`;
+      if (isFtp) {
+        module = `
+        <div class="html-loader-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; width: 40vw; height: 60vh; gap: 15px; color: var(--textColor);">
+          <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px;"></div>
+          <span style="font-size: var(--fontSize); opacity: 0.8;">Loading HTML...</span>
+        </div>
+        <iframe class="html-preview-iframe" decoding="async" style="display: none; width: 40vw; height: 60vh; border: none;"></iframe>
+        `;
+      } else {
+        popup.style.backgroundColor = "white";
+        module = `<iframe decoding="async" src="${convertFileSrc(path)}"></iframe>`;
+      }
       break;
     case ".mp4":
     case ".mkv":
@@ -5054,11 +5100,23 @@ async function showItemPreview(item, isOverride = false) {
     case ".ape":
     case ".flv":
     case ".wmv":
-      module = `
-      <div class="module-container">
-      <video decoding="async" src="${convertFileSrc(path)}" autoplay controls></video>
-      </div>
-      `;
+      if (isFtp) {
+        module = `
+        <div class="media-loader-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 400px; min-height: 300px; gap: 15px; color: var(--textColor);">
+          <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px;"></div>
+          <span style="font-size: var(--fontSize); opacity: 0.8;">Loading media...</span>
+        </div>
+        <div class="module-container" style="display: none;">
+          <video decoding="async" autoplay controls style="max-width: 80vw; max-height: 80vh;"></video>
+        </div>
+        `;
+      } else {
+        module = `
+        <div class="module-container">
+        <video decoding="async" src="${convertFileSrc(path)}" autoplay controls></video>
+        </div>
+        `;
+      }
       break;
     case ".txt":
     case ".json":
@@ -5090,7 +5148,13 @@ async function showItemPreview(item, isOverride = false) {
     case ".gitignore":
       popup.style.maxWidth = "50%";
       module = `
-      <div class="module-container"><pre class="item-preview-file-content" style="padding: 20px; font-size: 12px;">${await invoke("get_file_content", { path })}</pre></div>
+      <div class="text-loader-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; width: 40vw; height: 50vh; gap: 15px; color: var(--textColor);">
+        <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px;"></div>
+        <span style="font-size: var(--fontSize); opacity: 0.8;">Loading text content...</span>
+      </div>
+      <div class="module-container" style="display: none;">
+        <pre class="item-preview-file-content" style="padding: 20px; font-size: 12px;"></pre>
+      </div>
       `;
       break;
     default:
@@ -5103,10 +5167,70 @@ async function showItemPreview(item, isOverride = false) {
   IsPopUpOpen = true;
   document.querySelector("body").append(popup);
   $(popup).fadeIn(fadeTime);
-  let img = popup.querySelector("img");
-  if (img) {
-    img.src = convertFileSrc(item.getAttribute("itempath"));
+
+  if (isFtp) {
+    if ([".png", ".icns", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".jfif", ".avif"].includes(ext.toLowerCase())) {
+      const img = popup.querySelector("img");
+      const loader = popup.querySelector(".image-loader-container");
+      const container = popup.querySelector(".module-container");
+      if (img && loader && container) {
+        invoke("get_ftp_temp_file", { path })
+          .then((tempPath) => {
+            img.src = convertFileSrc(tempPath);
+            img.onload = () => {
+              loader.style.display = "none";
+              container.style.display = "block";
+            };
+          })
+          .catch((error) => {
+            writeLog("Failed to load FTP image: " + error);
+            loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load image</span>`;
+          });
+      }
+    } else if ([".html", ".xhtml", ".htm"].includes(ext.toLowerCase())) {
+      const iframe = popup.querySelector(".html-preview-iframe");
+      const loader = popup.querySelector(".html-loader-container");
+      if (iframe && loader) {
+        invoke("get_ftp_temp_file", { path })
+          .then((tempPath) => {
+            popup.style.backgroundColor = "white";
+            iframe.src = convertFileSrc(tempPath);
+            iframe.onload = () => {
+              loader.style.display = "none";
+              iframe.style.display = "block";
+            };
+          })
+          .catch((error) => {
+            writeLog("Failed to load FTP HTML: " + error);
+            loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load HTML</span>`;
+          });
+      }
+    } else if ([".mp4", ".mkv", ".mov", ".avi", ".webm", ".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".wma", ".ape", ".flv", ".wmv"].includes(ext.toLowerCase())) {
+      const video = popup.querySelector("video");
+      const loader = popup.querySelector(".media-loader-container");
+      const container = popup.querySelector(".module-container");
+      if (video && loader && container) {
+        invoke("get_ftp_temp_file", { path })
+          .then((tempPath) => {
+            video.src = convertFileSrc(tempPath);
+            video.onloadeddata = () => {
+              loader.style.display = "none";
+              container.style.display = "block";
+            };
+          })
+          .catch((error) => {
+            writeLog("Failed to load FTP media: " + error);
+            loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load media</span>`;
+          });
+      }
+    }
+  } else {
+    let img = popup.querySelector("img");
+    if (img) {
+      img.src = convertFileSrc(item.getAttribute("itempath"));
+    }
   }
+
   if (ext.toLowerCase() === ".pdf") {
     const iframe = popup.querySelector(".pdf-preview-iframe");
     const loader = popup.querySelector(".pdf-loader-container");
@@ -5121,6 +5245,30 @@ async function showItemPreview(item, isOverride = false) {
         .catch((error) => {
           writeLog("Failed to load PDF preview: " + error);
           loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load PDF preview</span>`;
+        });
+    }
+  }
+
+  const textExtensions = [
+    ".txt", ".json", ".sh", ".py", ".css", ".js", ".ts", ".sql", ".mts",
+    ".jsx", ".tsx", ".mjs", ".php", ".c", ".cpp", ".cs", ".java", ".md",
+    ".xml", ".yaml", ".yml", ".toml", ".lock", ".ini", ".cfg", ".log",
+    ".env", ".gitignore"
+  ];
+  if (textExtensions.includes(ext.toLowerCase())) {
+    const textContainer = popup.querySelector(".module-container");
+    const loader = popup.querySelector(".text-loader-container");
+    const pre = popup.querySelector(".item-preview-file-content");
+    if (textContainer && loader && pre) {
+      invoke("get_file_content", { path })
+        .then((content) => {
+          pre.textContent = content;
+          loader.style.display = "none";
+          textContainer.style.display = "flex";
+        })
+        .catch((error) => {
+          writeLog("Failed to load text preview: " + error);
+          loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load text preview</span>`;
         });
     }
   }
@@ -5302,20 +5450,254 @@ function evalCurrentLoad(available, total) {
   return result.toFixed(0);
 }
 
+let activeFtpTab = "discovered";
+
+function switchFtpTab(tabName) {
+  activeFtpTab = tabName;
+  $(".ftp-tab-btn").removeClass("active");
+  $(`.ftp-tab-btn[data-target="${tabName}"]`).addClass("active");
+  
+  if (tabName === "discovered") {
+    $(".ftp-discovery-section").css("display", "flex");
+    $(".ftp-saved-section").css("display", "none");
+  } else {
+    $(".ftp-discovery-section").css("display", "none");
+    $(".ftp-saved-section").css("display", "flex");
+  }
+}
+
 async function showFtpConfig() {
   if (IsPopUpOpen == false) {
     let popup = document.querySelector(".ftp-connect-container");
-    popup.style.display = "block";
+    popup.style.display = "flex";
     popup.classList.add("popup-enter");
     IsPopUpOpen = true;
-    document.querySelectorAll(".ftp-popup-input").forEach(
-      (input) =>
-        (input.onkeyup = (e) => {
-          if (e.key === "Enter") {
-            connectToFtp();
-          }
-        }),
-    );
+    IsDisableShortcuts = true;
+    IsInputFocused = true;
+
+    // Reset Save Profile checkbox when opening the modal
+    $("#ftp-save-checkbox").prop("checked", false);
+
+    document.querySelectorAll(".ftp-popup-input").forEach((input) => {
+      input.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+      });
+      input.addEventListener("keyup", (e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") {
+          connectToFtp();
+        }
+      });
+      input.addEventListener("focus", () => {
+        IsInputFocused = true;
+      });
+      input.addEventListener("blur", () => {
+        IsInputFocused = false;
+      });
+    });
+
+    // Reset FTP Tabs on open
+    switchFtpTab("discovered");
+
+    // Automatically trigger FTP Discovery and load Saved Profiles when opening the modal
+    startFtpDiscovery();
+    loadSavedFtpConnections();
+  }
+}
+
+let isFtpScanning = false;
+
+async function startFtpDiscovery(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  
+  if (isFtpScanning) return;
+  isFtpScanning = true;
+  
+  const refreshBtn = $(".ftp-discovery-refresh-btn");
+  const listContainer = $(".ftp-discovery-list");
+  
+  refreshBtn.addClass("scanning");
+  $(".ftp-discovery-section").removeClass("is-empty");
+  
+  // Show premium glassmorphic loader
+  listContainer.html(`
+    <div class="ftp-discovery-loader">
+      <i class="fa-solid fa-circle-notch fa-spin"></i>
+      <span>Scanning local network for active FTP hosts...</span>
+    </div>
+  `);
+  
+  try {
+    const servers = await invoke("discover_ftp_servers");
+    if (!servers || servers.length === 0) {
+      $(".ftp-discovery-section").addClass("is-empty");
+      listContainer.html(`
+        <div class="ftp-discovery-empty">
+          <i class="fa-solid fa-satellite-dish"></i>
+          <span>No active FTP servers detected on local subnet</span>
+        </div>
+      `);
+    } else {
+      $(".ftp-discovery-section").removeClass("is-empty");
+      let listHtml = "";
+      servers.forEach((server) => {
+        const name = escapeHtml(server.name || "");
+        const host = escapeHtml(server.hostname || "");
+        const port = parseInt(server.port) || 21;
+        const nameEscaped = name.replace(/'/g, "\\'");
+        listHtml += `
+          <div class="ftp-discovery-item" onclick="selectDiscoveredServer(event, '${nameEscaped}', '${host}', ${port})">
+            <div class="ftp-discovery-item-info">
+              <span class="ftp-discovery-item-name">${name}</span>
+              <span class="ftp-discovery-item-host">
+                <i class="fa-solid fa-network-wired"></i> ${host}:${port}
+              </span>
+            </div>
+            <div class="ftp-discovery-item-action">
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+          </div>
+        `;
+      });
+      listContainer.html(listHtml);
+    }
+  } catch (error) {
+    console.error("FTP Discovery failed:", error);
+    $(".ftp-discovery-section").addClass("is-empty");
+    listContainer.html(`
+      <div class="ftp-discovery-empty">
+        <i class="fa-solid fa-triangle-exclamation" style="color: var(--errorColor);"></i>
+        <span>Scan failed: ${escapeHtml(error.toString())}</span>
+      </div>
+    `);
+  } finally {
+    isFtpScanning = false;
+    refreshBtn.removeClass("scanning");
+  }
+}
+
+function selectDiscoveredServer(event, name, host, port) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  
+  $(".ftp-dirname-input").val(name);
+  $(".ftp-hostname-input").val(host);
+  $(".ftp-port-input").val(port);
+  
+  // Cursor-focus the Username input field as specified
+  const userField = $(".ftp-username-input");
+  userField.focus();
+  IsInputFocused = true;
+}
+
+async function loadSavedFtpConnections() {
+  const savedSection = $(".ftp-saved-section");
+  const listContainer = $(".ftp-saved-list");
+  
+  try {
+    const connections = await invoke("get_saved_ftp_connections");
+    if (!connections || connections.length === 0) {
+      listContainer.html(`
+        <div class="ftp-discovery-empty">
+          <i class="fa-solid fa-bookmark"></i>
+          <span>No saved FTP profiles yet</span>
+        </div>
+      `);
+    } else {
+      let listHtml = "";
+      connections.forEach((conn) => {
+        const name = escapeHtml(conn.name || "");
+        const host = escapeHtml(conn.hostname || "");
+        const port = parseInt(conn.port) || 21;
+        const user = escapeHtml(conn.username || "");
+        const path = escapeHtml(conn.remote_path || "/");
+        
+        const nameEscaped = name.replace(/'/g, "\\'");
+        const hostEscaped = host.replace(/'/g, "\\'");
+        const userEscaped = user.replace(/'/g, "\\'");
+        const passwordEscaped = (conn.password || "").replace(/'/g, "\\'");
+        const pathEscaped = path.replace(/'/g, "\\'");
+
+        listHtml += `
+          <div class="ftp-saved-item" onclick="selectSavedConnection(event, '${nameEscaped}', '${hostEscaped}', ${port}, '${userEscaped}', '${passwordEscaped}', '${pathEscaped}')">
+            <div class="ftp-saved-item-info">
+              <span class="ftp-saved-item-name">${name}</span>
+              <span class="ftp-saved-item-host">
+                <i class="fa-solid fa-network-wired"></i> ${host}:${port} (${user})
+              </span>
+            </div>
+            <div class="ftp-saved-item-actions">
+              <button class="ftp-delete-saved-btn" title="Delete Saved Profile" onclick="deleteSavedConnection(event, '${nameEscaped}')">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+          </div>
+        `;
+      });
+      listContainer.html(listHtml);
+    }
+  } catch (error) {
+    console.error("Failed to load saved FTP connections:", error);
+    listContainer.html(`
+      <div class="ftp-discovery-empty">
+        <i class="fa-solid fa-triangle-exclamation" style="color: var(--errorColor);"></i>
+        <span>Failed to load: ${escapeHtml(error.toString())}</span>
+      </div>
+    `);
+  } finally {
+    // Ensure display states are in-sync with current tab choice
+    if (activeFtpTab === "saved") {
+      savedSection.css("display", "flex");
+      $(".ftp-discovery-section").css("display", "none");
+    } else {
+      savedSection.css("display", "none");
+      $(".ftp-discovery-section").css("display", "flex");
+    }
+  }
+}
+
+function selectSavedConnection(event, name, host, port, username, password, remotePath) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  
+  $(".ftp-dirname-input").val(name);
+  $(".ftp-hostname-input").val(host);
+  $(".ftp-port-input").val(port);
+  $(".ftp-username-input").val(username);
+  $(".ftp-password-input").val(password);
+  $(".ftp-path-input").val(remotePath);
+  
+  // Check the Save Profile checkbox to maintain/overwrite credentials easily
+  $("#ftp-save-checkbox").prop("checked", true);
+
+  // Focus the Password input field as specified
+  const passwordField = $(".ftp-password-input");
+  passwordField.focus();
+  IsInputFocused = true;
+}
+
+async function deleteSavedConnection(event, name) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  try {
+    await invoke("delete_saved_ftp_connection", { name: name });
+    showToast(`Deleted profile "${name}"`, ToastType.SUCCESS);
+    await loadSavedFtpConnections();
+    await insertSiteNavButtons();
+  } catch (error) {
+    console.error("Failed to delete saved connection:", error);
+    showToast("Failed to delete profile: " + error, ToastType.ERROR);
   }
 }
 
@@ -5328,21 +5710,20 @@ function closeFtpConfig() {
   }, { once: true });
   $(".ftp-loader").css("display", "none");
   IsPopUpOpen = false;
+  IsDisableShortcuts = false;
+  IsInputFocused = false;
 }
 
 async function connectToFtp() {
-  let hostname = $(".ftp-hostname-input").val();
-  let username = $(".ftp-username-input").val();
-  let password = $(".ftp-password-input").val();
-  let remotePath = $(".ftp-path-input").val();
-  let name = $(".ftp-dirname-input").val();
-  // let sudoPassword = await showPopup(
-  //   "Enter sudo password",
-  //   PopupType.PROMPT,
-  //   "The sshfs process to mount the network drive requires your users admin password.",
-  // );
+  let hostname = ($(".ftp-hostname-input").val() || "").trim();
+  let username = ($(".ftp-username-input").val() || "").trim();
+  let password = $(".ftp-password-input").val(); // Keep spaces in password
+  let remotePath = ($(".ftp-path-input").val() || "").trim();
+  let name = ($(".ftp-dirname-input").val() || "").trim();
+  let port = ($(".ftp-port-input").val() || "").trim() || "21";
+  
   $(".ftp-loader").css("display", "flex");
-  await openFTP(hostname, username, password, remotePath, name);
+  await openFTP(hostname, username, password, remotePath, name, port);
 }
 
 async function openFTP(
@@ -5351,19 +5732,50 @@ async function openFTP(
   password,
   remotePath = "/",
   name = "",
+  port = 21
 ) {
   try {
-    await invoke("mount_sshfs", {
-      hostname,
-      username,
-      password,
-      remotePath,
-      name,
-    }).then(async (mountedPath) => {
-      // await openDirAndSwitch(mountedPath);
+    const trimmedHostname = (hostname || "").trim();
+    const trimmedUsername = (username || "").trim();
+    const trimmedRemotePath = (remotePath || "").trim();
+    const trimmedName = (name || "").trim();
+    const parsedPort = parseInt(port) || 21;
+
+    const result = await invoke("connect_ftp", {
+      config: {
+        name: trimmedName,
+        hostname: trimmedHostname,
+        port: parsedPort,
+        username: trimmedUsername,
+        password: password,
+        remote_path: trimmedRemotePath || "/"
+      }
     });
+    showToast(result, ToastType.SUCCESS);
+
+    // Save profile if the checkbox is checked and connection succeeded
+    if ($("#ftp-save-checkbox").is(":checked")) {
+      try {
+        await invoke("save_ftp_connection", {
+          config: {
+            name: trimmedName,
+            hostname: trimmedHostname,
+            port: parsedPort,
+            username: trimmedUsername,
+            password: password,
+            remote_path: trimmedRemotePath || "/"
+          }
+        });
+      } catch (err) {
+        console.error("Failed to save FTP profile:", err);
+      }
+    }
+
+    await insertSiteNavButtons();
+    await openDirAndSwitch(`ftp://${trimmedName}${trimmedRemotePath || "/"}`);
   } catch (error) {
     console.error(error);
+    showToast("Failed to connect to FTP: " + error, ToastType.ERROR);
   }
   closeFtpConfig();
 }
@@ -5700,7 +6112,7 @@ function createSidebarDiskButton(mount, pathOverride = "") {
     markSelectedDisk(path);
   };
 
-  if (mount.format.includes("SSHFS") || mount.is_removable == true) {
+  if (mount.format.includes("SSHFS") || mount.format.includes("FTP") || mount.is_removable == true) {
     diskButton.oncontextmenu = (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -5709,7 +6121,9 @@ function createSidebarDiskButton(mount, pathOverride = "") {
           name: "Unmount",
           icon: "fa-solid fa-eject",
           onclick: () =>
-            mount.format.includes("SSHFS")
+            mount.format.includes("FTP")
+              ? ejectFTP(mount)
+              : mount.format.includes("SSHFS")
               ? unmountNetworkDrive(mount)
               : unmountDrive(mount),
         },
@@ -5775,11 +6189,12 @@ async function insertSiteNavButtons() {
       "fa-solid fa-music",
       async () => await goToDir(5),
     ],
-    // No sshfs implemenation for windows *yet*
-    // Currently disabled
-    // Platform.includes("win") && Platform != "darwin"
-    //   ? []
-    //   : ["SSHFS", "", "fa-solid fa-globe", showFtpConfig],
+    [
+      "FTP",
+      "",
+      "fa-solid fa-server",
+      showFtpConfig,
+    ],
   ];
 
   for (let i = 0; i < siteNavButtons.length; i++) {
@@ -6138,6 +6553,23 @@ async function unmountNetworkDrive(networkDrive) {
 
 function unmountDrive(disk) {
   invoke("unmount_drive", { path: disk.path });
+}
+
+async function ejectFTP(disk) {
+  try {
+    const result = await invoke("eject_disk", { path: disk.path });
+    showToast(result, ToastType.SUCCESS);
+    await insertSiteNavButtons();
+    if (IsShowDisks) {
+      await listDisks();
+    }
+    const currentDir = await invoke("get_current_dir");
+    if (currentDir.startsWith(disk.path)) {
+      await goHome();
+    }
+  } catch (error) {
+    showToast("Failed to disconnect FTP: " + error, ToastType.ERROR);
+  }
 }
 
 async function configBackButton(path = "") {

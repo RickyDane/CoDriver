@@ -255,10 +255,18 @@ class CDContextMenu {
         const isSubmenu = item.subItems && item.subItems.length > 0 || item.label === "Open with";
         const itemColor = item.color ?? "var(--textColor)";
 
+        let labelText = item.label;
+        if (labelText === "Eject Disk" && this.selectedItem) {
+          const path = this.selectedItem.getAttribute("itempath") || "";
+          if (path.startsWith("ftp://") || path.includes("sshfs") || path.startsWith("/tmp/codriver-sshfs-mount")) {
+            labelText = "Unmount";
+          }
+        }
+
         button.innerHTML = `
           <span class="context-item-group">
             <i class="context-item-icon ${item.icon}" style="color: ${itemColor}"></i>
-            <span class="context-label">${item.label}</span>
+            <span class="context-label">${labelText}</span>
           </span>
           ${isSubmenu ? '<i class="context-item-chevron fa-solid fa-chevron-right"></i>' : ""}
         `;

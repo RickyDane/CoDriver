@@ -56,7 +56,9 @@ use window_tauri_ext::WindowExt;
 mod applications;
 #[allow(unused)]
 use applications::{get_apps, open_file_with};
+mod remote;
 use lazy_static::lazy_static;
+
 
 use crate::utils::{
     compress_items, dir_info, extract_brotli_tar, extract_from_density, extract_tar_bz2,
@@ -79,13 +81,15 @@ lazy_static! {
         Arc::new(std::sync::atomic::AtomicBool::new(false));
     pub static ref IS_DUP_FIND_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
         Arc::new(std::sync::atomic::AtomicBool::new(false));
+    pub static ref CURRENT_DIR_OVERRIDE: std::sync::Mutex<Option<String>> =
+        std::sync::Mutex::new(None);
 }
 
 // static mut IS_SEARCHING: bool = false;
 
 
 
-const GEMINI_MODEL_TEXT: &str = "gemini-1.5-flash";
+const GEMINI_MODEL_TEXT: &str = "gemini-3.1-flash-lite-preview";
 const GEMINI_MODEL_IMAGE: &str = "gemini-3.1-flash-image-preview";
 
 static WINDOW: OnceLock<Window> = OnceLock::new();
@@ -162,6 +166,13 @@ fn main() {
             save_config,
             switch_to_directory,
             mount_sshfs,
+            connect_ftp,
+            disconnect_ftp,
+            discover_ftp_servers,
+            save_ftp_connection,
+            get_saved_ftp_connections,
+            delete_saved_ftp_connection,
+            get_ftp_temp_file,
             rename_elements_with_format,
             add_favorite,
             arr_copy_paste,
@@ -540,6 +551,21 @@ async fn list_disks() -> Vec<DisksInfo> {
             }
         }
     }
+
+    if let Ok(conns) = crate::remote::ftp::FTP_CONNECTIONS.lock() {
+        for (name, _config) in conns.iter() {
+            ls_disks.push(DisksInfo {
+                name: name.clone(),
+                dev: format!("ftp://{}", name),
+                format: "FTP Network-Drive".into(),
+                path: format!("ftp://{}", name),
+                avail: "0".into(),
+                capacity: "0".into(),
+                is_removable: true,
+            });
+        }
+    }
+
     ls_disks
 }
 
@@ -602,6 +628,9 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
 
 #[tauri::command]
 async fn get_current_dir() -> String {
+    if let Some(ref path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        return path.clone();
+    }
     current_dir()
         .unwrap()
         .as_path()
@@ -614,6 +643,11 @@ async fn get_current_dir() -> String {
 #[tauri::command]
 fn set_dir(current_dir: String) -> bool {
     dbg_log(format!("Current dir: {}", &current_dir));
+    if current_dir.starts_with("ftp://") {
+        *CURRENT_DIR_OVERRIDE.lock().unwrap() = Some(current_dir);
+        return true;
+    }
+    *CURRENT_DIR_OVERRIDE.lock().unwrap() = None;
     let md = fs::metadata(&current_dir);
     if md.is_err() {
         return false;
@@ -622,8 +656,35 @@ fn set_dir(current_dir: String) -> bool {
     true
 }
 
+fn parse_ftp_url(url: &str) -> Option<(String, String)> {
+    if !url.starts_with("ftp://") { return None; }
+    let remainder = &url[6..];
+    let slash_idx = remainder.find('/');
+    match slash_idx {
+        Some(idx) => {
+            let conn_name = remainder[..idx].to_string();
+            let remote_path = remainder[idx..].to_string();
+            let clean_remote = if remote_path.is_empty() { "/".to_string() } else { remote_path };
+            Some((conn_name, clean_remote))
+        }
+        None => {
+            let conn_name = remainder.to_string();
+            Some((conn_name, "/".to_string()))
+        }
+    }
+}
+
 #[tauri::command]
 async fn list_dirs() -> Vec<FDir> {
+    if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(ftp_path) {
+            if let Ok(mut list) = crate::remote::ftp::list_ftp_dir(&conn_name, &remote_path) {
+                list.sort_by_key(|a| a.name.to_lowercase());
+                return list;
+            }
+        }
+        return vec![];
+    }
     let mut dir_list: Vec<FDir> = Vec::new();
     let current_dir_path = current_dir();
     if current_dir_path.is_err() {
@@ -697,6 +758,11 @@ async fn pop_history() {
 
 #[tauri::command]
 async fn open_dir(path: String) -> bool {
+    if path.starts_with("ftp://") {
+        let _ = set_dir(path.clone());
+        push_history(path).await;
+        return true;
+    }
     let md = fs::read_dir(&path);
     match md {
         Ok(_) => {
@@ -717,6 +783,21 @@ async fn open_dir(path: String) -> bool {
 
 #[tauri::command]
 async fn go_back(is_dual_pane: bool) {
+    if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(ftp_path) {
+            let clean_remote = remote_path.trim_end_matches('/');
+            if let Some(slash_idx) = clean_remote.rfind('/') {
+                let parent_remote = &clean_remote[..slash_idx];
+                let parent_path = if parent_remote.is_empty() {
+                    format!("ftp://{}", conn_name)
+                } else {
+                    format!("ftp://{}{}", conn_name, parent_remote)
+                };
+                let _ = set_dir(parent_path);
+            }
+        }
+        return;
+    }
     let path_history = (PATH_HISTORY.lock().await).clone();
     if path_history.len() > 1 && !is_dual_pane {
         let last_path = path_history[path_history.len() - 2].clone();
@@ -1004,6 +1085,94 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
 
     show_progressbar(app_window);
 
+    let dest_is_ftp = copy_to_path.starts_with("ftp://");
+    let src_has_ftp = arr_items.iter().any(|item| item.path.starts_with("ftp://"));
+
+    if dest_is_ftp || src_has_ftp {
+        let sw = Stopwatch::start_new();
+        for item in arr_items {
+            let item_path = item.path;
+            let filename = item_path
+                .replace("\\", "/")
+                .split("/")
+                .last()
+                .unwrap_or_default()
+                .to_string();
+            
+            if dest_is_ftp && !src_has_ftp {
+                // Local to FTP (Upload)
+                if let Some((conn_name, remote_dir)) = parse_ftp_url(&copy_to_path) {
+                    let clean_remote = remote_dir.trim_end_matches('/');
+                    let remote_dest = format!("{}/{}", clean_remote, filename);
+                    let is_dir = Path::new(&item_path).is_dir();
+                    if is_dir {
+                        if let Err(err) = crate::remote::ftp::upload_ftp_dir_recursive(&conn_name, &item_path, &remote_dest) {
+                            err_log(format!("FTP Upload directory failed: {}", err));
+                        }
+                    } else {
+                        if let Err(err) = crate::remote::ftp::upload_ftp_file(&conn_name, &item_path, &remote_dest) {
+                            err_log(format!("FTP Upload file failed: {}", err));
+                        }
+                    }
+                }
+            } else if !dest_is_ftp && src_has_ftp {
+                // FTP to Local (Download)
+                if let Some((conn_name, remote_path)) = parse_ftp_url(&item_path) {
+                    let local_dest = format!("{}/{}", copy_to_path.trim_end_matches('/'), filename);
+                    if item.is_dir == 1 {
+                        if let Err(err) = crate::remote::ftp::download_ftp_dir_recursive(&conn_name, &remote_path, &local_dest) {
+                            err_log(format!("FTP Download directory failed: {}", err));
+                        }
+                    } else {
+                        if let Err(err) = crate::remote::ftp::download_ftp_file(&conn_name, &remote_path, &local_dest) {
+                            err_log(format!("FTP Download file failed: {}", err));
+                        }
+                    }
+                }
+            } else {
+                // FTP to FTP (Remote Copy)
+                if let Some((src_conn, src_remote)) = parse_ftp_url(&item_path) {
+                    if let Some((dest_conn, dest_remote)) = parse_ftp_url(&copy_to_path) {
+                        let clean_dest = dest_remote.trim_end_matches('/');
+                        let final_dest = format!("{}/{}", clean_dest, filename);
+                        if src_conn == dest_conn {
+                            if item.is_dir == 1 {
+                                if let Err(err) = crate::remote::ftp::copy_ftp_dir_to_ftp_recursive(&src_conn, &src_remote, &final_dest) {
+                                    err_log(format!("FTP-to-FTP Copy directory failed: {}", err));
+                                }
+                            } else {
+                                if let Err(err) = crate::remote::ftp::copy_ftp_to_ftp(&src_conn, &src_remote, &final_dest) {
+                                    err_log(format!("FTP-to-FTP Copy file failed: {}", err));
+                                }
+                            }
+                        } else {
+                            // Cross-server remote copy via temp file
+                            if item.is_dir == 1 {
+                                let uuid_str = uuid::Uuid::new_v4().to_string();
+                                let temp_local_dir = std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
+                                let temp_local_dir_str = temp_local_dir.to_string_lossy().to_string();
+                                if crate::remote::ftp::download_ftp_dir_recursive(&src_conn, &src_remote, &temp_local_dir_str).is_ok() {
+                                    let _ = crate::remote::ftp::upload_ftp_dir_recursive(&dest_conn, &temp_local_dir_str, &final_dest);
+                                    let _ = std::fs::remove_dir_all(&temp_local_dir);
+                                }
+                            } else {
+                                let uuid_str = uuid::Uuid::new_v4().to_string();
+                                let temp_local_file = std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
+                                let temp_local_file_str = temp_local_file.to_string_lossy().to_string();
+                                if crate::remote::ftp::download_ftp_file(&src_conn, &src_remote, &temp_local_file_str).is_ok() {
+                                    let _ = crate::remote::ftp::upload_ftp_file(&dest_conn, &temp_local_file_str, &final_dest);
+                                    let _ = std::fs::remove_file(&temp_local_file);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let _ = app_window.emit("finish-progress-bar", sw.elapsed().as_secs_f32());
+        return;
+    }
+
     let mut filename: String;
     let mut counter = 0.0;
     let mut total_bytes = 0.0;
@@ -1056,8 +1225,10 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
     let mut counter = 0.0;
     let mut total_bytes = 0.0;
     for item in items.clone() {
-        counter += count_entries(&item.source_path).unwrap_or(0.0);
-        total_bytes += dir_info(item.source_path.clone()).size as f32;
+        if !item.source_path.starts_with("ftp://") {
+            counter += count_entries(&item.source_path).unwrap_or(0.0);
+            total_bytes += dir_info(item.source_path.clone()).size as f32;
+        }
     }
 
     let sw = Stopwatch::start_new();
@@ -1072,6 +1243,212 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
         let source = item.source_path.replace("\\", "/");
         let mut destination = item.destination_path.replace("\\", "/");
         let source_path = Path::new(&source);
+
+        let dest_is_ftp = destination.starts_with("ftp://");
+        let src_is_ftp = source.starts_with("ftp://");
+
+        if dest_is_ftp || src_is_ftp {
+            let filename = source
+                .split("/")
+                .last()
+                .unwrap_or_default()
+                .to_string();
+
+            if let Err(err) = validate_copy_destination(Path::new(&source), Path::new(&destination)) {
+                wng_log(format!(
+                    "Skipping unsafe copy from '{}' to '{}': {}",
+                    source, destination, err
+                ));
+                errors.push(err);
+                continue;
+            }
+
+            if item.policy == "replace" {
+                if dest_is_ftp {
+                    if let Some((conn_name, remote_path)) = parse_ftp_url(&destination) {
+                        let _ = crate::remote::ftp::delete_ftp_item_recursive(&conn_name, &remote_path);
+                    }
+                } else {
+                    let _ = remove_path(Path::new(&destination)).await;
+                }
+            } else if item.policy == "duplicate" {
+                if dest_is_ftp {
+                    if let Some((conn_name, remote_path)) = parse_ftp_url(&destination) {
+                        let parent_path = if let Some(idx) = remote_path.rfind('/') {
+                            &remote_path[..idx]
+                        } else {
+                            ""
+                        };
+                        let parent_path_clean = if parent_path.is_empty() { "/" } else { parent_path };
+                        if let Ok(entries) = crate::remote::ftp::list_ftp_dir(&conn_name, parent_path_clean) {
+                            let mut counter = 1;
+                            let stem = Path::new(&filename).file_stem().and_then(|v| v.to_str()).unwrap_or("Untitled");
+                            let ext = Path::new(&filename).extension().and_then(|v| v.to_str()).unwrap_or("");
+                            let mut candidate_name = filename.clone();
+                            while entries.iter().any(|e| e.name == candidate_name) {
+                                candidate_name = if ext.is_empty() {
+                                    format!("{} ({})", stem, counter)
+                                } else {
+                                    format!("{} ({}).{}", stem, counter, ext)
+                                };
+                                counter += 1;
+                            }
+                            destination = format!("ftp://{}{}/{}", conn_name, parent_path_clean.trim_end_matches('/'), candidate_name);
+                        }
+                    }
+                } else {
+                    let destination_path = Path::new(&destination);
+                    destination = get_available_path(destination_path);
+                }
+            } else {
+                if item.policy != "merge" {
+                    if dest_is_ftp {
+                        if let Some((conn_name, remote_path)) = parse_ftp_url(&destination) {
+                            let parent_path = if let Some(idx) = remote_path.rfind('/') {
+                                &remote_path[..idx]
+                            } else {
+                                ""
+                            };
+                            let parent_path_clean = if parent_path.is_empty() { "/" } else { parent_path };
+                            if let Ok(entries) = crate::remote::ftp::list_ftp_dir(&conn_name, parent_path_clean) {
+                                if entries.iter().any(|e| e.name == filename) {
+                                    let mut counter = 1;
+                                    let stem = Path::new(&filename).file_stem().and_then(|v| v.to_str()).unwrap_or("Untitled");
+                                    let ext = Path::new(&filename).extension().and_then(|v| v.to_str()).unwrap_or("");
+                                    let mut candidate_name = filename.clone();
+                                    while entries.iter().any(|e| e.name == candidate_name) {
+                                        candidate_name = if ext.is_empty() {
+                                            format!("{} ({})", stem, counter)
+                                        } else {
+                                            format!("{} ({}).{}", stem, counter, ext)
+                                        };
+                                        counter += 1;
+                                    }
+                                    destination = format!("ftp://{}{}/{}", conn_name, parent_path_clean.trim_end_matches('/'), candidate_name);
+                                }
+                            }
+                        }
+                    } else {
+                        let destination_path = Path::new(&destination);
+                        if destination_path.exists() {
+                            destination = get_available_path(destination_path);
+                        }
+                    }
+                }
+            }
+
+            let transfer_result = if dest_is_ftp && !src_is_ftp {
+                if let Some((conn_name, remote_dir)) = parse_ftp_url(&destination) {
+                    let is_dir = Path::new(&source).is_dir();
+                    if is_dir {
+                        crate::remote::ftp::upload_ftp_dir_recursive(&conn_name, &source, &remote_dir)
+                    } else {
+                        crate::remote::ftp::upload_ftp_file(&conn_name, &source, &remote_dir)
+                    }
+                } else {
+                    Err("Failed to parse FTP destination URL".to_string())
+                }
+            } else if !dest_is_ftp && src_is_ftp {
+                if let Some((conn_name, remote_path)) = parse_ftp_url(&source) {
+                    let mut is_dir = false;
+                    let parent_path = if let Some(idx) = remote_path.rfind('/') {
+                        &remote_path[..idx]
+                    } else {
+                        ""
+                    };
+                    let parent_path_clean = if parent_path.is_empty() { "/" } else { parent_path };
+                    if let Ok(entries) = crate::remote::ftp::list_ftp_dir(&conn_name, parent_path_clean) {
+                        let fname = remote_path.split('/').last().unwrap_or_default();
+                        if let Some(entry) = entries.into_iter().find(|e| e.name == fname) {
+                            is_dir = entry.is_dir == 1;
+                        }
+                    }
+
+                    if is_dir {
+                        crate::remote::ftp::download_ftp_dir_recursive(&conn_name, &remote_path, &destination)
+                    } else {
+                        crate::remote::ftp::download_ftp_file(&conn_name, &remote_path, &destination)
+                    }
+                } else {
+                    Err("Failed to parse FTP source URL".to_string())
+                }
+            } else {
+                if let Some((src_conn, src_remote)) = parse_ftp_url(&source) {
+                    if let Some((dest_conn, dest_remote)) = parse_ftp_url(&destination) {
+                        if src_conn == dest_conn {
+                            let mut is_dir = false;
+                            let parent_path = if let Some(idx) = src_remote.rfind('/') {
+                                &src_remote[..idx]
+                            } else {
+                                ""
+                            };
+                            let parent_path_clean = if parent_path.is_empty() { "/" } else { parent_path };
+                            if let Ok(entries) = crate::remote::ftp::list_ftp_dir(&src_conn, parent_path_clean) {
+                                let fname = src_remote.split('/').last().unwrap_or_default();
+                                if let Some(entry) = entries.into_iter().find(|e| e.name == fname) {
+                                    is_dir = entry.is_dir == 1;
+                                }
+                            }
+
+                            if is_dir {
+                                crate::remote::ftp::copy_ftp_dir_to_ftp_recursive(&src_conn, &src_remote, &dest_remote)
+                            } else {
+                                crate::remote::ftp::copy_ftp_to_ftp(&src_conn, &src_remote, &dest_remote)
+                            }
+                        } else {
+                            let mut is_dir = false;
+                            let parent_path = if let Some(idx) = src_remote.rfind('/') {
+                                &src_remote[..idx]
+                            } else {
+                                ""
+                            };
+                            let parent_path_clean = if parent_path.is_empty() { "/" } else { parent_path };
+                            if let Ok(entries) = crate::remote::ftp::list_ftp_dir(&src_conn, parent_path_clean) {
+                                let fname = src_remote.split('/').last().unwrap_or_default();
+                                if let Some(entry) = entries.into_iter().find(|e| e.name == fname) {
+                                    is_dir = entry.is_dir == 1;
+                                }
+                            }
+
+                            if is_dir {
+                                let uuid_str = uuid::Uuid::new_v4().to_string();
+                                let temp_local_dir = std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
+                                let temp_local_dir_str = temp_local_dir.to_string_lossy().to_string();
+                                let res = crate::remote::ftp::download_ftp_dir_recursive(&src_conn, &src_remote, &temp_local_dir_str)
+                                    .and_then(|_| crate::remote::ftp::upload_ftp_dir_recursive(&dest_conn, &temp_local_dir_str, &dest_remote));
+                                let _ = std::fs::remove_dir_all(&temp_local_dir);
+                                res
+                            } else {
+                                let uuid_str = uuid::Uuid::new_v4().to_string();
+                                let temp_local_file = std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
+                                let temp_local_file_str = temp_local_file.to_string_lossy().to_string();
+                                let res = crate::remote::ftp::download_ftp_file(&src_conn, &src_remote, &temp_local_file_str)
+                                    .and_then(|_| crate::remote::ftp::upload_ftp_file(&dest_conn, &temp_local_file_str, &dest_remote));
+                                let _ = std::fs::remove_file(&temp_local_file);
+                                res
+                            }
+                        }
+                    } else {
+                        Err("Failed to parse FTP destination URL".to_string())
+                    }
+                } else {
+                    Err("Failed to parse FTP source URL".to_string())
+                }
+            };
+
+            match transfer_result {
+                Ok(()) => copied_sources.push(source),
+                Err(err) => {
+                    err_log(format!(
+                        "Copy failed from '{}' to '{}': {}",
+                        source, destination, err
+                    ));
+                    errors.push(format!("{} → {}: {}", source, destination, err));
+                }
+            }
+
+            continue;
+        }
 
         let copy_result = match item.policy.as_str() {
             "replace" => {
@@ -1196,6 +1573,59 @@ fn comparable_path(path: &Path) -> String {
 }
 
 fn validate_copy_destination(source_path: &Path, destination_path: &Path) -> Result<(), String> {
+    let source_str = source_path.to_string_lossy().replace("\\", "/");
+    let dest_str = destination_path.to_string_lossy().replace("\\", "/");
+
+    let src_is_ftp = source_str.starts_with("ftp://");
+    let dest_is_ftp = dest_str.starts_with("ftp://");
+
+    if src_is_ftp || dest_is_ftp {
+        let source_cmp = if src_is_ftp {
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            {
+                source_str.to_lowercase()
+            }
+            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+            {
+                source_str.clone()
+            }
+        } else {
+            let source_canonical = source_path.canonicalize().map_err(|err| {
+                format!(
+                    "Failed to canonicalize source '{}': {}",
+                    source_path.display(),
+                    err
+                )
+            })?;
+            comparable_path(&source_canonical)
+        };
+
+        let destination_cmp = if dest_is_ftp {
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            {
+                dest_str.to_lowercase()
+            }
+            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+            {
+                dest_str.clone()
+            }
+        } else {
+            let destination_canonical = canonical_or_parent_path(destination_path)?;
+            comparable_path(&destination_canonical)
+        };
+
+        if source_cmp == destination_cmp {
+            return Err("Source and destination resolve to the same path".to_string());
+        }
+
+        let source_prefix = format!("{}/", source_cmp.trim_end_matches('/'));
+        if destination_cmp.starts_with(&source_prefix) {
+            return Err("Cannot copy or move a folder into itself or its descendant".to_string());
+        }
+
+        return Ok(());
+    }
+
     let source_canonical = source_path.canonicalize().map_err(|err| {
         format!(
             "Failed to canonicalize source '{}': {}",
@@ -1433,6 +1863,13 @@ async fn get_final_filename(
 #[tauri::command]
 async fn delete_item(act_file_name: String) {
     dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
+
+    if act_file_name.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&act_file_name) {
+            let _ = crate::remote::ftp::delete_ftp_item_recursive(&conn_name, &remote_path);
+        }
+        return;
+    }
 
     #[cfg(target_os = "windows")]
     let dir_remove = remove_dir_all(&act_file_name.replace("\\", "/"));
@@ -1775,6 +2212,19 @@ async fn extract_item(from_path: String, app_window: Window) {
 #[tauri::command]
 async fn open_item(path: String) {
     dbg_log(format!("Opening: {}", &path));
+    if path.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+            let filename = Path::new(&remote_path).file_name().unwrap_or_default().to_string_lossy().to_string();
+            let temp_dir = std::env::temp_dir().join("codriver-ftp-temp");
+            let _ = std::fs::create_dir_all(&temp_dir);
+            let local_dest = temp_dir.join(&filename);
+            let local_dest_str = local_dest.to_string_lossy().to_string();
+            if crate::remote::ftp::download_ftp_file(&conn_name, &remote_path, &local_dest_str).is_ok() {
+                let _ = open::that_detached(local_dest_str);
+            }
+        }
+        return;
+    }
     let _ = open::that_detached(path);
 }
 
@@ -1827,18 +2277,56 @@ async fn arr_compress_items(
 
 #[tauri::command]
 async fn create_folder(folder_name: String) {
+    if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(ftp_path) {
+            let clean_remote = remote_path.trim_end_matches('/');
+            let final_remote = format!("{}/{}", clean_remote, folder_name);
+            let _ = crate::remote::ftp::create_ftp_folder(&conn_name, &final_remote);
+        }
+        return;
+    }
     let new_folder_path = PathBuf::from(&folder_name);
     let _ = fs::create_dir(current_dir().unwrap().join(new_folder_path));
 }
 
 #[tauri::command]
 async fn create_file(file_name: String) {
+    if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(ftp_path) {
+            let clean_remote = remote_path.trim_end_matches('/');
+            let final_remote = format!("{}/{}", clean_remote, file_name);
+            let _ = crate::remote::ftp::create_ftp_file(&conn_name, &final_remote);
+        }
+        return;
+    }
     let new_file_path = PathBuf::from(&file_name);
     let _ = File::create(current_dir().unwrap().join(new_file_path));
 }
 
 #[tauri::command]
 async fn rename_element(path: String, new_name: String, app_window: Window) -> Vec<FDir> {
+    let ftp_opt = CURRENT_DIR_OVERRIDE.lock().unwrap().clone();
+    if let Some(ftp_path) = ftp_opt {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&ftp_path) {
+            let from_remote = if path.starts_with("ftp://") {
+                parse_ftp_url(&path).map(|(_, p)| p).unwrap_or(path.clone())
+            } else {
+                let clean = remote_path.trim_end_matches('/');
+                format!("{}/{}", clean, path)
+            };
+            let to_remote = if new_name.starts_with("ftp://") {
+                parse_ftp_url(&new_name).map(|(_, p)| p).unwrap_or(new_name.clone())
+            } else {
+                let clean = remote_path.trim_end_matches('/');
+                format!("{}/{}", clean, new_name)
+            };
+            if let Err(err) = crate::remote::ftp::rename_ftp_element(&conn_name, &from_remote, &to_remote) {
+                err_log(format!("Failed to rename FTP element: {}", err));
+                let _ = app_window.eval("alert('Failed to rename remote element')");
+            }
+        }
+        return list_dirs().await;
+    }
     let renamed = fs::rename(
         current_dir().unwrap().join(path.replace("\\", "/")),
         current_dir().unwrap().join(new_name.replace("\\", "/")),
@@ -2509,24 +2997,160 @@ async fn get_simple_dir_info(
 
 #[tauri::command]
 async fn get_file_content(path: String) -> String {
-    let content = fs::read_to_string(&path).unwrap();
+    let target_path = if path.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+            let filename = Path::new(&remote_path).file_name().unwrap_or_default().to_string_lossy().to_string();
+            let temp_dir = std::env::temp_dir().join("codriver-ftp-temp");
+            let _ = std::fs::create_dir_all(&temp_dir);
+            let local_dest = temp_dir.join(&filename);
+            let local_dest_str = local_dest.to_string_lossy().to_string();
+            if crate::remote::ftp::download_ftp_file(&conn_name, &remote_path, &local_dest_str).is_ok() {
+                local_dest_str
+            } else {
+                path.clone()
+            }
+        } else {
+            path.clone()
+        }
+    } else {
+        path.clone()
+    };
+    
+    let content = fs::read_to_string(&target_path).unwrap_or_default();
+    if path.starts_with("ftp://") && target_path != path {
+        let _ = fs::remove_file(&target_path);
+    }
     if path.ends_with(".json") {
-        let json: Value = serde_json::from_str(&content).unwrap();
-        let json_string_pretty = serde_json::to_string_pretty(&json).unwrap();
-        return json_string_pretty;
+        if let Ok(json) = serde_json::from_str::<Value>(&content) {
+            if let Ok(json_string_pretty) = serde_json::to_string_pretty(&json) {
+                return json_string_pretty;
+            }
+        }
     }
     content
 }
 
 #[tauri::command]
 async fn get_file_base64(path: String) -> Result<String, String> {
-    let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+    let target_path = if path.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+            let filename = Path::new(&remote_path).file_name().unwrap_or_default().to_string_lossy().to_string();
+            let temp_dir = std::env::temp_dir().join("codriver-ftp-temp");
+            let _ = std::fs::create_dir_all(&temp_dir);
+            let local_dest = temp_dir.join(&filename);
+            let local_dest_str = local_dest.to_string_lossy().to_string();
+            if crate::remote::ftp::download_ftp_file(&conn_name, &remote_path, &local_dest_str).is_ok() {
+                local_dest_str
+            } else {
+                return Err("Failed to download remote file".to_string());
+            }
+        } else {
+            return Err("Invalid FTP URL".to_string());
+        }
+    } else {
+        path.clone()
+    };
+    
+    let bytes = std::fs::read(&target_path).map_err(|e| e.to_string())?;
+    if path.starts_with("ftp://") && target_path != path {
+        let _ = fs::remove_file(&target_path);
+    }
     Ok(BASE64_STANDARD.encode(&bytes))
 }
 
 #[tauri::command]
 async fn open_config_location() {
     let _ = open::that(config_dir().unwrap().join("com.codriver.dev"));
+}
+
+#[tauri::command]
+async fn discover_ftp_servers() -> Result<Vec<crate::remote::ftp::ftp_discovery::DiscoveredFtpServer>, String> {
+    Ok(crate::remote::ftp::ftp_discovery::run_discovery().await)
+}
+
+#[tauri::command]
+async fn connect_ftp(config: crate::remote::ftp::FtpConfig) -> Result<String, String> {
+    let mut client = crate::remote::ftp::get_ftp_client(&config)
+        .map_err(|e| format!("Failed to connect to FTP: {}", e))?;
+    
+    let _pwd = client.pwd().map_err(|e| format!("Failed to get current directory: {}", e))?;
+
+    let name = config.name.clone();
+    
+    {
+        let mut conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+        conns.insert(name.clone(), config);
+    }
+
+    Ok(format!("Successfully connected to {}", name))
+}
+
+#[tauri::command]
+async fn disconnect_ftp(name: String) -> Result<(), String> {
+    let mut conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+    if conns.remove(&name).is_some() {
+        if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+            if ftp_path.starts_with(&format!("ftp://{}", name)) {
+                *CURRENT_DIR_OVERRIDE.lock().unwrap() = None;
+            }
+        }
+        Ok(())
+    } else {
+        Err("Connection not found".to_string())
+    }
+}
+
+#[tauri::command]
+async fn save_ftp_connection(config: crate::remote::ftp::FtpConfig) -> Result<(), String> {
+    let mut conns = crate::remote::ftp::load_saved_connections();
+    conns.insert(config.name.clone(), config.clone());
+    crate::remote::ftp::save_connections(&conns)?;
+
+    // Also update active in-memory mapping
+    let mut active_conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+    active_conns.insert(config.name.clone(), config);
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_saved_ftp_connections() -> Result<Vec<crate::remote::ftp::FtpConfig>, String> {
+    let conns = crate::remote::ftp::load_saved_connections();
+    let list: Vec<crate::remote::ftp::FtpConfig> = conns.into_values().collect();
+    Ok(list)
+}
+
+#[tauri::command]
+async fn delete_saved_ftp_connection(name: String) -> Result<(), String> {
+    let mut conns = crate::remote::ftp::load_saved_connections();
+    if conns.remove(&name).is_some() {
+        crate::remote::ftp::save_connections(&conns)?;
+    }
+
+    // Also remove from active in-memory mapping
+    let mut active_conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+    active_conns.remove(&name);
+
+    if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        if ftp_path.starts_with(&format!("ftp://{}", name)) {
+            *CURRENT_DIR_OVERRIDE.lock().unwrap() = None;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_ftp_temp_file(path: String) -> Result<String, String> {
+    if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+        let filename = Path::new(&remote_path).file_name().unwrap_or_default().to_string_lossy().to_string();
+        let temp_dir = std::env::temp_dir().join("codriver-ftp-temp");
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let local_dest = temp_dir.join(&filename);
+        let local_dest_str = local_dest.to_string_lossy().to_string();
+        crate::remote::ftp::download_ftp_file(&conn_name, &remote_path, &local_dest_str)?;
+        Ok(local_dest_str)
+    } else {
+        Err("Invalid FTP URL".to_string())
+    }
 }
 
 #[tauri::command]
@@ -2602,6 +3226,11 @@ async fn unmount_drive(path: String) {
 #[tauri::command]
 async fn eject_disk(path: String) -> Result<String, String> {
     let path = path.trim();
+    if path.starts_with("ftp://") {
+        let conn_name = path.replace("ftp://", "");
+        disconnect_ftp(conn_name).await?;
+        return Ok("FTP connection closed successfully".into());
+    }
     if path.is_empty() || path == "/" {
         return Err("Refusing to eject system root".into());
     }
@@ -2920,6 +3549,24 @@ async fn get_machine_bytes(size_string: String) -> u64 {
 
 #[tauri::command]
 async fn get_single_item_info(path: String) -> Result<FDir, String> {
+    if path.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+            let parent_path = if let Some(idx) = remote_path.rfind('/') {
+                &remote_path[..idx]
+            } else {
+                ""
+            };
+            let parent_path_clean = if parent_path.is_empty() { "/" } else { parent_path };
+            if let Ok(entries) = crate::remote::ftp::list_ftp_dir(&conn_name, parent_path_clean) {
+                let filename = remote_path.split('/').last().unwrap_or_default();
+                if let Some(entry) = entries.into_iter().find(|e| e.name == filename) {
+                    return Ok(entry);
+                }
+            }
+        }
+        return Err(format!("FTP item '{}' not found", path));
+    }
+
     let metadata = match fs::metadata(&path) {
         Ok(metadata) => metadata,
         Err(err) => {

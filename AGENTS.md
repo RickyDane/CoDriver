@@ -121,7 +121,12 @@ To maintain visual excellence, follow these rules:
    border: var(--glass-border);
    backdrop-filter: var(--glass-blur);
    ```
-2. **Modals & Popups**: Use the existing `.popup-background` and `.uni-popup` structure. Modals are shown by dynamically changing their CSS class or rendering content inside them and displaying `.popup-background`.
+2. **Unified Modals & Popups (`.props-card`)**: Refrain from using crude custom layouts or old `.uni-popup` overlays. All interactive modal dialogs (such as Properties, Compress, Extract, Delete Confirm, and FTP Connection) must inherit from the `.props-card` design pattern:
+   - **Hero Header (`.props-card__hero`)**: Houses a `.props-card__thumb` holding a dedicated Font Awesome icon, and a `.props-card__heading` containing the `.props-card__name` (title) and `.props-card__meta` (subtext or `.props-card__chip` labels).
+   - **Form Grid Items (`.props-card__list`)**: Wrapped in a `<dl>` list using `<div class="props-card__row">` grid containers (`88px 1fr` layout split). Labels (`<dt class="props-card__label">`) should feature small, clean icons. Value fields (`<dd class="props-card__value">`) house high-contrast text inputs, number fields, or dropdown select boxes styled with the `.props-card__input` class.
+   - **Form Layout**: Prefer simple vertical stacking for multiple inputs over dynamic horizontal row division to avoid alignment splits and wrap breaks.
+   - **Structured Footer (`.props-card__footer`)**: Placed at the bottom holding primary and secondary buttons styled with `.props-card__btn` and `.props-card__btn--primary`.
+   - **Display Activation (JS)**: When showing the modal, always invoke `.style.display = "flex"` (never `"block"`) to allow the card's native flexbox and stretch behaviors to function.
 3. **Prevent Placeholder Assets**: When displaying visual helpers, do not use dead layout placeholders. Generate or use proper icon sheets and local resources found in `ui/resources/` or `ui/font-awesome`.
 4. **Asynchronous Previews & Circular Loaders**: When displaying large or heavy preview elements (such as PDF files) in modals, avoid setting the resource source immediately inside the HTML template to prevent the UI from freezing. Instead:
    - Immediately display the modal container with a centered circular progress loader (using the style of the indicators from the action items, e.g. `.preloader-invert` or `.preloader-small-invert`).

@@ -71,6 +71,8 @@ bzip2 = "0.6.1"
 brotlic = "0.8.2"
 anyhow = "1.0.100"
 reqwest = { version = "0.12.12", features = ["json"] }
+suppaftp = { version = "6.2.0", features = ["native-tls"] }
+
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 unrar = "0.5.1"

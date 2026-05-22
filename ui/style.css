@@ -1759,24 +1759,101 @@ label {
 /* Ftp config */
 .ftp-connect-container {
   display: none;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: fit-content;
-  margin: auto;
-  height: fit-content;
-  max-height: 70vh;
-  background-color: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  z-index: 999 !important;
+}
+
+.ftp-connect-container .props-card__scroll-wrap {
+  flex: 1 1 auto;
   overflow-y: auto;
-  border-radius: var(--glass-radius);
-  box-shadow: var(--glass-shadow);
-  border: var(--glass-border);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ftp-connect-container .props-card__scroll-wrap::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ftp-connect-container .props-card__scroll-wrap::-webkit-scrollbar-thumb {
+  background-color: var(--tertiaryColor);
+  border-radius: 2px;
+}
+
+.ftp-connect-container .props-card__hero,
+.ftp-connect-container .props-card__footer {
+  flex-shrink: 0;
+}
+
+/* Save profile in modal footer - Styled as a Premium Checkbox */
+.ftp-save-profile-footer {
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ftp-save-profile-footer input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--tertiaryColor);
+  border-radius: 4px;
+  outline: none;
+  background: rgba(0, 0, 0, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ftp-save-profile-footer input[type="checkbox"]:hover {
+  border-color: var(--selectColor2);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.ftp-save-profile-footer input[type="checkbox"]:checked {
+  background: var(--selectColor2);
+  border-color: var(--selectColor2);
+  box-shadow: 0 0 8px rgba(11, 100, 253, 0.4);
+}
+
+.ftp-save-profile-footer input[type="checkbox"]:checked::after {
+  content: "\f00c";
+  font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif;
+  font-weight: 900;
+  font-size: 9px;
+  color: #fff;
+  display: block;
+}
+
+.ftp-save-profile-footer label {
+  font-size: var(--fontSize);
+  font-weight: 600;
+  color: var(--textColor2);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.ftp-save-profile-footer label:hover {
   color: var(--textColor);
-  z-index: 98;
+}
+
+/* Hide icons inside the label since the custom checkbox has its own checkmark */
+.ftp-save-profile-footer label i {
+  display: none !important;
+}
+
+.ftp-connect-container input[type=number]::-webkit-inner-spin-button, 
+.ftp-connect-container input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
 }
 
 .ftp-loader {
@@ -1794,6 +1871,389 @@ label {
   backdrop-filter: blur(1px);
   -webkit-backdrop-filter: blur(1px);
   z-index: 99;
+  border-radius: var(--glass-radius);
+}
+
+/* FTP Discovery Section */
+.ftp-discovery-section {
+  display: flex;
+  flex-direction: column;
+  height: 120px !important;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.03);
+  border: var(--glass-border-subtle);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 0px;
+  margin-bottom: 8px;
+  margin-left: 20px;
+  margin-right: 20px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.ftp-discovery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  min-height: 21px;
+}
+
+.ftp-discovery-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--textColor3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ftp-discovery-title i {
+  color: var(--selectColor2);
+}
+
+.ftp-discovery-refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0 8px;
+  height: 21px;
+  color: var(--textColor2);
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ftp-discovery-refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--textColor);
+  transform: translateY(-1px);
+}
+
+.ftp-discovery-refresh-btn:active {
+  transform: translateY(0);
+}
+
+.ftp-discovery-refresh-btn i {
+  transition: transform 0.2s ease;
+}
+
+.ftp-discovery-refresh-btn.scanning i {
+  animation: ftp-discover-spin 1s infinite linear;
+  color: var(--selectColor2);
+}
+
+@keyframes ftp-discover-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ftp-discovery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ftp-discovery-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ftp-discovery-list::-webkit-scrollbar-thumb {
+  background-color: var(--transparentColorActive);
+  border-radius: 2px;
+}
+
+.ftp-discovery-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ftp-discovery-item:hover {
+  background: color-mix(in srgb, var(--selectColor2) 12%, rgba(255, 255, 255, 0.06));
+  border: 1px solid color-mix(in srgb, var(--selectColor2) 50%, transparent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.ftp-discovery-item:active {
+  transform: translateY(0);
+}
+
+.ftp-discovery-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.ftp-discovery-item-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--textColor);
+}
+
+.ftp-discovery-item-host {
+  font-size: 10px;
+  color: var(--textColor2);
+}
+
+.ftp-discovery-item-action {
+  font-size: 11px;
+  color: var(--textColor2);
+  transition: all 0.2s ease;
+}
+
+.ftp-discovery-item:hover .ftp-discovery-item-action {
+  color: var(--textColor);
+  transform: translateX(3px);
+}
+
+.ftp-discovery-section.is-empty {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+}
+
+.ftp-discovery-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  padding: 0 10px;
+  color: var(--textColor2);
+  font-size: 11px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.ftp-discovery-loader i {
+  font-size: 16px;
+  color: var(--selectColor2);
+}
+
+.ftp-discovery-empty {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  color: var(--textColor2);
+  font-size: 11px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ftp-discovery-empty i {
+  font-size: 12px;
+  color: var(--textColor2);
+  opacity: 0.6;
+}
+
+.ftp-saved-section {
+  display: flex;
+  flex-direction: column;
+  height: 120px !important;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.03);
+  border: var(--glass-border-subtle);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 0px;
+  margin-bottom: 8px;
+  margin-left: 20px;
+  margin-right: 20px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.ftp-saved-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  min-height: 21px;
+}
+
+.ftp-saved-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--textColor3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ftp-saved-title i {
+  color: var(--selectColor2);
+}
+
+.ftp-saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ftp-saved-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ftp-saved-list::-webkit-scrollbar-thumb {
+  background-color: var(--transparentColorActive);
+  border-radius: 2px;
+}
+
+.ftp-saved-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ftp-saved-item:hover {
+  background: color-mix(in srgb, var(--selectColor2) 12%, rgba(255, 255, 255, 0.06));
+  border: 1px solid color-mix(in srgb, var(--selectColor2) 50%, transparent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.ftp-saved-item:active {
+  transform: translateY(0);
+}
+
+.ftp-saved-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.ftp-saved-item-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--textColor);
+}
+
+.ftp-saved-item-host {
+  font-size: 10px;
+  color: var(--textColor2);
+}
+
+.ftp-saved-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ftp-delete-saved-btn {
+  background: none;
+  border: none;
+  color: var(--textColor2);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.ftp-delete-saved-btn:hover {
+  color: #ff4a4a;
+  background: rgba(255, 74, 74, 0.15);
+  transform: scale(1.15);
+}
+
+/* FTP Tabs Navigation & Buttons */
+.ftp-tabs-nav {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  background: transparent;
+  border-bottom: 1px solid var(--tertiaryColor);
+  padding: 0;
+  margin: 10px 20px 10px 20px;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.ftp-tab-btn {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 6px 6px 0 0;
+  padding: 8px 16px;
+  color: var(--textColor2);
+  font-size: 13px;
+  font-weight: normal;
+  cursor: pointer;
+  outline: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s ease;
+}
+
+.ftp-tab-btn i,
+.ftp-tab-btn span {
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.ftp-tab-btn:hover {
+  color: var(--textColor);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ftp-tab-btn.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--textColor);
+  font-weight: bold;
+  border-bottom: 2px solid var(--selectColor2);
+}
+
+.ftp-tab-btn i {
+  font-size: 13px;
+  color: var(--textColor2);
+  transition: color 0.15s ease;
+}
+
+.ftp-tab-btn.active i {
+  color: var(--textColor);
 }
 
 /* Custom controls*/
@@ -2753,59 +3213,6 @@ button>svg {
 
 .search-full-container {
   display: none;
-  flex-flow: column;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  margin: auto;
-  width: 50%;
-  height: fit-content;
-  background-color: var(--primaryColor);
-  border-radius: 10px;
-  box-shadow: 0px 0px 10px 1px var(--transparentColor);
-  border: 1px solid var(--tertiaryColor);
-  overflow: hidden;
-  color: var(--textColor);
-}
-
-.search-full-container-header {
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  flex-flow: column;
-  gap: 10px;
-  background-color: var(--secondaryColor);
-  height: 50px;
-  padding-left: 20px;
-  font-size: large;
-  display: flex;
-  flex-flow: row;
-  align-items: center;
-  gap: 20px;
-  z-index: 4;
-  box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.15);
-  border-bottom: 1px solid var(--secondaryColor);
-}
-
-.search-full-container-body {
-  padding: 20px;
-  display: flex;
-  flex-flow: column;
-  gap: 10px;
-}
-
-.search-full-container-body-buttons {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  display: flex;
-  flex-flow: row;
-  justify-content: flex-end;
-  gap: 10px;
 }
 
 .footer-container {
@@ -2950,6 +3357,69 @@ button>svg {
   border-top: 2px solid white !important;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+/* Cool glowing dual-spinning search loader */
+.full-searching-loader {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.full-searching-loader span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: auto;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-sizing: border-box;
+}
+
+/* Outer spinning glowing ring */
+.full-searching-loader span:nth-child(1) {
+  width: 18px;
+  height: 18px;
+  border-top-color: var(--selectColor2);
+  border-bottom-color: var(--selectColor2);
+  animation: spin-clockwise 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  filter: drop-shadow(0 0 3px var(--selectColor2));
+}
+
+/* Inner opposite spinning ring */
+.full-searching-loader span:nth-child(2) {
+  width: 10px;
+  height: 10px;
+  border-left-color: #ffffff;
+  border-right-color: #ffffff;
+  animation: spin-counter-clockwise 0.8s linear infinite;
+  opacity: 0.82;
+}
+
+@keyframes spin-clockwise {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-counter-clockwise {
+  0% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
 }
 
 .is-file-searching {
@@ -3459,6 +3929,12 @@ button>svg {
   flex-flow: row;
   justify-content: center;
   align-items: center;
+}
+
+.module-container:has(.item-preview-file-content) {
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
 }
 
 .module-container>video {
