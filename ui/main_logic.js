@@ -6355,7 +6355,694 @@ async function executeSync() {
   await refreshBothViews("left");
 }
 
+async function showDuplicateFinderPopup(path) {
+  if (IsPopUpOpen !== false) return;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  let fileName = path.split('/').pop() || path.split('\\').pop() || "Directory";
+
+  const popup = document.createElement("div");
+  popup.className = "duplicate-finder-popup props-card props-card--wide";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Duplicate Finder");
+  popup.innerHTML = `
+    <section class="props-card__hero" style="border-radius: var(--glass-radius) var(--glass-radius) 0 0;">
+      <div class="props-card__thumb"><i class="fa-solid fa-copy"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(fileName)}">${escHtml(fileName)}</h2>
+        <div class="props-card__meta">
+          <span>Folder: ${escHtml(path)}</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="duplicate-finder-actions-bar" style="display: none; padding: 10px 14px; gap: 8px; border-bottom: var(--glass-border-subtle); background: var(--glass-header-bg); align-items: center; flex-wrap: wrap;">
+      <button class="props-card__btn props-card__btn--sm" id="btn-dup-select-newest" style="padding: 4px 10px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-clock-rotate-left"></i><span>Keep Newest</span>
+      </button>
+      <button class="props-card__btn props-card__btn--sm" id="btn-dup-select-oldest" style="padding: 4px 10px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px; background: none; border: 1px solid var(--tertiaryColor);">
+        <i class="fa-solid fa-hourglass-start"></i><span>Keep Oldest</span>
+      </button>
+      <button class="props-card__btn props-card__btn--sm" id="btn-dup-deselect-all" style="padding: 4px 10px; font-size: 11px; background: none; border: 1px solid var(--tertiaryColor); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-square-minus"></i><span>Deselect All</span>
+      </button>
+      <button class="props-card__btn props-card__btn--sm" id="btn-dup-rescan" style="padding: 4px 10px; font-size: 11px; background: none; border: 1px solid var(--tertiaryColor); cursor: pointer; margin-left: auto; display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-arrows-rotate"></i><span>Rescan</span>
+      </button>
+    </div>
+
+    <div class="duplicate-finder-body" style="flex: 1 1 auto; overflow-y: auto; max-height: 520px; padding: 14px; display: flex; flex-direction: column; gap: 14px; border-bottom: var(--glass-border-subtle);">
+      <!-- Rendered dynamically -->
+    </div>
+
+    <footer class="props-card__footer" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--glass-header-bg);">
+      <div class="duplicate-reclaim-info" style="display: flex; flex-direction: column; gap: 2px;">
+        <span id="dup-selected-count" style="font-size: 11px; opacity: 0.7;">Selected: 0 files</span>
+        <span id="dup-reclaim-size" style="font-weight: 700; color: rgb(46, 204, 113); font-size: 13px;">Reclaimable: 0 Bytes</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="props-card__btn" data-dup-close style="cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+        </button>
+        <button class="props-card__btn props-card__btn--primary" id="btn-dup-delete" disabled style="opacity: 0.5; cursor: not-allowed;">
+          <i class="fa-solid fa-trash"></i><span>Delete Selected</span>
+        </button>
+      </div>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  $(".popup-background").css("display", "block");
+  setTimeout(() => $(".popup-background").css("opacity", "1"));
+
+  let selectedFilePaths = new Set();
+  let filePathToSize = new Map();
+  let currentDepthValue = 5;
+  let currentUnlimitedChecked = false;
+  let isSearching = false;
+
+  const formatBytes = (bytes, decimals = 2) => {
+    if (!+bytes) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+  };
+
+  const formatDate = (secs) => {
+    if (!secs) return '';
+    const d = new Date(secs * 1000);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const updateFooter = () => {
+    let totalSize = 0;
+    selectedFilePaths.forEach(file => {
+      totalSize += filePathToSize.get(file) || 0;
+    });
+    
+    popup.querySelector("#dup-selected-count").innerText = `Selected: ${selectedFilePaths.size} files`;
+    popup.querySelector("#dup-reclaim-size").innerText = `Reclaimable: ${formatBytes(totalSize)}`;
+    
+    const deleteBtn = popup.querySelector("#btn-dup-delete");
+    if (selectedFilePaths.size > 0) {
+      deleteBtn.removeAttribute("disabled");
+      deleteBtn.style.opacity = "1";
+      deleteBtn.style.cursor = "pointer";
+    } else {
+      deleteBtn.setAttribute("disabled", "true");
+      deleteBtn.style.opacity = "0.5";
+      deleteBtn.style.cursor = "not-allowed";
+    }
+  };
+
+  const closePopup = () => {
+    IsPopUpOpen = false;
+    if (isSearching) {
+      invoke("cancel_duplicate_finder").catch(() => {});
+    }
+    popup.classList.add("popup-exit");
+    $(".popup-background").css("opacity", "0");
+    setTimeout(() => {
+      $(".popup-background").css("display", "none");
+    }, 150);
+    popup.addEventListener("animationend", () => {
+      popup.remove();
+    }, { once: true });
+  };
+
+  popup.querySelectorAll("[data-dup-close]").forEach(el => {
+    el.onclick = () => closePopup();
+  });
+
+  popup.querySelector("#btn-dup-rescan").onclick = () => {
+    renderSetupScreen();
+  };
+
+  const renderSetupScreen = () => {
+    popup.querySelector(".duplicate-finder-actions-bar").style.display = "none";
+    selectedFilePaths.clear();
+    filePathToSize.clear();
+    popup.querySelector("#dup-selected-count").innerText = "Selected: 0 files";
+    popup.querySelector("#dup-reclaim-size").innerText = "Reclaimable: 0 Bytes";
+    const deleteBtn = popup.querySelector("#btn-dup-delete");
+    deleteBtn.setAttribute("disabled", "true");
+    deleteBtn.style.opacity = "0.5";
+    deleteBtn.style.cursor = "not-allowed";
+
+    const body = popup.querySelector(".duplicate-finder-body");
+    body.style.height = "";
+    body.style.padding = "14px";
+    body.style.position = "";
+    body.innerHTML = `
+      <div class="duplicate-finder-setup" style="display: flex; flex-direction: column; gap: 20px; padding: 40px 24px; align-items: center; justify-content: center; max-width: 440px; margin: 0 auto; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; margin-bottom: 4px;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: color-mix(in srgb, var(--selectColor2) 15%, transparent); display: flex; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--selectColor2) 30%, transparent); margin-bottom: 6px; filter: drop-shadow(0 0 8px rgba(11, 100, 253, 0.25));">
+            <i class="fa-solid fa-sliders" style="font-size: 18px; color: #4da3ff;"></i>
+          </div>
+          <h3 style="font-size: 14px; font-weight: 700; color: var(--textColor); letter-spacing: 0.5px;">Scan Configuration</h3>
+          <p style="font-size: 11px; color: var(--textColor2); line-height: 1.4; max-width: 320px;">Configure directory recursion depth before starting search.</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label for="dup-depth-input" style="font-size: 11px; font-weight: 600; color: var(--textColor3);">Search Depth Limit</label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; user-select: none; color: var(--textColor2);">
+              <input type="checkbox" id="dup-depth-unlimited" ${currentUnlimitedChecked ? "checked" : ""} style="accent-color: var(--selectColor2); width: 14px; height: 14px; cursor: pointer;" />
+              <span>Unlimited</span>
+            </label>
+          </div>
+          
+          <input type="number" id="dup-depth-input" min="1" value="${currentDepthValue}" class="props-card__input" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--tertiaryColor); border-radius: 8px; color: var(--textColor); font-size: 13px; font-family: monospace; transition: all 0.2s;" />
+          <span style="font-size: 10.5px; opacity: 0.5; line-height: 1.4; text-align: left;">Sets directory recursion depth. E.g., depth 1 scans only the root folder.</span>
+        </div>
+
+        <button class="props-card__btn props-card__btn--primary" id="btn-dup-start-scan" style="width: 100%; padding: 11px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border-radius: 8px; margin-top: 8px; box-shadow: 0 4px 12px rgba(11, 100, 253, 0.25);">
+          <i class="fa-solid fa-play"></i><span>Start Scanning</span>
+        </button>
+      </div>
+    `;
+
+    const depthInput = body.querySelector("#dup-depth-input");
+    const unlimitedCb = body.querySelector("#dup-depth-unlimited");
+    const startBtn = body.querySelector("#btn-dup-start-scan");
+
+    const updateInputState = () => {
+      if (unlimitedCb.checked) {
+        depthInput.setAttribute("disabled", "true");
+        depthInput.style.opacity = "0.4";
+        depthInput.style.cursor = "not-allowed";
+      } else {
+        depthInput.removeAttribute("disabled");
+        depthInput.style.opacity = "1";
+        depthInput.style.cursor = "text";
+      }
+      currentUnlimitedChecked = unlimitedCb.checked;
+    };
+
+    unlimitedCb.onchange = updateInputState;
+    depthInput.oninput = () => {
+      currentDepthValue = parseInt(depthInput.value) || 5;
+    };
+
+    updateInputState(); // initialize
+
+    startBtn.onclick = async () => {
+      await startScan();
+    };
+  };
+
+  const startScan = async () => {
+    isSearching = true;
+    let maxDepth = null;
+    if (!currentUnlimitedChecked) {
+      maxDepth = currentDepthValue;
+    }
+
+    const body = popup.querySelector(".duplicate-finder-body");
+    
+    // Transition body to scanning state with Stop button
+    body.innerHTML = `
+      <div class="duplicate-finder-scanning" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 50px 0;">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 32px; color: #4da3ff; filter: drop-shadow(0 0 12px rgba(77, 163, 255, 0.8)); margin-bottom: 8px;"></i>
+        <span style="font-size: var(--fontSize); opacity: 0.85;">Scanning directory structure recursively...</span>
+        <span style="font-size: 11px; opacity: 0.6; text-align: center; max-width: 80%; margin-bottom: 12px;">Evaluating files for duplicate content. Please wait.</span>
+        <button class="props-card__btn props-card__btn--primary" id="btn-dup-stop-scan" style="background: var(--errorColor); border-color: var(--errorColor); cursor: pointer; padding: 6px 16px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-stop"></i><span>Stop Search</span>
+        </button>
+      </div>
+    `;
+
+    body.querySelector("#btn-dup-stop-scan").onclick = async () => {
+      try {
+        await invoke("cancel_duplicate_finder");
+      } catch (err) {
+        showToast(`Failed to stop search: ${err}`, ToastType.ERROR);
+      }
+    };
+
+    try {
+      const results = await invoke("find_duplicates", { path, maxDepth });
+      isSearching = false;
+      
+      if (!results || results.length === 0) {
+        body.style.height = "";
+        body.style.padding = "14px";
+        body.style.position = "";
+        body.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+            <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(46, 204, 113, 0.15); border: 1px solid rgb(46, 204, 113); display: flex; align-items: center; justify-content: center;">
+              <i class="fa-solid fa-check" style="font-size: 20px; color: rgb(46, 204, 113);"></i>
+            </div>
+            <div>
+              <h3 style="font-weight: 700; margin-bottom: 4px; color: var(--textColor);">0 Duplicates Found</h3>
+              <p style="font-size: var(--fontSize); opacity: 0.7; margin: 0; max-width: 80%; margin: auto; margin-bottom: 16px;">This directory is perfectly clean! No identical file contents were discovered.</p>
+              <button class="props-card__btn props-card__btn--primary" id="btn-dup-rescan-empty" style="margin: auto; padding: 6px 14px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; justify-content: center;">
+                <i class="fa-solid fa-arrows-rotate"></i><span>Configure & Rescan</span>
+              </button>
+            </div>
+          </div>
+        `;
+        body.querySelector("#btn-dup-rescan-empty").onclick = () => {
+          renderSetupScreen();
+        };
+      } else {
+        popup.querySelector(".duplicate-finder-actions-bar").style.display = "flex";
+        
+        // Populate path to size map
+        filePathToSize.clear();
+        results.forEach(group => {
+          group.files.forEach(f => {
+            filePathToSize.set(f.path, group.size);
+          });
+        });
+
+        // 1. Precalculate layout positions for virtual scrolling
+        // Card height: 52px (header) + (num_files * 36px)
+        // Margin-bottom: 14px
+        let currentTop = 14; // start at 14px to act as padding-top
+        const layouts = results.map(group => {
+          const height = 52 + (group.files.length * 36);
+          const layout = {
+            top: currentTop,
+            height: height,
+            margin: 14
+          };
+          currentTop += height + 14;
+          return layout;
+        });
+        const totalHeight = currentTop;
+
+        // 2. Setup the DOM structure for virtual scroll inside 'body'
+        body.style.position = "relative";
+        body.style.padding = "0px";
+        body.style.height = `${Math.min(520, totalHeight)}px`;
+        body.innerHTML = `
+          <div class="duplicate-scroll-spacer" style="height: ${totalHeight}px; width: 100%; pointer-events: none; position: absolute; top: 0; left: 0;"></div>
+          <div class="duplicate-virtual-container" style="position: absolute; top: 0; left: 14px; right: 14px; width: calc(100% - 28px); pointer-events: none;"></div>
+        `;
+
+        const virtualContainer = body.querySelector(".duplicate-virtual-container");
+
+        let lastStartIndex = -1;
+        let lastEndIndex = -1;
+
+        const renderVirtualWindow = () => {
+          const scrollTop = body.scrollTop;
+          const viewportHeight = body.clientHeight;
+
+          // Expand range by 200px buffer top/bottom to prevent blinking
+          const minVal = scrollTop - 200;
+          const maxVal = scrollTop + viewportHeight + 200;
+
+          let startIndex = 0;
+          let endIndex = results.length - 1;
+
+          for (let i = 0; i < results.length; i++) {
+            const layout = layouts[i];
+            if (layout.top + layout.height + layout.margin >= minVal) {
+              startIndex = i;
+              break;
+            }
+          }
+          for (let i = startIndex; i < results.length; i++) {
+            const layout = layouts[i];
+            if (layout.top > maxVal) {
+              endIndex = i;
+              break;
+            }
+          }
+
+          // Only re-render if visible window indices changed
+          if (startIndex === lastStartIndex && endIndex === lastEndIndex) {
+            return;
+          }
+
+          lastStartIndex = startIndex;
+          lastEndIndex = endIndex;
+
+          let html = "";
+          for (let i = startIndex; i <= endIndex; i++) {
+            const group = results[i];
+            const layout = layouts[i];
+            const firstPath = group.files[0].path;
+            const baseName = firstPath.split('/').pop().split('\\').pop();
+
+            let filesHtml = group.files.map((fileObj) => {
+              const file = fileObj.path;
+              const modified = fileObj.modified;
+              const isChecked = selectedFilePaths.has(file);
+              
+              // Compute relative path from the scanned root folder
+              let displayPath = file;
+              if (file.toLowerCase().startsWith(path.toLowerCase())) {
+                displayPath = file.substring(path.length);
+                if (displayPath.startsWith("/") || displayPath.startsWith("\\")) {
+                  displayPath = displayPath.substring(1);
+                }
+              }
+
+              let folderPart = "";
+              let filePart = displayPath;
+              const lastSep = Math.max(displayPath.lastIndexOf("/"), displayPath.lastIndexOf("\\"));
+              if (lastSep !== -1) {
+                folderPart = displayPath.substring(0, lastSep + 1);
+                filePart = displayPath.substring(lastSep + 1);
+              }
+
+              return `
+                <div class="duplicate-file-row" style="height: 36px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); gap: 10px;">
+                  <label style="display: flex; align-items: center; min-width: 0; flex: 1; cursor: pointer; margin: 0; gap: 10px;">
+                    <input type="checkbox" class="dup-file-checkbox" data-path="${escHtml(file)}" data-group-index="${i}" style="cursor: pointer; flex-shrink: 0;" ${isChecked ? "checked" : ""} />
+                    <span style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; flex: 1; min-width: 0;" title="${escHtml(file)}">
+                      <span style="color: var(--textColor2); font-weight: normal;">${escHtml(folderPart)}</span><span style="color: var(--textColor); font-weight: 600;">${escHtml(filePart)}</span>
+                    </span>
+                  </label>
+                  <span class="dup-file-date" title="Last Modified">${escHtml(formatDate(modified))}</span>
+                  <button class="props-card__btn btn-dup-reveal" data-path="${escHtml(file)}" style="padding: 4px 8px; font-size: 11px; background: none; border: none; opacity: 0.7; cursor: pointer;" title="Reveal in CoDriver">
+                    <i class="fa-solid fa-folder-open"></i>
+                  </button>
+                </div>
+              `;
+            }).join('');
+
+            html += `
+              <div class="duplicate-group-card" data-group-index="${i}" style="position: absolute; top: ${layout.top}px; left: 0; right: 0; height: ${layout.height}px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; pointer-events: auto;">
+                <div class="duplicate-group-header" style="height: 52px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--tertiaryColor);">
+                  <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
+                    <span style="font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--textColor);" title="${escHtml(baseName)}">${escHtml(baseName)}</span>
+                    <span style="font-size: 10.5px; opacity: 0.6; color: var(--textColor2); margin-top: 2px;">${formatBytes(group.size)} &bull; ${group.files.length} copies</span>
+                  </div>
+                  <button class="props-card__btn props-card__btn--sm btn-select-group-but-one" data-group-index="${i}" style="padding: 2px 8px; font-size: 11px; background: none; border: 1px solid var(--tertiaryColor); flex-shrink: 0; margin-left: 10px; cursor: pointer;">
+                    Keep One
+                  </button>
+                </div>
+                <div class="duplicate-group-files" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                  ${filesHtml}
+                </div>
+              </div>
+            `;
+          }
+
+          virtualContainer.innerHTML = html;
+        };
+
+        // Render initial view
+        renderVirtualWindow();
+
+        // Attach scroll listener
+        body.onscroll = () => {
+          renderVirtualWindow();
+        };
+
+        // 3. Set up Event Delegation on the popup once
+        // Handle clicks: "Keep One" and "Reveal"
+        popup.addEventListener("click", async (e) => {
+          // Check for Keep One button
+          const keepOneBtn = e.target.closest(".btn-select-group-but-one");
+          if (keepOneBtn) {
+            const groupIdx = parseInt(keepOneBtn.getAttribute("data-group-index"));
+            const group = results[groupIdx];
+            group.files.forEach((fileObj, idx) => {
+              const file = fileObj.path;
+              if (idx > 0) {
+                selectedFilePaths.add(file);
+              } else {
+                selectedFilePaths.delete(file);
+              }
+            });
+            // Update checkbox state in active DOM elements
+            popup.querySelectorAll(`.dup-file-checkbox[data-group-index="${groupIdx}"]`).forEach((cb, idx) => {
+              cb.checked = (idx > 0);
+            });
+            updateFooter();
+            return;
+          }
+
+          // Check for Reveal button
+          const revealBtn = e.target.closest(".btn-dup-reveal");
+          if (revealBtn) {
+            const filePath = revealBtn.getAttribute("data-path");
+            let parentPath = filePath.substring(0, filePath.lastIndexOf("/"));
+            if (!parentPath && filePath.indexOf("\\") !== -1) {
+              parentPath = filePath.substring(0, filePath.lastIndexOf("\\"));
+            }
+            if (parentPath) {
+              closePopup();
+              await openItem(null, SelectedItemPaneSide, parentPath);
+            }
+            return;
+          }
+        });
+
+        // Handle Change: Checkboxes
+        popup.addEventListener("change", (e) => {
+          const checkbox = e.target.closest(".dup-file-checkbox");
+          if (checkbox) {
+            const file = checkbox.getAttribute("data-path");
+            if (checkbox.checked) {
+              selectedFilePaths.add(file);
+            } else {
+              selectedFilePaths.delete(file);
+            }
+            updateFooter();
+          }
+        });
+
+        // Fast global selections: Keep Newest and Keep Oldest
+        popup.querySelector("#btn-dup-select-newest").onclick = () => {
+          results.forEach(group => {
+            let newestFileObj = group.files[0];
+            for (let i = 1; i < group.files.length; i++) {
+              if (group.files[i].modified > newestFileObj.modified) {
+                newestFileObj = group.files[i];
+              }
+            }
+            group.files.forEach((fileObj) => {
+              const file = fileObj.path;
+              if (file === newestFileObj.path) {
+                selectedFilePaths.delete(file);
+              } else {
+                selectedFilePaths.add(file);
+              }
+            });
+          });
+          // Sync only currently visible checkboxes in the DOM
+          popup.querySelectorAll(".dup-file-checkbox").forEach(cb => {
+            const file = cb.getAttribute("data-path");
+            cb.checked = selectedFilePaths.has(file);
+          });
+          updateFooter();
+        };
+
+        popup.querySelector("#btn-dup-select-oldest").onclick = () => {
+          results.forEach(group => {
+            let oldestFileObj = group.files[0];
+            for (let i = 1; i < group.files.length; i++) {
+              if (group.files[i].modified < oldestFileObj.modified) {
+                oldestFileObj = group.files[i];
+              }
+            }
+            group.files.forEach((fileObj) => {
+              const file = fileObj.path;
+              if (file === oldestFileObj.path) {
+                selectedFilePaths.delete(file);
+              } else {
+                selectedFilePaths.add(file);
+              }
+            });
+          });
+          // Sync only currently visible checkboxes in the DOM
+          popup.querySelectorAll(".dup-file-checkbox").forEach(cb => {
+            const file = cb.getAttribute("data-path");
+            cb.checked = selectedFilePaths.has(file);
+          });
+          updateFooter();
+        };
+
+        popup.querySelector("#btn-dup-deselect-all").onclick = () => {
+          selectedFilePaths.clear();
+          // Sync only currently visible checkboxes in the DOM
+          popup.querySelectorAll(".dup-file-checkbox").forEach(cb => {
+            cb.checked = false;
+          });
+          updateFooter();
+        };
+
+        popup.querySelector("#btn-dup-delete").onclick = () => {
+          const pathsToDelete = Array.from(selectedFilePaths);
+          if (pathsToDelete.length === 0) return;
+
+          const confirmOverlay = document.createElement("div");
+          confirmOverlay.className = "dup-confirm-overlay";
+          confirmOverlay.style.position = "absolute";
+          confirmOverlay.style.inset = "0";
+          confirmOverlay.style.background = "rgba(0,0,0,0.65)";
+          confirmOverlay.style.backdropFilter = "blur(12px)";
+          confirmOverlay.style.display = "flex";
+          confirmOverlay.style.flexDirection = "column";
+          confirmOverlay.style.alignItems = "center";
+          confirmOverlay.style.justifyContent = "center";
+          confirmOverlay.style.zIndex = "1000";
+          confirmOverlay.style.padding = "20px";
+          confirmOverlay.style.textAlign = "center";
+          confirmOverlay.style.animation = "propsCardIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)";
+
+          confirmOverlay.innerHTML = `
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 38px; color: var(--errorColor); margin-bottom: 14px;"></i>
+            <h3 style="font-weight: 700; margin-bottom: 8px; font-size: 16px;">Delete Duplicate Files?</h3>
+            <p style="font-size: 13px; opacity: 0.9; max-width: 85%; margin-bottom: 22px; line-height: 1.4;">
+              Are you sure you want to permanently delete the <strong>${pathsToDelete.length}</strong> selected duplicate files? This action is irreversible.
+            </p>
+            <div style="display: flex; gap: 12px;">
+              <button class="props-card__btn" id="btn-dup-confirm-cancel" style="cursor: pointer;">
+                <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+              </button>
+              <button class="props-card__btn props-card__btn--primary" id="btn-dup-confirm-delete" style="background: var(--errorColor); border-color: var(--errorColor); cursor: pointer;">
+                <i class="fa-solid fa-trash"></i><span>Delete Permanently</span>
+              </button>
+            </div>
+          `;
+
+          popup.appendChild(confirmOverlay);
+
+          confirmOverlay.querySelector("#btn-dup-confirm-cancel").onclick = () => {
+            confirmOverlay.remove();
+          };
+
+          confirmOverlay.querySelector("#btn-dup-confirm-delete").onclick = async () => {
+            confirmOverlay.innerHTML = `
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 320px; gap: 14px; padding: 20px 10px;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 32px; color: #4da3ff; filter: drop-shadow(0 0 12px rgba(77, 163, 255, 0.8)); margin-bottom: 4px;"></i>
+                <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">Deleting duplicates...</span>
+                
+                <div style="width: 100%; background: rgba(255, 255, 255, 0.08); height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                  <div id="dup-delete-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--selectColor2), #4da3ff); box-shadow: 0 0 8px rgba(77, 163, 255, 0.6); transition: width 0.15s ease-out; border-radius: 3px;"></div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; width: 100%; font-size: 11px; color: var(--textColor2); margin-top: -4px;">
+                  <span id="dup-delete-progress-text">0% completed</span>
+                  <span id="dup-delete-progress-count">0 / 0 files</span>
+                </div>
+
+                <div id="dup-delete-current-file" style="font-size: 10.5px; color: var(--textColor2); opacity: 0.6; max-width: 100%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; text-align: center; margin-top: 2px;">
+                  Starting deletion...
+                </div>
+              </div>
+            `;
+
+            const total = pathsToDelete.length;
+            const progressBar = confirmOverlay.querySelector("#dup-delete-progress-bar");
+            const progressText = confirmOverlay.querySelector("#dup-delete-progress-text");
+            const progressCount = confirmOverlay.querySelector("#dup-delete-progress-count");
+            const currentFileEl = confirmOverlay.querySelector("#dup-delete-current-file");
+
+            let successCount = 0;
+            let failCount = 0;
+            let completedCount = 0;
+
+            const concurrency = total > 50 ? 8 : 1; // Batch deletes concurrently for larger selections
+            const delayMs = total > 50 ? 0 : Math.max(5, Math.min(60, 300 / total)); // Smooth dynamic animation delay for small deletions
+
+            let lastUpdate = 0;
+            const updateUI = (currentFile, force = false) => {
+              const now = Date.now();
+              if (force || now - lastUpdate >= 80 || completedCount === total) {
+                lastUpdate = now;
+                const percent = Math.round((completedCount / total) * 100);
+                if (progressBar) progressBar.style.width = `${percent}%`;
+                if (progressText) progressText.innerText = `${percent}% completed`;
+                if (progressCount) progressCount.innerText = `${completedCount} / ${total} files`;
+                if (currentFileEl && currentFile) {
+                  const parts = currentFile.split(/[/\\]/);
+                  const filename = parts[parts.length - 1] || currentFile;
+                  currentFileEl.innerText = `Deleting: ${filename}`;
+                  currentFileEl.title = currentFile;
+                }
+              }
+            };
+
+            // Initial paint
+            updateUI("", true);
+
+            let nextIndex = 0;
+            const worker = async () => {
+              while (nextIndex < total) {
+                const i = nextIndex++;
+                if (i >= total) break;
+                const file = pathsToDelete[i];
+
+                try {
+                  await invoke("delete_item", { actFileName: file });
+                  successCount++;
+                } catch (err) {
+                  console.error(`Failed to delete ${file}:`, err);
+                  failCount++;
+                }
+
+                completedCount++;
+                updateUI(file);
+
+                if (delayMs > 0) {
+                  await new Promise(r => setTimeout(r, delayMs));
+                }
+              }
+            };
+
+            // Spawn concurrent deletion workers
+            const workers = [];
+            const activeWorkers = Math.min(concurrency, total);
+            for (let w = 0; w < activeWorkers; w++) {
+              workers.push(worker());
+            }
+            await Promise.all(workers);
+
+            // Final paint to guarantee 100% completion state
+            updateUI("", true);
+
+            if (failCount === 0) {
+              showToast(`Deleted ${successCount} duplicate file(s)`, ToastType.SUCCESS);
+            } else {
+              showToast(`Deleted ${successCount} duplicate file(s) (${failCount} failed)`, ToastType.WARNING);
+            }
+
+            confirmOverlay.remove();
+            closePopup();
+            await listDirectories();
+          };
+        };
+      }
+    } catch (err) {
+      isSearching = false;
+      if (err === "Search cancelled" || (err && typeof err === "string" && err.includes("cancelled"))) {
+        showToast("Search was stopped", ToastType.INFO);
+        renderSetupScreen();
+      } else {
+        body.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+            <i class="fa-solid fa-circle-xmark" style="font-size: 32px; color: var(--errorColor);"></i>
+            <span style="font-size: var(--fontSize); color: var(--errorColor); font-weight: 700;">Scanning Failed</span>
+            <span style="font-size: 11px; opacity: 0.7; max-width: 80%;">${escHtml(err)}</span>
+          </div>
+        `;
+      }
+    }
+  };
+
+  renderSetupScreen();
+}
+
 (async () => {
+
   await getSetInstalledApplications();
   await checkAppConfig();
   await insertSiteNavButtons();

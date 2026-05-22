@@ -77,6 +77,8 @@ lazy_static! {
         Arc::new(std::sync::atomic::AtomicBool::new(false));
     pub static ref IS_SELECTION_SIZE_CALC_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
         Arc::new(std::sync::atomic::AtomicBool::new(false));
+    pub static ref IS_DUP_FIND_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
+        Arc::new(std::sync::atomic::AtomicBool::new(false));
 }
 
 // static mut IS_SEARCHING: bool = false;
@@ -194,7 +196,9 @@ fn main() {
             load_item_image,
             get_disk_info,
             get_machine_bytes,
-            get_single_item_info
+            get_single_item_info,
+            find_duplicates,
+            cancel_duplicate_finder
         ])
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
@@ -989,6 +993,7 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
     // Reset counter
     *(COPY_COUNTER.lock().await) = 0.0;
     *(TOTAL_BYTES_COPIED.lock().await) = 0.0;
+    crate::utils::reset_copy_start_time();
 
     show_progressbar(app_window);
 
@@ -1037,6 +1042,7 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
 
     *(COPY_COUNTER.lock().await) = 0.0;
     *(TOTAL_BYTES_COPIED.lock().await) = 0.0;
+    crate::utils::reset_copy_start_time();
 
     show_progressbar(app_window);
 
@@ -1452,6 +1458,197 @@ async fn arr_delete_items(arr_items: Vec<String>) {
         delete_item(path).await;
     }
 }
+
+#[tauri::command]
+async fn cancel_duplicate_finder() {
+    IS_DUP_FIND_CANCELLED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[derive(serde::Serialize)]
+struct DuplicateFile {
+    path: String,
+    modified: u64,
+}
+
+#[derive(serde::Serialize)]
+struct DuplicateGroup {
+    size: u64,
+    hash: String,
+    files: Vec<DuplicateFile>,
+}
+
+#[tauri::command]
+async fn find_duplicates(path: String, max_depth: Option<usize>) -> Result<Vec<DuplicateGroup>, String> {
+    use std::collections::HashMap;
+    use std::fs::File;
+    use std::io::{Read, BufReader};
+    use std::hash::{Hash, Hasher};
+    use std::collections::hash_map::DefaultHasher;
+    use std::path::PathBuf;
+
+    IS_DUP_FIND_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
+
+    let base_path = std::path::Path::new(&path);
+    if !base_path.exists() {
+        return Err("Directory does not exist".to_string());
+    }
+
+    let mut size_groups: HashMap<u64, Vec<PathBuf>> = HashMap::new();
+
+    let mut walker = jwalk::WalkDir::new(base_path)
+        .skip_hidden(true)
+        .follow_links(false);
+    if let Some(depth) = max_depth {
+        walker = walker.max_depth(depth);
+    }
+
+    for entry in walker {
+        if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err("Search cancelled".to_string());
+        }
+        if let Ok(entry) = entry {
+            if entry.file_type().is_file() {
+                let file_path = entry.path();
+                if let Ok(metadata) = std::fs::metadata(&file_path) {
+                    let size = metadata.len();
+                    if size > 0 {
+                        size_groups.entry(size).or_default().push(file_path);
+                    }
+                }
+            }
+        }
+    }
+
+    let candidate_groups: Vec<(u64, Vec<PathBuf>)> = size_groups
+        .into_iter()
+        .filter(|(_, files)| files.len() > 1)
+        .collect();
+
+    fn calculate_file_hash(file_path: &std::path::Path) -> std::io::Result<u64> {
+        let file = File::open(file_path)?;
+        let mut reader = BufReader::new(file);
+        let mut hasher = DefaultHasher::new();
+        let mut buffer = [0; 65536];
+        
+        loop {
+            if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "Search cancelled"));
+            }
+            let count = reader.read(&mut buffer)?;
+            if count == 0 {
+                break;
+            }
+            buffer[..count].hash(&mut hasher);
+        }
+        
+        Ok(hasher.finish())
+    }
+
+    let mut duplicates: Vec<DuplicateGroup> = Vec::new();
+
+    for (size, files) in candidate_groups {
+        if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err("Search cancelled".to_string());
+        }
+        let mut hash_groups: HashMap<u64, Vec<DuplicateFile>> = HashMap::new();
+        
+        for file_path in files {
+            if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err("Search cancelled".to_string());
+            }
+            if let Ok(hash) = calculate_file_hash(&file_path) {
+                let path_str = file_path.to_string_lossy().to_string().replace("\\", "/");
+                let modified = std::fs::metadata(&file_path)
+                    .and_then(|meta| meta.modified())
+                    .map(|time| time.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs())
+                    .unwrap_or(0);
+                hash_groups.entry(hash).or_default().push(DuplicateFile {
+                    path: path_str,
+                    modified,
+                });
+            }
+        }
+        
+        for (hash, dup_files) in hash_groups {
+            if dup_files.len() > 1 {
+                duplicates.push(DuplicateGroup {
+                    size,
+                    hash: format!("{:016x}", hash),
+                    files: dup_files,
+                });
+            }
+        }
+    }
+
+    duplicates.sort_by(|a, b| b.size.cmp(&a.size));
+
+    Ok(duplicates)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_find_duplicates() {
+        use std::fs::{create_dir_all, write};
+        use std::path::Path;
+
+        let test_dir = Path::new("temp_test_duplicates");
+        if test_dir.exists() {
+            let _ = std::fs::remove_dir_all(test_dir);
+        }
+        create_dir_all(test_dir).unwrap();
+
+        // Create identical duplicates group A (size 10 bytes)
+        let dir_a = test_dir.join("group_a");
+        create_dir_all(&dir_a).unwrap();
+        let file_a1 = dir_a.join("file1.txt");
+        let file_a2 = dir_a.join("file2.txt");
+        write(&file_a1, b"1234567890").unwrap();
+        write(&file_a2, b"1234567890").unwrap();
+
+        // Create identical duplicates group B (size 20 bytes - larger, should be sorted first)
+        let dir_b = test_dir.join("sub/group_b");
+        create_dir_all(&dir_b).unwrap();
+        let file_b1 = dir_b.join("file_b1.bin");
+        let file_b2 = dir_b.join("file_b2.bin");
+        let file_b3 = dir_b.join("file_b3.bin");
+        write(&file_b1, b"abcdefghijklmnopqrst").unwrap();
+        write(&file_b2, b"abcdefghijklmnopqrst").unwrap();
+        write(&file_b3, b"abcdefghijklmnopqrst").unwrap();
+
+        // Create a file with same size as group A but different contents (should not group with A)
+        let file_diff_content = test_dir.join("diff_content.txt");
+        write(&file_diff_content, b"0987654321").unwrap();
+
+        // Create a unique file (size 15 bytes)
+        let file_unique = test_dir.join("unique.txt");
+        write(&file_unique, b"1234567890abcde").unwrap();
+
+        // Run find_duplicates
+        let res = find_duplicates(test_dir.to_string_lossy().to_string(), None).await;
+        
+        // Clean up immediately
+        let _ = std::fs::remove_dir_all(test_dir);
+
+        let dup_groups = res.expect("find_duplicates should succeed");
+        
+        // We expect exactly 2 groups of duplicates:
+        // Group 1: size 20 (3 files)
+        // Group 2: size 10 (2 files)
+        assert_eq!(dup_groups.len(), 2);
+
+        // First group should be the larger one (size 20)
+        assert_eq!(dup_groups[0].size, 20);
+        assert_eq!(dup_groups[0].files.len(), 3);
+
+        // Second group should be size 10
+        assert_eq!(dup_groups[1].size, 10);
+        assert_eq!(dup_groups[1].files.len(), 2);
+    }
+}
+
 
 #[tauri::command]
 async fn extract_item(from_path: String, app_window: Window) {

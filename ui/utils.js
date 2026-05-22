@@ -566,6 +566,7 @@ function getIconForFile(item, itemsCount) {
 }
 
 let FileOpProgressActionId = null;
+let lastFileOpProgressUpdate = 0;
 
 function getOrCreateFileOpAction(name = "File operation", description = "Preparing…") {
   if (FileOpProgressActionId) {
@@ -594,20 +595,25 @@ function updateProgressBar(totalPercentage, elementsPercentage, countElements, c
     : `${currentElementNumber} / ${countElements}`;
   action.speedLabel = `${currentSpeed.toFixed(0)} MB/s`;
 
-  const row = document.querySelector(`.active-action-${action.id}`);
-  if (row) {
-    const fill = row.querySelector(".active-action__progress-fill");
-    if (fill) fill.style.width = `${totalPercentage}%`;
-    const pct = row.querySelector(".active-action__percent");
-    if (pct) pct.textContent = `${Math.round(totalPercentage)}%`;
-    const file = row.querySelector(".active-action__current-file");
-    if (file) file.textContent = currentFile;
-    const count = row.querySelector(".active-action__count");
-    if (count) count.textContent = action.countLabel;
-    const speed = row.querySelector(".active-action__speed");
-    if (speed) speed.textContent = action.speedLabel;
-  } else {
-    refreshActiveActionsPopup();
+  const now = Date.now();
+  // Throttle DOM updates to at most once every 80ms to prevent UI stutter/overload, but update instantly on completion
+  if (now - lastFileOpProgressUpdate >= 80 || totalPercentage >= 100) {
+    lastFileOpProgressUpdate = now;
+    const row = document.querySelector(`.active-action-${action.id}`);
+    if (row) {
+      const fill = row.querySelector(".active-action__progress-fill");
+      if (fill) fill.style.width = `${totalPercentage}%`;
+      const pct = row.querySelector(".active-action__percent");
+      if (pct) pct.textContent = `${Math.round(totalPercentage)}%`;
+      const file = row.querySelector(".active-action__current-file");
+      if (file) file.textContent = currentFile;
+      const count = row.querySelector(".active-action__count");
+      if (count) count.textContent = action.countLabel;
+      const speed = row.querySelector(".active-action__speed");
+      if (speed) speed.textContent = action.speedLabel;
+    } else {
+      refreshActiveActionsPopup();
+    }
   }
 }
 

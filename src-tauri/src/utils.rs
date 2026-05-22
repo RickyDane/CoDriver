@@ -33,6 +33,9 @@ use zip::write::FileOptions;
 use zip::ZipWriter;
 
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Mutex, OnceLock};
+use std::time::Instant;
+
 
 #[allow(unused_imports)]
 use crate::ISCANCELED;
@@ -206,10 +209,14 @@ async fn copy_to_with_overwrite_policy(
                     }
                     match fw.write_all(&buf[..ds]) {
                         Ok(_) => {
-                            // Calculate transfer speed and progres
-                            speed = calc_transfer_speed(s, sw.elapsed_ms());
-                            if speed.is_infinite() {
-                                speed = 0.0
+                            // Calculate transfer speed and progress
+                            let total_bytes_copied = *(TOTAL_BYTES_COPIED.lock().await) as u64;
+                            let elapsed_ms = get_copy_start_time()
+                                .map(|start| start.elapsed().as_millis() as i64)
+                                .unwrap_or_else(|| sw.elapsed_ms());
+                            speed = calc_transfer_speed(total_bytes_copied, elapsed_ms);
+                            if speed.is_infinite() || speed.is_nan() {
+                                speed = 0.0;
                             }
                             progress = (100.0 / file_size) * s as f32;
 
@@ -218,9 +225,16 @@ async fn copy_to_with_overwrite_policy(
                             // Only update the progressbar every 5%
                             // if progress % 5.0 < 1.0 {
                             show_progressbar(&WINDOW.get().unwrap());
+                            let overall_progress = if count_to_copy > 0.0 {
+                                let file_fraction = progress / 100.0;
+                                let raw_pct = ((copy_counter - 1.0 + file_fraction) / count_to_copy) * 100.0;
+                                raw_pct.clamp(0.0, 100.0)
+                            } else {
+                                progress
+                            };
                             update_progressbar(
-                                progress,
-                                (100.0 / total_size) * *(TOTAL_BYTES_COPIED.lock().await),
+                                overall_progress,
+                                overall_progress,
                                 count_to_copy,
                                 copy_counter,
                                 final_filename.split("/").last().unwrap(),
@@ -302,6 +316,22 @@ pub fn show_progressbar(app_window: &Window) {
     let _ = app_window.emit("show-progressbar", ());
 }
 
+static LAST_PROGRESS_UPDATE: OnceLock<Mutex<Instant>> = OnceLock::new();
+
+static COPY_START_TIME: OnceLock<Mutex<Option<Instant>>> = OnceLock::new();
+
+pub fn reset_copy_start_time() {
+    let mutex = COPY_START_TIME.get_or_init(|| Mutex::new(None));
+    if let Ok(mut start_time) = mutex.lock() {
+        *start_time = Some(Instant::now());
+    }
+}
+
+pub fn get_copy_start_time() -> Option<Instant> {
+    COPY_START_TIME.get().and_then(|m| m.lock().ok().and_then(|g| *g))
+}
+
+
 pub fn update_progressbar(
     progress: f32,
     elements_progress: f32,
@@ -310,17 +340,38 @@ pub fn update_progressbar(
     file_name: &str,
     mb_per_sec: f64,
 ) {
-    let _ = WINDOW.get().unwrap().emit(
-        "update-progress-bar",
-        (
-            progress,
-            elements_progress,
-            items_count,
-            current_element_count,
-            file_name,
-            mb_per_sec,
-        ),
-    );
+    let now = Instant::now();
+    let mut should_emit = false;
+
+    // Initialize with a time long ago (e.g. 1 second ago) so the first update always goes through
+    let last_update_mutex = LAST_PROGRESS_UPDATE.get_or_init(|| {
+        Mutex::new(now.checked_sub(std::time::Duration::from_millis(1000)).unwrap_or(now))
+    });
+
+    if let Ok(mut last_update) = last_update_mutex.lock() {
+        // Emit if 80ms have passed OR if we reached 100% completion
+        if now.duration_since(*last_update).as_millis() >= 80 || progress >= 100.0 || elements_progress >= 100.0 {
+            *last_update = now;
+            should_emit = true;
+        }
+    } else {
+        should_emit = true;
+    }
+
+    if should_emit {
+        let _ = WINDOW.get().unwrap().emit(
+            "update-progress-bar",
+            (
+                progress,
+                elements_progress,
+                items_count,
+                current_element_count,
+                file_name,
+                mb_per_sec,
+            ),
+        );
+    }
+
     // let file_ext = file_name.split('.').last().unwrap_or("unknown");
     // let _ = app_window.eval(&format!(
     //     "
@@ -335,6 +386,9 @@ pub fn update_progressbar(
 }
 
 pub fn calc_transfer_speed(file_size: u64, time: i64) -> f64 {
+    if time <= 0 {
+        return 0.0;
+    }
     (file_size as f64 / (time as f64 / 1000.0)) / 1024.0 / 1024.0
 }
 

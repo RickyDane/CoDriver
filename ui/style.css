@@ -4854,3 +4854,97 @@ select.props-card__input {
   font-size: 11px;
   color: var(--textColor2);
 }
+
+/* =====================================================================
+   Duplicate Finder Styles
+   ===================================================================== */
+.duplicate-finder-popup.props-card.props-card--wide {
+  width: min(760px, 95vw);
+}
+
+.duplicate-group-card {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: var(--glass-border) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.duplicate-file-row:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.dup-file-date {
+  font-size: 10.5px;
+  color: var(--textColor2);
+  font-family: monospace;
+  opacity: 0.65;
+  white-space: nowrap;
+  margin-left: auto;
+  margin-right: 6px;
+}
+
+.btn-dup-reveal {
+  color: var(--textColor);
+  background: transparent;
+  border: none;
+  opacity: 0.6;
+}
+
+.btn-dup-reveal:hover {
+  opacity: 1;
+  color: var(--primaryColor);
+  transform: scale(1.1);
+}
+
+.btn-select-group-but-one {
+}
+
+.btn-select-group-but-one:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--primaryColor) !important;
+  color: var(--primaryColor);
+}
+
+.dup-file-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--tertiaryColor);
+  border-radius: 4px;
+  outline: none;
+  background: rgba(0, 0, 0, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.dup-file-checkbox:hover {
+  border-color: var(--primaryColor);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.dup-file-checkbox:checked {
+  background: var(--primaryColor);
+  border-color: var(--primaryColor);
+  box-shadow: 0 0 8px var(--primaryColor);
+}
+
+.dup-file-checkbox:checked::after {
+  content: "\f00c";
+  font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif;
+  font-weight: 900;
+  font-size: 9px;
+  color: #fff;
+  display: block;
+}
+
+.dup-confirm-overlay {
+  background: rgba(15, 15, 15, 0.8) !important;
+  border-radius: var(--glass-radius);
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}

@@ -29,6 +29,25 @@ class CDContextMenu {
     ],
     [
       {
+        label: "Extra",
+        icon: "fa-solid fa-ellipsis",
+        subItems: [
+          {
+            label: "Find duplicates",
+            icon: "fa-solid fa-copy",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showDuplicateFinderPopup(path);
+              this.hide();
+            },
+          },
+        ],
+      },
+    ],
+    [
+      {
         label: "Copy",
         icon: "fa-solid fa-copy",
         action: () => copyItem(this.selectedItem),
@@ -293,13 +312,22 @@ class CDContextMenu {
       item?.subItems.forEach((subItem) => {
         const subItemButton = document.createElement("button");
         subItemButton.className = "context-item";
+
+        const subIcon = subItem.icon ? `<i class="context-item-icon ${subItem.icon}" style="color: var(--textColor); margin-right: 8px;"></i>` : "";
+        const subLabel = subItem.label || subItem[0];
+
         subItemButton.innerHTML = `
           <span class="context-item-group">
-            <span class="context-label">${subItem[0]}</span>
+            ${subIcon}
+            <span class="context-label">${subLabel}</span>
           </span>
         `;
         subItemButton.onclick = () => {
-          subItem.action();
+          if (typeof subItem.action === "function") {
+            subItem.action();
+          } else if (typeof subItem[1] === "function") {
+            subItem[1]();
+          }
           this.hideSubMenu();
         };
         this.subMenu.appendChild(subItemButton);
@@ -319,7 +347,7 @@ class CDContextMenu {
   checkDisabled(item) {
     if (!this.selectedItem) {
       if (
-        ["Paste", "New file", "New folder", "Open terminal", "Properties"].includes(
+        ["Paste", "New file", "New folder", "Open terminal", "Properties", "Extra"].includes(
           item.label,
         )
       ) {
