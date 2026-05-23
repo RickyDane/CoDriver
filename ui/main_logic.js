@@ -1,16 +1,16 @@
 const TAURI = window.__TAURI__;
-const { invoke } = TAURI.tauri;
+const { invoke } = TAURI.core;
 const { confirm } = TAURI.dialog;
 const { message } = TAURI.dialog;
 const { open } = TAURI.dialog;
-const { appWindow } = TAURI.window;
-const { writeText } = TAURI.clipboard;
+const appWindow = window.__TAURI__.webviewWindow.getCurrentWebviewWindow();
+const { writeText } = TAURI.clipboardManager;
 const { getTauriVersion } = TAURI.app;
 const { getVersion } = TAURI.app;
 const { getMatches } = TAURI.cli;
 const { platform } = TAURI.os;
 const { arch } = TAURI.os;
-const convertFileSrc = TAURI.convertFileSrc;
+const convertFileSrc = TAURI.core.convertFileSrc;
 const { resolveResource } = TAURI.path;
 
 // :entry_point Entry point
@@ -28,11 +28,16 @@ async function startDrag(options, onEvent) {
     dragIcon = "resources/file-icon.png";
   }
 
+  const channel = new TAURI.core.Channel();
+  channel.onmessage = (event) => {
+    if (onEvent) onEvent(event);
+  };
+
   try {
     await invoke("plugin:drag|start_drag", {
       item: options.item,
       image: dragIcon,
-      onEventFn: onEvent ? transformCallback(onEvent) : null,
+      onEvent: channel,
     });
   } catch (error) {
     writeLog("Drag and drop error: " + error);
@@ -188,6 +193,8 @@ let SecondaryColor = "rgb(56, 59, 71)";
 let SelectedColor = "rgba(0, 0, 0, 0.5)";
 let TransparentColor = "rgba(0, 0, 0, 0.1)";
 let CurrentTheme = "0";
+let IsEditingTheme = false;
+let ThemeToEditOriginalName = "";
 
 /* endregion Global variables */
 
@@ -1004,6 +1011,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1, isFromSort = f
     });
     // Accept file drop into folders
     item.addEventListener("dragover", (e) => {
+      e.preventDefault();
       MousePos = [e.clientX, e.clientY];
       if (item.getAttribute("itemisdir") == "1") {
         if (!ArrSelectedItems.includes(item))
@@ -1055,9 +1063,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1, isFromSort = f
     $(".miller-col-" + millerCol).append(DirectoryList);
     $(".miller-col-" + millerCol).attr("miller-col-path", CurrentDir);
     CurrentMillerCol = millerCol;
+    LeftPaneItemCollection = DirectoryList;
   } else {
     document.querySelector(".explorer-container").innerHTML = "";
     document.querySelector(".explorer-container").append(DirectoryList);
+    LeftPaneItemCollection = DirectoryList;
   }
   ds.setSettings({
     selectables: document.querySelectorAll(".item-link"),
@@ -1210,6 +1220,7 @@ async function addSingleItem(
   });
   // Accept file drop into folders
   itemLink.addEventListener("dragover", (e) => {
+    e.preventDefault();
     MousePos = [e.clientX, e.clientY];
     if (itemLink.getAttribute("itemisdir") == "1") {
       if (!ArrSelectedItems.includes(itemLink)) {
@@ -3354,11 +3365,13 @@ async function checkAppConfig() {
       themeSelect.value = CurrentTheme;
     }
 
-    // Toggle delete button visibility based on whether the theme is built-in
+    // Toggle delete/edit button visibility based on whether the theme is built-in
     if (BuiltInThemes[CurrentTheme]) {
       $(".delete-theme-btn").css("display", "none");
+      $(".edit-theme-btn").css("display", "none");
     } else {
       $(".delete-theme-btn").css("display", "block");
+      $(".edit-theme-btn").css("display", "block");
     }
 
     checkColorMode(appConfig);
@@ -3445,6 +3458,11 @@ async function checkAppConfig() {
 
 async function applyPlatformFeatures() {
   Platform = await platform();
+  if (Platform === "macos") {
+    Platform = "darwin";
+  } else if (Platform === "windows") {
+    Platform = "win32";
+  }
   // Check for macOS and position titlebar buttons on the left
   if (Platform == "darwin") {
     document.body.classList.add("darwin");
@@ -3505,7 +3523,7 @@ async function listDisks() {
         $(".miller-container")?.css("display", "none");
         $(".non-dual-pane-container")?.css("display", "flex");
         $(".explorer-container")?.css("display", "block");
-        $(".explorer-container")?.css("padding", "85px 20px 20px 20px");
+        $(".explorer-container")?.css("padding", "30px 20px 20px 20px");
       }
 
       let usedPercentage = 100 - evalCurrentLoad(item.avail, item.capacity);
@@ -4072,92 +4090,51 @@ async function goBack(e = null) {
 }
 
 function goUp(isSwitched = false, toFirst = false) {
-  if (IsDualPaneEnabled === true) {
-    let element = null;
-    let selectedItemIndex = 0;
-    if (toFirst == false) {
-      if (SelectedElement != null) {
-        if (SelectedItemPaneSide == "left") {
+  let element = null;
+  let selectedItemIndex = 0;
+  if (toFirst == false) {
+    if (SelectedElement != null) {
+      if (SelectedItemPaneSide == "left") {
+        selectedItemIndex = LeftPaneItemIndex;
+        if (LeftPaneItemIndex > 0 && isSwitched == true) {
           selectedItemIndex = LeftPaneItemIndex;
-          if (LeftPaneItemIndex > 0 && isSwitched == true) {
-            selectedItemIndex = LeftPaneItemIndex;
-            element =
-              LeftPaneItemCollection.querySelectorAll(".item-link")[
-                selectedItemIndex
-              ];
-          } else if (parseInt(selectedItemIndex) < 1) {
-            selectedItemIndex = 0;
-            element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
-          } else {
-            selectedItemIndex = parseInt(selectedItemIndex) - 1;
-            element =
-              LeftPaneItemCollection.querySelectorAll(".item-link")[
-                selectedItemIndex
-              ];
-          }
-          LeftPaneItemIndex = selectedItemIndex;
-        } else if (SelectedItemPaneSide == "right") {
-          selectedItemIndex = RightPaneItemIndex;
-          if (RightPaneItemIndex > 0 && isSwitched == true) {
-            selectedItemIndex = RightPaneItemIndex;
-            element =
-              RightPaneItemCollection.querySelectorAll(".item-link")[
-                selectedItemIndex
-              ];
-          } else if (parseInt(selectedItemIndex) - 1 < 1) {
-            selectedItemIndex = 0;
-            element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
-          } else {
-            selectedItemIndex = parseInt(selectedItemIndex) - 1;
-            element =
-              RightPaneItemCollection.querySelectorAll(".item-link")[
-                selectedItemIndex
-              ];
-          }
-          RightPaneItemIndex = selectedItemIndex;
+          element =
+            LeftPaneItemCollection.querySelectorAll(".item-link")[
+              selectedItemIndex
+            ];
+        } else if (parseInt(selectedItemIndex) < 1) {
+          selectedItemIndex = 0;
+          element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+        } else {
+          selectedItemIndex = parseInt(selectedItemIndex) - 1;
+          element =
+            LeftPaneItemCollection.querySelectorAll(".item-link")[
+              selectedItemIndex
+            ];
         }
-        SelectedElement.style.backgroundColor = "transparent";
-      } else {
-        SelectedItemPaneSide = "left";
-        if (SelectedItemPaneSide == "right") {
-          RightPaneItemIndex = 0;
+        LeftPaneItemIndex = selectedItemIndex;
+      } else if (SelectedItemPaneSide == "right") {
+        selectedItemIndex = RightPaneItemIndex;
+        if (RightPaneItemIndex > 0 && isSwitched == true) {
+          selectedItemIndex = RightPaneItemIndex;
+          element =
+            RightPaneItemCollection.querySelectorAll(".item-link")[
+              selectedItemIndex
+            ];
+        } else if (parseInt(selectedItemIndex) - 1 < 1) {
+          selectedItemIndex = 0;
           element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
         } else {
-          LeftPaneItemIndex = 0;
-          element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+          selectedItemIndex = parseInt(selectedItemIndex) - 1;
+          element =
+            RightPaneItemCollection.querySelectorAll(".item-link")[
+              selectedItemIndex
+            ];
         }
-        if (element != null && element != SelectedElement) {
-          element.onclick();
-        }
-      }
-      if (
-        element != SelectedElement &&
-        SelectedElement != null &&
-        element != null
-      ) {
-        SelectedElement.style.backgroundColor = "transparent";
-        element.onclick();
-      }
-
-      /* Scroll logic */
-      if (SelectedItemPaneSide == "left") {
-        if (
-          parseInt(selectedItemIndex) * 38 -
-            document.querySelector(".dual-pane-left").scrollTop <
-          10
-        ) {
-          document.querySelector(".dual-pane-left").scrollTop -= 38;
-        }
-      } else if (SelectedItemPaneSide == "right") {
-        if (
-          parseInt(selectedItemIndex) * 38 -
-            document.querySelector(".dual-pane-right").scrollTop <
-          10
-        ) {
-          document.querySelector(".dual-pane-right").scrollTop -= 38;
-        }
+        RightPaneItemIndex = selectedItemIndex;
       }
     } else {
+      SelectedItemPaneSide = "left";
       if (SelectedItemPaneSide == "right") {
         RightPaneItemIndex = 0;
         element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
@@ -4165,10 +4142,26 @@ function goUp(isSwitched = false, toFirst = false) {
         LeftPaneItemIndex = 0;
         element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
       }
-      if (element != null && element != SelectedElement) {
-        element.onclick();
+    }
+  } else {
+    if (SelectedItemPaneSide == "right") {
+      RightPaneItemIndex = 0;
+      element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
+    } else {
+      LeftPaneItemIndex = 0;
+      element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+    }
+  }
+
+  if (element != null && element != SelectedElement) {
+    if (SelectedElement != null) {
+      SelectedElement.style.backgroundColor = "transparent";
+      if (SelectedElement.children[0]) {
+        SelectedElement.children[0].style.backgroundColor = "transparent";
       }
     }
+    element.onclick();
+    element.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 }
 
@@ -4227,32 +4220,16 @@ function goDown() {
       RightPaneItemIndex = selectedItemIndex;
     }
   }
-  if (
-    element != null &&
-    element != SelectedElement &&
-    SelectedElement != null
-  ) {
-    SelectedElement.children[0].style.backgroundColor = "transparent";
-    element.onclick();
-  }
 
-  /* Scroll logic */
-  if (SelectedItemPaneSide == "left") {
-    if (
-      parseInt(selectedItemIndex) * 38 -
-        document.querySelector(".dual-pane-left").scrollTop >
-      window.innerHeight - 150
-    ) {
-      document.querySelector(".dual-pane-left").scrollTop += 38;
+  if (element != null && element != SelectedElement) {
+    if (SelectedElement != null) {
+      SelectedElement.style.backgroundColor = "transparent";
+      if (SelectedElement.children[0]) {
+        SelectedElement.children[0].style.backgroundColor = "transparent";
+      }
     }
-  } else if (SelectedItemPaneSide == "right") {
-    if (
-      parseInt(selectedItemIndex) * 38 -
-        document.querySelector(".dual-pane-right").scrollTop >
-      window.innerHeight - 150
-    ) {
-      document.querySelector(".dual-pane-right").scrollTop += 38;
-    }
+    element.onclick();
+    element.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 }
 
@@ -4448,7 +4425,29 @@ async function ejectDisk(item) {
     return;
   }
 
+  const format = item?.getAttribute("itemformat") || "";
+  if (format.includes("FTP") || path.startsWith("ftp://")) {
+    await ejectFTP({ path });
+    return;
+  } else if (format.includes("SSHFS") || path.includes("sshfs") || path.startsWith("/tmp/codriver-sshfs-mount")) {
+    await unmountNetworkDrive({ path });
+    return;
+  }
+
   try {
+    if (format) {
+      await invoke("unmount_drive", { path });
+      await insertSiteNavButtons();
+      if (IsShowDisks) {
+        await listDisks();
+      }
+      const currentDir = await invoke("get_current_dir");
+      if (currentDir.startsWith(path)) {
+        await goHome();
+      }
+      return;
+    }
+
     const message = await invoke("eject_disk", { path });
     showToast(message || "Disk ejected", ToastType.SUCCESS);
     await insertSiteNavButtons();
@@ -4643,7 +4642,7 @@ async function switchView(newMode = null) {
         .querySelectorAll(".item-button-list")
         .forEach((item) => (item.style.display = "flex"));
       document.querySelector(".list-column-header").style.display = "flex";
-      $(".explorer-container")?.css("padding", "100px 10px 10px 10px");
+      $(".explorer-container")?.css("padding", "45px 10px 10px 10px");
       document.querySelector(".miller-container").style.display = "none";
       document.querySelector(".non-dual-pane-container").style.display = "block";
       $(".file-searchbar").css("opacity", "1");
@@ -4675,7 +4674,7 @@ async function switchView(newMode = null) {
         .querySelectorAll(".item-button-list")
         .forEach((item) => (item.style.display = "none"));
       document.querySelector(".list-column-header").style.display = "none";
-      $(".explorer-container")?.css("padding", "85px 20px 20px 20px");
+      $(".explorer-container")?.css("padding", "30px 20px 20px 20px");
       $(".file-searchbar").css("opacity", "1");
       $(".file-searchbar").css("pointer-events", "all");
     }
@@ -4741,7 +4740,7 @@ async function switchToDualPane() {
     $(".list-column-header").css("border", "none");
     $(".dual-pane-container").css("opacity", "1");
     $(".dual-pane-container").css("height", "100%");
-    $(".dual-pane-container").css("padding-top", "90px"); // --> 55px from nav bar and 15px from toolbar
+    $(".dual-pane-container").css("padding-top", "35px"); // --> 35px from toolbar (height 35px, top 0px absolute inside main-container which starts at top 55px)
     $(".non-dual-pane-container").css("width", "0");
     $(".non-dual-pane-container").css("opacity", "0");
     $(".non-dual-pane-container").css("height", "0px");
@@ -6121,7 +6120,9 @@ const BuiltInThemes = {
     transparent_color_active: "rgba(0, 0, 0, 0.25)",
     site_bar_color: "rgb(45, 47, 57)",
     nav_bar_color: "rgba(30, 30, 40, 0.5)",
-    sidebar_top_blur_overlay_color: "rgb(45, 47, 57)"
+    sidebar_top_blur_overlay_color: "rgb(45, 47, 57)",
+    select_color2: "rgba(11, 100, 253, 0.75)",
+    select_color3: "rgba(11, 100, 253, 0.25)"
   },
   "Default Light": {
     name: "Default Light",
@@ -6135,12 +6136,55 @@ const BuiltInThemes = {
     transparent_color_active: "rgba(0, 0, 0, 0.12)",
     site_bar_color: "rgb(230, 232, 238)",
     nav_bar_color: "rgba(220, 222, 228, 0.5)",
-    sidebar_top_blur_overlay_color: "rgb(230, 232, 238)"
+    sidebar_top_blur_overlay_color: "rgb(230, 232, 238)",
+    select_color2: "rgba(11, 100, 253, 0.75)",
+    select_color3: "rgba(11, 100, 253, 0.25)"
   }
 };
 
 let LoadedUserThemes = [];
 let OriginalThemeBackup = null;
+
+function hexToRgba(hex, alpha) {
+  hex = hex.replace("#", "");
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+  let r = parseInt(hex.substring(0, 2), 16);
+  let g = parseInt(hex.substring(2, 4), 16);
+  let b = parseInt(hex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getRgbComponents(colorStr) {
+  let tempEl = document.createElement("div");
+  tempEl.style.color = colorStr;
+  document.body.appendChild(tempEl);
+  let computedColor = window.getComputedStyle(tempEl).color;
+  document.body.removeChild(tempEl);
+  
+  let match = computedColor.match(/\d+(\.\d+)?/g);
+  if (match && match.length >= 3) {
+    return {
+      r: parseInt(match[0]),
+      g: parseInt(match[1]),
+      b: parseInt(match[2]),
+      a: match[3] !== undefined ? parseFloat(match[3]) : 1.0
+    };
+  }
+  return { r: 0, g: 0, b: 0, a: 1.0 };
+}
+
+function parseCssColor(colorStr) {
+  let comps = getRgbComponents(colorStr);
+  let r = comps.r.toString(16).padStart(2, "0");
+  let g = comps.g.toString(16).padStart(2, "0");
+  let b = comps.b.toString(16).padStart(2, "0");
+  return {
+    hex: `#${r}${g}${b}`,
+    alpha: comps.a
+  };
+}
 
 function checkColorMode(appConfig) {
   var r = document.querySelector(":root");
@@ -6168,6 +6212,10 @@ function checkColorMode(appConfig) {
   r.style.setProperty("--siteBarColor", activeTheme.site_bar_color);
   r.style.setProperty("--sidebarTopBlurOverlayColor", activeTheme.sidebar_top_blur_overlay_color || activeTheme.site_bar_color);
   r.style.setProperty("--navBarColor", activeTheme.nav_bar_color);
+  
+  // Set custom selection accent colors
+  r.style.setProperty("--selectColor2", activeTheme.select_color2 || "rgba(11, 100, 253, 0.75)");
+  r.style.setProperty("--selectColor3", activeTheme.select_color3 || "rgba(11, 100, 253, 0.25)");
   
   // Update styling variables for glassmorphism popups to adapt perfectly to dark vs light mode!
   let isLight = !activeThemeName.toLowerCase().includes("dark") && 
@@ -6203,11 +6251,13 @@ async function applyThemeFromSelect() {
   CurrentTheme = themeName;
   checkColorMode();
   
-  // Toggle delete button visibility based on whether the theme is built-in
+  // Toggle delete/edit button visibility based on whether the theme is built-in
   if (BuiltInThemes[CurrentTheme]) {
     $(".delete-theme-btn").css("display", "none");
+    $(".edit-theme-btn").css("display", "none");
   } else {
     $(".delete-theme-btn").css("display", "block");
+    $(".edit-theme-btn").css("display", "block");
   }
   
   await saveConfig(false, false);
@@ -6220,16 +6270,50 @@ function openThemeCreator() {
   
   // Backup currently active theme in case they click cancel
   OriginalThemeBackup = CurrentTheme;
+  IsEditingTheme = false;
+  
+  $("#theme-creator-title").text("Create Theme");
+  $(".theme-name-input").val("");
   
   // Initialize pickers and inputs with the currently active theme's colors
   let activeThemeName = CurrentTheme || "Default Dark";
   let activeTheme = BuiltInThemes[activeThemeName] || LoadedUserThemes.find(t => t.name === activeThemeName) || BuiltInThemes["Default Dark"];
   
-  $(".theme-name-input").val("");
+  setThemeCreatorColorRow("primary-color", activeTheme.primary_color, "--primaryColor");
+  setThemeCreatorColorRow("secondary-color", activeTheme.secondary_color, "--secondaryColor");
+  setThemeCreatorColorRow("tertiary-color", activeTheme.tertiary_color, "--tertiaryColor");
+  setThemeCreatorColorRow("accent-color", activeTheme.select_color2 || "rgba(11, 100, 253, 0.75)", "--selectColor2");
+  setThemeCreatorColorRow("text-color", activeTheme.text_color, "--textColor");
+  setThemeCreatorColorRow("text-color2", activeTheme.text_color2, "--textColor2");
+  setThemeCreatorColorRow("text-color3", activeTheme.text_color3, "--textColor3");
+  setThemeCreatorColorRow("sitebar-color", activeTheme.site_bar_color, "--siteBarColor");
+  setThemeCreatorColorRow("navbar-color", activeTheme.nav_bar_color, "--navBarColor");
+}
+
+function editActiveTheme() {
+  let activeThemeName = $(".theme-select").val();
+  if (BuiltInThemes[activeThemeName]) {
+    return; // Built-in themes are read-only
+  }
+  
+  let activeTheme = LoadedUserThemes.find(t => t.name === activeThemeName);
+  if (!activeTheme) return;
+  
+  $("#theme-creator-popup").css("display", "flex");
+  IsPopUpOpen = true;
+  IsDisableShortcuts = true;
+  
+  OriginalThemeBackup = CurrentTheme;
+  IsEditingTheme = true;
+  ThemeToEditOriginalName = activeThemeName;
+  
+  $("#theme-creator-title").text("Edit Theme");
+  $(".theme-name-input").val(activeTheme.name);
   
   setThemeCreatorColorRow("primary-color", activeTheme.primary_color, "--primaryColor");
   setThemeCreatorColorRow("secondary-color", activeTheme.secondary_color, "--secondaryColor");
   setThemeCreatorColorRow("tertiary-color", activeTheme.tertiary_color, "--tertiaryColor");
+  setThemeCreatorColorRow("accent-color", activeTheme.select_color2 || "rgba(11, 100, 253, 0.75)", "--selectColor2");
   setThemeCreatorColorRow("text-color", activeTheme.text_color, "--textColor");
   setThemeCreatorColorRow("text-color2", activeTheme.text_color2, "--textColor2");
   setThemeCreatorColorRow("text-color3", activeTheme.text_color3, "--textColor3");
@@ -6238,21 +6322,39 @@ function openThemeCreator() {
 }
 
 function setThemeCreatorColorRow(cssClass, colorVal, varName) {
-  let hexColor = convertToHex(colorVal);
-  $(`.theme-${cssClass}`).val(hexColor);
-  $(`.theme-${cssClass}-text`).val(colorVal);
+  let parsed = parseCssColor(colorVal);
   
-  // Link inputs
-  $(`.theme-${cssClass}`).off("input").on("input", function() {
-    let newVal = this.value;
-    $(`.theme-${cssClass}-text`).val(newVal);
-    previewThemeColor(varName, newVal);
-  });
+  $(`.theme-${cssClass}`).val(parsed.hex);
+  $(`.theme-${cssClass}-text`).val(colorVal);
+  $(`.theme-${cssClass}-opacity`).val(parsed.alpha);
+  $(`.theme-${cssClass}-opacity-val`).text(parsed.alpha.toFixed(2));
+  
+  const updateFromControls = () => {
+    let hex = $(`.theme-${cssClass}`).val();
+    let alpha = parseFloat($(`.theme-${cssClass}-opacity`).val());
+    $(`.theme-${cssClass}-opacity-val`).text(alpha.toFixed(2));
+    
+    let combinedColor = hex;
+    if (alpha < 1) {
+      combinedColor = hexToRgba(hex, alpha);
+    }
+    
+    $(`.theme-${cssClass}-text`).val(combinedColor);
+    previewThemeColor(varName, combinedColor);
+  };
+  
+  $(`.theme-${cssClass}`).off("input").on("input", updateFromControls);
+  $(`.theme-${cssClass}-opacity`).off("input").on("input", updateFromControls);
   
   $(`.theme-${cssClass}-text`).off("input").on("input", function() {
-    let newVal = this.value;
-    let hexColor = convertToHex(newVal);
-    $(`.theme-${cssClass}`).val(hexColor);
+    let newVal = this.value.trim();
+    if (!newVal) return;
+    
+    let parsed = parseCssColor(newVal);
+    $(`.theme-${cssClass}`).val(parsed.hex);
+    $(`.theme-${cssClass}-opacity`).val(parsed.alpha);
+    $(`.theme-${cssClass}-opacity-val`).text(parsed.alpha.toFixed(2));
+    
     previewThemeColor(varName, newVal);
   });
 }
@@ -6275,6 +6377,11 @@ function previewThemeColor(varName, val) {
   document.documentElement.style.setProperty(varName, val);
   if (varName === "--primaryColor") {
     document.documentElement.style.setProperty("--glass-bg", `color-mix(in srgb, ${val} 85%, transparent)`);
+  }
+  if (varName === "--selectColor2") {
+    let comps = getRgbComponents(val);
+    let val3 = `rgba(${comps.r}, ${comps.g}, ${comps.b}, 0.25)`;
+    document.documentElement.style.setProperty("--selectColor3", val3);
   }
 }
 
@@ -6301,10 +6408,15 @@ async function saveCustomTheme() {
     return;
   }
   
-  if (BuiltInThemes[name]) {
+  // Only check conflicts if not editing the original theme name
+  if ((!IsEditingTheme || name !== ThemeToEditOriginalName) && BuiltInThemes[name]) {
     alert("Theme name conflicts with a built-in theme. Please choose a different name.");
     return;
   }
+  
+  let selectColor2Val = $(".theme-accent-color-text").val().trim();
+  let comps = getRgbComponents(selectColor2Val);
+  let selectColor3Val = `rgba(${comps.r}, ${comps.g}, ${comps.b}, 0.25)`;
   
   let newTheme = {
     name: name,
@@ -6318,10 +6430,17 @@ async function saveCustomTheme() {
     transparent_color_active: "rgba(0, 0, 0, 0.25)",
     site_bar_color: $(".theme-sitebar-color-text").val().trim(),
     nav_bar_color: $(".theme-navbar-color-text").val().trim(),
-    sidebar_top_blur_overlay_color: $(".theme-sitebar-color-text").val().trim()
+    sidebar_top_blur_overlay_color: $(".theme-sitebar-color-text").val().trim(),
+    select_color2: selectColor2Val,
+    select_color3: selectColor3Val
   };
   
   try {
+    // If editing and renamed, delete the old file
+    if (IsEditingTheme && name !== ThemeToEditOriginalName) {
+      await invoke("delete_theme", { themeName: ThemeToEditOriginalName });
+    }
+    
     await invoke("save_theme", { theme: newTheme });
     showToast("Theme saved successfully!", ToastType.SUCCESS);
     
@@ -6541,6 +6660,12 @@ function createSidebarDiskButton(mount, pathOverride = "") {
 
   diskButton.dataset.itempath = path;
   diskButton.setAttribute("itempath", path);
+  diskButton.setAttribute("itemisdir", "1");
+  diskButton.setAttribute("itemisdisk", "1");
+  diskButton.setAttribute("itemname", name);
+  const isRemovable = mount.is_removable == true || mount.format.includes("SSHFS") || mount.format.includes("FTP") ? "1" : "0";
+  diskButton.setAttribute("itemisremovable", isRemovable);
+  diskButton.setAttribute("itemformat", mount.format || "");
   diskButton.className = "site-nav-bar-button disk-site-nav-button";
   diskButton.title = `${name} • ${usedPercentage}% used`;
 
@@ -6585,24 +6710,12 @@ function createSidebarDiskButton(mount, pathOverride = "") {
     markSelectedDisk(path);
   };
 
-  if (mount.format.includes("SSHFS") || mount.format.includes("FTP") || mount.is_removable == true) {
-    diskButton.oncontextmenu = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      showCustomContextMenu(e, [
-        {
-          name: "Unmount",
-          icon: "fa-solid fa-eject",
-          onclick: () =>
-            mount.format.includes("FTP")
-              ? ejectFTP(mount)
-              : mount.format.includes("SSHFS")
-              ? unmountNetworkDrive(mount)
-              : unmountDrive(mount),
-        },
-      ]);
-    };
-  }
+  diskButton.oncontextmenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cdCtMenu.setSelectedItem(diskButton, e);
+    cdCtMenu.show(e);
+  };
 
   return diskButton;
 }
@@ -6676,8 +6789,17 @@ async function insertSiteNavButtons() {
     button.className = "site-nav-bar-button";
     button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
     button.setAttribute("itempath", siteNavButtons[i][1]);
+    button.setAttribute("itemisdir", "1");
+    button.setAttribute("itemname", siteNavButtons[i][0]);
     button.onclick = siteNavButtons[i][3];
+    button.oncontextmenu = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      cdCtMenu.setSelectedItem(button, e);
+      cdCtMenu.show(e);
+    };
     button.ondragover = (e) => {
+      e.preventDefault();
       button.style.border = "1px solid var(--tertiaryColor)";
       button.style.backgroundColor = "var(--sidebarHover)";
       button.style.scale = "1.05";
@@ -6722,6 +6844,8 @@ async function insertSiteNavButtons() {
       let name = path.split(/[\\\/]/).pop() || path;
       button.innerHTML = `<p>${name}</p>`;
       button.setAttribute("itempath", path);
+      button.setAttribute("itemisdir", "1");
+      button.setAttribute("itemname", name);
       button.title = path;
       button.onclick = async () => {
         await openDirAndSwitch(path);
@@ -6730,14 +6854,11 @@ async function insertSiteNavButtons() {
       button.oncontextmenu = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        showCustomContextMenu(e, [
-          {
-            name: "Remove from Favorites",
-            onclick: () => removeFavorite(path),
-          },
-        ]);
+        cdCtMenu.setSelectedItem(button, e);
+        cdCtMenu.show(e);
       };
       button.ondragover = (e) => {
+        e.preventDefault();
         button.style.border = "1px solid var(--tertiaryColor)";
         button.style.backgroundColor = "var(--sidebarHover)";
         DraggedOverElement = button;
@@ -7063,6 +7184,7 @@ async function configBackButton(path = "") {
   let button = document.querySelector(".go-back-button");
   button.setAttribute("itempath", path);
   button.ondragover = (e) => {
+    e.preventDefault();
     button.style.border = "1px solid var(--selectColor2)";
     button.style.backgroundColor = "var(--transparentColor)";
     button.style.scale = "1.05";
@@ -8423,6 +8545,7 @@ async function handleDynamicCreate(path) {
         }
       });
       itemLink.addEventListener("dragover", (e) => {
+        e.preventDefault();
         MousePos = [e.clientX, e.clientY];
         if (itemLink.getAttribute("itemisdir") == "1") {
           if (!ArrSelectedItems.includes(itemLink)) {
@@ -8571,7 +8694,11 @@ const DefaultShortcuts = {
   "disk_menu_right": "Alt+F2",
   "slot_1": "Alt+1",
   "slot_2": "Alt+2",
-  "slot_3": "Alt+3"
+  "slot_3": "Alt+3",
+  "nav_up": "ArrowUp",
+  "nav_down": "ArrowDown",
+  "nav_left": "ArrowLeft",
+  "nav_right": "ArrowRight"
 };
 
 const ShortcutLabels = {
@@ -8597,7 +8724,11 @@ const ShortcutLabels = {
   "disk_menu_right": { name: "Right Disk Dropdown (Dual)", desc: "Open the disk selection list for the right pane" },
   "slot_1": { name: "Quick Access Slot 1", desc: "Quickly navigate to path configured in settings Slot 1" },
   "slot_2": { name: "Quick Access Slot 2", desc: "Quickly navigate to path configured in settings Slot 2" },
-  "slot_3": { name: "Quick Access Slot 3", desc: "Quickly navigate to path configured in settings Slot 3" }
+  "slot_3": { name: "Quick Access Slot 3", desc: "Quickly navigate to path configured in settings Slot 3" },
+  "nav_up": { name: "Navigate Up", desc: "Move selection up in active file list" },
+  "nav_down": { name: "Navigate Down", desc: "Move selection down in active file list" },
+  "nav_left": { name: "Navigate Left", desc: "Navigate to parent directory or left column" },
+  "nav_right": { name: "Navigate Right", desc: "Open directory or navigate to right column" }
 };
 
 let ConfiguredShortcuts = {};

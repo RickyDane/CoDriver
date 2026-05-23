@@ -24,9 +24,13 @@ use std::{
 };
 use stopwatch::Stopwatch;
 use tar::Archive as TarArchive;
-use tauri::api::dialog;
-use tauri::api::path::config_dir;
-use tauri::Window;
+use tauri::Emitter;
+use tauri::WebviewWindow;
+use tauri_plugin_dialog::DialogExt;
+
+fn config_dir() -> Option<std::path::PathBuf> {
+    dirs::config_dir()
+}
 use tokio::sync::MutexGuard;
 use tokio::task;
 use zip::write::FileOptions;
@@ -35,7 +39,6 @@ use zip::ZipWriter;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
-
 
 #[allow(unused_imports)]
 use crate::ISCANCELED;
@@ -227,7 +230,8 @@ async fn copy_to_with_overwrite_policy(
                             show_progressbar(&WINDOW.get().unwrap());
                             let overall_progress = if count_to_copy > 0.0 {
                                 let file_fraction = progress / 100.0;
-                                let raw_pct = ((copy_counter - 1.0 + file_fraction) / count_to_copy) * 100.0;
+                                let raw_pct =
+                                    ((copy_counter - 1.0 + file_fraction) / count_to_copy) * 100.0;
                                 raw_pct.clamp(0.0, 100.0)
                             } else {
                                 progress
@@ -243,7 +247,12 @@ async fn copy_to_with_overwrite_policy(
                             // }
                         }
                         Err(err) => {
-                            dialog::message(WINDOW.get(), "Info", format!("{:?}", err.to_string()));
+                            if let Some(win) = WINDOW.get() {
+                                win.dialog()
+                                    .message(format!("{:?}", err.to_string()))
+                                    .title("Info")
+                                    .show(|_| {});
+                            }
                             return Err(format!("Failed to write '{}': {}", final_filename, err));
                         }
                     }
@@ -312,7 +321,7 @@ pub fn count_entries(path: &str) -> Result<f32, std::io::Error> {
     Ok(count)
 }
 
-pub fn show_progressbar(app_window: &Window) {
+pub fn show_progressbar(app_window: &WebviewWindow) {
     let _ = app_window.emit("show-progressbar", ());
 }
 
@@ -328,9 +337,10 @@ pub fn reset_copy_start_time() {
 }
 
 pub fn get_copy_start_time() -> Option<Instant> {
-    COPY_START_TIME.get().and_then(|m| m.lock().ok().and_then(|g| *g))
+    COPY_START_TIME
+        .get()
+        .and_then(|m| m.lock().ok().and_then(|g| *g))
 }
-
 
 pub fn update_progressbar(
     progress: f32,
@@ -345,12 +355,18 @@ pub fn update_progressbar(
 
     // Initialize with a time long ago (e.g. 1 second ago) so the first update always goes through
     let last_update_mutex = LAST_PROGRESS_UPDATE.get_or_init(|| {
-        Mutex::new(now.checked_sub(std::time::Duration::from_millis(1000)).unwrap_or(now))
+        Mutex::new(
+            now.checked_sub(std::time::Duration::from_millis(1000))
+                .unwrap_or(now),
+        )
     });
 
     if let Ok(mut last_update) = last_update_mutex.lock() {
         // Emit if 80ms have passed OR if we reached 100% completion
-        if now.duration_since(*last_update).as_millis() >= 80 || progress >= 100.0 || elements_progress >= 100.0 {
+        if now.duration_since(*last_update).as_millis() >= 80
+            || progress >= 100.0
+            || elements_progress >= 100.0
+        {
             *last_update = now;
             should_emit = true;
         }
@@ -580,7 +596,8 @@ impl DirWalker {
             let metadata = file_metadata.unwrap();
             let size = metadata.len();
 
-            let last_mod: DateTime<Local> = metadata.modified()
+            let last_mod: DateTime<Local> = metadata
+                .modified()
                 .map(|t| t.into())
                 .unwrap_or_else(|_| Local::now());
 
@@ -588,11 +605,7 @@ impl DirWalker {
                 last_emit = std::time::Instant::now();
                 let _ = app_window.emit(
                     "set-filesearch-currentfile",
-                    format!(
-                        "{} ({})",
-                        name,
-                        format_bytes(size)
-                    ),
+                    format!("{} ({})", name, format_bytes(size)),
                 );
                 let _ = app_window.emit("set-filesearch-count", **count_called_back);
             }
@@ -891,7 +904,7 @@ pub fn unpack_tar(file: File, path: String) {
 }
 
 pub fn create_new_action(
-    app_window: &Window,
+    app_window: &WebviewWindow,
     action_name: String,
     action_desc: String,
     path: &String,

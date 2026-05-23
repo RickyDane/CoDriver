@@ -1,9 +1,9 @@
-use std::net::{IpAddr, Ipv4Addr, UdpSocket, SocketAddr};
+use futures::stream::{self, StreamExt};
+use serde::Serialize;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::time::timeout;
-use serde::Serialize;
-use futures::stream::{self, StreamExt};
 
 #[derive(Serialize, Clone, Debug)]
 pub struct DiscoveredFtpServer {
@@ -30,18 +30,15 @@ fn clean_ftp_banner(banner: &str, ip: Ipv4Addr, _port: u16) -> String {
     if trimmed.is_empty() {
         return format!("FTP Server ({})", ip);
     }
-    
+
     let content = if trimmed.starts_with("220") {
         trimmed[3..].trim()
     } else {
         trimmed
     };
-    
-    let cleaned = content
-        .replace(['(', ')', '*', '-'], "")
-        .trim()
-        .to_string();
-        
+
+    let cleaned = content.replace(['(', ')', '*', '-'], "").trim().to_string();
+
     if cleaned.is_empty() {
         format!("FTP Server ({})", ip)
     } else {
@@ -60,7 +57,12 @@ async fn scan_ip_port(ip: Ipv4Addr, port: u16) -> Option<DiscoveredFtpServer> {
     match timeout(Duration::from_millis(300), TcpStream::connect(addr)).await {
         Ok(Ok(mut stream)) => {
             let mut buf = [0u8; 512];
-            let banner = match timeout(Duration::from_millis(300), tokio::io::AsyncReadExt::read(&mut stream, &mut buf)).await {
+            let banner = match timeout(
+                Duration::from_millis(300),
+                tokio::io::AsyncReadExt::read(&mut stream, &mut buf),
+            )
+            .await
+            {
                 Ok(Ok(n)) if n > 0 => String::from_utf8_lossy(&buf[..n]).to_string(),
                 _ => String::new(),
             };
@@ -77,11 +79,11 @@ async fn scan_ip_port(ip: Ipv4Addr, port: u16) -> Option<DiscoveredFtpServer> {
 
 pub async fn run_discovery() -> Vec<DiscoveredFtpServer> {
     let mut targets = Vec::new();
-    
+
     // Add localhost
     targets.push((Ipv4Addr::new(127, 0, 0, 1), 21));
     targets.push((Ipv4Addr::new(127, 0, 0, 1), 2121));
-    
+
     if let Some(local_ip) = get_local_ipv4() {
         let octets = local_ip.octets();
         if octets[0] != 127 {
@@ -99,21 +101,19 @@ pub async fn run_discovery() -> Vec<DiscoveredFtpServer> {
             targets.push((ip, 2121));
         }
     }
-    
+
     let results = stream::iter(targets)
-        .map(|(ip, port)| async move {
-            scan_ip_port(ip, port).await
-        })
+        .map(|(ip, port)| async move { scan_ip_port(ip, port).await })
         .buffer_unordered(100)
         .collect::<Vec<Option<DiscoveredFtpServer>>>()
         .await;
-        
+
     let mut servers: Vec<DiscoveredFtpServer> = results.into_iter().flatten().collect();
-    
+
     // Dedup by hostname + port
     let mut seen = std::collections::HashSet::new();
     servers.retain(|s| seen.insert(format!("{}:{}", s.hostname, s.port)));
-    
+
     servers
 }
 

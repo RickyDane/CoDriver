@@ -1,12 +1,12 @@
+use crate::FDir;
+use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Mutex;
 use std::fs::File;
 use std::io::Cursor;
 use std::path::Path;
+use std::sync::Mutex;
 use suppaftp::FtpStream;
-use lazy_static::lazy_static;
-use crate::FDir;
-use serde::{Serialize, Deserialize};
 
 pub type FtpProgressCallback = dyn Fn(usize, &str) + Send + Sync;
 
@@ -38,11 +38,12 @@ pub struct FtpConfig {
 }
 
 lazy_static! {
-    pub static ref FTP_CONNECTIONS: Mutex<HashMap<String, FtpConfig>> = Mutex::new(load_saved_connections());
+    pub static ref FTP_CONNECTIONS: Mutex<HashMap<String, FtpConfig>> =
+        Mutex::new(load_saved_connections());
 }
 
 fn get_ftp_connections_file_path() -> Option<std::path::PathBuf> {
-    tauri::api::path::app_config_dir(&tauri::Config::default())
+    dirs::config_dir()
         .map(|p| p.join("com.codriver.dev/ftp_connections.json"))
 }
 
@@ -64,14 +65,24 @@ pub fn get_keychain_password(account: &str) -> Result<String, String> {
     #[cfg(target_os = "macos")]
     {
         let output = std::process::Command::new("security")
-            .args(&["find-generic-password", "-a", account, "-s", "CoDriver-FTP", "-w"])
+            .args(&[
+                "find-generic-password",
+                "-a",
+                account,
+                "-s",
+                "CoDriver-FTP",
+                "-w",
+            ])
             .output()
             .map_err(|e| format!("Failed to execute security command: {}", e))?;
 
         if output.status.success() {
             let password = String::from_utf8(output.stdout)
                 .map_err(|e| format!("Failed to parse password: {}", e))?;
-            Ok(password.trim_end_matches('\n').trim_end_matches('\r').to_string())
+            Ok(password
+                .trim_end_matches('\n')
+                .trim_end_matches('\r')
+                .to_string())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
             Err(format!("Keychain lookup failed: {}", stderr))
@@ -88,7 +99,16 @@ pub fn set_keychain_password(account: &str, password: &str) -> Result<(), String
     #[cfg(target_os = "macos")]
     {
         let status = std::process::Command::new("security")
-            .args(&["add-generic-password", "-a", account, "-s", "CoDriver-FTP", "-w", password, "-U"])
+            .args(&[
+                "add-generic-password",
+                "-a",
+                account,
+                "-s",
+                "CoDriver-FTP",
+                "-w",
+                password,
+                "-U",
+            ])
             .status()
             .map_err(|e| format!("Failed to execute security command: {}", e))?;
 
@@ -110,7 +130,13 @@ pub fn delete_keychain_password(account: &str) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
         let status = std::process::Command::new("security")
-            .args(&["delete-generic-password", "-a", account, "-s", "CoDriver-FTP"])
+            .args(&[
+                "delete-generic-password",
+                "-a",
+                account,
+                "-s",
+                "CoDriver-FTP",
+            ])
             .status()
             .map_err(|e| format!("Failed to execute security command: {}", e))?;
 
@@ -132,20 +158,24 @@ pub fn save_connections(conns: &HashMap<String, FtpConfig>) -> Result<(), String
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        let file = File::create(path).map_err(|e| format!("Failed to create connections file: {}", e))?;
+        let file =
+            File::create(path).map_err(|e| format!("Failed to create connections file: {}", e))?;
         let writer = std::io::BufWriter::new(file);
 
         #[cfg(target_os = "macos")]
-        let conns_to_save: HashMap<String, FtpConfig> = conns.iter().map(|(k, v)| {
-            let mut v_clone = v.clone();
-            if !v.password.is_empty() && v.password != "__keychain__" {
-                if let Err(e) = set_keychain_password(&v.name, &v.password) {
-                    eprintln!("Failed to save password to macOS Keychain: {}", e);
+        let conns_to_save: HashMap<String, FtpConfig> = conns
+            .iter()
+            .map(|(k, v)| {
+                let mut v_clone = v.clone();
+                if !v.password.is_empty() && v.password != "__keychain__" {
+                    if let Err(e) = set_keychain_password(&v.name, &v.password) {
+                        eprintln!("Failed to save password to macOS Keychain: {}", e);
+                    }
                 }
-            }
-            v_clone.password = "__keychain__".to_string();
-            (k.clone(), v_clone)
-        }).collect();
+                v_clone.password = "__keychain__".to_string();
+                (k.clone(), v_clone)
+            })
+            .collect();
 
         #[cfg(not(target_os = "macos"))]
         let conns_to_save = conns;
@@ -175,11 +205,11 @@ pub fn get_ftp_client(config: &FtpConfig) -> Result<FtpStream, String> {
     let hostname = config.hostname.trim();
     let username = config.username.trim();
     let addr = format!("{}:{}", hostname, config.port);
-    
+
     let mut ftp_stream = None;
     let max_retries = 10;
     let mut last_err = String::new();
-    
+
     for _ in 0..max_retries {
         match FtpStream::connect(&addr) {
             Ok(stream) => {
@@ -198,18 +228,20 @@ pub fn get_ftp_client(config: &FtpConfig) -> Result<FtpStream, String> {
             }
         }
     }
-    
-    let mut ftp_stream = ftp_stream.ok_or_else(|| format!("Failed to connect after retries: {}", last_err))?;
-    
+
+    let mut ftp_stream =
+        ftp_stream.ok_or_else(|| format!("Failed to connect after retries: {}", last_err))?;
+
     let password = if config.password == "__keychain__" {
         get_keychain_password(&config.name).unwrap_or_else(|_| "".to_string())
     } else {
         config.password.clone()
     };
 
-    ftp_stream.login(username, &password)
+    ftp_stream
+        .login(username, &password)
         .map_err(|e| format!("Failed to login: {}", e))?;
-    
+
     ftp_stream.set_mode(suppaftp::Mode::Passive);
 
     Ok(ftp_stream)
@@ -228,20 +260,32 @@ pub fn to_raw_ftp_path(path: &str) -> &str {
     }
 }
 
-pub fn parse_unix_list_line(line: &str, parent_ftp_path: &str, connection_name: &str) -> Option<FDir> {
+pub fn parse_unix_list_line(
+    line: &str,
+    parent_ftp_path: &str,
+    connection_name: &str,
+) -> Option<FDir> {
     let trimmed = line.trim();
-    if trimmed.is_empty() { return None; }
-    
+    if trimmed.is_empty() {
+        return None;
+    }
+
     let parts: Vec<&str> = trimmed.split_whitespace().collect();
-    if parts.len() < 9 { return None; }
-    
+    if parts.len() < 9 {
+        return None;
+    }
+
     let metadata_char = parts[0].chars().next()?;
     let is_symlink = metadata_char == 'l';
-    let is_dir = if metadata_char == 'd' || is_symlink { 1 } else { 0 };
-    
+    let is_dir = if metadata_char == 'd' || is_symlink {
+        1
+    } else {
+        0
+    };
+
     let size_str = parts[4];
     let date_str = format!("{} {} {}", parts[5], parts[6], parts[7]);
-    
+
     let mut filename = parts[8..].join(" ");
     if filename == "." || filename == ".." {
         return None;
@@ -251,7 +295,7 @@ pub fn parse_unix_list_line(line: &str, parent_ftp_path: &str, connection_name: 
             filename = filename[..idx].to_string();
         }
     }
-    
+
     let clean_parent = to_raw_ftp_path(parent_ftp_path).trim_end_matches('/');
     let file_path = format!("ftp://{}{}/{}", connection_name, clean_parent, filename);
     let file_ext = if is_dir == 1 {
@@ -262,7 +306,11 @@ pub fn parse_unix_list_line(line: &str, parent_ftp_path: &str, connection_name: 
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
-        if ext.is_empty() { "".to_string() } else { format!(".{}", ext) }
+        if ext.is_empty() {
+            "".to_string()
+        } else {
+            format!(".{}", ext)
+        }
     };
 
     Some(FDir {
@@ -277,19 +325,21 @@ pub fn parse_unix_list_line(line: &str, parent_ftp_path: &str, connection_name: 
 
 pub fn parse_mlsd_line(line: &str, parent_ftp_path: &str, connection_name: &str) -> Option<FDir> {
     let trimmed = line.trim();
-    if trimmed.is_empty() { return None; }
-    
+    if trimmed.is_empty() {
+        return None;
+    }
+
     let space_idx = trimmed.find(' ')?;
     let (facts_part, name_part) = trimmed.split_at(space_idx);
     let filename = name_part.trim().to_string();
     if filename == "." || filename == ".." {
         return None;
     }
-    
+
     let mut is_dir = 0;
     let mut size_str = "0".to_string();
     let mut modify_str = "Unknown".to_string();
-    
+
     for fact in facts_part.split(';') {
         let kv: Vec<&str> = fact.split('=').collect();
         if kv.len() == 2 {
@@ -310,7 +360,7 @@ pub fn parse_mlsd_line(line: &str, parent_ftp_path: &str, connection_name: &str)
             }
         }
     }
-    
+
     let clean_parent = to_raw_ftp_path(parent_ftp_path).trim_end_matches('/');
     let file_path = format!("ftp://{}{}/{}", connection_name, clean_parent, filename);
     let file_ext = if is_dir == 1 {
@@ -321,9 +371,13 @@ pub fn parse_mlsd_line(line: &str, parent_ftp_path: &str, connection_name: &str)
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
-        if ext.is_empty() { "".to_string() } else { format!(".{}", ext) }
+        if ext.is_empty() {
+            "".to_string()
+        } else {
+            format!(".{}", ext)
+        }
     };
-    
+
     Some(FDir {
         name: filename,
         is_dir,
@@ -334,16 +388,26 @@ pub fn parse_mlsd_line(line: &str, parent_ftp_path: &str, connection_name: &str)
     })
 }
 
-pub fn list_ftp_dir_internal(client: &mut FtpStream, remote_path: &str, connection_name: &str) -> Result<Vec<FDir>, String> {
+pub fn list_ftp_dir_internal(
+    client: &mut FtpStream,
+    remote_path: &str,
+    connection_name: &str,
+) -> Result<Vec<FDir>, String> {
     let raw_path = to_raw_ftp_path(remote_path);
-    let raw_lines = client.list(Some(raw_path))
+    let raw_lines = client
+        .list(Some(raw_path))
         .map_err(|e| format!("Failed to list: {}", e))?;
-    
+
     let mut list = Vec::new();
     for line in raw_lines {
         let trimmed = line.trim();
         let lower = trimmed.to_lowercase();
-        if lower.starts_with("type=") || lower.contains("type=dir;") || lower.contains("type=file;") || lower.contains("type=cdir;") || lower.contains("type=pdir;") {
+        if lower.starts_with("type=")
+            || lower.contains("type=dir;")
+            || lower.contains("type=file;")
+            || lower.contains("type=cdir;")
+            || lower.contains("type=pdir;")
+        {
             if let Some(entry) = parse_mlsd_line(&line, raw_path, connection_name) {
                 list.push(entry);
             }
@@ -360,7 +424,8 @@ pub fn list_ftp_dir(connection_name: &str, remote_path: &str) -> Result<Vec<FDir
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
 
     let mut client = get_ftp_client(&config)?;
     list_ftp_dir_internal(&mut client, remote_path, connection_name)
@@ -370,11 +435,14 @@ pub fn create_ftp_folder(connection_name: &str, remote_path: &str) -> Result<(),
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
 
     let mut client = get_ftp_client(&config)?;
     let raw_path = to_raw_ftp_path(remote_path);
-    client.mkdir(raw_path).map_err(|e| format!("Failed to mkdir: {}", e))?;
+    client
+        .mkdir(raw_path)
+        .map_err(|e| format!("Failed to mkdir: {}", e))?;
     Ok(())
 }
 
@@ -382,25 +450,34 @@ pub fn create_ftp_file(connection_name: &str, remote_path: &str) -> Result<(), S
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
 
     let mut client = get_ftp_client(&config)?;
     let raw_path = to_raw_ftp_path(remote_path);
-    client.put_file(raw_path, &mut Cursor::new(vec![]))
+    client
+        .put_file(raw_path, &mut Cursor::new(vec![]))
         .map_err(|e| format!("Failed to create empty file: {}", e))?;
     Ok(())
 }
 
-pub fn rename_ftp_element(connection_name: &str, from_path: &str, to_path: &str) -> Result<(), String> {
+pub fn rename_ftp_element(
+    connection_name: &str,
+    from_path: &str,
+    to_path: &str,
+) -> Result<(), String> {
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
 
     let mut client = get_ftp_client(&config)?;
     let raw_from = to_raw_ftp_path(from_path);
     let raw_to = to_raw_ftp_path(to_path);
-    client.rename(raw_from, raw_to).map_err(|e| format!("Failed to rename: {}", e))?;
+    client
+        .rename(raw_from, raw_to)
+        .map_err(|e| format!("Failed to rename: {}", e))?;
     Ok(())
 }
 
@@ -410,16 +487,22 @@ pub fn list_ftp_dir_cwd(
     connection_name: &str,
 ) -> Result<Vec<FDir>, String> {
     // Try to list with '-a' first to get all hidden/dotfiles, fall back to standard list
-    let raw_lines = client.list(Some("-a"))
+    let raw_lines = client
+        .list(Some("-a"))
         .or_else(|_| client.list(None))
         .map_err(|e| format!("Failed to list current directory: {}", e))?;
-    
+
     let mut list = Vec::new();
     let raw_path = to_raw_ftp_path(current_dir_path);
     for line in raw_lines {
         let trimmed = line.trim();
         let lower = trimmed.to_lowercase();
-        if lower.starts_with("type=") || lower.contains("type=dir;") || lower.contains("type=file;") || lower.contains("type=cdir;") || lower.contains("type=pdir;") {
+        if lower.starts_with("type=")
+            || lower.contains("type=dir;")
+            || lower.contains("type=file;")
+            || lower.contains("type=cdir;")
+            || lower.contains("type=pdir;")
+        {
             if let Some(entry) = parse_mlsd_line(&line, raw_path, connection_name) {
                 list.push(entry);
             }
@@ -439,27 +522,40 @@ fn delete_ftp_item_recursive_helper(
     is_dir: bool,
 ) -> Result<(), String> {
     let raw_path = to_raw_ftp_path(remote_path);
-    
+
     if is_dir {
         // 1. CWD into the folder to list it reliably
-        client.cwd(raw_path).map_err(|e| format!("Failed to cwd to {}: {}", raw_path, e))?;
-        
+        client
+            .cwd(raw_path)
+            .map_err(|e| format!("Failed to cwd to {}: {}", raw_path, e))?;
+
         // 2. List the directory content using CWD listing
         let entries = list_ftp_dir_cwd(client, raw_path, connection_name)?;
-        
+
         // 3. Delete all entries recursively
         for entry in entries {
-            delete_ftp_item_recursive_helper(client, connection_name, &entry.path, entry.is_dir == 1)?;
+            delete_ftp_item_recursive_helper(
+                client,
+                connection_name,
+                &entry.path,
+                entry.is_dir == 1,
+            )?;
         }
-        
+
         // 4. Change CWD back to root to release directory lock
-        client.cwd("/").map_err(|e| format!("Failed to cwd back to root: {}", e))?;
-        
+        client
+            .cwd("/")
+            .map_err(|e| format!("Failed to cwd back to root: {}", e))?;
+
         // 5. Remove the empty directory
-        client.rmdir(raw_path).map_err(|e| format!("Failed to rmdir: {}", e))?;
+        client
+            .rmdir(raw_path)
+            .map_err(|e| format!("Failed to rmdir: {}", e))?;
     } else {
         // It's a file, remove it absolutely
-        client.rm(raw_path).map_err(|e| format!("Failed to remove file: {}", e))?;
+        client
+            .rm(raw_path)
+            .map_err(|e| format!("Failed to remove file: {}", e))?;
     }
     Ok(())
 }
@@ -468,11 +564,12 @@ pub fn delete_ftp_item_recursive(connection_name: &str, remote_path: &str) -> Re
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
 
     let mut client = get_ftp_client(&config)?;
     let raw_path = to_raw_ftp_path(remote_path);
-    
+
     // Check once at the very top level if the target is a directory
     let is_dir = client.cwd(raw_path).is_ok();
     if is_dir {
@@ -492,11 +589,13 @@ pub fn download_ftp_file(
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
 
     let mut client = get_ftp_client(&config)?;
     let raw_path = to_raw_ftp_path(remote_path);
-    let reader = client.retr_as_stream(raw_path)
+    let reader = client
+        .retr_as_stream(raw_path)
         .map_err(|e| format!("Failed to download: {}", e))?;
 
     if let Some(parent) = Path::new(local_dest).parent() {
@@ -513,13 +612,15 @@ pub fn download_ftp_file(
         };
         std::io::copy(&mut wrapped_reader, &mut local_file)
             .map_err(|e| format!("Failed to write downloaded data: {}", e))?;
-        client.finalize_retr_stream(wrapped_reader.inner)
+        client
+            .finalize_retr_stream(wrapped_reader.inner)
             .map_err(|e| format!("Failed to finalize transfer: {}", e))?;
     } else {
         let mut reader = reader;
         std::io::copy(&mut reader, &mut local_file)
             .map_err(|e| format!("Failed to write downloaded data: {}", e))?;
-        client.finalize_retr_stream(reader)
+        client
+            .finalize_retr_stream(reader)
             .map_err(|e| format!("Failed to finalize transfer: {}", e))?;
     }
 
@@ -535,10 +636,11 @@ pub fn upload_ftp_file(
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
 
-    let mut local_file = File::open(local_src)
-        .map_err(|e| format!("Failed to open local source file: {}", e))?;
+    let mut local_file =
+        File::open(local_src).map_err(|e| format!("Failed to open local source file: {}", e))?;
 
     let mut client = get_ftp_client(&config)?;
     let raw_dest = to_raw_ftp_path(remote_dest);
@@ -548,10 +650,12 @@ pub fn upload_ftp_file(
             inner: local_file,
             callback: |len| cb(len, local_src),
         };
-        client.put_file(raw_dest, &mut wrapped_reader)
+        client
+            .put_file(raw_dest, &mut wrapped_reader)
             .map_err(|e| format!("Failed to upload file to FTP: {}", e))?;
     } else {
-        client.put_file(raw_dest, &mut local_file)
+        client
+            .put_file(raw_dest, &mut local_file)
             .map_err(|e| format!("Failed to upload file to FTP: {}", e))?;
     }
 
@@ -566,24 +670,35 @@ pub fn download_ftp_dir_recursive(
 ) -> Result<(), String> {
     std::fs::create_dir_all(local_dest_dir)
         .map_err(|e| format!("Failed to create local directory: {}", e))?;
-    
+
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
-    
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
+
     let mut client = get_ftp_client(&config)?;
     let raw_dir = to_raw_ftp_path(remote_dir);
     let entries = list_ftp_dir_internal(&mut client, raw_dir, connection_name)?;
-    
+
     for entry in entries {
         let entry_name = entry.name;
         let remote_item_path = entry.path;
         let local_item_path = format!("{}/{}", local_dest_dir, entry_name);
         if entry.is_dir == 1 {
-            download_ftp_dir_recursive(connection_name, &remote_item_path, &local_item_path, progress_callback)?;
+            download_ftp_dir_recursive(
+                connection_name,
+                &remote_item_path,
+                &local_item_path,
+                progress_callback,
+            )?;
         } else {
-            download_ftp_file(connection_name, &remote_item_path, &local_item_path, progress_callback)?;
+            download_ftp_file(
+                connection_name,
+                &remote_item_path,
+                &local_item_path,
+                progress_callback,
+            )?;
         }
     }
     Ok(())
@@ -598,7 +713,8 @@ pub fn upload_ftp_dir_recursive(
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
 
     let mut client = get_ftp_client(&config)?;
     let raw_dest_dir = to_raw_ftp_path(remote_dest_dir);
@@ -613,9 +729,19 @@ pub fn upload_ftp_dir_recursive(
         let entry_name = path.file_name().unwrap().to_string_lossy().to_string();
         let remote_item_path = format!("{}/{}", raw_dest_dir, entry_name);
         if path.is_dir() {
-            upload_ftp_dir_recursive(connection_name, path.to_str().unwrap(), &remote_item_path, progress_callback)?;
+            upload_ftp_dir_recursive(
+                connection_name,
+                path.to_str().unwrap(),
+                &remote_item_path,
+                progress_callback,
+            )?;
         } else {
-            upload_ftp_file(connection_name, path.to_str().unwrap(), &remote_item_path, progress_callback)?;
+            upload_ftp_file(
+                connection_name,
+                path.to_str().unwrap(),
+                &remote_item_path,
+                progress_callback,
+            )?;
         }
     }
     Ok(())
@@ -631,8 +757,18 @@ pub fn copy_ftp_to_ftp(
     let temp_file_path = temp_dir.join(format!("ftp-transfer-{}", uuid::Uuid::new_v4()));
     let temp_file_str = temp_file_path.to_str().unwrap();
 
-    download_ftp_file(connection_name, remote_src, temp_file_str, progress_callback)?;
-    let res = upload_ftp_file(connection_name, temp_file_str, remote_dest, progress_callback);
+    download_ftp_file(
+        connection_name,
+        remote_src,
+        temp_file_str,
+        progress_callback,
+    )?;
+    let res = upload_ftp_file(
+        connection_name,
+        temp_file_str,
+        remote_dest,
+        progress_callback,
+    );
     let _ = std::fs::remove_file(temp_file_str);
     res
 }
@@ -646,7 +782,8 @@ pub fn copy_ftp_dir_to_ftp_recursive(
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
 
     let mut client = get_ftp_client(&config)?;
     let raw_dest_dir = to_raw_ftp_path(remote_dest_dir);
@@ -659,9 +796,19 @@ pub fn copy_ftp_dir_to_ftp_recursive(
         let remote_src_item = entry.path;
         let remote_dest_item = format!("{}/{}", raw_dest_dir, entry_name);
         if entry.is_dir == 1 {
-            copy_ftp_dir_to_ftp_recursive(connection_name, &remote_src_item, &remote_dest_item, progress_callback)?;
+            copy_ftp_dir_to_ftp_recursive(
+                connection_name,
+                &remote_src_item,
+                &remote_dest_item,
+                progress_callback,
+            )?;
         } else {
-            copy_ftp_to_ftp(connection_name, &remote_src_item, &remote_dest_item, progress_callback)?;
+            copy_ftp_to_ftp(
+                connection_name,
+                &remote_src_item,
+                &remote_dest_item,
+                progress_callback,
+            )?;
         }
     }
     Ok(())
@@ -674,12 +821,19 @@ pub fn get_ftp_dir_size_and_count(
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
-    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
 
     let mut client = get_ftp_client(&config)?;
     let mut total_size = 0.0;
     let mut total_count = 0.0;
-    get_ftp_dir_size_and_count_helper(&mut client, remote_dir, connection_name, &mut total_size, &mut total_count)?;
+    get_ftp_dir_size_and_count_helper(
+        &mut client,
+        remote_dir,
+        connection_name,
+        &mut total_size,
+        &mut total_count,
+    )?;
     Ok((total_size, total_count))
 }
 
@@ -694,7 +848,13 @@ fn get_ftp_dir_size_and_count_helper(
     let entries = list_ftp_dir_internal(client, raw_dir, connection_name)?;
     for entry in entries {
         if entry.is_dir == 1 {
-            get_ftp_dir_size_and_count_helper(client, &entry.path, connection_name, total_size, total_count)?;
+            get_ftp_dir_size_and_count_helper(
+                client,
+                &entry.path,
+                connection_name,
+                total_size,
+                total_count,
+            )?;
         } else {
             *total_count += 1.0;
             if let Ok(sz) = entry.size.parse::<f32>() {

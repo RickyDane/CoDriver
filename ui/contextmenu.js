@@ -141,6 +141,25 @@ class CDContextMenu {
     ],
     [
       {
+        label: "Extra",
+        icon: "fa-solid fa-ellipsis",
+        subItems: [
+          {
+            label: "Find duplicates",
+            icon: "fa-solid fa-copy",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showDuplicateFinderPopup(path);
+              this.hide();
+            },
+          },
+        ],
+      },
+    ],
+    [
+      {
         label: "Copy Path",
         icon: "fa-solid fa-clipboard",
         action: async () => {
@@ -168,12 +187,83 @@ class CDContextMenu {
     ],
   ];
 
+  navItemGroups = [
+    [
+      {
+        label: "Open",
+        icon: "fa-solid fa-folder-open",
+        action: () => {
+          if (this.selectedItem) {
+            this.selectedItem.click();
+          }
+        },
+      },
+    ],
+    [
+      {
+        label: "Add to Favorites",
+        icon: "fa-solid fa-star",
+        action: () => addFavorite(this.selectedItem.getAttribute("itempath")),
+      },
+      {
+        label: "Remove Favorite",
+        icon: "fa-regular fa-star",
+        action: () => removeFavorite(this.selectedItem.getAttribute("itempath")),
+      },
+    ],
+    [
+      {
+        label: "Extra",
+        icon: "fa-solid fa-ellipsis",
+        subItems: [
+          {
+            label: "Find duplicates",
+            icon: "fa-solid fa-copy",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showDuplicateFinderPopup(path);
+              this.hide();
+            },
+          },
+        ],
+      },
+    ],
+    [
+      {
+        label: "Copy Path",
+        icon: "fa-solid fa-clipboard",
+        action: async () => {
+          await writeText(this.selectedItem.getAttribute("itempath"));
+          showToast("Copied path to clipboard", ToastType.INFO);
+        },
+      },
+      {
+        label: "Open in Terminal",
+        icon: "fa-solid fa-terminal",
+        action: () => openInTerminal(this.selectedItem),
+      },
+    ],
+    [
+      {
+        label: "Properties",
+        icon: "fa-solid fa-circle-info",
+        action: () => showProperties(this.selectedItem),
+      },
+    ],
+  ];
+
   get items() {
     return this.itemGroups.flat();
   }
 
   get diskItems() {
     return this.diskItemGroups.flat();
+  }
+
+  get navItems() {
+    return this.navItemGroups.flat();
   }
 
   constructor() {
@@ -207,7 +297,10 @@ class CDContextMenu {
   setSelectedItem(item, e = null) {
     this.selectedItem = item;
     this.setupItems();
-    if (!ArrSelectedItems.includes(item)) {
+    if (item && (item.classList.contains("site-nav-bar-button") || item.classList.contains("site-nav-bar-button-fav"))) {
+      return;
+    }
+    if (item && !ArrSelectedItems.includes(item)) {
       const isMeta = e ? e.metaKey : (window.event ? window.event.metaKey : false);
       const isCtrl = e ? e.ctrlKey : (window.event ? window.event.ctrlKey : false);
       if (ArrSelectedItems.length === 0) {
@@ -235,8 +328,13 @@ class CDContextMenu {
 
   setupItems() {
     this.menu.innerHTML = "";
-    const groups = this.selectedItem?.getAttribute("itemisdisk") === "1"
+    const isDisk = this.selectedItem?.getAttribute("itemisdisk") === "1";
+    const isSidebarButton = this.selectedItem?.classList.contains("site-nav-bar-button") || this.selectedItem?.classList.contains("site-nav-bar-button-fav");
+    
+    const groups = isDisk
       ? this.diskItemGroups
+      : isSidebarButton
+      ? this.navItemGroups
       : this.itemGroups;
 
     groups.forEach((group) => {
@@ -294,6 +392,10 @@ class CDContextMenu {
   getVisibleItems() {
     if (this.selectedItem?.getAttribute("itemisdisk") === "1") {
       return this.diskItems;
+    }
+    const isSidebarButton = this.selectedItem?.classList.contains("site-nav-bar-button") || this.selectedItem?.classList.contains("site-nav-bar-button-fav");
+    if (isSidebarButton) {
+      return this.navItems;
     }
     return this.items;
   }
@@ -387,6 +489,12 @@ class CDContextMenu {
       }
       return true;
     } else {
+      const label = item.label;
+      if (["Add to Favorites", "Remove Favorite", "Copy Path", "Open in Terminal", "Properties", "Extra"].includes(label)) {
+        let path = this.selectedItem.getAttribute("itempath");
+        if (!path || path === "") return true;
+      }
+
       if (item.label === "Extract") {
         return !endsWith(this.selectedItem?.getAttribute("itempath"), ".", [
           "zip", "rar", "7z", "zst", "zstd", "tar", "gz", "bz2", "density", "br",

@@ -7,7 +7,7 @@ fn main() {
             Err(e) => println!("Error sending to broadcast: {}", e),
         }
     }
-    
+
     println!("Testing UDP multicast to 224.0.0.251...");
     if let Ok(socket) = std::net::UdpSocket::bind("0.0.0.0:0") {
         match socket.send_to(b"trigger", "224.0.0.251:5353") {

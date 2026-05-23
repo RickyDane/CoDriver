@@ -209,6 +209,9 @@
                                         <button class="settings-action-btn secondary" onclick="openThemeCreator()" title="Create custom theme" style="padding: 6px 10px; height: 30px; font-size: 11px;">
                                             <i class="fa-solid fa-plus"></i> New
                                         </button>
+                                        <button class="settings-action-btn secondary edit-theme-btn" onclick="editActiveTheme()" title="Edit active theme" style="padding: 6px 10px; height: 30px; font-size: 11px; display: none;">
+                                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                                        </button>
                                         <button class="settings-action-btn danger delete-theme-btn" onclick="deleteActiveTheme()" title="Delete active theme" style="padding: 6px 10px; height: 30px; font-size: 11px; display: none;">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
@@ -509,72 +512,144 @@
                         <!-- Row: Primary Accent -->
                         <div class="props-card__row">
                             <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--primaryColor);"></i>Primary</dt>
-                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
-                                <input type="color" class="theme-color-picker theme-primary-color" value="#3f4352" oninput="previewThemeColor('--primaryColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
-                                <input type="text" class="props-card__input theme-primary-color-text" value="#3f4352" oninput="previewThemeColorText('--primaryColor', this.value)" style="font-family: monospace;" />
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-primary-color" value="#3f4352" />
+                                    <input type="text" class="props-card__input theme-primary-color-text" value="#3f4352" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-primary-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-primary-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
                             </dd>
                         </div>
 
                         <!-- Row: Secondary Accent -->
                         <div class="props-card__row">
                             <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--secondaryColor);"></i>Secondary</dt>
-                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
-                                <input type="color" class="theme-color-picker theme-secondary-color" value="#383b47" oninput="previewThemeColor('--secondaryColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
-                                <input type="text" class="props-card__input theme-secondary-color-text" value="#383b47" oninput="previewThemeColorText('--secondaryColor', this.value)" style="font-family: monospace;" />
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-secondary-color" value="#383b47" />
+                                    <input type="text" class="props-card__input theme-secondary-color-text" value="#383b47" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-secondary-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-secondary-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
                             </dd>
                         </div>
 
                         <!-- Row: Tertiary Color -->
                         <div class="props-card__row">
                             <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--tertiaryColor);"></i>Tertiary</dt>
-                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
-                                <input type="color" class="theme-color-picker theme-tertiary-color" value="#474b5c" oninput="previewThemeColor('--tertiaryColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
-                                <input type="text" class="props-card__input theme-tertiary-color-text" value="#474b5c" oninput="previewThemeColorText('--tertiaryColor', this.value)" style="font-family: monospace;" />
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-tertiary-color" value="#474b5c" />
+                                    <input type="text" class="props-card__input theme-tertiary-color-text" value="#474b5c" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-tertiary-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-tertiary-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
+                            </dd>
+                        </div>
+
+                        <!-- Row: Accent Color -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--selectColor2);"></i>Accent</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-accent-color" value="#0b64fd" />
+                                    <input type="text" class="props-card__input theme-accent-color-text" value="#0b64fd" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-accent-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-accent-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
                             </dd>
                         </div>
 
                         <!-- Row: Text Color -->
                         <div class="props-card__row">
                             <dt class="props-card__label"><i class="fa-solid fa-font" style="color: var(--textColor);"></i>Primary Text</dt>
-                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
-                                <input type="color" class="theme-color-picker theme-text-color" value="#ffffff" oninput="previewThemeColor('--textColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
-                                <input type="text" class="props-card__input theme-text-color-text" value="#ffffff" oninput="previewThemeColorText('--textColor', this.value)" style="font-family: monospace;" />
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-text-color" value="#ffffff" />
+                                    <input type="text" class="props-card__input theme-text-color-text" value="#ffffff" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-text-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-text-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
                             </dd>
                         </div>
 
                         <!-- Row: Text Color 2 -->
                         <div class="props-card__row">
                             <dt class="props-card__label"><i class="fa-solid fa-font" style="color: var(--textColor2); opacity: 0.65;"></i>Secondary Text</dt>
-                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
-                                <input type="color" class="theme-color-picker theme-text-color2" value="#a0a0a0" oninput="previewThemeColor('--textColor2', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
-                                <input type="text" class="props-card__input theme-text-color2-text" value="#a0a0a0" oninput="previewThemeColorText('--textColor2', this.value)" style="font-family: monospace;" />
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-text-color2" value="#a0a0a0" />
+                                    <input type="text" class="props-card__input theme-text-color2-text" value="#a0a0a0" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-text-color2-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-text-color2-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
                             </dd>
                         </div>
 
                         <!-- Row: Text Color 3 -->
                         <div class="props-card__row">
                             <dt class="props-card__label"><i class="fa-solid fa-font" style="color: var(--textColor3); opacity: 0.85;"></i>Subtext</dt>
-                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
-                                <input type="color" class="theme-color-picker theme-text-color3" value="#d0d0d0" oninput="previewThemeColor('--textColor3', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
-                                <input type="text" class="props-card__input theme-text-color3-text" value="#d0d0d0" oninput="previewThemeColorText('--textColor3', this.value)" style="font-family: monospace;" />
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-text-color3" value="#d0d0d0" />
+                                    <input type="text" class="props-card__input theme-text-color3-text" value="#d0d0d0" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-text-color3-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-text-color3-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
                             </dd>
                         </div>
 
                         <!-- Row: Sidebar Color -->
                         <div class="props-card__row">
                             <dt class="props-card__label"><i class="fa-solid fa-window-maximize" style="color: var(--siteBarColor);"></i>Sidebar</dt>
-                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
-                                <input type="color" class="theme-color-picker theme-sitebar-color" value="#2d2f39" oninput="previewThemeColor('--siteBarColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
-                                <input type="text" class="props-card__input theme-sitebar-color-text" value="#2d2f39" oninput="previewThemeColorText('--siteBarColor', this.value)" style="font-family: monospace;" />
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-sitebar-color" value="#2d2f39" />
+                                    <input type="text" class="props-card__input theme-sitebar-color-text" value="#2d2f39" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-sitebar-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-sitebar-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
                             </dd>
                         </div>
 
                         <!-- Row: Navbar Color -->
                         <div class="props-card__row">
                             <dt class="props-card__label"><i class="fa-solid fa-heading" style="color: var(--navBarColor);"></i>Header Nav</dt>
-                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
-                                <input type="color" class="theme-color-picker theme-navbar-color" value="#1e1e28" oninput="previewThemeColor('--navBarColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
-                                <input type="text" class="props-card__input theme-navbar-color-text" value="#1e1e28" oninput="previewThemeColorText('--navBarColor', this.value)" style="font-family: monospace;" />
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-navbar-color" value="#1e1e28" />
+                                    <input type="text" class="props-card__input theme-navbar-color-text" value="#1e1e28" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-navbar-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-navbar-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
                             </dd>
                         </div>
                     </dl>

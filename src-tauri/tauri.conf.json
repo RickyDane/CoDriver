@@ -2,132 +2,74 @@
   "build": {
     "beforeBuildCommand": "",
     "beforeDevCommand": "",
-    "devPath": "../ui",
-    "distDir": "../ui",
-    "withGlobalTauri": true
+    "frontendDist": "../ui"
   },
-  "package": {
-    "productName": "CoDriver",
-    "version": "0.7.2"
-  },
-  "tauri": {
-    "bundle": {
-      "resources": ["resources/*"],
-      "active": true,
-      "category": "DeveloperTool",
-      "copyright": "",
+  "bundle": {
+    "resources": [
+      "resources/*"
+    ],
+    "active": true,
+    "category": "DeveloperTool",
+    "copyright": "",
+    "targets": "all",
+    "externalBin": [],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    },
+    "longDescription": "A simple file explorer with nice ui and good features.",
+    "macOS": {
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
+    },
+    "shortDescription": "",
+    "linux": {
       "deb": {
         "depends": []
-      },
-      "externalBin": [],
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "identifier": "com.codriver.dev",
-      "longDescription": "A simple file explorer with nice ui and good features.",
-      "macOS": {
-        "entitlements": null,
-        "exceptionDomain": "",
-        "frameworks": [],
-        "providerShortName": null,
-        "signingIdentity": null
-      },
-      "shortDescription": "",
-      "targets": "all",
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampUrl": ""
       }
-    },
-    "allowlist": {
-      "fs": {
-        "all": true,
-        "readFile": true,
-        "writeFile": true,
-        "readDir": true,
-        "copyFile": true,
-        "createDir": true,
-        "removeDir": true,
-        "removeFile": true,
-        "renameFile": true,
-        "exists": true,
-        "scope": ["**/*", "$RESOURCE/*"]
-      },
-      "http": {
-        "all": true,
-        "request": true,
-        "scope": []
-      },
-      "clipboard": {
-        "all": true,
-        "writeText": true,
-        "readText": true
-      },
-      "window": {
-        "all": true,
-        "create": true,
-        "center": true,
-        "requestUserAttention": true,
-        "setResizable": true,
-        "setMaximizable": true,
-        "setMinimizable": true,
-        "setClosable": true,
-        "setTitle": true,
-        "maximize": true,
-        "unmaximize": true,
-        "minimize": true,
-        "unminimize": true,
-        "show": true,
-        "hide": true,
-        "close": true,
-        "setDecorations": true,
-        "setAlwaysOnTop": true,
-        "setContentProtected": true,
-        "setSize": true,
-        "setMinSize": true,
-        "setMaxSize": true,
-        "setPosition": true,
-        "setFullscreen": true,
-        "setFocus": true,
-        "setIcon": true,
-        "setSkipTaskbar": true,
-        "setCursorGrab": true,
-        "setCursorVisible": true,
-        "setCursorIcon": true,
-        "setCursorPosition": true,
-        "setIgnoreCursorEvents": true,
-        "startDragging": true,
-        "print": true
-      },
-      "path": {
-        "all": true
-      },
-      "dialog": {
-        "all": true,
-        "ask": true,
-        "confirm": true,
-        "message": true,
-        "open": true,
-        "save": true
-      },
-      "protocol": {
-        "asset": true,
-        "assetScope": {
-          "allow": ["**/*"],
+    }
+  },
+  "productName": "CoDriver",
+  "mainBinaryName": "CoDriver",
+  "version": "0.7.2",
+  "identifier": "com.codriver.dev",
+  "plugins": {
+    "cli": {
+      "args": [
+        {
+          "name": "source",
+          "short": "s",
+          "index": 1,
+          "takesValue": true
+        }
+      ]
+    }
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "withGlobalTauri": true,
+    "security": {
+      "assetProtocol": {
+        "scope": {
+          "allow": [
+            "**/*"
+          ],
+          "deny": [],
           "requireLiteralLeadingDot": false
         },
-        "all": true
+        "enable": true
       },
-      "os": {
-        "all": true
-      }
-    },
-    "security": {
       "csp": null
     },
     "windows": [
@@ -140,19 +82,13 @@
         "title": "CoDriver",
         "width": 1100,
         "hiddenTitle": true,
-        "titleBarStyle": "Overlay"
+        "titleBarStyle": "Overlay",
+        "trafficLightPosition": {
+          "x": 25,
+          "y": 32
+        },
+        "useHttpsScheme": true
       }
-    ],
-    "cli": {
-      "args": [
-        {
-          "name": "source",
-          "short": "s",
-          "index": 1,
-          "takesValue": true
-        }
-      ]
-    },
-    "macOSPrivateApi": true
+    ]
   }
 }

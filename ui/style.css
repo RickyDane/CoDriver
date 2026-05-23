@@ -134,8 +134,8 @@ body {
   max-width: 250px;
   overflow-x: hidden;
   padding: 10px;
-  margin-top: 55px !important;
-  height: calc(100% - 55px);
+  margin-top: 0px !important;
+  height: 100%;
   border-right: 2px solid var(--primaryColor);
   overflow-y: auto;
 }
@@ -158,7 +158,7 @@ body {
 .dual-pane-toolbar {
   width: 100%;
   position: absolute;
-  top: 55px;
+  top: 0px;
   height: 35px;
   padding: 0 5px;
   background-color: var(--siteBarColor);
@@ -223,6 +223,7 @@ body {
 }
 
 .main-container {
+  padding-top: 55px;
   height: 100%;
   display: flex;
   flex-flow: column;
@@ -1826,7 +1827,7 @@ label {
 .ftp-save-profile-footer input[type="checkbox"]:checked {
   background: var(--selectColor2);
   border-color: var(--selectColor2);
-  box-shadow: 0 0 8px rgba(11, 100, 253, 0.4);
+  box-shadow: 0 0 8px var(--selectColor3);
 }
 
 .ftp-save-profile-footer input[type="checkbox"]:checked::after {
@@ -5598,7 +5599,75 @@ body.dual-pane-mode .active-actions-popup::before {
   color: var(--textColor3) !important;
   opacity: 0.60 !important;
 }
+/* Custom Theme Opacity Sliders */
+.theme-opacity-control-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
 
+.theme-opacity-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-grow: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tertiaryColor);
+  outline: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
 
+.theme-opacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--textColor);
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+.theme-opacity-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: var(--selectColor2);
+}
+
+.theme-opacity-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: var(--textColor);
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+.theme-opacity-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  background: var(--selectColor2);
+}
+
+/* Custom Theme Color Picker Preview Square Styling */
+.theme-color-picker {
+  border: 1px solid var(--tertiaryColor);
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.theme-color-picker:hover {
+  border-color: var(--selectColor2);
+  box-shadow: 0 0 6px var(--selectColor3);
+  transform: scale(1.05);
+}
 
 

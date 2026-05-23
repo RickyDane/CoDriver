@@ -60,11 +60,99 @@ async function cacheImage(key, value) {
 
 /* Drag and drop files into file explorer */
 // TODO: Make it simpler and not so shitty
-listen("tauri://file-drop", async (event) => {
+let LastDraggedOverElement = null;
+
+function clearDragHighlight(el) {
+  if (!el) return;
+  el.style.opacity = "1";
+  el.style.border = "1px solid transparent";
+  el.style.backgroundColor = "transparent";
+  el.style.scale = "1";
+}
+
+const handleDragOver = (event) => {
+  try {
+    const { x, y } = event.payload.position || {};
+    if (x === undefined || y === undefined) return;
+    
+    // Find DOM element under the OS drag cursor
+    let rawEl = document.elementFromPoint(x, y);
+    if (!rawEl) return;
+    
+    // Find if it's a directory item or sidebar/back button
+    let el = rawEl.closest(".item-link") || rawEl.closest(".site-nav-bar-button") || rawEl.closest(".site-nav-bar-button-fav") || rawEl.closest(".go-back-button");
+    
+    if (el) {
+      // Check if it is a folder (for .item-link directory entry)
+      let isDir = el.getAttribute("itemisdir") == "1";
+      // Sidebar button/back buttons are folders conceptually (they accept drops)
+      let isAcceptableDrop = isDir || el.classList.contains("site-nav-bar-button") || el.classList.contains("site-nav-bar-button-fav") || el.classList.contains("go-back-button");
+      
+      if (isAcceptableDrop) {
+        if (LastDraggedOverElement && LastDraggedOverElement !== el) {
+          clearDragHighlight(LastDraggedOverElement);
+        }
+        
+        // Apply hover highlights based on target type
+        if (el.classList.contains("site-nav-bar-button") || el.classList.contains("site-nav-bar-button-fav")) {
+          el.style.border = "1px solid var(--tertiaryColor)";
+          el.style.backgroundColor = "var(--sidebarHover)";
+          if (el.classList.contains("site-nav-bar-button")) {
+            el.style.scale = "1.05";
+          }
+        } else if (el.classList.contains("go-back-button")) {
+          el.style.border = "1px solid var(--selectColor2)";
+          el.style.backgroundColor = "var(--transparentColor)";
+          el.style.scale = "1.05";
+        } else {
+          // Main directory item (.item-link)
+          if (typeof ArrSelectedItems !== "undefined" && !ArrSelectedItems.includes(el)) {
+            el.style.opacity = "0.5";
+            el.style.border = "1px solid var(--textColor)";
+            el.style.backgroundColor = "var(--selectColor3)";
+          }
+        }
+        
+        DraggedOverElement = el;
+        LastDraggedOverElement = el;
+        if (typeof MousePos !== "undefined") {
+          MousePos = [x, y];
+        }
+        return;
+      }
+    }
+    
+    // If not hovering over a valid drop target, clear previous highlight
+    if (LastDraggedOverElement) {
+      clearDragHighlight(LastDraggedOverElement);
+      LastDraggedOverElement = null;
+      DraggedOverElement = null;
+    }
+  } catch (error) {
+    console.error("Error in file-drop-hover:", error);
+  }
+};
+
+listen("tauri://file-drop-hover", handleDragOver);
+listen("tauri://drag-over", handleDragOver);
+
+const handleDragLeave = () => {
+  if (LastDraggedOverElement) {
+    clearDragHighlight(LastDraggedOverElement);
+    LastDraggedOverElement = null;
+  }
+  DraggedOverElement = null;
+};
+
+listen("tauri://file-drop-cancelled", handleDragLeave);
+listen("tauri://drag-leave", handleDragLeave);
+
+const handleDragDrop = async (event) => {
   try {
     ArrSelectedItems = [];
     ArrCopyItems = [];
-    event.payload.forEach((item) => {
+    const dropPaths = Array.isArray(event.payload) ? event.payload : (event.payload.paths || []);
+    dropPaths.forEach((item) => {
       CopyFilePath = item;
       CopyFileName = CopyFilePath.split("/")[
         CopyFilePath.split("/").length - 1
@@ -94,6 +182,11 @@ listen("tauri://file-drop", async (event) => {
       CopyFilePath = "";
       ArrCopyItems = [];
       ArrSelectedItems = [];
+      if (LastDraggedOverElement) {
+        clearDragHighlight(LastDraggedOverElement);
+        LastDraggedOverElement = null;
+      }
+      DraggedOverElement = null;
     } else if (DraggedOverElement != null) {
       let operation = await fileOperationContextMenu();
       if (operation == "copy") {
@@ -110,7 +203,10 @@ listen("tauri://file-drop", async (event) => {
       CopyFilePath = "";
       ArrCopyItems = [];
       ArrSelectedItems = [];
-      DraggedOverElement.style.opacity = "1";
+      if (LastDraggedOverElement) {
+        clearDragHighlight(LastDraggedOverElement);
+        LastDraggedOverElement = null;
+      }
       DraggedOverElement = null;
     }
   } catch (error) {
@@ -123,7 +219,10 @@ listen("tauri://file-drop", async (event) => {
   document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
     item.style.opacity = "1";
   });
-});
+};
+
+listen("tauri://file-drop", handleDragDrop);
+listen("tauri://drag-drop", handleDragDrop);
 
 /* Toasts */
 function showToast(message, type = ToastType.INFO, timeout = 2000) {
