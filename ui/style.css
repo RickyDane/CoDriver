@@ -313,8 +313,8 @@ body {
   z-index: 11;
   pointer-events: none;
   background: linear-gradient(to bottom,
-      rgba(36, 36, 44, 1) 0%,
-      rgba(36, 36, 44, 0.7) 30%,
+      var(--siteBarColor) 0%,
+      color-mix(in srgb, var(--siteBarColor) 70%, transparent) 30%,
       transparent 100%);
 }
 
@@ -1097,7 +1097,7 @@ body {
 /* Settings ui redesign — Clean & Minimalist */
 .settings-ui {
   display: none;
-  flex-flow: column;
+  flex-flow: row;
   position: fixed;
   width: 75%;
   max-width: 720px;
@@ -1135,9 +1135,9 @@ body {
   transform: scale(1) translateY(0);
 }
 
-.settings-ui-body {
+.settings-main-panel {
   display: flex;
-  flex-flow: row;
+  flex-flow: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -3068,7 +3068,7 @@ button>svg {
   flex-flow: row;
   align-items: center;
   gap: 4px;
-  background: color-mix(in srgb, var(--primaryColor) 70%, transparent);
+  background: var(--secondaryColor);
   width: clamp(180px, 22vw, 240px);
   height: 34px;
   border-radius: 10px;
@@ -3087,12 +3087,12 @@ button>svg {
 }
 
 .file-searchbar:hover {
-  background: color-mix(in srgb, var(--primaryColor) 70%, transparent);
+  background: var(--secondaryColor);
   border-color: color-mix(in srgb, var(--textColor2) 36%, var(--tertiaryColor));
 }
 
 .file-searchbar:focus-within {
-  background: color-mix(in srgb, var(--primaryColor) 70%, transparent);
+  background: var(--secondaryColor);
   border-color: var(--selectColor2);
   box-shadow:
     0 0 0 3px var(--selectColor3),
@@ -5718,4 +5718,55 @@ body.dual-pane-mode .active-actions-popup::before {
   border-color: var(--selectColor2);
   box-shadow: 0 0 6px var(--selectColor3);
   transform: scale(1.05);
+}
+
+/* AI Configuration Disclaimer Styling */
+.ai-disclaimer-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 3px solid var(--selectColor2);
+  border-radius: 8px;
+  margin: 0 0 20px 0;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-disclaimer-box:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border-color: rgba(255, 255, 255, 0.1);
+  border-left-color: #4ba3ff; /* Glows brighter blue on hover */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), inset 0 0.5px 0 rgba(255, 255, 255, 0.04);
+}
+
+.ai-disclaimer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05em;
+  font-weight: 600;
+  color: var(--textColor);
+  letter-spacing: 0.2px;
+}
+
+.ai-disclaimer-header i {
+  color: var(--selectColor2);
+  font-size: 1.15em;
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+
+.ai-disclaimer-box:hover .ai-disclaimer-header i {
+  transform: scale(1.1) rotate(-3deg);
+}
+
+.ai-disclaimer-body {
+  font-size: 0.92em;
+  line-height: 1.55;
+  color: var(--textColor2);
+  margin: 0;
 }

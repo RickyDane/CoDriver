@@ -169,7 +169,7 @@
                     </span>
                 </div>-->
 
-                <div class="settings-ui-body">
+
                     <div class="settings-sidebar">
                         <button class="settings-sidebar-button active" onclick="showSettingsTab('general', this)">
                             <i class="fa-solid fa-house"></i>
@@ -193,7 +193,8 @@
                         </button>
                     </div>
 
-                    <div class="settings-content">
+                    <div class="settings-main-panel">
+                        <div class="settings-content">
                         <!-- General Tab -->
                         <div id="settings-tab-general" class="settings-tab-content active">
                             <div class="settings-section">
@@ -368,6 +369,15 @@
                         <div id="settings-tab-ai" class="settings-tab-content">
                             <div class="settings-section">
                                 <h3 class="settings-section-title">AI Configuration</h3>
+                                <div class="ai-disclaimer-box">
+                                    <div class="ai-disclaimer-header">
+                                        <i class="fa-solid fa-shield-halved"></i>
+                                        <span>Privacy & Secure Data Notice</span>
+                                    </div>
+                                    <p class="ai-disclaimer-body">
+                                        Enabling AI features allows CoDriver to process selected text, file names, or image data using external Google Gemini or OpenAI models. All requests are securely transmitted directly using your own API keys. CoDriver does not run external proxy servers, collect, or store any of your personal data.
+                                    </p>
+                                </div>
                                 <div class="settings-row">
                                     <div class="settings-control-group">
                                         <p class="settings-label">Enable AI Features</p>
@@ -456,22 +466,22 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="settings-ui-footer">
-                    <button class="settings-reset-btn" onclick="resetSettingsToDefaults()">
-                        <i class="fa-solid fa-rotate-left"></i>
-                        Reset to Defaults
-                    </button>
-                    <div class="settings-footer-actions">
-                        <button class="settings-cancel-btn" onclick="closeSettings()">
-                            <i class="fa-solid fa-xmark"></i>
-                            Cancel
+                    <div class="settings-ui-footer">
+                        <button class="settings-reset-btn" onclick="resetSettingsToDefaults()">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            Reset to Defaults
                         </button>
-                        <button class="settings-save-btn" onclick="saveConfig(); closeSettings()">
-                            <i class="fa-solid fa-check"></i>
-                            Save Changes
-                        </button>
+                        <div class="settings-footer-actions">
+                            <button class="settings-cancel-btn" onclick="closeSettings()">
+                                <i class="fa-solid fa-xmark"></i>
+                                Cancel
+                            </button>
+                            <button class="settings-save-btn" onclick="saveConfig(); closeSettings()">
+                                <i class="fa-solid fa-check"></i>
+                                Save Changes
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
