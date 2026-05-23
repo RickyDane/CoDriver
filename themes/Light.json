@@ -9,5 +9,6 @@
   "transparent_color": "rgba(200, 200, 200, 0.35)",
   "transparent_color_active": "rgba(200, 200, 200, 0.75)",
   "site_bar_color": "rgba(220, 220, 220, 0.85)",
+  "sidebar_top_blur_overlay_color": "rgba(245, 245, 245, 0.95)",
   "nav_bar_color": "rgba(240, 240, 240, 0.5)"
 }

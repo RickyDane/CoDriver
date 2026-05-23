@@ -29,7 +29,7 @@ listen("set-filesearch-currentfile", (event) => {
   }
 });
 
-listen("set-item-image", (event) => {
+listen("set-item-image", async (event) => {
   let payload = JSON.parse(event.payload);
 
   let base64 = payload.data;
@@ -41,14 +41,16 @@ listen("set-item-image", (event) => {
 
   if (element && loader && base64) {
     element.style.display = "block";
-    element.src = `data:image/${payload.url.split(".").pop()};base64,${base64}`;
+    let ext = payload.url.split(".").pop().toLowerCase();
+    let type = ext === "icns" ? "png" : (ext === "jpg" ? "jpeg" : (ext === "tif" ? "tiff" : ext));
+    element.src = `data:image/${type};base64,${base64}`;
     loader.style.display = "none";
   }
 
-  writeToLocalStorage(imageUrl, base64);
+  await writeToLocalStorage(imageUrl, base64);
 });
 
-listen("set_default_image", (event) => {
+listen("set_default_image", async (event) => {
   let payload = event.payload;
   let imageId = payload[0];
   let image = payload[1];
@@ -62,7 +64,7 @@ listen("set_default_image", (event) => {
     loader.style.display = "none";
   }
 
-  writeToLocalStorage(image, image);
+  await writeToLocalStorage(image, image);
 });
 
 listen("try_load_cached_image", async (event) => {
@@ -100,10 +102,54 @@ listen("fs-mount-changed", (event) => {
 
 listen("watcher-event", (event) => {
   setTimeout(async () => {
-    if (event.payload.type == "create") { refreshView(); console.log("FS-Event: File was created")}
-    if (event.payload.type == "remove") { refreshView(); console.log("FS-Event: File was removed")}
-    if (event.payload.type == "rename") { refreshView(); console.log("FS-Event: File was renamed")}
-    // if (event.payload.type == "modify") { refreshView(); console.log("FS-Event: File was modified")}
+    const payload = event.payload;
+    const paths = payload.paths;
+    if (!paths || paths.length === 0) return;
+    
+    const path = paths[0];
+    
+    if (payload.type === "create") {
+      console.log("FS-Event: File was created dynamically:", path);
+      await handleDynamicCreate(path);
+      window.scheduleDiskUsageRefresh?.();
+    } else if (payload.type === "remove") {
+      console.log("FS-Event: File was removed dynamically:", path);
+      if (window.IsDeletingItems) {
+        console.log("FS-Event: File was removed (refresh suppressed — active delete)");
+      } else {
+        handleDynamicRemove(path);
+      }
+      window.scheduleDiskUsageRefresh?.();
+    } else if (payload.type === "modify") {
+      if (payload.kind === "rename") {
+        console.log("FS-Event: File was renamed dynamically:", paths, "mode:", payload.mode);
+        const mode = payload.mode;
+        
+        if (mode === "both" || (mode === "any" && paths.length === 2)) {
+          const oldPath = paths[0];
+          const newPath = paths[1];
+          handleDynamicRemove(oldPath);
+          await handleDynamicCreate(newPath);
+        } else if (mode === "from") {
+          handleDynamicRemove(paths[0]);
+        } else if (mode === "to") {
+          await handleDynamicCreate(paths[0]);
+        } else {
+          // Fallback / "any" with 1 path
+          const path = paths[0];
+          const existsInUi = document.querySelector(`[itempath="${path}"]`);
+          if (existsInUi) {
+            handleDynamicRemove(path);
+          } else {
+            await handleDynamicCreate(path);
+          }
+        }
+      } else {
+        console.log("FS-Event: File was modified dynamically:", path);
+        await handleDynamicUpdate(path);
+      }
+      window.scheduleDiskUsageRefresh?.();
+    }
   }, 100);
 });
 
@@ -118,4 +164,7 @@ listen("update-progress-bar", (event) => {
 
 listen("finish-progress-bar", (event) => {
   finishProgressBar(event.payload);
+  if (typeof window.scheduleDiskUsageRefresh === "function") {
+    window.scheduleDiskUsageRefresh();
+  }
 });

@@ -5,13 +5,154 @@ let ArrSelectedItems = [];
 let ArrCopyItems = [];
 let Applications = [];
 
+/* IndexedDB caching system */
+const DB_NAME = "CoDriverCache";
+const DB_VERSION = 1;
+const STORE_NAME = "thumbnails";
+let dbPromise = null;
+
+function getDB() {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = (e) => resolve(e.target.result);
+    request.onerror = (e) => reject(e.target.error);
+  });
+  return dbPromise;
+}
+
+async function getCachedImage(key) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, "readonly");
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get(key);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error("IndexedDB read error:", error);
+    return null;
+  }
+}
+
+async function cacheImage(key, value) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, "readwrite");
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.put(value, key);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error("IndexedDB write error:", error);
+  }
+}
+
 /* Drag and drop files into file explorer */
 // TODO: Make it simpler and not so shitty
-listen("tauri://file-drop", async (event) => {
+let LastDraggedOverElement = null;
+
+function clearDragHighlight(el) {
+  if (!el) return;
+  el.style.opacity = "1";
+  el.style.border = "1px solid transparent";
+  el.style.backgroundColor = "transparent";
+  el.style.scale = "1";
+}
+
+const handleDragOver = (event) => {
+  try {
+    const { x, y } = event.payload.position || {};
+    if (x === undefined || y === undefined) return;
+    
+    // Find DOM element under the OS drag cursor
+    let rawEl = document.elementFromPoint(x, y);
+    if (!rawEl) return;
+    
+    // Find if it's a directory item or sidebar/back button
+    let el = rawEl.closest(".item-link") || rawEl.closest(".site-nav-bar-button") || rawEl.closest(".site-nav-bar-button-fav") || rawEl.closest(".go-back-button");
+    
+    if (el) {
+      // Check if it is a folder (for .item-link directory entry)
+      let isDir = el.getAttribute("itemisdir") == "1";
+      // Sidebar button/back buttons are folders conceptually (they accept drops)
+      let isAcceptableDrop = isDir || el.classList.contains("site-nav-bar-button") || el.classList.contains("site-nav-bar-button-fav") || el.classList.contains("go-back-button");
+      
+      if (isAcceptableDrop) {
+        if (LastDraggedOverElement && LastDraggedOverElement !== el) {
+          clearDragHighlight(LastDraggedOverElement);
+        }
+        
+        // Apply hover highlights based on target type
+        if (el.classList.contains("site-nav-bar-button") || el.classList.contains("site-nav-bar-button-fav")) {
+          el.style.border = "1px solid var(--tertiaryColor)";
+          el.style.backgroundColor = "var(--sidebarHover)";
+          if (el.classList.contains("site-nav-bar-button")) {
+            el.style.scale = "1.05";
+          }
+        } else if (el.classList.contains("go-back-button")) {
+          el.style.border = "1px solid var(--selectColor2)";
+          el.style.backgroundColor = "var(--transparentColor)";
+          el.style.scale = "1.05";
+        } else {
+          // Main directory item (.item-link)
+          if (typeof ArrSelectedItems !== "undefined" && !ArrSelectedItems.includes(el)) {
+            el.style.opacity = "0.5";
+            el.style.border = "1px solid var(--textColor)";
+            el.style.backgroundColor = "var(--selectColor3)";
+          }
+        }
+        
+        DraggedOverElement = el;
+        LastDraggedOverElement = el;
+        if (typeof MousePos !== "undefined") {
+          MousePos = [x, y];
+        }
+        return;
+      }
+    }
+    
+    // If not hovering over a valid drop target, clear previous highlight
+    if (LastDraggedOverElement) {
+      clearDragHighlight(LastDraggedOverElement);
+      LastDraggedOverElement = null;
+      DraggedOverElement = null;
+    }
+  } catch (error) {
+    console.error("Error in file-drop-hover:", error);
+  }
+};
+
+listen("tauri://file-drop-hover", handleDragOver);
+listen("tauri://drag-over", handleDragOver);
+
+const handleDragLeave = () => {
+  if (LastDraggedOverElement) {
+    clearDragHighlight(LastDraggedOverElement);
+    LastDraggedOverElement = null;
+  }
+  DraggedOverElement = null;
+};
+
+listen("tauri://file-drop-cancelled", handleDragLeave);
+listen("tauri://drag-leave", handleDragLeave);
+
+const handleDragDrop = async (event) => {
   try {
     ArrSelectedItems = [];
     ArrCopyItems = [];
-    event.payload.forEach((item) => {
+    const dropPaths = Array.isArray(event.payload) ? event.payload : (event.payload.paths || []);
+    dropPaths.forEach((item) => {
       CopyFilePath = item;
       CopyFileName = CopyFilePath.split("/")[
         CopyFilePath.split("/").length - 1
@@ -41,6 +182,11 @@ listen("tauri://file-drop", async (event) => {
       CopyFilePath = "";
       ArrCopyItems = [];
       ArrSelectedItems = [];
+      if (LastDraggedOverElement) {
+        clearDragHighlight(LastDraggedOverElement);
+        LastDraggedOverElement = null;
+      }
+      DraggedOverElement = null;
     } else if (DraggedOverElement != null) {
       let operation = await fileOperationContextMenu();
       if (operation == "copy") {
@@ -57,7 +203,10 @@ listen("tauri://file-drop", async (event) => {
       CopyFilePath = "";
       ArrCopyItems = [];
       ArrSelectedItems = [];
-      DraggedOverElement.style.opacity = "1";
+      if (LastDraggedOverElement) {
+        clearDragHighlight(LastDraggedOverElement);
+        LastDraggedOverElement = null;
+      }
       DraggedOverElement = null;
     }
   } catch (error) {
@@ -70,7 +219,10 @@ listen("tauri://file-drop", async (event) => {
   document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
     item.style.opacity = "1";
   });
-});
+};
+
+listen("tauri://file-drop", handleDragDrop);
+listen("tauri://drag-drop", handleDragDrop);
 
 /* Toasts */
 function showToast(message, type = ToastType.INFO, timeout = 2000) {
@@ -114,26 +266,68 @@ async function getThumbnail(imagePath) {
 }
 
 async function getSimpleDirInfo(path = "", classToFill = "", isDir = false, updateId = null) {
-  $(classToFill).html(
-    `<div style="display: flex; gap: 10px;">
-      <div class="preloader-small-invert"></div>
-      Loading ...
-    </div>`,
-  );
-  await invoke("get_simple_dir_info", { path, appWindow, classToFill, updateId }).then(
-    (simpleDirInfo) => {
-      $(classToFill).html(
-        formatBytes(simpleDirInfo.size) +
-          " - " +
-          simpleDirInfo.count_elements +
-          (isDir == true && simpleDirInfo.count_elements > 1
-            ? " items"
-            : " item"),
-      );
-      return simpleDirInfo;
-    },
-  );
-  return null;
+  setSizeCalculationLoading(classToFill);
+  try {
+    const simpleDirInfo = await invoke("get_simple_dir_info", { path, appWindow, classToFill, updateId });
+    if (!shouldApplySizeCalculationUpdate(updateId)) return simpleDirInfo;
+    $(classToFill).html(
+      formatBytes(simpleDirInfo.size) +
+        " - " +
+        simpleDirInfo.count_elements +
+        (isDir == true && simpleDirInfo.count_elements > 1
+          ? " items"
+          : " item"),
+    );
+    return simpleDirInfo;
+  } catch (error) {
+    if (!shouldApplySizeCalculationUpdate(updateId)) throw error;
+    $(classToFill).html("Unable to calculate size");
+    throw error;
+  }
+}
+
+function shouldApplySizeCalculationUpdate(updateId) {
+  if (
+    typeof updateId === "string" &&
+    updateId.startsWith("properties-") &&
+    typeof isPropertiesSizeUpdateCurrent === "function"
+  ) {
+    return isPropertiesSizeUpdateCurrent(updateId);
+  }
+
+  return true;
+}
+
+function setSizeCalculationLoading(target, progressText = "") {
+  const container = typeof target === "string" ? document.querySelector(target) : target;
+  if (!container) return;
+
+  let loading = container.querySelector(".size-calc-loading");
+  if (!loading) {
+    loading = document.createElement("div");
+    loading.className = "size-calc-loading";
+    loading.style.display = "flex";
+    loading.style.gap = "10px";
+    loading.style.alignItems = "center";
+
+    const spinner = document.createElement("div");
+    spinner.className = "preloader-small-invert";
+
+    const label = document.createElement("span");
+    label.append("Calculating ...");
+
+    const progress = document.createElement("span");
+    progress.className = "size-calc-progress";
+    label.append(progress);
+
+    loading.append(spinner, label);
+    container.replaceChildren(loading);
+  }
+
+  const progress = loading.querySelector(".size-calc-progress");
+  if (progress) {
+    progress.textContent = progressText ? ` ${progressText}` : "";
+  }
 }
 
 function formatBytes(bytes, decimals = 2) {
@@ -143,6 +337,12 @@ function formatBytes(bytes, decimals = 2) {
   const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
+const SIZE_CALC_LIMIT_BYTES = 10_000_000_000;
+
+function formatSizeWithLimit(bytes, decimals = 2) {
+  return Number(bytes) > SIZE_CALC_LIMIT_BYTES ? "10GB+" : formatBytes(bytes, decimals);
 }
 
 async function writeLog(log) {
@@ -176,24 +376,138 @@ async function stopSearching() {
 }
 
 function createNewAction(actionId, actionName, actionDescription, path) {
-  let newAction = new ActiveAction(
+  const newAction = new ActiveAction(
     actionName,
     actionDescription,
     actionId,
     path,
   );
   ArrActiveActions.push(newAction);
-  $(".active-actions-container").append(newAction.getHTMLElement());
+  renderActiveActionsPill();
+  refreshActiveActionsPopup();
 }
 
 function removeAction(actionId) {
   ArrActiveActions = ArrActiveActions.filter(
     (action) => action.id !== actionId,
   );
-  $(`.active-action-${actionId}`).css("opacity", "0");
+  const row = document.querySelector(`.active-action-${actionId}`);
+  if (row) {
+    row.style.opacity = "0";
+    setTimeout(() => row.remove(), 250);
+  }
+  renderActiveActionsPill();
+  refreshActiveActionsPopup();
+}
+
+function renderActiveActionsPill() {
+  const isDual = typeof IsDualPaneEnabled !== "undefined" && IsDualPaneEnabled;
+  const activeContainer = isDual
+    ? document.querySelector(".active-actions-header-placeholder")
+    : document.querySelector(".active-actions-container");
+  const inactiveContainer = isDual
+    ? document.querySelector(".active-actions-container")
+    : document.querySelector(".active-actions-header-placeholder");
+
+  if (inactiveContainer) {
+    inactiveContainer.innerHTML = "";
+  }
+
+  if (!activeContainer) return;
+
+  if (ArrActiveActions.length === 0) {
+    activeContainer.innerHTML = "";
+    closeActiveActionsPopup();
+    return;
+  }
+  let pill = activeContainer.querySelector(".active-actions-pill");
+  if (!pill) {
+    activeContainer.innerHTML = `
+      <button class="active-actions-pill" type="button"
+        onclick="toggleActiveActionsPopup(event)"
+        aria-label="Show active actions">
+        <span class="active-actions-pill__spinner"><div class="preloader-small-invert"></div></span>
+        <span class="active-actions-pill__label">Actions</span>
+        <span class="active-actions-pill__count">0</span>
+      </button>
+    `;
+    pill = activeContainer.querySelector(".active-actions-pill");
+  }
+  pill.querySelector(".active-actions-pill__count").textContent = ArrActiveActions.length;
+  pill.setAttribute("title", `${ArrActiveActions.length} active action${ArrActiveActions.length === 1 ? "" : "s"}`);
+}
+
+function toggleActiveActionsPopup(event) {
+  event?.stopPropagation();
+  if (document.querySelector(".active-actions-popup")) {
+    closeActiveActionsPopup();
+  } else {
+    showActiveActionsPopup();
+  }
+}
+
+function showActiveActionsPopup() {
+  if (document.querySelector(".active-actions-popup")) return;
+  if (ArrActiveActions.length === 0) return;
+
+  const popup = document.createElement("div");
+  popup.className = "active-actions-popup";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "false");
+  popup.setAttribute("aria-label", "Active actions");
+  popup.innerHTML = `
+    <header class="active-actions-popup__header">
+      <span class="active-actions-popup__title">Active actions</span>
+      <span class="active-actions-popup__count">${ArrActiveActions.length}</span>
+    </header>
+    <div class="active-actions-popup__list"></div>
+  `;
+
+  if (IsDualPaneEnabled) {
+    const pill = document.querySelector(".active-actions-pill");
+    if (pill) {
+      const rect = pill.getBoundingClientRect();
+      popup.style.top = `${rect.bottom + 8}px`;
+      popup.style.left = `${rect.left}px`;
+      popup.style.bottom = "auto";
+    }
+  }
+
+  document.body.appendChild(popup);
+  refreshActiveActionsPopup();
+  requestAnimationFrame(() => popup.classList.add("is-open"));
+
   setTimeout(() => {
-    $(`.active-action-${actionId}`).remove();
-  }, 300);
+    document.addEventListener("pointerdown", handleActiveActionsOutsideClick);
+  }, 0);
+}
+
+function closeActiveActionsPopup() {
+  const popup = document.querySelector(".active-actions-popup");
+  if (!popup) return;
+  document.removeEventListener("pointerdown", handleActiveActionsOutsideClick);
+  popup.classList.remove("is-open");
+  popup.classList.add("is-closing");
+  setTimeout(() => {
+    popup.remove();
+  }, 180);
+}
+
+function handleActiveActionsOutsideClick(event) {
+  if (event.target.closest(".active-actions-popup") || event.target.closest(".active-actions-pill")) return;
+  closeActiveActionsPopup();
+}
+
+function refreshActiveActionsPopup() {
+  const list = document.querySelector(".active-actions-popup__list");
+  if (!list) return;
+  if (ArrActiveActions.length === 0) {
+    closeActiveActionsPopup();
+    return;
+  }
+  const count = document.querySelector(".active-actions-popup__count");
+  if (count) count.textContent = ArrActiveActions.length;
+  list.innerHTML = ArrActiveActions.map((a) => a.getHTMLElement()).join("");
 }
 
 function endsWith(text, divider = ".", ends = []) {
@@ -354,7 +668,7 @@ function getIconForFile(item, itemsCount) {
       case ".jfif":
       case ".avif":
       case ".icns":
-        if (IsImagePreview) {
+        if (IsImagePreview && !item.path.startsWith("ftp://")) {
           if (item.size < 50000000 && itemsCount < 1000) {
             // ~50 mb
             fileIcon = item.path;
@@ -426,67 +740,259 @@ function getIconForFile(item, itemsCount) {
   return fileIcon;
 }
 
+let FileOpProgressActionId = null;
+let lastFileOpProgressUpdate = 0;
+window.IsProgressModalDismissed = false;
+
+function getOrCreateFileOpAction(name = "File operation", description = "Preparing…") {
+  if (FileOpProgressActionId) {
+    const existing = ArrActiveActions.find((a) => a.id === FileOpProgressActionId);
+    if (existing) return existing;
+  }
+  FileOpProgressActionId = `fileop-${Date.now()}`;
+  const action = new ActiveAction(name, description, FileOpProgressActionId, "", true);
+  action.progress = 0;
+  ArrActiveActions.push(action);
+  renderActiveActionsPill();
+  refreshActiveActionsPopup();
+  return action;
+}
+
+function reopenProgressModal(actionId) {
+  window.IsProgressModalDismissed = false;
+  showProgressbar();
+  closeActiveActionsPopup();
+}
+
 function showProgressbar() {
-  let progressBarContainer = document.querySelector(".progress-bar-container-popup");
-  progressBarContainer.style.display = "block";
-  progressBarContainer.style.scale = "1";
-  progressBarContainer.style.opacity = "1";
-  progressBarContainer.style.height = "fit-content";
+  const action = getOrCreateFileOpAction();
+
+  if (window.IsProgressModalDismissed) {
+    return;
+  }
+
+  // Create detailed progress modal
+  let modal = document.querySelector(".file-progress-modal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.className = "file-progress-modal props-card";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("aria-label", "File progress");
+    
+    let actionTitle = (typeof IsCopyToCut !== "undefined" && IsCopyToCut === true) ? "Moving Items" : "Copying Items";
+
+    const progress = action.progress ?? 0;
+    const currentFile = action.currentFile || "Preparing...";
+    const countLabel = action.countLabel || "0 / 0";
+    const speedLabel = action.speedLabel || "0 MB/s";
+    const chipText = countLabel ? countLabel.split(" · ")[0] : "0 / 0";
+
+    modal.innerHTML = `
+      <section class="props-card__hero file-progress-modal__hero">
+        <div class="props-card__thumb file-progress-modal__thumb">
+          <div class="preloader-small-invert"></div>
+        </div>
+        <div class="props-card__heading">
+          <h2 class="props-card__name progress-modal-title">${actionTitle}...</h2>
+          <div class="props-card__meta">
+            <span class="progress-modal-meta-speed">${speedLabel}</span>
+            <span class="props-card__chip progress-modal-meta-count">${chipText}</span>
+          </div>
+        </div>
+      </section>
+ 
+      <dl class="props-card__list">
+        <div class="props-card__row props-card__row--block">
+          <dt class="props-card__label"><i class="fa-regular fa-file"></i>Current File</dt>
+          <dd class="props-card__value progress-modal-current-file" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${currentFile}">
+            ${currentFile}
+          </dd>
+        </div>
+        <div class="props-card__row props-card__row--block" style="gap: 12px; padding-top: 12px; padding-bottom: 12px;">
+          <div style="width: 100%; background: rgba(255, 255, 255, 0.08); height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); position: relative;">
+            <div class="progress-modal-fill" style="width: ${progress}%; height: 100%; background: linear-gradient(90deg, var(--selectColor2), #4da3ff); box-shadow: 0 0 12px rgba(77, 163, 255, 0.6); transition: width 0.1s ease-out; border-radius: 4px;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--textColor2); margin-top: -4px;">
+            <span class="progress-modal-percent-text">${Math.round(progress)}% completed</span>
+            <span class="progress-modal-count-text">${countLabel} items</span>
+          </div>
+        </div>
+      </dl>
+
+      <footer class="props-card__footer">
+        <button class="props-card__btn props-card__btn--primary" data-progress-background>
+          <i class="fa-solid fa-window-minimize"></i><span>Run in Background</span>
+        </button>
+      </footer>
+    `;
+    document.body.appendChild(modal);
+    modal.classList.add("popup-enter");
+    IsPopUpOpen = true;
+
+    modal.querySelector("[data-progress-background]").onclick = () => {
+      window.IsProgressModalDismissed = true;
+      modal.classList.add("popup-exit");
+      modal.addEventListener("animationend", () => {
+        modal.remove();
+        IsPopUpOpen = false;
+      }, { once: true });
+    };
+  }
 }
 
 function updateProgressBar(totalPercentage, elementsPercentage, countElements, currentElementNumber, currentFile, currentSpeed) {
-  if (countElements == 1) {
-    document.querySelector('.progress-bar-main-percentage').innerHTML = `${totalPercentage.toFixed(0)}%`;
-  } else {
-    document.querySelector('.progress-bar-main-percentage').innerHTML = `
-      <span>${elementsPercentage.toFixed(0)}%</span>
-      <span style="font-size: x-small">${totalPercentage.toFixed(0)}%</span>
-    `;
+  const action = getOrCreateFileOpAction();
+  action.progress = totalPercentage;
+  action.currentFile = currentFile;
+  action.countLabel = countElements > 1
+    ? `${currentElementNumber} / ${countElements} · ${elementsPercentage.toFixed(0)}%`
+    : `${currentElementNumber} / ${countElements}`;
+  action.speedLabel = `${currentSpeed.toFixed(0)} MB/s`;
+
+  const now = Date.now();
+  // Throttle DOM updates to at most once every 80ms to prevent UI stutter/overload, but update instantly on completion
+  if (now - lastFileOpProgressUpdate >= 80 || totalPercentage >= 100) {
+    lastFileOpProgressUpdate = now;
+    const row = document.querySelector(`.active-action-${action.id}`);
+    if (row) {
+      const fill = row.querySelector(".active-action__progress-fill");
+      if (fill) fill.style.width = `${totalPercentage}%`;
+      const pct = row.querySelector(".active-action__percent");
+      if (pct) pct.textContent = `${Math.round(totalPercentage)}%`;
+      const file = row.querySelector(".active-action__current-file");
+      if (file) file.textContent = currentFile;
+      const count = row.querySelector(".active-action__count");
+      if (count) count.textContent = action.countLabel;
+      const speed = row.querySelector(".active-action__speed");
+      if (speed) speed.textContent = action.speedLabel;
+    } else {
+      refreshActiveActionsPopup();
+    }
+
+    // Update detailed progress modal if visible
+    const modal = document.querySelector(".file-progress-modal");
+    if (modal) {
+      let actionTitle = (typeof IsCopyToCut !== "undefined" && IsCopyToCut === true) ? "Moving Items" : "Copying Items";
+      modal.querySelector(".progress-modal-title").textContent = `${actionTitle}...`;
+
+      const currentFileEl = modal.querySelector(".progress-modal-current-file");
+      if (currentFileEl) {
+        currentFileEl.textContent = currentFile || "Preparing...";
+        currentFileEl.setAttribute("title", currentFile || "");
+      }
+
+      const fillEl = modal.querySelector(".progress-modal-fill");
+      if (fillEl) fillEl.style.width = `${totalPercentage}%`;
+
+      const percentEl = modal.querySelector(".progress-modal-percent-text");
+      if (percentEl) percentEl.textContent = `${Math.round(totalPercentage)}% completed`;
+
+      const countEl = modal.querySelector(".progress-modal-count-text");
+      const countPillEl = modal.querySelector(".progress-modal-meta-count");
+      const countText = countElements > 1
+        ? `${currentElementNumber} / ${countElements} · ${elementsPercentage.toFixed(0)}%`
+        : `${currentElementNumber} / ${countElements}`;
+      const pillText = `${currentElementNumber} / ${countElements}`;
+      if (countEl) countEl.textContent = `${countText} items`;
+      if (countPillEl) countPillEl.textContent = pillText;
+
+      const speedEl = modal.querySelector(".progress-modal-meta-speed");
+      if (speedEl) speedEl.textContent = `${currentSpeed.toFixed(0)} MB/s`;
+    }
   }
-  document.querySelector('.progress-bar-detail-info').innerText = `${currentElementNumber} of ${countElements} - ${currentSpeed.toFixed(0)} MB/s`;
-  document.querySelector('.progress-bar-current-file-text').innerText = `${currentFile}`;
-  if (currentFile.split('.').length > 1) {
-    document.querySelector('.progress-bar-current-file-ext').innerText = `(.${currentFile.split('.')[currentFile.split('.').length - 1]})`;
-  } else {
-    document.querySelector('.progress-bar-current-file-ext').innerText = ``;
-  }
-  document.querySelector('.progress-bar-main-progress-fill').style.width = `${totalPercentage}%`;
 }
 
 function finishProgressBar(time = 0) {
-  console.log(time);
-  document.querySelector('.progress-bar-detail-info').innerText += ` - in ${time.toFixed(2)} seconds`;
-  document.querySelector('.progress-bar-main-percentage').innerHTML = `<i class="fas fa-check" style="color: green; width: 24px; height: 24px;"></i>`;
-  let progressBarContainer = document.querySelector(".progress-bar-container-popup");
+  window.IsProgressModalDismissed = false;
+  const id = FileOpProgressActionId;
+  if (!id) return;
+  const action = ArrActiveActions.find((a) => a.id === id);
+  if (action) {
+    action.progress = 100;
+    action.speedLabel = time ? `done in ${time.toFixed(2)}s` : "done";
+  }
+  const row = document.querySelector(`.active-action-${id}`);
+  if (row) {
+    const fill = row.querySelector(".active-action__progress-fill");
+    if (fill) fill.style.width = `100%`;
+    const pct = row.querySelector(".active-action__percent");
+    if (pct) pct.innerHTML = `<i class="fas fa-check" style="color: var(--successColor, #4ade80);"></i>`;
+    const speed = row.querySelector(".active-action__speed");
+    if (speed && action) speed.textContent = action.speedLabel;
+  }
+
+  // Finalize and close the detailed progress modal if visible
+  const modal = document.querySelector(".file-progress-modal");
+  if (modal) {
+    modal.querySelector(".progress-modal-title").textContent = "Completed Successfully!";
+    
+    const thumbEl = modal.querySelector(".file-progress-modal__thumb");
+    if (thumbEl) {
+      thumbEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--successColor, #4ade80);"></i>`;
+    }
+
+    const fillEl = modal.querySelector(".progress-modal-fill");
+    if (fillEl) {
+      fillEl.style.width = "100%";
+      fillEl.style.background = "var(--successColor, #4ade80)";
+      fillEl.style.boxShadow = "0 0 12px rgba(74, 222, 128, 0.6)";
+    }
+
+    const percentEl = modal.querySelector(".progress-modal-percent-text");
+    if (percentEl) percentEl.textContent = "100% completed";
+
+    const speedEl = modal.querySelector(".progress-modal-meta-speed");
+    if (speedEl) speedEl.textContent = time ? `Done in ${time.toFixed(2)}s` : "Done";
+
+    const currentFileEl = modal.querySelector(".progress-modal-current-file");
+    if (currentFileEl) currentFileEl.textContent = "All operations completed.";
+
+    setTimeout(() => {
+      modal.classList.add("popup-exit");
+      modal.addEventListener("animationend", () => {
+        modal.remove();
+        if (IsPopUpOpen) IsPopUpOpen = false;
+      }, { once: true });
+    }, 1200);
+  }
+
   setTimeout(() => {
-    progressBarContainer.style.scale = "0";
-    progressBarContainer.style.opacity = "0";
-    progressBarContainer.style.height= "0";
-  }, 3000);
+    if (FileOpProgressActionId === id) FileOpProgressActionId = null;
+    removeAction(id);
+  }, 1500);
 }
 
-function tryLoadCachedImage(imageId, imageType, imageUrl) {
-  let data = readFromLocalStorage(imageUrl);
+async function tryLoadCachedImage(imageId, imageType, imageUrl) {
+  let data = await getCachedImage(imageUrl);
 
   let element = document.getElementById(imageId);
   let loader = document.querySelector(".preloader-" + imageId);
 
   if (element && loader && data) {
     element.style.display = "block";
-    element.src = `data:image/${imageType};base64,${data}`;
+    if (data === imageUrl) {
+      element.src = convertFileSrc(data);
+    } else {
+      let ext = imageType.toLowerCase();
+      let type = ext === "icns" ? "png" : (ext === "jpg" ? "jpeg" : (ext === "tif" ? "tiff" : ext));
+      element.src = `data:image/${type};base64,${data}`;
+    }
     loader.style.display = "none";
   }
 }
 
-function setItemImage(base64, imageId, imageUrl) {
+async function setItemImage(base64, imageId, imageUrl) {
   let element = document.getElementById(imageId);
   let loader = document.querySelector(".preloader-" + imageId);
 
   if (element && loader && base64) {
     element.style.display = "block";
-    element.src = `data:image/${imageUrl.split(".").pop()};base64,${base64}`;
+    let ext = imageUrl.split(".").pop().toLowerCase();
+    let type = ext === "icns" ? "png" : (ext === "jpg" ? "jpeg" : (ext === "tif" ? "tiff" : ext));
+    element.src = `data:image/${type};base64,${base64}`;
     loader.style.display = "none";
   }
 
-  writeToLocalStorage(imageUrl, base64);
+  await cacheImage(imageUrl, base64);
 }

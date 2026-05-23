@@ -24,23 +24,30 @@ use std::{
 };
 use stopwatch::Stopwatch;
 use tar::Archive as TarArchive;
-use tauri::api::dialog;
-use tauri::api::path::config_dir;
-use tauri::Window;
+use tauri::Emitter;
+use tauri::WebviewWindow;
+use tauri_plugin_dialog::DialogExt;
+
+fn config_dir() -> Option<std::path::PathBuf> {
+    dirs::config_dir()
+}
 use tokio::sync::MutexGuard;
 use tokio::task;
 use zip::write::FileOptions;
 use zip::ZipWriter;
 
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Mutex, OnceLock};
+use std::time::Instant;
 
 #[allow(unused_imports)]
 use crate::ISCANCELED;
-use crate::{COPY_COUNTER, IS_SEARCHING, IS_SIZE_CALC_CANCELLED, TOTAL_BYTES_COPIED, WINDOW};
+use crate::{
+    COPY_COUNTER, IS_SEARCHING, IS_SELECTION_SIZE_CALC_CANCELLED, IS_SIZE_CALC_CANCELLED,
+    TOTAL_BYTES_COPIED, WINDOW,
+};
 
-pub static ACCUMULATED_SIZE: AtomicU64 = AtomicU64::new(0);
-pub static ACCUMULATED_COUNT: AtomicU64 = AtomicU64::new(0);
-pub static LAST_EMIT: AtomicU64 = AtomicU64::new(0);
+pub const SIZE_CALC_LIMIT_BYTES: u64 = 10_000_000_000;
 
 const CHUNK_SIZE: usize = 64 * 1024;
 const MAGIC: u32 = 0xDE_AD;
@@ -205,10 +212,14 @@ async fn copy_to_with_overwrite_policy(
                     }
                     match fw.write_all(&buf[..ds]) {
                         Ok(_) => {
-                            // Calculate transfer speed and progres
-                            speed = calc_transfer_speed(s, sw.elapsed_ms());
-                            if speed.is_infinite() {
-                                speed = 0.0
+                            // Calculate transfer speed and progress
+                            let total_bytes_copied = *(TOTAL_BYTES_COPIED.lock().await) as u64;
+                            let elapsed_ms = get_copy_start_time()
+                                .map(|start| start.elapsed().as_millis() as i64)
+                                .unwrap_or_else(|| sw.elapsed_ms());
+                            speed = calc_transfer_speed(total_bytes_copied, elapsed_ms);
+                            if speed.is_infinite() || speed.is_nan() {
+                                speed = 0.0;
                             }
                             progress = (100.0 / file_size) * s as f32;
 
@@ -217,9 +228,17 @@ async fn copy_to_with_overwrite_policy(
                             // Only update the progressbar every 5%
                             // if progress % 5.0 < 1.0 {
                             show_progressbar(&WINDOW.get().unwrap());
+                            let overall_progress = if count_to_copy > 0.0 {
+                                let file_fraction = progress / 100.0;
+                                let raw_pct =
+                                    ((copy_counter - 1.0 + file_fraction) / count_to_copy) * 100.0;
+                                raw_pct.clamp(0.0, 100.0)
+                            } else {
+                                progress
+                            };
                             update_progressbar(
-                                progress,
-                                (100.0 / total_size) * *(TOTAL_BYTES_COPIED.lock().await),
+                                overall_progress,
+                                overall_progress,
                                 count_to_copy,
                                 copy_counter,
                                 final_filename.split("/").last().unwrap(),
@@ -228,7 +247,12 @@ async fn copy_to_with_overwrite_policy(
                             // }
                         }
                         Err(err) => {
-                            dialog::message(WINDOW.get(), "Info", format!("{:?}", err.to_string()));
+                            if let Some(win) = WINDOW.get() {
+                                win.dialog()
+                                    .message(format!("{:?}", err.to_string()))
+                                    .title("Info")
+                                    .show(|_| {});
+                            }
                             return Err(format!("Failed to write '{}': {}", final_filename, err));
                         }
                     }
@@ -297,8 +321,25 @@ pub fn count_entries(path: &str) -> Result<f32, std::io::Error> {
     Ok(count)
 }
 
-pub fn show_progressbar(app_window: &Window) {
+pub fn show_progressbar(app_window: &WebviewWindow) {
     let _ = app_window.emit("show-progressbar", ());
+}
+
+static LAST_PROGRESS_UPDATE: OnceLock<Mutex<Instant>> = OnceLock::new();
+
+static COPY_START_TIME: OnceLock<Mutex<Option<Instant>>> = OnceLock::new();
+
+pub fn reset_copy_start_time() {
+    let mutex = COPY_START_TIME.get_or_init(|| Mutex::new(None));
+    if let Ok(mut start_time) = mutex.lock() {
+        *start_time = Some(Instant::now());
+    }
+}
+
+pub fn get_copy_start_time() -> Option<Instant> {
+    COPY_START_TIME
+        .get()
+        .and_then(|m| m.lock().ok().and_then(|g| *g))
 }
 
 pub fn update_progressbar(
@@ -309,17 +350,44 @@ pub fn update_progressbar(
     file_name: &str,
     mb_per_sec: f64,
 ) {
-    let _ = WINDOW.get().unwrap().emit(
-        "update-progress-bar",
-        (
-            progress,
-            elements_progress,
-            items_count,
-            current_element_count,
-            file_name,
-            mb_per_sec,
-        ),
-    );
+    let now = Instant::now();
+    let mut should_emit = false;
+
+    // Initialize with a time long ago (e.g. 1 second ago) so the first update always goes through
+    let last_update_mutex = LAST_PROGRESS_UPDATE.get_or_init(|| {
+        Mutex::new(
+            now.checked_sub(std::time::Duration::from_millis(1000))
+                .unwrap_or(now),
+        )
+    });
+
+    if let Ok(mut last_update) = last_update_mutex.lock() {
+        // Emit if 80ms have passed OR if we reached 100% completion
+        if now.duration_since(*last_update).as_millis() >= 80
+            || progress >= 100.0
+            || elements_progress >= 100.0
+        {
+            *last_update = now;
+            should_emit = true;
+        }
+    } else {
+        should_emit = true;
+    }
+
+    if should_emit {
+        let _ = WINDOW.get().unwrap().emit(
+            "update-progress-bar",
+            (
+                progress,
+                elements_progress,
+                items_count,
+                current_element_count,
+                file_name,
+                mb_per_sec,
+            ),
+        );
+    }
+
     // let file_ext = file_name.split('.').last().unwrap_or("unknown");
     // let _ = app_window.eval(&format!(
     //     "
@@ -334,6 +402,9 @@ pub fn update_progressbar(
 }
 
 pub fn calc_transfer_speed(file_size: u64, time: i64) -> f64 {
+    if time <= 0 {
+        return 0.0;
+    }
     (file_size as f64 / (time as f64 / 1000.0)) / 1024.0 / 1024.0
 }
 
@@ -453,6 +524,7 @@ impl DirWalker {
         let app_window = WINDOW.get().unwrap();
         // let reg_exp: Regex;
         let mut count_of_checked_items: usize = 0;
+        let mut last_emit = std::time::Instant::now();
 
         for entry in jwalk::WalkDir::new(path)
             .parallelism(jwalk::Parallelism::RayonNewPool(num_cpus::get() - 1))
@@ -519,19 +591,24 @@ impl DirWalker {
 
             let file_metadata = fs::metadata(&path);
             if file_metadata.is_err() {
-                return;
+                continue;
             }
+            let metadata = file_metadata.unwrap();
+            let size = metadata.len();
 
-            let last_mod: DateTime<Local> = file_metadata.unwrap().modified().unwrap().into();
+            let last_mod: DateTime<Local> = metadata
+                .modified()
+                .map(|t| t.into())
+                .unwrap_or_else(|_| Local::now());
 
-            let _ = app_window.emit(
-                "set-filesearch-currentfile",
-                format!(
-                    "{} ({})",
-                    name,
-                    format_bytes(fs::metadata(&path).unwrap().len())
-                ),
-            );
+            if last_emit.elapsed().as_millis() >= 50 {
+                last_emit = std::time::Instant::now();
+                let _ = app_window.emit(
+                    "set-filesearch-currentfile",
+                    format!("{} ({})", name, format_bytes(size)),
+                );
+                let _ = app_window.emit("set-filesearch-count", **count_called_back);
+            }
 
             let is_with_exts = !self.exts.is_empty() && self.exts.contains(&item_ext);
 
@@ -551,7 +628,7 @@ impl DirWalker {
                             is_file: path.is_file(),
                             extension: item_ext,
                             last_modified: format!("{:?}", last_mod),
-                            size: fs::metadata(&path).unwrap().len(),
+                            size,
                         });
                         **count_called_back += 1;
                     }
@@ -565,14 +642,13 @@ impl DirWalker {
                         is_file: path.is_file(),
                         extension: item_ext,
                         last_modified: format!("{:?}", last_mod),
-                        size: fs::metadata(&path).unwrap().len(),
+                        size,
                     });
                     **count_called_back += 1;
                 }
             }
-
-            let _ = app_window.emit("set-filesearch-count", **count_called_back);
         }
+        let _ = app_window.emit("set-filesearch-count", **count_called_back);
     }
 
     pub fn depth(&mut self, depth: u32) -> &mut Self {
@@ -657,10 +733,72 @@ pub fn dir_info(path: String) -> SimpleDirInfo {
 }
 
 pub fn dir_info_incremental(path: String, update_id: Option<&str>) -> SimpleDirInfo {
+    let mut state = SizeCalcState::new(None);
+    dir_info_with_state(path, update_id, &mut state)
+}
+
+pub fn dir_info_incremental_capped(
+    path: String,
+    update_id: Option<&str>,
+    state: &mut SizeCalcState,
+) -> SimpleDirInfo {
+    dir_info_with_state(path, update_id, state)
+}
+
+pub struct SizeCalcState {
+    total_size: u64,
+    total_count: u64,
+    last_emit: u64,
+    limit_bytes: Option<u64>,
+    limit_reached: bool,
+    use_selection_cancel: bool,
+}
+
+impl SizeCalcState {
+    pub fn new(limit_bytes: Option<u64>) -> Self {
+        Self {
+            total_size: 0,
+            total_count: 0,
+            last_emit: 0,
+            limit_bytes,
+            limit_reached: false,
+            use_selection_cancel: false,
+        }
+    }
+
+    pub fn new_selection_capped() -> Self {
+        Self {
+            use_selection_cancel: true,
+            ..Self::new(Some(SIZE_CALC_LIMIT_BYTES))
+        }
+    }
+
+    pub fn is_limit_reached(&self) -> bool {
+        self.limit_reached
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        if self.use_selection_cancel {
+            IS_SELECTION_SIZE_CALC_CANCELLED.load(Ordering::Relaxed)
+        } else {
+            IS_SIZE_CALC_CANCELLED.load(Ordering::Relaxed)
+        }
+    }
+
+    pub fn should_stop(&self) -> bool {
+        self.is_cancelled() || self.is_limit_reached()
+    }
+}
+
+fn dir_info_with_state(
+    path: String,
+    update_id: Option<&str>,
+    state: &mut SizeCalcState,
+) -> SimpleDirInfo {
     if Path::new(&path).is_file() {
         let size = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
         if let Some(id) = update_id {
-            accumulate_and_emit(size, 1, id);
+            accumulate_and_emit(size, 1, id, state);
         }
         return SimpleDirInfo {
             size,
@@ -681,10 +819,10 @@ pub fn dir_info_incremental(path: String, update_id: Option<&str>) -> SimpleDirI
     let mut count_elements = 0;
 
     for entry in entries {
-        if IS_SIZE_CALC_CANCELLED.load(Ordering::Relaxed) {
+        if state.should_stop() {
             return SimpleDirInfo {
-                size: 0,
-                count_elements: 0,
+                size,
+                count_elements,
             };
         }
         if let Ok(entry) = entry {
@@ -694,11 +832,14 @@ pub fn dir_info_incremental(path: String, update_id: Option<&str>) -> SimpleDirI
                 size += file_size;
                 count_elements += 1;
                 if let Some(id) = update_id {
-                    accumulate_and_emit(file_size, 1, id);
+                    accumulate_and_emit(file_size, 1, id, state);
                 }
             } else if file_type.is_dir() {
-                let d_info =
-                    dir_info_incremental(entry.path().to_string_lossy().to_string(), update_id);
+                let d_info = dir_info_with_state(
+                    entry.path().to_string_lossy().to_string(),
+                    update_id,
+                    state,
+                );
                 size += d_info.size;
                 count_elements += d_info.count_elements;
             }
@@ -718,21 +859,26 @@ pub fn dir_info_incremental(path: String, update_id: Option<&str>) -> SimpleDirI
     }
 }
 
-fn accumulate_and_emit(size: u64, count: u64, id: &str) {
-    let new_total_size = ACCUMULATED_SIZE.fetch_add(size, Ordering::Relaxed) + size;
-    let new_total_count = ACCUMULATED_COUNT.fetch_add(count, Ordering::Relaxed) + count;
+fn accumulate_and_emit(size: u64, count: u64, id: &str, state: &mut SizeCalcState) {
+    state.total_size += size;
+    state.total_count += count;
+
+    if let Some(limit_bytes) = state.limit_bytes {
+        if state.total_size > limit_bytes {
+            state.limit_reached = true;
+        }
+    }
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_millis() as u64;
-    let last = LAST_EMIT.load(Ordering::Relaxed);
 
-    if now - last > 100 {
+    if now - state.last_emit > 100 || state.limit_reached {
         // Throttle to 10 updates per second
-        LAST_EMIT.store(now, Ordering::Relaxed);
+        state.last_emit = now;
         if let Some(window) = WINDOW.get() {
-            let _ = window.emit("size-update", (id, new_total_size, new_total_count));
+            let _ = window.emit("size-update", (id, state.total_size, state.total_count));
         }
     }
 }
@@ -758,7 +904,7 @@ pub fn unpack_tar(file: File, path: String) {
 }
 
 pub fn create_new_action(
-    app_window: &Window,
+    app_window: &WebviewWindow,
     action_name: String,
     action_desc: String,
     path: &String,
