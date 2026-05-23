@@ -1086,7 +1086,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1, isFromSort = f
       "onclick",
       "interactWithItem(this, '" + dualPaneSide + "', null, event)",
     );
-    let itemIconId = crypto.randomUUID();
+    let itemIconId = "icon-" + (dualPaneSide || "single") + "-" + counter;
     itemLink.setAttribute("itemiconid", itemIconId);
     itemLink.setAttribute("itempath", item.path);
     itemLink.setAttribute("itemindex", counter++);
@@ -1253,17 +1253,17 @@ function arrLoadItemImage(arrItems, isSingle = false) {
   });
 }
 
-function writeToLocalStorage(key, value) {
+async function writeToLocalStorage(key, value) {
   try {
-    localStorage.setItem(key, value);
+    await cacheImage(key, value);
   } catch (error) {
     console.error("Error writing image to local storage:", error);
   }
 }
 
-function readFromLocalStorage(key) {
+async function readFromLocalStorage(key) {
   try {
-    return localStorage.getItem(key);
+    return await getCachedImage(key);
   } catch (error) {
     console.error("Error reading image from local storage:", error);
   }
@@ -1307,7 +1307,7 @@ async function addSingleItem(
     "onclick",
     "interactWithItem(this, '" + dualPaneSide + "', null, event)",
   );
-  let itemIconId = crypto.randomUUID();
+  let itemIconId = "icon-" + (dualPaneSide || "single") + "-" + FoundItemsCountIndex;
   itemLink.setAttribute("itemiconid", itemIconId);
   itemLink.setAttribute("itempath", item.path);
   itemLink.setAttribute("itemindex", FoundItemsCountIndex++);
@@ -3498,30 +3498,50 @@ function isEjectableDisk(item) {
 }
 
 async function listDirectories(fromDualPaneCopy = false) {
-  let lsItems = await invoke("list_dirs");
-  if (IsDualPaneEnabled == true) {
-    ViewMode = "column";
-    if (fromDualPaneCopy == true) {
-      switch (SelectedItemPaneSide) {
-        case "left":
-          CurrentDir = RightDualPanePath;
-          await showItems(lsItems, "right");
-          break;
-        case "right":
-          CurrentDir = LeftDualPanePath;
-          await showItems(lsItems, "left");
-          break;
-      }
-    } else {
-      await showItems(lsItems, SelectedItemPaneSide);
-    }
-    goUp(false, true);
-  } else {
-    // Sync current directory state from the backend before showing items
-    const backendDir = await getCurrentDir();
-    await setCurrentDir(backendDir, "", false);
-    await showItems(lsItems, "", CurrentMillerCol);
+  const backendDir = await getCurrentDir();
+  const isFtp = backendDir && backendDir.startsWith("ftp://");
+  let side = SelectedItemPaneSide;
+  if (IsDualPaneEnabled && fromDualPaneCopy) {
+    side = (SelectedItemPaneSide === "left") ? "right" : "left";
   }
+
+  if (isFtp) {
+    showFtpLoader(side);
+  }
+
+  try {
+    let lsItems = await invoke("list_dirs");
+    if (IsDualPaneEnabled == true) {
+      ViewMode = "column";
+      if (fromDualPaneCopy == true) {
+        switch (SelectedItemPaneSide) {
+          case "left":
+            CurrentDir = RightDualPanePath;
+            await showItems(lsItems, "right");
+            break;
+          case "right":
+            CurrentDir = LeftDualPanePath;
+            await showItems(lsItems, "left");
+            break;
+        }
+      } else {
+        await showItems(lsItems, SelectedItemPaneSide);
+      }
+      goUp(false, true);
+    } else {
+      // Sync current directory state from the backend before showing items
+      const backendDir = await getCurrentDir();
+      await setCurrentDir(backendDir, "", false);
+      await showItems(lsItems, "", CurrentMillerCol);
+    }
+  } catch (error) {
+    console.error("Failed to list directories:", error);
+    if (isFtp) {
+      hideFtpLoader(side);
+    }
+    showToast("Failed to list directory: " + error, ToastType.ERROR);
+  }
+
   setTimeout(() => {
     ds.setSettings({
       selectables: document.querySelectorAll(".item-link"),
@@ -3661,35 +3681,49 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
   if (IsPopUpOpen == false || IsQuickSearchOpen === true) {
     if (IsItemPreviewOpen == false && isDir == 1 && ext != ".app") {
       // Open directory
-      let isSwitched = await invoke("open_dir", { path });
-      if (isSwitched == true) {
-        await configBackButton(CurrentDir);
-        if (IsDualPaneEnabled === false) {
-          if (ViewMode == "miller") {
-            $(".selected-item").removeClass("selected-item");
-            element.classList.add("selected-item");
-            await removeExcessMillerCols(parseInt(millerCol));
-            await addMillerCol(millerCol);
-            await setMillerColActive(null, millerCol);
-            await listDirectories();
+      let isFtp = path && path.startsWith("ftp://");
+      if (isFtp) {
+        showFtpLoader(dualPaneSide);
+      }
+      try {
+        let isSwitched = await invoke("open_dir", { path });
+        if (isSwitched == true) {
+          await configBackButton(CurrentDir);
+          if (IsDualPaneEnabled === false) {
+            if (ViewMode == "miller") {
+              $(".selected-item").removeClass("selected-item");
+              element.classList.add("selected-item");
+              await removeExcessMillerCols(parseInt(millerCol));
+              await addMillerCol(millerCol);
+              await setMillerColActive(null, millerCol);
+              await listDirectories();
+            } else {
+              await listDirectories();
+            }
+            await setCurrentDir(path, "", false);
           } else {
+            if (dualPaneSide == "left") {
+              LeftDualPanePath = path;
+            } else {
+              RightDualPanePath = path;
+            }
+            SelectedItemPaneSide = dualPaneSide;
+            await setCurrentDir(path, SelectedItemPaneSide, false);
             await listDirectories();
           }
-          await setCurrentDir(path, "", false);
+          await unSelectAllItems();
         } else {
-          if (dualPaneSide == "left") {
-            LeftDualPanePath = path;
-          } else {
-            RightDualPanePath = path;
+          alert("Could not open directory");
+          if (isFtp) {
+            hideFtpLoader(dualPaneSide);
           }
-          SelectedItemPaneSide = dualPaneSide;
-          await setCurrentDir(path, SelectedItemPaneSide, false);
-          await listDirectories();
+          return;
         }
-        await unSelectAllItems();
-      } else {
-        alert("Could not open directory");
-        return;
+      } catch (error) {
+        console.error("openItem failed:", error);
+        if (isFtp) {
+          hideFtpLoader(dualPaneSide);
+        }
       }
     } else if (IsItemPreviewOpen == false) {
       await invoke("open_item", { path });
@@ -5702,6 +5736,59 @@ async function deleteSavedConnection(event, name) {
   }
 }
 
+function showFtpLoader(paneSide) {
+  const loaderHtml = `
+    <div class="dir-preloader-container">
+      <div class="preloader-invert"></div>
+      <div style="margin-top: 15px; font-size: 13px; color: var(--textColor2); font-weight: 500; letter-spacing: 0.3px;">
+        Loading FTP directory...
+      </div>
+    </div>
+  `;
+  if (IsDualPaneEnabled) {
+    if (paneSide === "left") {
+      $(".dual-pane-left").html(loaderHtml);
+    } else if (paneSide === "right") {
+      $(".dual-pane-right").html(loaderHtml);
+    } else {
+      $(".dual-pane-left").html(loaderHtml);
+      $(".dual-pane-right").html(loaderHtml);
+    }
+  } else {
+    if (ViewMode === "miller") {
+      if (typeof CurrentMillerCol !== "undefined" && CurrentMillerCol) {
+        $(".miller-col-" + CurrentMillerCol).html(loaderHtml);
+      } else {
+        $(".miller-container").html(loaderHtml);
+      }
+    } else {
+      $(".non-dual-pane-container").html(loaderHtml);
+    }
+  }
+}
+
+function hideFtpLoader(paneSide) {
+  if (IsDualPaneEnabled) {
+    if (paneSide === "left") {
+      $(".dual-pane-left").find(".dir-preloader-container").remove();
+    } else if (paneSide === "right") {
+      $(".dual-pane-right").find(".dir-preloader-container").remove();
+    } else {
+      $(".dual-pane-left").find(".dir-preloader-container").remove();
+      $(".dual-pane-right").find(".dir-preloader-container").remove();
+    }
+  } else {
+    if (ViewMode === "miller") {
+      if (typeof CurrentMillerCol !== "undefined" && CurrentMillerCol) {
+        $(".miller-col-" + CurrentMillerCol).find(".dir-preloader-container").remove();
+      }
+      $(".miller-container").find(".dir-preloader-container").remove();
+    } else {
+      $(".non-dual-pane-container").find(".dir-preloader-container").remove();
+    }
+  }
+}
+
 function closeFtpConfig() {
   let popup = document.querySelector(".ftp-connect-container");
   popup.classList.add("popup-exit");
@@ -6374,16 +6461,30 @@ async function fileOperationContextMenu() {
 }
 
 async function openDirAndSwitch(path) {
-  const isSwitched = await invoke("open_dir", { path });
-  if (isSwitched !== true) {
-    alert("Could not open directory");
-    return;
+  let isFtp = path && path.startsWith("ftp://");
+  if (isFtp) {
+    showFtpLoader(SelectedItemPaneSide);
   }
+  try {
+    const isSwitched = await invoke("open_dir", { path });
+    if (isSwitched !== true) {
+      alert("Could not open directory");
+      if (isFtp) {
+        hideFtpLoader(SelectedItemPaneSide);
+      }
+      return;
+    }
 
-  await configBackButton(CurrentDir);
-  await setCurrentDir(path, "", false);
-  await listDirectories();
-  await unSelectAllItems();
+    await configBackButton(CurrentDir);
+    await setCurrentDir(path, "", false);
+    await listDirectories();
+    await unSelectAllItems();
+  } catch (error) {
+    console.error("openDirAndSwitch failed:", error);
+    if (isFtp) {
+      hideFtpLoader(SelectedItemPaneSide);
+    }
+  }
 }
 
 async function openConfigLocation() {

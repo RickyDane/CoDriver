@@ -685,65 +685,75 @@ async fn list_dirs() -> Vec<FDir> {
         }
         return vec![];
     }
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_dir_path = current_dir();
-    if current_dir_path.is_err() {
-        return vec![];
-    }
-    let current_dir = fs::read_dir(current_dir_path.unwrap());
-    if current_dir.is_err() {
-        return vec![];
-    }
-    for item in current_dir.unwrap() {
-        match item {
-            Ok(temp_item) => {
-                let name = &temp_item.file_name().into_string().unwrap();
-                let path = &temp_item
-                    .path()
-                    .to_str()
-                    .unwrap()
-                    .to_string()
-                    .replace("\\", "/");
-                let file_ext = ".".to_string().to_owned()
-                    + path
-                        .split(".")
-                        .nth(&path.split(".").count() - 1)
-                        .unwrap_or("");
-                let file_data = fs::metadata(temp_item.path());
-                let file_date: String;
-                let size;
-                match temp_item.metadata() {
-                    Ok(metadata) => {
-                        size = metadata.len();
+    let current_dir_path = match current_dir() {
+        Ok(path) => path,
+        Err(_) => return vec![],
+    };
+
+    let handle = tokio::task::spawn_blocking(move || {
+        let mut dir_list: Vec<FDir> = Vec::new();
+        let current_dir = match fs::read_dir(current_dir_path) {
+            Ok(dir) => dir,
+            Err(_) => return vec![],
+        };
+        for item in current_dir {
+            match item {
+                Ok(temp_item) => {
+                    let name = match temp_item.file_name().into_string() {
+                        Ok(n) => n,
+                        Err(_) => continue,
+                    };
+                    let path = temp_item
+                        .path()
+                        .to_string_lossy()
+                        .to_string()
+                        .replace("\\", "/");
+                    let file_ext = ".".to_string().to_owned()
+                        + path
+                            .split(".")
+                            .last()
+                            .unwrap_or("");
+                    let size;
+                    let file_date: String;
+
+                    match temp_item.metadata() {
+                        Ok(metadata) => {
+                            size = metadata.len();
+                            file_date = metadata.modified()
+                                .map(|t| {
+                                    let dt: DateTime<Local> = t.into();
+                                    dt.to_string()
+                                })
+                                .unwrap_or_else(|_| "-".into());
+                        }
+                        Err(_) => {
+                            size = 0;
+                            file_date = "-".into();
+                        }
                     }
-                    Err(_) => size = 0,
+
+                    let is_dir_int = if temp_item.path().is_dir() {
+                        1
+                    } else {
+                        0
+                    };
+                    dir_list.push(FDir {
+                        name,
+                        is_dir: is_dir_int,
+                        path,
+                        extension: file_ext,
+                        size: size.to_string(),
+                        last_modified: file_date.split(".").next().unwrap_or("-").into(),
+                    });
                 }
-                match file_data {
-                    Ok(file_data) => {
-                        let dt: DateTime<Local> = file_data.modified().unwrap().into();
-                        file_date = dt.to_string();
-                    }
-                    Err(_) => file_date = "-".into(),
-                }
-                let is_dir_int = match temp_item.path().is_dir() {
-                    true => 1,
-                    false => 0,
-                };
-                dir_list.push(FDir {
-                    name: String::from(name),
-                    is_dir: is_dir_int,
-                    path: String::from(path),
-                    extension: file_ext,
-                    size: size.to_string(),
-                    last_modified: file_date.split(".").next().unwrap().into(),
-                });
+                _ => continue,
             }
-            _ => continue,
         }
-    }
-    // Standard sort them by name
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    dir_list
+        dir_list.sort_by_key(|a| a.name.to_lowercase());
+        dir_list
+    });
+
+    handle.await.unwrap_or_default()
 }
 
 async fn push_history(path: String) {
@@ -783,6 +793,16 @@ async fn open_dir(path: String) -> bool {
 
 #[tauri::command]
 async fn go_back(is_dual_pane: bool) {
+    if !is_dual_pane {
+        let path_history = (PATH_HISTORY.lock().await).clone();
+        if path_history.len() > 1 {
+            let last_path = path_history[path_history.len() - 2].clone();
+            let _ = set_dir(last_path.into());
+            pop_history().await;
+            return;
+        }
+    }
+
     if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
         if let Some((conn_name, remote_path)) = parse_ftp_url(ftp_path) {
             let clean_remote = remote_path.trim_end_matches('/');
@@ -794,18 +814,16 @@ async fn go_back(is_dual_pane: bool) {
                     format!("ftp://{}{}", conn_name, parent_remote)
                 };
                 let _ = set_dir(parent_path);
+            } else {
+                *CURRENT_DIR_OVERRIDE.lock().unwrap() = None;
+                if let Some(home) = home_dir() {
+                    let _ = set_dir(home.to_string_lossy().to_string());
+                }
             }
         }
         return;
     }
-    let path_history = (PATH_HISTORY.lock().await).clone();
-    if path_history.len() > 1 && !is_dual_pane {
-        let last_path = path_history[path_history.len() - 2].clone();
-        let _ = set_dir(last_path.into());
-        pop_history().await;
-    } else {
-        let _ = set_dir("./../".into());
-    }
+    let _ = set_dir("./../".into());
 }
 
 #[tauri::command]
@@ -1929,6 +1947,7 @@ async fn find_duplicates(path: String, max_depth: Option<usize>) -> Result<Vec<D
     use std::hash::{Hash, Hasher};
     use std::collections::hash_map::DefaultHasher;
     use std::path::PathBuf;
+    use rayon::prelude::*;
 
     IS_DUP_FIND_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
 
@@ -1968,6 +1987,21 @@ async fn find_duplicates(path: String, max_depth: Option<usize>) -> Result<Vec<D
         .filter(|(_, files)| files.len() > 1)
         .collect();
 
+    fn calculate_partial_file_hash(file_path: &std::path::Path) -> std::io::Result<u64> {
+        let file = File::open(file_path)?;
+        let mut reader = BufReader::new(file);
+        let mut hasher = DefaultHasher::new();
+        let mut buffer = [0; 16384]; // 16 KB partial buffer
+        
+        if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "Search cancelled"));
+        }
+        let count = reader.read(&mut buffer)?;
+        buffer[..count].hash(&mut hasher);
+        
+        Ok(hasher.finish())
+    }
+
     fn calculate_file_hash(file_path: &std::path::Path) -> std::io::Result<u64> {
         let file = File::open(file_path)?;
         let mut reader = BufReader::new(file);
@@ -1994,13 +2028,48 @@ async fn find_duplicates(path: String, max_depth: Option<usize>) -> Result<Vec<D
         if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
             return Err("Search cancelled".to_string());
         }
-        let mut hash_groups: HashMap<u64, Vec<DuplicateFile>> = HashMap::new();
-        
-        for file_path in files {
+
+        // Phase 1: Compute partial hashes in parallel using Rayon
+        let hashed_partials: Vec<(PathBuf, u64)> = files
+            .into_par_iter()
+            .filter_map(|file_path| {
+                if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                    return None;
+                }
+                calculate_partial_file_hash(&file_path)
+                    .ok()
+                    .map(|hash| (file_path, hash))
+            })
+            .collect();
+
+        let mut partial_groups: HashMap<u64, Vec<PathBuf>> = HashMap::new();
+        for (file_path, hash) in hashed_partials {
+            partial_groups.entry(hash).or_default().push(file_path);
+        }
+
+        // Phase 2: Compute full hashes only for partial match candidates in parallel
+        for (_, p_files) in partial_groups {
+            if p_files.len() <= 1 {
+                continue;
+            }
             if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
                 return Err("Search cancelled".to_string());
             }
-            if let Ok(hash) = calculate_file_hash(&file_path) {
+
+            let full_hashed_files: Vec<(PathBuf, u64)> = p_files
+                .into_par_iter()
+                .filter_map(|file_path| {
+                    if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                        return None;
+                    }
+                    calculate_file_hash(&file_path)
+                        .ok()
+                        .map(|hash| (file_path, hash))
+                })
+                .collect();
+
+            let mut hash_groups: HashMap<u64, Vec<DuplicateFile>> = HashMap::new();
+            for (file_path, hash) in full_hashed_files {
                 let path_str = file_path.to_string_lossy().to_string().replace("\\", "/");
                 let modified = std::fs::metadata(&file_path)
                     .and_then(|meta| meta.modified())
@@ -2011,15 +2080,15 @@ async fn find_duplicates(path: String, max_depth: Option<usize>) -> Result<Vec<D
                     modified,
                 });
             }
-        }
-        
-        for (hash, dup_files) in hash_groups {
-            if dup_files.len() > 1 {
-                duplicates.push(DuplicateGroup {
-                    size,
-                    hash: format!("{:016x}", hash),
-                    files: dup_files,
-                });
+
+            for (hash, dup_files) in hash_groups {
+                if dup_files.len() > 1 {
+                    duplicates.push(DuplicateGroup {
+                        size,
+                        hash: format!("{:016x}", hash),
+                        files: dup_files,
+                    });
+                }
             }
         }
     }

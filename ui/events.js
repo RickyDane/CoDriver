@@ -29,7 +29,7 @@ listen("set-filesearch-currentfile", (event) => {
   }
 });
 
-listen("set-item-image", (event) => {
+listen("set-item-image", async (event) => {
   let payload = JSON.parse(event.payload);
 
   let base64 = payload.data;
@@ -47,10 +47,10 @@ listen("set-item-image", (event) => {
     loader.style.display = "none";
   }
 
-  writeToLocalStorage(imageUrl, base64);
+  await writeToLocalStorage(imageUrl, base64);
 });
 
-listen("set_default_image", (event) => {
+listen("set_default_image", async (event) => {
   let payload = event.payload;
   let imageId = payload[0];
   let image = payload[1];
@@ -64,7 +64,7 @@ listen("set_default_image", (event) => {
     loader.style.display = "none";
   }
 
-  writeToLocalStorage(image, image);
+  await writeToLocalStorage(image, image);
 });
 
 listen("try_load_cached_image", async (event) => {

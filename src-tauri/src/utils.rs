@@ -508,6 +508,7 @@ impl DirWalker {
         let app_window = WINDOW.get().unwrap();
         // let reg_exp: Regex;
         let mut count_of_checked_items: usize = 0;
+        let mut last_emit = std::time::Instant::now();
 
         for entry in jwalk::WalkDir::new(path)
             .parallelism(jwalk::Parallelism::RayonNewPool(num_cpus::get() - 1))
@@ -574,19 +575,27 @@ impl DirWalker {
 
             let file_metadata = fs::metadata(&path);
             if file_metadata.is_err() {
-                return;
+                continue;
             }
+            let metadata = file_metadata.unwrap();
+            let size = metadata.len();
 
-            let last_mod: DateTime<Local> = file_metadata.unwrap().modified().unwrap().into();
+            let last_mod: DateTime<Local> = metadata.modified()
+                .map(|t| t.into())
+                .unwrap_or_else(|_| Local::now());
 
-            let _ = app_window.emit(
-                "set-filesearch-currentfile",
-                format!(
-                    "{} ({})",
-                    name,
-                    format_bytes(fs::metadata(&path).unwrap().len())
-                ),
-            );
+            if last_emit.elapsed().as_millis() >= 50 {
+                last_emit = std::time::Instant::now();
+                let _ = app_window.emit(
+                    "set-filesearch-currentfile",
+                    format!(
+                        "{} ({})",
+                        name,
+                        format_bytes(size)
+                    ),
+                );
+                let _ = app_window.emit("set-filesearch-count", **count_called_back);
+            }
 
             let is_with_exts = !self.exts.is_empty() && self.exts.contains(&item_ext);
 
@@ -606,7 +615,7 @@ impl DirWalker {
                             is_file: path.is_file(),
                             extension: item_ext,
                             last_modified: format!("{:?}", last_mod),
-                            size: fs::metadata(&path).unwrap().len(),
+                            size,
                         });
                         **count_called_back += 1;
                     }
@@ -620,14 +629,13 @@ impl DirWalker {
                         is_file: path.is_file(),
                         extension: item_ext,
                         last_modified: format!("{:?}", last_mod),
-                        size: fs::metadata(&path).unwrap().len(),
+                        size,
                     });
                     **count_called_back += 1;
                 }
             }
-
-            let _ = app_window.emit("set-filesearch-count", **count_called_back);
         }
+        let _ = app_window.emit("set-filesearch-count", **count_called_back);
     }
 
     pub fn depth(&mut self, depth: u32) -> &mut Self {

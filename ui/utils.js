@@ -5,6 +5,59 @@ let ArrSelectedItems = [];
 let ArrCopyItems = [];
 let Applications = [];
 
+/* IndexedDB caching system */
+const DB_NAME = "CoDriverCache";
+const DB_VERSION = 1;
+const STORE_NAME = "thumbnails";
+let dbPromise = null;
+
+function getDB() {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = (e) => resolve(e.target.result);
+    request.onerror = (e) => reject(e.target.error);
+  });
+  return dbPromise;
+}
+
+async function getCachedImage(key) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, "readonly");
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get(key);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error("IndexedDB read error:", error);
+    return null;
+  }
+}
+
+async function cacheImage(key, value) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, "readwrite");
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.put(value, key);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error("IndexedDB write error:", error);
+  }
+}
+
 /* Drag and drop files into file explorer */
 // TODO: Make it simpler and not so shitty
 listen("tauri://file-drop", async (event) => {
@@ -640,8 +693,8 @@ function finishProgressBar(time = 0) {
   }, 1500);
 }
 
-function tryLoadCachedImage(imageId, imageType, imageUrl) {
-  let data = readFromLocalStorage(imageUrl);
+async function tryLoadCachedImage(imageId, imageType, imageUrl) {
+  let data = await getCachedImage(imageUrl);
 
   let element = document.getElementById(imageId);
   let loader = document.querySelector(".preloader-" + imageId);
@@ -659,7 +712,7 @@ function tryLoadCachedImage(imageId, imageType, imageUrl) {
   }
 }
 
-function setItemImage(base64, imageId, imageUrl) {
+async function setItemImage(base64, imageId, imageUrl) {
   let element = document.getElementById(imageId);
   let loader = document.querySelector(".preloader-" + imageId);
 
@@ -671,5 +724,5 @@ function setItemImage(base64, imageId, imageUrl) {
     loader.style.display = "none";
   }
 
-  writeToLocalStorage(imageUrl, base64);
+  await cacheImage(imageUrl, base64);
 }
