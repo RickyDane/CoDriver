@@ -280,7 +280,7 @@ class CDContextMenu {
 
         button.onmouseenter = (e) => {
           if (isSubmenu) {
-            this.showSubMenuItems(item, e);
+            this.showSubMenuItems(item, button);
           } else {
             this.hideSubMenu();
           }
@@ -298,7 +298,7 @@ class CDContextMenu {
     return this.items;
   }
 
-  showSubMenuItems(item, e) {
+  showSubMenuItems(item, button) {
     this.subMenu.innerHTML = "";
 
     if (item.label === "Open with") {
@@ -342,9 +342,30 @@ class CDContextMenu {
       });
     }
 
-    this.subMenu.style.left = `${e.clientX}px`;
-    this.subMenu.style.top = `${e.clientY}px`;
     this.subMenu.style.display = "block";
+
+    const buttonRect = button.getBoundingClientRect();
+    const menuRect = this.menu.getBoundingClientRect();
+    const submenuRect = this.subMenu.getBoundingClientRect();
+
+    let left = menuRect.right;
+    if (left + submenuRect.width > window.innerWidth) {
+      left = menuRect.left - submenuRect.width;
+    }
+    if (left < 0) {
+      left = 10;
+    }
+
+    let top = buttonRect.top;
+    if (top + submenuRect.height > window.innerHeight) {
+      top = window.innerHeight - submenuRect.height - 10;
+    }
+    if (top < 0) {
+      top = 10;
+    }
+
+    this.subMenu.style.left = `${left}px`;
+    this.subMenu.style.top = `${top}px`;
   }
 
   hideSubMenu() {

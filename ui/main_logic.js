@@ -167,6 +167,8 @@ let ArrFavorites = [];
 let IsFilteredBySize = false;
 let IsFilteredByDate = false;
 let IsFilteredByName = false;
+let CurrentSortMethod = "name";
+let CurrentSortAscending = true;
 let SelectedItemToOpen = null;
 let DefaultFileIcon = "";
 let DefaultFolderIcon = "";
@@ -1012,7 +1014,14 @@ document
   });
 
 // Main function to handle directory visualization
-async function showItems(items, dualPaneSide = "", millerCol = 1) {
+async function showItems(items, dualPaneSide = "", millerCol = 1, isFromSort = false) {
+  if (!isFromSort) {
+    CurrentSortMethod = "name";
+    CurrentSortAscending = true;
+    IsFilteredBySize = false;
+    IsFilteredByDate = false;
+    IsFilteredByName = true;
+  }
   unSelectAllItems();
   await cancelSearch(); // Cancel any ongoing search
 
@@ -1057,6 +1066,10 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
   } else {
     DirectoryList.className = "directory-list";
   }
+
+  // Unify styles based on the active ViewMode
+  applyDirectoryListStyles(DirectoryList, ViewMode);
+
   if (IsShowHiddenFiles === false) {
     items = items.filter(
       (str) =>
@@ -1104,9 +1117,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         `;
       itemButton.className = "item-button directory-entry";
       itemLink.append(itemButton);
-      DirectoryList.style.gridTemplateColumns =
-        "repeat(auto-fill, minmax(80px, 1fr))";
-      DirectoryList.style.rowGap = "15px";
     } else if (ViewMode == "column") {
       var itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
@@ -1118,9 +1128,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: fit-content; justify-content: flex-end; padding-right: 5px;">
           <p class="item-button-list-text" style="width: 100%; text-align: right;">${item.last_modified}</p>
           <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
-       			<span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
-       			<i class="fa-solid fa-cube"></i>
-      		</div>
+               <span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
+               <i class="fa-solid fa-cube"></i>
+          </div>
         </span>
         `;
       if (dualPaneSide != null && dualPaneSide != "") {
@@ -1129,8 +1139,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         itemButtonList.className = "item-button-list directory-entry";
       }
       itemLink.append(itemButtonList);
-      DirectoryList.style.gridTemplateColumns = "unset";
-      DirectoryList.style.rowGap = "2px";
     } else if (ViewMode == "miller") {
       var itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
@@ -1146,8 +1154,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         itemButtonList.className = "item-button-list directory-entry";
       }
       itemLink.append(itemButtonList);
-      DirectoryList.style.gridTemplateColumns = "unset";
-      DirectoryList.style.rowGap = "1px";
     }
     // DirectoryList.append(itemLink);
     docFragment.append(itemLink);
@@ -1331,11 +1337,8 @@ async function addSingleItem(
       `;
     itemButton.className = "item-button directory-entry";
     itemLink.append(itemButton);
-    $(".directory-list").css(
-      "gridTemplateColumns",
-      "repeat(auto-fill, minmax(80px, 1fr))",
-    );
-    $(".directory-list").css("rowGap", "15px");
+    const dirList = document.querySelector(".directory-list");
+    if (dirList) applyDirectoryListStyles(dirList, "wrap");
   } else if (ViewMode == "column") {
     var itemButtonList = document.createElement("div");
     itemButtonList.innerHTML = `
@@ -1358,11 +1361,11 @@ async function addSingleItem(
       itemButtonList.className = "item-button-list directory-entry";
     }
     itemLink.append(itemButtonList);
-    $(".directory-list").css("gridTemplateColumns", "unset");
-    $(".directory-list").css("rowGap", "2px");
+    const dirList = document.querySelector(".directory-list");
+    if (dirList) applyDirectoryListStyles(dirList, "column");
   } else if (ViewMode == "miller") {
-    $(".directory-list").style.gridTemplateColumns = "unset";
-    $(".directory-list").style.rowGap = "1px";
+    const dirList = document.querySelector(".directory-list");
+    if (dirList) applyDirectoryListStyles(dirList, "miller");
   }
   // Start dragging item
   itemLink.ondragstart = (e) => {
@@ -1571,9 +1574,9 @@ async function deleteItems() {
       for (let i = 0; i < arr.length; i++) {
         let actFileName = arr[i];
         await invoke("delete_item", { actFileName });
+        handleDynamicRemove(actFileName);
       }
       IsCopyToCut = false;
-      await listDirectories();
       ArrSelectedItems = [];
       showToast("Deletion of items is done", ToastType.INFO);
     } finally {
@@ -3175,7 +3178,6 @@ async function createFile(fileName) {
 async function renameElement(path, newName) {
   await invoke("rename_element", { path, newName, appWindow });
   IsInputFocused = false;
-  await listDirectories();
   scheduleDiskUsageRefresh();
 }
 
@@ -3373,6 +3375,7 @@ async function applyPlatformFeatures() {
     headerNav.style.boxShadow = "none";
     $(".site-nav-bar").css("padding-top", "50px");
     $(".file-searchbar-shortcut").text("⌘F");
+    $(".ftp-keychain-hint").css("display", "flex");
   } else {
     appWindow.setDecorations(false);
     $(".windows-linux-titlebar-buttons").css("display", "flex");
@@ -3514,6 +3517,9 @@ async function listDirectories(fromDualPaneCopy = false) {
     }
     goUp(false, true);
   } else {
+    // Sync current directory state from the backend before showing items
+    const backendDir = await getCurrentDir();
+    await setCurrentDir(backendDir, "", false);
     await showItems(lsItems, "", CurrentMillerCol);
   }
   setTimeout(() => {
@@ -4483,8 +4489,7 @@ async function switchView(newMode = null) {
 
     if (ViewMode == "column") {
       document.querySelectorAll(".directory-list").forEach((list) => {
-        list.style.gridTemplateColumns = "unset";
-        list.style.rowGap = "2px";
+        applyDirectoryListStyles(list, "column");
       });
       document
         .querySelectorAll(".item-button")
@@ -4499,6 +4504,9 @@ async function switchView(newMode = null) {
       $(".file-searchbar").css("opacity", "1");
       $(".file-searchbar").css("pointer-events", "all");
     } else if (ViewMode == "miller") {
+      document.querySelectorAll(".directory-list").forEach((list) => {
+        applyDirectoryListStyles(list, "miller");
+      });
       document.querySelector(".list-column-header").style.display = "none";
       document.querySelector(".miller-container").style.display = "flex";
       document.querySelector(".miller-column").style.display = "inline";
@@ -4510,13 +4518,7 @@ async function switchView(newMode = null) {
       // wrap (Grid)
       document.querySelector(".explorer-container").style.width = "100%";
       document.querySelectorAll(".directory-list").forEach((list) => {
-        if (IsShowDisks == false) {
-          list.style.gridTemplateColumns =
-            "repeat(auto-fill, minmax(80px, 1fr))";
-          list.style.rowGap = "15px";
-        } else {
-          list.style.rowGap = "15px";
-        }
+        applyDirectoryListStyles(list, "wrap");
       });
       document.querySelector(".miller-container").style.display = "none";
       document.querySelector(".explorer-container").style.display = "block";
@@ -5397,7 +5399,6 @@ async function renameItemsWithFormat(
     nDigits,
     ext,
   });
-  await listDirectories();
   scheduleDiskUsageRefresh();
 }
 
@@ -5792,11 +5793,15 @@ async function sortItems(sortMethod) {
           return parseInt(a.size) - parseInt(b.size);
         });
         IsFilteredBySize = false;
+        CurrentSortMethod = "size";
+        CurrentSortAscending = true;
       } else {
         arr.sort((a, b) => {
           return parseInt(b.size) - parseInt(a.size);
         });
         IsFilteredBySize = true;
+        CurrentSortMethod = "size";
+        CurrentSortAscending = false;
       }
     }
     if (sortMethod == "name") {
@@ -5807,11 +5812,15 @@ async function sortItems(sortMethod) {
           return b.name.localeCompare(a.name);
         });
         IsFilteredByName = false;
+        CurrentSortMethod = "name";
+        CurrentSortAscending = false;
       } else {
         arr.sort((a, b) => {
           return a.name.localeCompare(b.name);
         });
         IsFilteredByName = true;
+        CurrentSortMethod = "name";
+        CurrentSortAscending = true;
       }
     }
     if (sortMethod == "date") {
@@ -5822,14 +5831,18 @@ async function sortItems(sortMethod) {
           return new Date(a.last_modified) - new Date(b.last_modified);
         });
         IsFilteredByDate = false;
+        CurrentSortMethod = "date";
+        CurrentSortAscending = true;
       } else {
         arr.sort((a, b) => {
           return new Date(b.last_modified) - new Date(a.last_modified);
         });
         IsFilteredByDate = true;
+        CurrentSortMethod = "date";
+        CurrentSortAscending = false;
       }
     }
-    await showItems(arr);
+    await showItems(arr, SelectedItemPaneSide || "", CurrentMillerCol || 1, true);
   }
 }
 
@@ -7707,3 +7720,355 @@ async function showDuplicateFinderPopup(path) {
     }
   });
 })();
+
+// Helper functions for dynamic refreshing
+function applyDirectoryListStyles(element, mode) {
+  if (!element) return;
+  if (mode === "wrap") {
+    element.style.display = "grid";
+    element.style.gridTemplateColumns = "repeat(auto-fill, minmax(90px, 1fr))";
+    element.style.columnGap = "15px";
+    element.style.rowGap = "15px";
+  } else if (mode === "column") {
+    element.style.display = "grid";
+    element.style.gridTemplateColumns = "unset";
+    element.style.columnGap = "unset";
+    element.style.rowGap = "2px";
+  } else if (mode === "miller") {
+    element.style.display = "grid";
+    element.style.gridTemplateColumns = "unset";
+    element.style.columnGap = "unset";
+    element.style.rowGap = "1px";
+  }
+}
+
+function getParentPath(path) {
+  const normalized = path.replace(/\\/g, '/');
+  const parts = normalized.split('/');
+  if (parts.length <= 1) return normalized;
+  parts.pop();
+  return parts.join('/') || '/';
+}
+
+function getTargetContainers(parentPath) {
+  const normParent = parentPath.replace(/\\/g, '/').replace(/\/$/, '') || '/';
+  let containers = [];
+  
+  if (IsDualPaneEnabled) {
+    const normLeft = (LeftDualPanePath || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
+    const normRight = (RightDualPanePath || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
+    
+    if (normLeft === normParent && LeftPaneItemCollection) {
+      containers.push({ element: LeftPaneItemCollection, side: 'left', mode: 'column' });
+    }
+    if (normRight === normParent && RightPaneItemCollection) {
+      containers.push({ element: RightPaneItemCollection, side: 'right', mode: 'column' });
+    }
+  } else if (ViewMode === 'miller') {
+    document.querySelectorAll('.miller-column').forEach(col => {
+      const colPath = (col.getAttribute('miller-col-path') || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
+      if (colPath === normParent) {
+        const dirList = col.querySelector('.directory-list, .directory-list-dual-pane') || col;
+        const colClass = col.className.split(' ').find(c => c.startsWith('miller-col-'));
+        const colNum = colClass ? parseInt(colClass.replace('miller-col-', '')) : 1;
+        containers.push({ element: dirList, side: '', mode: 'miller', colNum: colNum });
+      }
+    });
+  } else {
+    const normCurrent = (CurrentDir || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
+    if (normCurrent === normParent) {
+      const dirList = document.querySelector('.explorer-container:not(.miller-column) > .directory-list') || 
+                      document.querySelector('.explorer-container:not(.miller-column) > .directory-list-dual-pane') ||
+                      document.querySelector('.directory-list');
+      if (dirList) {
+        containers.push({ element: dirList, side: '', mode: ViewMode });
+      }
+    }
+  }
+  return containers;
+}
+
+function createItemInnerHtml(item, itemIconId, viewMode, dualPaneSide) {
+  let fileIcon = "resources/file-icon.png";
+  let iconSize = "56px";
+  fileIcon = getIconForFile(item, 1);
+  
+  if (viewMode === "wrap") {
+    return `
+      <div class="item-button directory-entry">
+        <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+        <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="${iconSize}" height="${iconSize}" loading="lazy" />
+        <p class="item-button-text" style="text-align: left;">${item.name}</p>
+      </div>
+    `;
+  } else if (viewMode === "column") {
+    const className = (dualPaneSide != null && dualPaneSide !== "") ? "directory-entry dual-pane-list-item" : "item-button-list directory-entry";
+    return `
+      <div class="${className}">
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; min-width: 0; width: fit-content; max-width: 500px; overflow: hidden;">
+          <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+          <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
+          <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+        </span>
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: fit-content; justify-content: flex-end; padding-right: 5px;">
+          <p class="item-button-list-text" style="width: 100%; text-align: right;">${item.last_modified}</p>
+          <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
+               <span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
+               <i class="fa-solid fa-cube"></i>
+          </div>
+        </span>
+      </div>
+    `;
+  } else if (viewMode === "miller") {
+    const className = (dualPaneSide != null && dualPaneSide !== "") ? "directory-entry dual-pane-list-item" : "item-button-list directory-entry";
+    return `
+      <div class="${className}">
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
+          <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+          <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="24px" height="24px" loading="lazy"/>
+          <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+        </span>
+      </div>
+    `;
+  }
+  return "";
+}
+
+function getFDirFromElement(el) {
+  return {
+    name: el.getAttribute("itemname") || "",
+    size: el.getAttribute("itemrawsize") || "0",
+    last_modified: el.getAttribute("itemmodified") || "",
+    path: el.getAttribute("itempath") || "",
+    extension: el.getAttribute("itemext") || "",
+    is_dir: el.getAttribute("itemisdir") === "1"
+  };
+}
+
+function compareItems(itemA, itemB, sortBy, ascending) {
+  if (sortBy === 'size') {
+    const sizeA = parseInt(itemA.size) || 0;
+    const sizeB = parseInt(itemB.size) || 0;
+    return ascending ? (sizeA - sizeB) : (sizeB - sizeA);
+  } else if (sortBy === 'date') {
+    const dateA = new Date(itemA.last_modified);
+    const dateB = new Date(itemB.last_modified);
+    return ascending ? (dateA - dateB) : (dateB - dateA);
+  } else {
+    return ascending ? itemA.name.localeCompare(itemB.name) : itemB.name.localeCompare(itemA.name);
+  }
+}
+
+function findInsertionIndex(container, fileInfo) {
+  const children = Array.from(container.children);
+  if (children.length === 0) return 0;
+  
+  let low = 0;
+  let high = children.length;
+  
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    const midInfo = getFDirFromElement(children[mid]);
+    const cmp = compareItems(fileInfo, midInfo, CurrentSortMethod, CurrentSortAscending);
+    
+    if (cmp < 0) {
+      high = mid;
+    } else {
+      low = mid + 1;
+    }
+  }
+  return low;
+}
+
+async function handleDynamicCreate(path) {
+  try {
+    const parentPath = getParentPath(path);
+    const targets = getTargetContainers(parentPath);
+    if (targets.length === 0) return;
+    
+    let fileInfo;
+    try {
+      fileInfo = await invoke("get_single_item_info", { path });
+    } catch (e) {
+      const errStr = String(e);
+      if (errStr.includes("No such file") || errStr.includes("os error 2")) {
+        return; // Silent ignore, file was deleted before we could read its metadata
+      }
+      throw e;
+    }
+    if (!fileInfo) return;
+    
+    // Normalize extension to have a leading dot if it doesn't
+    let ext = fileInfo.extension;
+    if (ext && !ext.startsWith('.')) {
+      ext = '.' + ext;
+    }
+    fileInfo.extension = ext;
+    
+    if (IsShowHiddenFiles === false) {
+      if (fileInfo.name.startsWith(".") || fileInfo.name.toLowerCase().includes("desktop.ini")) {
+        return;
+      }
+    }
+    if (fileInfo.name.toLowerCase().includes("ntuser")) {
+      return;
+    }
+    
+    for (const target of targets) {
+      const existing = target.element.querySelector(`[itempath="${path}"]`);
+      if (existing) continue;
+      
+      applyDirectoryListStyles(target.element, target.mode);
+      
+      const itemLink = document.createElement("button");
+      const itemIconId = crypto.randomUUID();
+      itemLink.setAttribute("onclick", "interactWithItem(this, '" + target.side + "', null, event)");
+      itemLink.setAttribute("itemiconid", itemIconId);
+      itemLink.setAttribute("itempath", fileInfo.path);
+      itemLink.setAttribute("itempaneside", target.side);
+      itemLink.setAttribute("itemisdir", fileInfo.is_dir ? 1 : 0);
+      itemLink.setAttribute("itemext", fileInfo.extension);
+      itemLink.setAttribute("itemicon", getIconForFile(fileInfo, 1));
+      itemLink.setAttribute("itemname", fileInfo.name);
+      itemLink.setAttribute("itemsize", formatBytes(fileInfo.size));
+      itemLink.setAttribute("itemrawsize", fileInfo.size);
+      itemLink.setAttribute("itemmodified", fileInfo.last_modified);
+      itemLink.setAttribute("draggable", true);
+      itemLink.setAttribute("itemformillercol", target.colNum ? (parseInt(target.colNum) + 1) : 2);
+      itemLink.setAttribute("itemisselected", false);
+      itemLink.className = "item-link directory-entry";
+      
+      itemLink.innerHTML = createItemInnerHtml(fileInfo, itemIconId, target.mode, target.side);
+      
+      itemLink.ondragstart = (e) => {
+        handleDragStart(e, itemLink);
+      };
+      itemLink.addEventListener("mousedown", (e) => {
+        if (e.button === 0 && ds) {
+          ds.break();
+        }
+      });
+      itemLink.addEventListener("dragover", (e) => {
+        MousePos = [e.clientX, e.clientY];
+        if (itemLink.getAttribute("itemisdir") == "1") {
+          if (!ArrSelectedItems.includes(itemLink)) {
+            itemLink.style.border = "1px solid var(--selectColor2)";
+            itemLink.style.backgroundColor = "var(--selectColor3)";
+            itemLink.style.scale = "1";
+            DraggedOverElement = itemLink;
+          }
+        }
+      });
+      itemLink.addEventListener("dragleave", () => {
+        itemLink.style.border = "1px solid transparent";
+        itemLink.style.backgroundColor = "1px solid var(--transparentColor)";
+        itemLink.style.scale = "1";
+      });
+      itemLink.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        cdCtMenu.setSelectedItem(itemLink, e);
+        cdCtMenu.show(e);
+      });
+      
+      const insertionIndex = findInsertionIndex(target.element, fileInfo);
+      if (insertionIndex >= target.element.children.length) {
+        target.element.appendChild(itemLink);
+      } else {
+        target.element.insertBefore(itemLink, target.element.children[insertionIndex]);
+      }
+      
+      let idx = 0;
+      Array.from(target.element.children).forEach(child => {
+        child.setAttribute("itemindex", idx++);
+      });
+      
+      if (ArrDirectoryItems.indexOf(itemLink) === -1) {
+        ArrDirectoryItems.push(itemLink);
+      }
+      
+      arrLoadItemImage([itemLink], true);
+    }
+    
+    ds.setSettings({
+      selectables: document.querySelectorAll(".item-link"),
+    });
+  } catch (error) {
+    console.error("Error handling dynamic create:", error);
+  }
+}
+
+function handleDynamicRemove(path) {
+  try {
+    const parentPath = getParentPath(path);
+    const targets = getTargetContainers(parentPath);
+    if (targets.length === 0) return;
+    
+    for (const target of targets) {
+      const existing = target.element.querySelector(`[itempath="${path}"]`);
+      if (existing) {
+        existing.remove();
+        
+        let idx = 0;
+        Array.from(target.element.children).forEach(child => {
+          child.setAttribute("itemindex", idx++);
+        });
+        
+        ArrDirectoryItems = ArrDirectoryItems.filter(item => item !== existing);
+      }
+    }
+    
+    ds.setSettings({
+      selectables: document.querySelectorAll(".item-link"),
+    });
+  } catch (error) {
+    console.error("Error handling dynamic remove:", error);
+  }
+}
+
+async function handleDynamicUpdate(path) {
+  try {
+    const parentPath = getParentPath(path);
+    const targets = getTargetContainers(parentPath);
+    if (targets.length === 0) return;
+    
+    let fileInfo;
+    try {
+      fileInfo = await invoke("get_single_item_info", { path });
+    } catch (e) {
+      const errStr = String(e);
+      if (errStr.includes("No such file") || errStr.includes("os error 2")) {
+        return; // Silent ignore, file was deleted before we could read its metadata
+      }
+      throw e;
+    }
+    if (!fileInfo) return;
+    
+    // Normalize extension to have a leading dot if it doesn't
+    let ext = fileInfo.extension;
+    if (ext && !ext.startsWith('.')) {
+      ext = '.' + ext;
+    }
+    fileInfo.extension = ext;
+    
+    for (const target of targets) {
+      const existing = target.element.querySelector(`[itempath="${path}"]`);
+      if (existing) {
+        existing.setAttribute("itemsize", formatBytes(fileInfo.size));
+        existing.setAttribute("itemrawsize", fileInfo.size);
+        existing.setAttribute("itemmodified", fileInfo.last_modified);
+        existing.setAttribute("itemext", fileInfo.extension);
+        existing.setAttribute("itemicon", getIconForFile(fileInfo, 1));
+        existing.setAttribute("itemisdir", fileInfo.is_dir ? 1 : 0);
+        
+        const itemIconId = existing.getAttribute("itemiconid") || crypto.randomUUID();
+        existing.setAttribute("itemiconid", itemIconId);
+        existing.innerHTML = createItemInnerHtml(fileInfo, itemIconId, target.mode, target.side);
+        
+        arrLoadItemImage([existing], true);
+      }
+    }
+  } catch (error) {
+    console.error("Error handling dynamic update:", error);
+  }
+}

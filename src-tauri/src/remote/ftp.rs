@@ -43,6 +43,73 @@ pub fn load_saved_connections() -> HashMap<String, FtpConfig> {
     HashMap::new()
 }
 
+pub fn get_keychain_password(account: &str) -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let output = std::process::Command::new("security")
+            .args(&["find-generic-password", "-a", account, "-s", "CoDriver-FTP", "-w"])
+            .output()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if output.status.success() {
+            let password = String::from_utf8(output.stdout)
+                .map_err(|e| format!("Failed to parse password: {}", e))?;
+            Ok(password.trim_end_matches('\n').trim_end_matches('\r').to_string())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("Keychain lookup failed: {}", stderr))
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = account;
+        Err("Keychain not supported on this platform".to_string())
+    }
+}
+
+pub fn set_keychain_password(account: &str, password: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let status = std::process::Command::new("security")
+            .args(&["add-generic-password", "-a", account, "-s", "CoDriver-FTP", "-w", password, "-U"])
+            .status()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if status.success() {
+            Ok(())
+        } else {
+            Err("Failed to save password to macOS Keychain".to_string())
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = account;
+        let _ = password;
+        Ok(())
+    }
+}
+
+pub fn delete_keychain_password(account: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let status = std::process::Command::new("security")
+            .args(&["delete-generic-password", "-a", account, "-s", "CoDriver-FTP"])
+            .status()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if status.success() {
+            Ok(())
+        } else {
+            Err("Failed to delete password from macOS Keychain".to_string())
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = account;
+        Ok(())
+    }
+}
+
 pub fn save_connections(conns: &HashMap<String, FtpConfig>) -> Result<(), String> {
     if let Some(path) = get_ftp_connections_file_path() {
         if let Some(parent) = path.parent() {
@@ -50,7 +117,23 @@ pub fn save_connections(conns: &HashMap<String, FtpConfig>) -> Result<(), String
         }
         let file = File::create(path).map_err(|e| format!("Failed to create connections file: {}", e))?;
         let writer = std::io::BufWriter::new(file);
-        serde_json::to_writer_pretty(writer, conns)
+
+        #[cfg(target_os = "macos")]
+        let conns_to_save: HashMap<String, FtpConfig> = conns.iter().map(|(k, v)| {
+            let mut v_clone = v.clone();
+            if !v.password.is_empty() && v.password != "__keychain__" {
+                if let Err(e) = set_keychain_password(&v.name, &v.password) {
+                    eprintln!("Failed to save password to macOS Keychain: {}", e);
+                }
+            }
+            v_clone.password = "__keychain__".to_string();
+            (k.clone(), v_clone)
+        }).collect();
+
+        #[cfg(not(target_os = "macos"))]
+        let conns_to_save = conns;
+
+        serde_json::to_writer_pretty(writer, &conns_to_save)
             .map_err(|e| format!("Failed to write connections: {}", e))?;
         Ok(())
     } else {
@@ -101,7 +184,13 @@ pub fn get_ftp_client(config: &FtpConfig) -> Result<FtpStream, String> {
     
     let mut ftp_stream = ftp_stream.ok_or_else(|| format!("Failed to connect after retries: {}", last_err))?;
     
-    ftp_stream.login(username, &config.password)
+    let password = if config.password == "__keychain__" {
+        get_keychain_password(&config.name).unwrap_or_else(|_| "".to_string())
+    } else {
+        config.password.clone()
+    };
+
+    ftp_stream.login(username, &password)
         .map_err(|e| format!("Failed to login: {}", e))?;
     
     ftp_stream.set_mode(suppaftp::Mode::Passive);

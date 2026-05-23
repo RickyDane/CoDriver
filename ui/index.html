@@ -455,7 +455,7 @@
             </div>
 
             <!-- :ftp | FTP connection UI -->
-            <div class="ftp-connect-container props-card" style="display: none;">
+            <div class="ftp-connect-container props-card props-card--wide" style="display: none;">
                 <section class="props-card__hero">
                     <div class="props-card__thumb"><i class="fa-solid fa-server"></i></div>
                     <div class="props-card__heading">
@@ -540,6 +540,10 @@
                             <dt class="props-card__label"><i class="fa-solid fa-lock"></i>Password</dt>
                             <dd class="props-card__value">
                                 <input type="password" class="props-card__input ftp-password-input ftp-popup-input" placeholder="***************" required />
+                                <div class="ftp-keychain-hint" style="display: none;">
+                                    <i class="fa-solid fa-key"></i>
+                                    <span>passwords get saved to macOS keychain</span>
+                                </div>
                             </dd>
                         </div>
                         <!-- Row 6: Path -->

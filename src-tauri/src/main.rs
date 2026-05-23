@@ -2370,6 +2370,24 @@ async fn save_config(
     .unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+
+    let final_gemini_api_key = {
+        let clean_key = gemini_api_key.replace("\\", "");
+        #[cfg(target_os = "macos")]
+        {
+            if !clean_key.is_empty() && clean_key != "__keychain__" {
+                if let Err(e) = set_gemini_keychain_key(&clean_key) {
+                    eprintln!("Failed to save Gemini key to macOS Keychain: {}", e);
+                }
+            }
+            "__keychain__".to_string()
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            clean_key
+        }
+    };
+
     let app_config_json = AppConfig {
         view_mode: app_config["view_mode"].to_string().replace('"', ""),
         last_modified: chrono::offset::Local::now().to_string(),
@@ -2388,7 +2406,7 @@ async fn save_config(
         current_theme: current_theme.replace("\\", "/"),
         font_size,
         is_window_transparency: is_window_transparency.replace("\\", ""),
-        gemini_api_key: gemini_api_key.replace("\\", ""),
+        gemini_api_key: final_gemini_api_key,
         is_ai_enabled: is_ai_enabled.replace("\\", ""),
     };
     let config_dir = app_config_dir(&Config::default())
@@ -2768,6 +2786,50 @@ fn get_image_data(path: &str) -> Result<(String, String), String> {
     Ok((mime_type, img_base64))
 }
 
+pub fn get_gemini_keychain_key() -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let output = std::process::Command::new("security")
+            .args(&["find-generic-password", "-a", "API-Key", "-s", "CoDriver-Gemini", "-w"])
+            .output()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if output.status.success() {
+            let key = String::from_utf8(output.stdout)
+                .map_err(|e| format!("Failed to parse API key: {}", e))?;
+            Ok(key.trim_end_matches('\n').trim_end_matches('\r').to_string())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("Keychain lookup failed: {}", stderr))
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Keychain not supported on this platform".to_string())
+    }
+}
+
+pub fn set_gemini_keychain_key(key: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let status = std::process::Command::new("security")
+            .args(&["add-generic-password", "-a", "API-Key", "-s", "CoDriver-Gemini", "-w", key, "-U"])
+            .status()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if status.success() {
+            Ok(())
+        } else {
+            Err("Failed to save API key to macOS Keychain".to_string())
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = key;
+        Ok(())
+    }
+}
+
 async fn call_gemini_api(
     api_key: &str,
     model: &str,
@@ -2846,6 +2908,19 @@ async fn ai_upscale_image(
     output_path: String,
     creative: bool,
 ) -> Result<(), String> {
+    let resolved_api_key = if api_key == "__keychain__" || api_key.is_empty() {
+        #[cfg(target_os = "macos")]
+        {
+            get_gemini_keychain_key().unwrap_or(api_key)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            api_key
+        }
+    } else {
+        api_key
+    };
+
     let (mime_type, img_base64) = get_image_data(&from_path)?;
 
     // 1. Call Gemini Flash to generate a detailed prompt
@@ -2873,7 +2948,7 @@ async fn ai_upscale_image(
         ]
     });
 
-    let gemini_json = call_gemini_api(&api_key, GEMINI_MODEL_TEXT, gemini_payload).await?;
+    let gemini_json = call_gemini_api(&resolved_api_key, GEMINI_MODEL_TEXT, gemini_payload).await?;
     let detailed_prompt = extract_gemini_text(&gemini_json)?;
 
     // 2. Call Gemini Image model to generate the high-res image
@@ -2908,7 +2983,7 @@ async fn ai_upscale_image(
         }
     });
 
-    let imagen_json = call_gemini_api(&api_key, GEMINI_MODEL_IMAGE, imagen_payload).await?;
+    let imagen_json = call_gemini_api(&resolved_api_key, GEMINI_MODEL_IMAGE, imagen_payload).await?;
     let b64_data = extract_gemini_image(&imagen_json)?;
 
     save_gemini_image(&output_path, b64_data).await
@@ -2921,6 +2996,19 @@ async fn ai_style_image(
     prompt: String,
     output_path: String,
 ) -> Result<(), String> {
+    let resolved_api_key = if api_key == "__keychain__" || api_key.is_empty() {
+        #[cfg(target_os = "macos")]
+        {
+            get_gemini_keychain_key().unwrap_or(api_key)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            api_key
+        }
+    } else {
+        api_key
+    };
+
     let (mime_type, img_base64) = get_image_data(&from_path)?;
 
     let payload = serde_json::json!({
@@ -2945,7 +3033,7 @@ async fn ai_style_image(
         }
     });
 
-    let json = call_gemini_api(&api_key, GEMINI_MODEL_IMAGE, payload).await?;
+    let json = call_gemini_api(&resolved_api_key, GEMINI_MODEL_IMAGE, payload).await?;
     let b64_data = extract_gemini_image(&json)?;
 
     save_gemini_image(&output_path, b64_data).await
@@ -3124,6 +3212,7 @@ async fn delete_saved_ftp_connection(name: String) -> Result<(), String> {
     let mut conns = crate::remote::ftp::load_saved_connections();
     if conns.remove(&name).is_some() {
         crate::remote::ftp::save_connections(&conns)?;
+        let _ = crate::remote::ftp::delete_keychain_password(&name);
     }
 
     // Also remove from active in-memory mapping

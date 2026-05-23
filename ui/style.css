@@ -1757,9 +1757,10 @@ label {
 }
 
 /* Ftp config */
-.ftp-connect-container {
+.ftp-connect-container.props-card {
   display: none;
   z-index: 999 !important;
+  width: min(600px, 94vw);
 }
 
 .ftp-connect-container .props-card__scroll-wrap {
@@ -1856,6 +1857,43 @@ label {
   margin: 0; 
 }
 
+/* Redesigned 2-column input grid for FTP modal */
+.ftp-connect-container .props-card__list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 12px;
+  padding: 6px 16px 10px;
+}
+
+.ftp-connect-container .props-card__row {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 6px;
+}
+
+.ftp-connect-container .props-card__label {
+  margin-top: 5px;
+}
+
+.ftp-keychain-hint {
+  font-size: 9px;
+  color: var(--textColor2);
+  margin-top: 3px;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.2;
+}
+
+.ftp-keychain-hint i {
+  font-size: 8px;
+  color: var(--selectColor2);
+}
+
+
 .ftp-loader {
   display: none;
   justify-content: center;
@@ -1878,7 +1916,7 @@ label {
 .ftp-discovery-section {
   display: flex;
   flex-direction: column;
-  height: 120px !important;
+  height: 160px !important;
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.03);
   border: var(--glass-border-subtle);
@@ -1988,11 +2026,6 @@ label {
   background: color-mix(in srgb, var(--selectColor2) 12%, rgba(255, 255, 255, 0.06));
   border: 1px solid color-mix(in srgb, var(--selectColor2) 50%, transparent);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-}
-
-.ftp-discovery-item:active {
-  transform: translateY(0);
 }
 
 .ftp-discovery-item-info {
@@ -2022,7 +2055,6 @@ label {
 
 .ftp-discovery-item:hover .ftp-discovery-item-action {
   color: var(--textColor);
-  transform: translateX(3px);
 }
 
 .ftp-discovery-section.is-empty {
@@ -2076,7 +2108,7 @@ label {
 .ftp-saved-section {
   display: flex;
   flex-direction: column;
-  height: 120px !important;
+  height: 160px !important;
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.03);
   border: var(--glass-border-subtle);
@@ -2146,11 +2178,6 @@ label {
   background: color-mix(in srgb, var(--selectColor2) 12%, rgba(255, 255, 255, 0.06));
   border: 1px solid color-mix(in srgb, var(--selectColor2) 50%, transparent);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-}
-
-.ftp-saved-item:active {
-  transform: translateY(0);
 }
 
 .ftp-saved-item-info {

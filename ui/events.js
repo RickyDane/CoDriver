@@ -102,18 +102,54 @@ listen("fs-mount-changed", (event) => {
 
 listen("watcher-event", (event) => {
   setTimeout(async () => {
-    if (event.payload.type == "create") { refreshView(); window.scheduleDiskUsageRefresh?.(); console.log("FS-Event: File was created")}
-    if (event.payload.type == "remove") {
+    const payload = event.payload;
+    const paths = payload.paths;
+    if (!paths || paths.length === 0) return;
+    
+    const path = paths[0];
+    
+    if (payload.type === "create") {
+      console.log("FS-Event: File was created dynamically:", path);
+      await handleDynamicCreate(path);
+      window.scheduleDiskUsageRefresh?.();
+    } else if (payload.type === "remove") {
+      console.log("FS-Event: File was removed dynamically:", path);
       if (window.IsDeletingItems) {
         console.log("FS-Event: File was removed (refresh suppressed — active delete)");
       } else {
-        refreshView();
-        console.log("FS-Event: File was removed");
+        handleDynamicRemove(path);
+      }
+      window.scheduleDiskUsageRefresh?.();
+    } else if (payload.type === "modify") {
+      if (payload.kind === "rename") {
+        console.log("FS-Event: File was renamed dynamically:", paths, "mode:", payload.mode);
+        const mode = payload.mode;
+        
+        if (mode === "both" || (mode === "any" && paths.length === 2)) {
+          const oldPath = paths[0];
+          const newPath = paths[1];
+          handleDynamicRemove(oldPath);
+          await handleDynamicCreate(newPath);
+        } else if (mode === "from") {
+          handleDynamicRemove(paths[0]);
+        } else if (mode === "to") {
+          await handleDynamicCreate(paths[0]);
+        } else {
+          // Fallback / "any" with 1 path
+          const path = paths[0];
+          const existsInUi = document.querySelector(`[itempath="${path}"]`);
+          if (existsInUi) {
+            handleDynamicRemove(path);
+          } else {
+            await handleDynamicCreate(path);
+          }
+        }
+      } else {
+        console.log("FS-Event: File was modified dynamically:", path);
+        await handleDynamicUpdate(path);
       }
       window.scheduleDiskUsageRefresh?.();
     }
-    if (event.payload.type == "rename") { refreshView(); window.scheduleDiskUsageRefresh?.(); console.log("FS-Event: File was renamed")}
-    // if (event.payload.type == "modify") { refreshView(); console.log("FS-Event: File was modified")}
   }, 100);
 });
 
