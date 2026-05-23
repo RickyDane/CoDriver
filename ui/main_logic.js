@@ -289,6 +289,7 @@ document.addEventListener("keydown", async (e) => {
   if (e.metaKey) return;
   if (e.ctrlKey) return;
   if (e.key === "Escape") {
+    let wasQuickSearching = CurrentQuickSearch !== "";
     if (IsQuickSearchOpen == true) {
       goUp(false, true);
     }
@@ -305,6 +306,14 @@ document.addEventListener("keydown", async (e) => {
     document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
       item.style.opacity = "1";
     });
+
+    if (wasQuickSearching) {
+      if (IsDualPaneEnabled === true) {
+        refreshBothViews(SelectedItemPaneSide);
+      } else {
+        refreshView();
+      }
+    }
   }
 
   // :quicksearch :instantsearch
@@ -343,12 +352,24 @@ document.addEventListener("keydown", async (e) => {
 
 function resetQuickSearch() {
   CurrentQuickSearchTimer = setInterval(() => {
+    if (IsSearching === true) {
+      CurrentQuickSearchTime = TIMETORESET;
+      return;
+    }
     if (CurrentQuickSearchTime <= 0) {
       clearInterval(CurrentQuickSearchTimer);
       CurrentQuickSearchTime = TIMETORESET;
+      let wasQuickSearching = CurrentQuickSearch !== "";
       CurrentQuickSearch = "";
       $(".instant-search-input").val("");
       $(".instant-search-input").css("display", "none");
+      if (wasQuickSearching) {
+        if (IsDualPaneEnabled === true) {
+          refreshBothViews(SelectedItemPaneSide);
+        } else {
+          refreshView();
+        }
+      }
     } else {
       CurrentQuickSearchTime -= 50;
     }
@@ -642,7 +663,7 @@ document.onkeydown = async (e) => {
       if (e.shiftKey && e.key == "F5") {
         e.preventDefault();
         e.stopPropagation();
-        let isToMove = await confirm("Current selection will be moved over");
+        let isToMove = await showCopyMovePopup(true);
         if (isToMove == true) {
           IsCopyToCut = true;
           await pasteItem();
@@ -652,7 +673,7 @@ document.onkeydown = async (e) => {
       else if (e.key == "F5" && IsTabsEnabled == false) {
         e.preventDefault();
         e.stopPropagation();
-        let isToCopy = await confirm("Current selection will be copied over");
+        let isToCopy = await showCopyMovePopup(false);
         if (isToCopy == true) {
           pasteItem();
         }
@@ -1337,7 +1358,7 @@ async function addSingleItem(
       `;
     itemButton.className = "item-button directory-entry";
     itemLink.append(itemButton);
-    const dirList = document.querySelector(".directory-list");
+    const dirList = document.querySelector(".directory-list-dual-pane, .directory-list");
     if (dirList) applyDirectoryListStyles(dirList, "wrap");
   } else if (ViewMode == "column") {
     var itemButtonList = document.createElement("div");
@@ -1350,8 +1371,8 @@ async function addSingleItem(
       <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
         <p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
         <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
-     			<span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
-     			<i class="fa-solid fa-cube"></i>
+      			<span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
+      			<i class="fa-solid fa-cube"></i>
     		</div>
       </span>
       `;
@@ -1361,10 +1382,10 @@ async function addSingleItem(
       itemButtonList.className = "item-button-list directory-entry";
     }
     itemLink.append(itemButtonList);
-    const dirList = document.querySelector(".directory-list");
+    const dirList = document.querySelector(".directory-list-dual-pane, .directory-list");
     if (dirList) applyDirectoryListStyles(dirList, "column");
   } else if (ViewMode == "miller") {
-    const dirList = document.querySelector(".directory-list");
+    const dirList = document.querySelector(".directory-list-dual-pane, .directory-list");
     if (dirList) applyDirectoryListStyles(dirList, "miller");
   }
   // Start dragging item
@@ -1402,12 +1423,32 @@ async function addSingleItem(
 
   if (IsDualPaneEnabled === true) {
     if (dualPaneSide === "left") {
-      $(".dual-pane-left").append(itemLink);
-      LeftPaneItemCollection = document.querySelector(".dual-pane-left");
+      let list = document.querySelector(".dual-pane-left .directory-list-dual-pane");
+      if (list) {
+        list.append(itemLink);
+        LeftPaneItemCollection = list;
+      } else {
+        let pane = document.querySelector(".dual-pane-left");
+        let newList = document.createElement("div");
+        newList.className = "directory-list-dual-pane";
+        pane.append(newList);
+        newList.append(itemLink);
+        LeftPaneItemCollection = newList;
+      }
       goUp(false, true);
     } else if (dualPaneSide === "right") {
-      $(".dual-pane-right").append(itemLink);
-      RightPaneItemCollection = document.querySelector(".dual-pane-right");
+      let list = document.querySelector(".dual-pane-right .directory-list-dual-pane");
+      if (list) {
+        list.append(itemLink);
+        RightPaneItemCollection = list;
+      } else {
+        let pane = document.querySelector(".dual-pane-right");
+        let newList = document.createElement("div");
+        newList.className = "directory-list-dual-pane";
+        pane.append(newList);
+        newList.append(itemLink);
+        RightPaneItemCollection = newList;
+      }
       goUp(false, true);
     }
   } else {
@@ -1571,14 +1612,24 @@ async function deleteItems() {
     createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
     window.IsDeletingItems = true;
     try {
+      let failedDeletions = [];
       for (let i = 0; i < arr.length; i++) {
         let actFileName = arr[i];
-        await invoke("delete_item", { actFileName });
-        handleDynamicRemove(actFileName);
+        try {
+          await invoke("delete_item", { actFileName });
+          handleDynamicRemove(actFileName);
+        } catch (error) {
+          failedDeletions.push({ path: actFileName, error });
+          showToast(`Failed to delete "${actFileName.split("/").pop()}": ${error}`, ToastType.ERROR, 4000);
+        }
       }
       IsCopyToCut = false;
       ArrSelectedItems = [];
-      showToast("Deletion of items is done", ToastType.INFO);
+      if (failedDeletions.length === 0) {
+        showToast("Deletion of items is done", ToastType.INFO);
+      } else {
+        showToast(`Completed with ${failedDeletions.length} error(s)`, ToastType.ERROR, 4000);
+      }
     } finally {
       window.IsDeletingItems = false;
       removeAction(actionId);
@@ -1741,6 +1792,203 @@ async function showDeletePopup() {
       if (e.key === "Enter")  { e.preventDefault(); finish(true);  }
     });
     popup.querySelector("[data-delete-confirm]").focus();
+  });
+}
+
+let currentCopyMoveSizeRequestId = 0;
+let activeCopyMoveSizeUpdateId = null;
+let isCopyMoveSizeCalculationActive = false;
+
+function startCopyMoveSizeCalculation() {
+  activeCopyMoveSizeUpdateId = `copymove-${++currentCopyMoveSizeRequestId}`;
+  isCopyMoveSizeCalculationActive = true;
+  return activeCopyMoveSizeUpdateId;
+}
+
+function finishCopyMoveSizeCalculation(updateId) {
+  if (activeCopyMoveSizeUpdateId === updateId) {
+    isCopyMoveSizeCalculationActive = false;
+    activeCopyMoveSizeUpdateId = null;
+  }
+}
+
+function isCopyMoveSizeUpdateCurrent(updateId) {
+  return activeCopyMoveSizeUpdateId === updateId && isCopyMoveSizeCalculationActive;
+}
+
+async function showCopyMovePopup(isMove = false) {
+  if (IsPopUpOpen !== false) return false;
+  if (!ArrSelectedItems.length) return false;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  const items = ArrSelectedItems;
+  const count = items.length;
+  const fileCount = items.filter(i => i.getAttribute("itemisdir") !== "1").length;
+  const folderCount = count - fileCount;
+
+  // Determine source and destination paths based on the selected side
+  const sourceDir = CurrentDir;
+  let targetDir = "";
+  if (IsDualPaneEnabled === true) {
+    if (SelectedItemPaneSide === "left") {
+      targetDir = RightDualPanePath;
+    } else if (SelectedItemPaneSide === "right") {
+      targetDir = LeftDualPanePath;
+    }
+  } else {
+    targetDir = CurrentDir;
+  }
+
+  const actionName = isMove ? "Move" : "Copy";
+  const heroName = count === 1
+    ? `${actionName} "${items[0].getAttribute("itemname")}"`
+    : `${actionName} ${count} items`;
+  const heroMeta = count === 1
+    ? (items[0].getAttribute("itemisdir") === "1" ? "Folder" : "File")
+    : [
+        folderCount > 0 ? `${folderCount} folder${folderCount > 1 ? "s" : ""}` : "",
+        fileCount > 0 ? `${fileCount} file${fileCount > 1 ? "s" : ""}` : ""
+      ].filter(Boolean).join(", ");
+
+  const heroIcon = isMove
+    ? "fa-solid fa-arrows-left-right"
+    : "fa-solid fa-copy";
+
+  const itemsListHtml = `<ul class="props-card__items-list">
+    ${items.map((item) => {
+      const name = item.getAttribute("itemname");
+      const isDir = item.getAttribute("itemisdir") === "1";
+      const ext = (item.getAttribute("itemext") || "").replace(".", "").toUpperCase();
+      const size = item.getAttribute("itemsize") || "—";
+      const icon = isDir ? "fa-solid fa-folder" : "fa-regular fa-file";
+      return `<li class="props-card__item-li" title="${escHtml(name)}">
+        <div class="props-card__item-row">
+          <i class="${icon} props-card__item-icon"></i>
+          <span class="props-card__item-name">${escHtml(name)}</span>
+          <span class="props-card__item-meta">${isDir ? "Folder" : escHtml(ext)}</span>
+          <span class="props-card__item-size">${escHtml(size)}</span>
+        </div>
+      </li>`;
+    }).join("")}
+  </ul>`;
+
+  const popup = document.createElement("div");
+  popup.className = "copy-move-popup props-card";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", `${actionName} items`);
+  popup.innerHTML = `
+    <section class="props-card__hero copy-move-popup__hero">
+      <div class="props-card__thumb copy-move-popup__thumb"><i class="${heroIcon}"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(heroName)}">${escHtml(heroName)}</h2>
+        <div class="props-card__meta">
+          <span>${escHtml(heroMeta)}</span>
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-folder-open"></i>From</dt>
+        <dd class="props-card__value">
+          <span class="props-card__path" title="${escHtml(sourceDir)}">${escHtml(sourceDir)}</span>
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-folder-open"></i>To</dt>
+        <dd class="props-card__value">
+          <span class="props-card__path" title="${escHtml(targetDir)}">${escHtml(targetDir)}</span>
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-weight-hanging"></i>Total size</dt>
+        <dd class="props-card__value"><span class="props-card__size"><span class="props-card__skeleton"></span></span></dd>
+      </div>
+      <div class="props-card__row props-card__row--block">
+        <dt class="props-card__label"><i class="fa-regular fa-rectangle-list"></i>Items</dt>
+        <dd class="props-card__value">${itemsListHtml}</dd>
+      </div>
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" data-copy-move-cancel>
+        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary" data-copy-move-confirm>
+        <i class="${heroIcon}"></i><span>${actionName}</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  const copyMoveUpdateId = startCopyMoveSizeCalculation();
+
+  // Calculate size in the background
+  (async () => {
+    if (count === 1) {
+      const isDir = items[0].getAttribute("itemisdir") === "1";
+      try {
+        await getSimpleDirInfo(
+          items[0].getAttribute("itempath"),
+          ".copy-move-popup .props-card__size",
+          isDir,
+          copyMoveUpdateId
+        );
+        finishCopyMoveSizeCalculation(copyMoveUpdateId);
+      } catch (error) {
+        if (isCopyMoveSizeUpdateCurrent(copyMoveUpdateId)) {
+          finishCopyMoveSizeCalculation(copyMoveUpdateId);
+          writeLog(error);
+          $(".copy-move-popup .props-card__size").html("Unable to calculate size");
+        }
+      }
+    } else {
+      const paths = items.map((i) => i.getAttribute("itempath"));
+      setSizeCalculationLoading(".copy-move-popup .props-card__size");
+      try {
+        const totalSize = await invoke("get_selection_size", { paths, updateId: copyMoveUpdateId });
+        if (isCopyMoveSizeUpdateCurrent(copyMoveUpdateId)) {
+          finishCopyMoveSizeCalculation(copyMoveUpdateId);
+          $(".copy-move-popup .props-card__size").html(formatBytes(totalSize, 2));
+        }
+      } catch (error) {
+        if (isCopyMoveSizeUpdateCurrent(copyMoveUpdateId)) {
+          finishCopyMoveSizeCalculation(copyMoveUpdateId);
+          writeLog(error);
+          $(".copy-move-popup .props-card__size").html("Unable to calculate size");
+        }
+      }
+    }
+  })();
+
+  return new Promise((resolve) => {
+    let isClosed = false;
+    const finish = (ok) => {
+      if (isClosed) return;
+      isClosed = true;
+      finishCopyMoveSizeCalculation(copyMoveUpdateId);
+      invoke("cancel_size_calculation");
+      popup.classList.add("popup-exit");
+      popup.addEventListener("animationend", () => {
+        popup.remove();
+        IsPopUpOpen = false;
+        resolve(ok);
+      }, { once: true });
+    };
+    popup.querySelector("[data-copy-move-cancel]").onclick = () => finish(false);
+    popup.querySelector("[data-copy-move-confirm]").onclick = () => finish(true);
+    popup.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); finish(false); }
+      if (e.key === "Enter")  { e.preventDefault(); finish(true);  }
+    });
+    popup.querySelector("[data-copy-move-confirm]").focus();
   });
 }
 
@@ -3370,6 +3618,7 @@ async function applyPlatformFeatures() {
   Platform = await platform();
   // Check for macOS and position titlebar buttons on the left
   if (Platform == "darwin") {
+    document.body.classList.add("darwin");
     let headerNav = document.querySelector(".header-nav");
     // headerNav.style.borderBottom = "none";
     headerNav.style.boxShadow = "none";
@@ -4230,6 +4479,9 @@ async function setDiskDropdowns() {
 async function navigateToDisk(path, paneSide = SelectedItemPaneSide) {
   await setCurrentDir(path, paneSide);
   await listDirectories();
+  // Release focus from the select dropdown so quick search works instantly
+  document.querySelector(".left-disk-dropdown")?.blur();
+  document.querySelector(".right-disk-dropdown")?.blur();
 }
 
 function goLeft(isToFirst = false, index = null) {
@@ -4390,28 +4642,60 @@ async function searchFor(
   isQuickSearch = false,
   fileContent = "",
 ) {
-  if (IsSearching === true) return;
+  if (IsSearching === true) {
+    if (isQuickSearch === true) {
+      await stopSearching();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      IsSearching = false;
+    } else {
+      return;
+    }
+  }
   if (fileName.length > 1 || isQuickSearch == true) {
     $(".is-file-searching").css("display", "block");
     updateFileSearchbarState(true);
     if (IsDualPaneEnabled === true) {
       if (SelectedItemPaneSide === "left") {
-        $(".dual-pane-left").html("");
+        let list = document.querySelector(".dual-pane-left .directory-list-dual-pane");
+        if (list) {
+          list.innerHTML = "";
+        } else {
+          $(".dual-pane-left").html("");
+          let newList = document.createElement("div");
+          newList.className = "directory-list-dual-pane";
+          document.querySelector(".dual-pane-left").append(newList);
+        }
       } else {
-        $(".dual-pane-right").html("");
+        let list = document.querySelector(".dual-pane-right .directory-list-dual-pane");
+        if (list) {
+          list.innerHTML = "";
+        } else {
+          $(".dual-pane-right").html("");
+          let newList = document.createElement("div");
+          newList.className = "directory-list-dual-pane";
+          document.querySelector(".dual-pane-right").append(newList);
+        }
       }
     } else {
       $(".directory-list").html("");
     }
     IsSearching = true;
     FoundItemsCountIndex = 0;
-    await invoke("search_for", {
-      fileName,
-      maxItems,
-      searchDepth,
-      fileContent,
-      isQuickSearch,
-    });
+    try {
+      await invoke("search_for", {
+        fileName,
+        maxItems,
+        searchDepth,
+        fileContent,
+        isQuickSearch,
+      });
+    } catch (error) {
+      console.error("Search invocation failed:", error);
+      showToast("Search failed: " + error, ToastType.ERROR);
+    } finally {
+      IsSearching = false;
+      IsFullSearching = false;
+    }
     setTimeout(() => {
       ds.setSettings({
         selectables: ArrDirectoryItems,
@@ -4421,8 +4705,6 @@ async function searchFor(
     stopFullSearch();
     alert("Type in a minimum of 2 characters");
   }
-  IsSearching = false;
-  IsFullSearching = false;
 }
 
 function openFullSearchContainer() {
@@ -4597,6 +4879,7 @@ async function switchToDualPane() {
   if (IsDualPaneEnabled == false) {
     OrgViewMode = ViewMode;
     IsDualPaneEnabled = true;
+    document.body.classList.add("dual-pane-mode");
     ViewMode = "column";
     document.querySelector(".view-mode-group").classList.add("disabled");
     document.querySelector(".miller-container").style.display = "none";
@@ -4644,6 +4927,7 @@ async function switchToDualPane() {
     });
   } else {
     IsDualPaneEnabled = false;
+    document.body.classList.remove("dual-pane-mode");
     document.querySelector(".view-mode-group").classList.remove("disabled");
     $(".non-dual-pane-container")?.css("width", "calc(100vw - 150px)");
     $(".non-dual-pane-container")?.css("opacity", "1");
@@ -4685,6 +4969,9 @@ async function switchToDualPane() {
     }
   }
   await saveConfig(false, false);
+  if (typeof renderActiveActionsPill === "function") {
+    renderActiveActionsPill();
+  }
 }
 
 function switchHiddenFiles() {

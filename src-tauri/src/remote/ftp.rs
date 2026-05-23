@@ -5,8 +5,25 @@ use std::io::Cursor;
 use std::path::Path;
 use suppaftp::FtpStream;
 use lazy_static::lazy_static;
-use serde::{Serialize, Deserialize};
 use crate::FDir;
+use serde::{Serialize, Deserialize};
+
+pub type FtpProgressCallback = dyn Fn(usize, &str) + Send + Sync;
+
+pub struct CallbackReader<R, F: Fn(usize) + ?Sized> {
+    pub inner: R,
+    pub callback: F,
+}
+
+impl<R: std::io::Read, F: Fn(usize) + ?Sized> std::io::Read for CallbackReader<R, F> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let len = self.inner.read(buf)?;
+        if len > 0 {
+            (self.callback)(len);
+        }
+        Ok(len)
+    }
+}
 
 pub mod ftp_discovery;
 
@@ -387,6 +404,66 @@ pub fn rename_ftp_element(connection_name: &str, from_path: &str, to_path: &str)
     Ok(())
 }
 
+pub fn list_ftp_dir_cwd(
+    client: &mut FtpStream,
+    current_dir_path: &str,
+    connection_name: &str,
+) -> Result<Vec<FDir>, String> {
+    // Try to list with '-a' first to get all hidden/dotfiles, fall back to standard list
+    let raw_lines = client.list(Some("-a"))
+        .or_else(|_| client.list(None))
+        .map_err(|e| format!("Failed to list current directory: {}", e))?;
+    
+    let mut list = Vec::new();
+    let raw_path = to_raw_ftp_path(current_dir_path);
+    for line in raw_lines {
+        let trimmed = line.trim();
+        let lower = trimmed.to_lowercase();
+        if lower.starts_with("type=") || lower.contains("type=dir;") || lower.contains("type=file;") || lower.contains("type=cdir;") || lower.contains("type=pdir;") {
+            if let Some(entry) = parse_mlsd_line(&line, raw_path, connection_name) {
+                list.push(entry);
+            }
+        } else {
+            if let Some(entry) = parse_unix_list_line(&line, raw_path, connection_name) {
+                list.push(entry);
+            }
+        }
+    }
+    Ok(list)
+}
+
+fn delete_ftp_item_recursive_helper(
+    client: &mut FtpStream,
+    connection_name: &str,
+    remote_path: &str,
+    is_dir: bool,
+) -> Result<(), String> {
+    let raw_path = to_raw_ftp_path(remote_path);
+    
+    if is_dir {
+        // 1. CWD into the folder to list it reliably
+        client.cwd(raw_path).map_err(|e| format!("Failed to cwd to {}: {}", raw_path, e))?;
+        
+        // 2. List the directory content using CWD listing
+        let entries = list_ftp_dir_cwd(client, raw_path, connection_name)?;
+        
+        // 3. Delete all entries recursively
+        for entry in entries {
+            delete_ftp_item_recursive_helper(client, connection_name, &entry.path, entry.is_dir == 1)?;
+        }
+        
+        // 4. Change CWD back to root to release directory lock
+        client.cwd("/").map_err(|e| format!("Failed to cwd back to root: {}", e))?;
+        
+        // 5. Remove the empty directory
+        client.rmdir(raw_path).map_err(|e| format!("Failed to rmdir: {}", e))?;
+    } else {
+        // It's a file, remove it absolutely
+        client.rm(raw_path).map_err(|e| format!("Failed to remove file: {}", e))?;
+    }
+    Ok(())
+}
+
 pub fn delete_ftp_item_recursive(connection_name: &str, remote_path: &str) -> Result<(), String> {
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
@@ -396,22 +473,22 @@ pub fn delete_ftp_item_recursive(connection_name: &str, remote_path: &str) -> Re
     let mut client = get_ftp_client(&config)?;
     let raw_path = to_raw_ftp_path(remote_path);
     
+    // Check once at the very top level if the target is a directory
     let is_dir = client.cwd(raw_path).is_ok();
     if is_dir {
-        let entries = list_ftp_dir_internal(&mut client, raw_path, connection_name)?;
-        for entry in entries {
-            delete_ftp_item_recursive(connection_name, &entry.path)?;
-        }
-        let mut client = get_ftp_client(&config)?;
-        let raw_path = to_raw_ftp_path(remote_path);
-        client.rmdir(raw_path).map_err(|e| format!("Failed to rmdir: {}", e))?;
-    } else {
-        client.rm(raw_path).map_err(|e| format!("Failed to remove file: {}", e))?;
+        // Immediately step back out to the root directory
+        let _ = client.cwd("/");
     }
-    Ok(())
+
+    delete_ftp_item_recursive_helper(&mut client, connection_name, remote_path, is_dir)
 }
 
-pub fn download_ftp_file(connection_name: &str, remote_path: &str, local_dest: &str) -> Result<(), String> {
+pub fn download_ftp_file(
+    connection_name: &str,
+    remote_path: &str,
+    local_dest: &str,
+    progress_callback: Option<&FtpProgressCallback>,
+) -> Result<(), String> {
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
@@ -419,7 +496,7 @@ pub fn download_ftp_file(connection_name: &str, remote_path: &str, local_dest: &
 
     let mut client = get_ftp_client(&config)?;
     let raw_path = to_raw_ftp_path(remote_path);
-    let mut reader = client.retr_as_stream(raw_path)
+    let reader = client.retr_as_stream(raw_path)
         .map_err(|e| format!("Failed to download: {}", e))?;
 
     if let Some(parent) = Path::new(local_dest).parent() {
@@ -429,16 +506,32 @@ pub fn download_ftp_file(connection_name: &str, remote_path: &str, local_dest: &
     let mut local_file = File::create(local_dest)
         .map_err(|e| format!("Failed to create local destination file: {}", e))?;
 
-    std::io::copy(&mut reader, &mut local_file)
-        .map_err(|e| format!("Failed to write downloaded data: {}", e))?;
-
-    client.finalize_retr_stream(reader)
-        .map_err(|e| format!("Failed to finalize transfer: {}", e))?;
+    if let Some(cb) = progress_callback {
+        let mut wrapped_reader = CallbackReader {
+            inner: reader,
+            callback: |len| cb(len, remote_path),
+        };
+        std::io::copy(&mut wrapped_reader, &mut local_file)
+            .map_err(|e| format!("Failed to write downloaded data: {}", e))?;
+        client.finalize_retr_stream(wrapped_reader.inner)
+            .map_err(|e| format!("Failed to finalize transfer: {}", e))?;
+    } else {
+        let mut reader = reader;
+        std::io::copy(&mut reader, &mut local_file)
+            .map_err(|e| format!("Failed to write downloaded data: {}", e))?;
+        client.finalize_retr_stream(reader)
+            .map_err(|e| format!("Failed to finalize transfer: {}", e))?;
+    }
 
     Ok(())
 }
 
-pub fn upload_ftp_file(connection_name: &str, local_src: &str, remote_dest: &str) -> Result<(), String> {
+pub fn upload_ftp_file(
+    connection_name: &str,
+    local_src: &str,
+    remote_dest: &str,
+    progress_callback: Option<&FtpProgressCallback>,
+) -> Result<(), String> {
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
@@ -449,13 +542,28 @@ pub fn upload_ftp_file(connection_name: &str, local_src: &str, remote_dest: &str
 
     let mut client = get_ftp_client(&config)?;
     let raw_dest = to_raw_ftp_path(remote_dest);
-    client.put_file(raw_dest, &mut local_file)
-        .map_err(|e| format!("Failed to upload file to FTP: {}", e))?;
+
+    if let Some(cb) = progress_callback {
+        let mut wrapped_reader = CallbackReader {
+            inner: local_file,
+            callback: |len| cb(len, local_src),
+        };
+        client.put_file(raw_dest, &mut wrapped_reader)
+            .map_err(|e| format!("Failed to upload file to FTP: {}", e))?;
+    } else {
+        client.put_file(raw_dest, &mut local_file)
+            .map_err(|e| format!("Failed to upload file to FTP: {}", e))?;
+    }
 
     Ok(())
 }
 
-pub fn download_ftp_dir_recursive(connection_name: &str, remote_dir: &str, local_dest_dir: &str) -> Result<(), String> {
+pub fn download_ftp_dir_recursive(
+    connection_name: &str,
+    remote_dir: &str,
+    local_dest_dir: &str,
+    progress_callback: Option<&FtpProgressCallback>,
+) -> Result<(), String> {
     std::fs::create_dir_all(local_dest_dir)
         .map_err(|e| format!("Failed to create local directory: {}", e))?;
     
@@ -473,15 +581,20 @@ pub fn download_ftp_dir_recursive(connection_name: &str, remote_dir: &str, local
         let remote_item_path = entry.path;
         let local_item_path = format!("{}/{}", local_dest_dir, entry_name);
         if entry.is_dir == 1 {
-            download_ftp_dir_recursive(connection_name, &remote_item_path, &local_item_path)?;
+            download_ftp_dir_recursive(connection_name, &remote_item_path, &local_item_path, progress_callback)?;
         } else {
-            download_ftp_file(connection_name, &remote_item_path, &local_item_path)?;
+            download_ftp_file(connection_name, &remote_item_path, &local_item_path, progress_callback)?;
         }
     }
     Ok(())
 }
 
-pub fn upload_ftp_dir_recursive(connection_name: &str, local_dir: &str, remote_dest_dir: &str) -> Result<(), String> {
+pub fn upload_ftp_dir_recursive(
+    connection_name: &str,
+    local_dir: &str,
+    remote_dest_dir: &str,
+    progress_callback: Option<&FtpProgressCallback>,
+) -> Result<(), String> {
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
@@ -500,26 +613,36 @@ pub fn upload_ftp_dir_recursive(connection_name: &str, local_dir: &str, remote_d
         let entry_name = path.file_name().unwrap().to_string_lossy().to_string();
         let remote_item_path = format!("{}/{}", raw_dest_dir, entry_name);
         if path.is_dir() {
-            upload_ftp_dir_recursive(connection_name, path.to_str().unwrap(), &remote_item_path)?;
+            upload_ftp_dir_recursive(connection_name, path.to_str().unwrap(), &remote_item_path, progress_callback)?;
         } else {
-            upload_ftp_file(connection_name, path.to_str().unwrap(), &remote_item_path)?;
+            upload_ftp_file(connection_name, path.to_str().unwrap(), &remote_item_path, progress_callback)?;
         }
     }
     Ok(())
 }
 
-pub fn copy_ftp_to_ftp(connection_name: &str, remote_src: &str, remote_dest: &str) -> Result<(), String> {
+pub fn copy_ftp_to_ftp(
+    connection_name: &str,
+    remote_src: &str,
+    remote_dest: &str,
+    progress_callback: Option<&FtpProgressCallback>,
+) -> Result<(), String> {
     let temp_dir = std::env::temp_dir();
     let temp_file_path = temp_dir.join(format!("ftp-transfer-{}", uuid::Uuid::new_v4()));
     let temp_file_str = temp_file_path.to_str().unwrap();
 
-    download_ftp_file(connection_name, remote_src, temp_file_str)?;
-    let res = upload_ftp_file(connection_name, temp_file_str, remote_dest);
+    download_ftp_file(connection_name, remote_src, temp_file_str, progress_callback)?;
+    let res = upload_ftp_file(connection_name, temp_file_str, remote_dest, progress_callback);
     let _ = std::fs::remove_file(temp_file_str);
     res
 }
 
-pub fn copy_ftp_dir_to_ftp_recursive(connection_name: &str, remote_src_dir: &str, remote_dest_dir: &str) -> Result<(), String> {
+pub fn copy_ftp_dir_to_ftp_recursive(
+    connection_name: &str,
+    remote_src_dir: &str,
+    remote_dest_dir: &str,
+    progress_callback: Option<&FtpProgressCallback>,
+) -> Result<(), String> {
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
@@ -536,9 +659,47 @@ pub fn copy_ftp_dir_to_ftp_recursive(connection_name: &str, remote_src_dir: &str
         let remote_src_item = entry.path;
         let remote_dest_item = format!("{}/{}", raw_dest_dir, entry_name);
         if entry.is_dir == 1 {
-            copy_ftp_dir_to_ftp_recursive(connection_name, &remote_src_item, &remote_dest_item)?;
+            copy_ftp_dir_to_ftp_recursive(connection_name, &remote_src_item, &remote_dest_item, progress_callback)?;
         } else {
-            copy_ftp_to_ftp(connection_name, &remote_src_item, &remote_dest_item)?;
+            copy_ftp_to_ftp(connection_name, &remote_src_item, &remote_dest_item, progress_callback)?;
+        }
+    }
+    Ok(())
+}
+
+pub fn get_ftp_dir_size_and_count(
+    connection_name: &str,
+    remote_dir: &str,
+) -> Result<(f32, f32), String> {
+    let config = {
+        let conns = FTP_CONNECTIONS.lock().unwrap();
+        conns.get(connection_name).cloned()
+    }.ok_or_else(|| format!("Connection {} not found", connection_name))?;
+
+    let mut client = get_ftp_client(&config)?;
+    let mut total_size = 0.0;
+    let mut total_count = 0.0;
+    get_ftp_dir_size_and_count_helper(&mut client, remote_dir, connection_name, &mut total_size, &mut total_count)?;
+    Ok((total_size, total_count))
+}
+
+fn get_ftp_dir_size_and_count_helper(
+    client: &mut FtpStream,
+    remote_dir: &str,
+    connection_name: &str,
+    total_size: &mut f32,
+    total_count: &mut f32,
+) -> Result<(), String> {
+    let raw_dir = to_raw_ftp_path(remote_dir);
+    let entries = list_ftp_dir_internal(client, raw_dir, connection_name)?;
+    for entry in entries {
+        if entry.is_dir == 1 {
+            get_ftp_dir_size_and_count_helper(client, &entry.path, connection_name, total_size, total_count)?;
+        } else {
+            *total_count += 1.0;
+            if let Ok(sz) = entry.size.parse::<f32>() {
+                *total_size += sz;
+            }
         }
     }
     Ok(())

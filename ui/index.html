@@ -26,6 +26,7 @@
 
     </div>
     <div class="popup-background"></div>
+    <div class="active-actions-container"></div>
 
     <!-- :instant-search | Instant Search -->
     <input class="instant-search-input text-input" type="text" placeholder="Start typing ..." disabled />
@@ -35,7 +36,6 @@
             <div class="site-nav-bar-blur-top"></div>
             <div class="site-nav-bar-gradient-top"></div>
             <div class="codriver-name"><i class="fa-solid fa-bolt" style="color: var(--textColor); font-size: var(--fontSize)"></i>CoDriver</div>
-            <div class="active-actions-container"></div>
         </div>
         <div style="display: flex; flex-flow: column; position: relative;" class="main-window-container">
             <!-- :header :nav | Header -->
@@ -51,6 +51,7 @@
                     <button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i
                             class="fa-solid fa-table-columns"></i></button>
                     <button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
+                    <div class="active-actions-header-placeholder"></div>
                     <div class="preloader-small-invert is-file-searching"></div>
                 </div>
                 <div data-tauri-drag-region class="header-nav-right-container"
@@ -577,62 +578,105 @@
             </div>
 
             <!-- :sync | Directory Sync UI -->
-            <div class="sync-directory-container uni-popup" style="display: none;">
-                <div class="popup-header">
-                    <div style="display: flex; gap: 20px; align-items: center;">
-                        <i class="fa-solid fa-rotate"></i>
-                        <h3>Synchronize Directories</h3>
+            <!-- :sync | Directory Sync UI -->
+            <div class="sync-directory-container props-card props-card--wide" style="display: none;">
+                <section class="props-card__hero">
+                    <div class="props-card__thumb"><i class="fa-solid fa-rotate"></i></div>
+                    <div class="props-card__heading">
+                        <h2 class="props-card__name">Synchronize Directories</h2>
+                        <div class="props-card__meta">
+                            <span>Dual Pane</span>
+                            <span class="props-card__chip">Sync</span>
+                        </div>
                     </div>
-                </div>
-                <div class="popup-body">
-                    <div class="popup-body-col-section">
-                        <p class="popup-body-subtitle">Sync Mode</p>
-                        <select id="sync-direction-select" class="text-input">
-                            <option value="left-to-right">Left ➔ Right (Mirror Left to Right)</option>
-                            <option value="right-to-left">Right ➔ Left (Mirror Right to Left)</option>
-                            <option value="two-way">Two-way Sync (Merge & Update Both)</option>
-                        </select>
-                    </div>
+                </section>
 
-                    <div class="sync-stats-container">
-                        <div class="sync-stats-row">
-                            <span class="label">Left folder:</span>
-                            <span id="sync-left-path" class="value"></span>
+                <div class="props-card__scroll-wrap">
+                    <dl class="props-card__list">
+                        <!-- Sync Mode Dropdown -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label">
+                                <i class="fa-solid fa-shuffle"></i><span>Sync Mode</span>
+                            </dt>
+                            <dd class="props-card__value">
+                                <select id="sync-direction-select" class="props-card__input">
+                                    <option value="left-to-right">Left ➔ Right (Mirror Left to Right)</option>
+                                    <option value="right-to-left">Right ➔ Left (Mirror Right to Left)</option>
+                                    <option value="two-way">Two-way Sync (Merge & Update Both)</option>
+                                </select>
+                            </dd>
                         </div>
-                        <div class="sync-stats-row">
-                            <span class="label">Right folder:</span>
-                            <span id="sync-right-path" class="value"></span>
-                        </div>
-                        <hr class="sync-separator">
-                        <div class="sync-stats-row">
-                            <span class="label left-only-label"><i class="fa-solid fa-plus"></i> Left-only items:</span>
-                            <span id="sync-stat-left-only" class="count-value">0</span>
-                        </div>
-                        <div class="sync-stats-row">
-                            <span class="label right-only-label"><i class="fa-solid fa-plus"></i> Right-only items:</span>
-                            <span id="sync-stat-right-only" class="count-value">0</span>
-                        </div>
-                        <div class="sync-stats-row">
-                            <span class="label mismatch-label"><i class="fa-solid fa-triangle-exclamation"></i> Mismatched items:</span>
-                            <span id="sync-stat-different" class="count-value">0</span>
-                        </div>
-                    </div>
 
-                    <div class="sync-toggle-row">
-                        <label class="switch">
-                            <input id="sync-delete-extraneous" type="checkbox">
-                            <span class="slider"></span>
-                        </label>
-                        <div class="sync-toggle-label-container">
-                            <p class="sync-toggle-title">Delete extraneous items</p>
-                            <p class="sync-toggle-desc">Delete files in destination that do not exist in source.</p>
+                        <!-- Left Folder -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label">
+                                <i class="fa-solid fa-folder-open"></i><span>Left Folder</span>
+                            </dt>
+                            <dd class="props-card__value" id="sync-left-path" style="font-family: monospace; font-size: 13px; color: var(--textColor); opacity: 0.85; word-break: break-all; min-height: 24px; display: flex; align-items: center;"></dd>
                         </div>
-                    </div>
+
+                        <!-- Right Folder -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label">
+                                <i class="fa-solid fa-folder-open"></i><span>Right Folder</span>
+                            </dt>
+                            <dd class="props-card__value" id="sync-right-path" style="font-family: monospace; font-size: 13px; color: var(--textColor); opacity: 0.85; word-break: break-all; min-height: 24px; display: flex; align-items: center;"></dd>
+                        </div>
+
+                        <!-- Left-only Items Count -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label" style="color: var(--successColor);">
+                                <i class="fa-solid fa-plus"></i><span>Left Only</span>
+                            </dt>
+                            <dd class="props-card__value" style="font-weight: 500; color: var(--textColor);">
+                                <span id="sync-stat-left-only" style="font-weight: 600;">0</span> items
+                            </dd>
+                        </div>
+
+                        <!-- Right-only Items Count -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label" style="color: var(--successColor);">
+                                <i class="fa-solid fa-plus"></i><span>Right Only</span>
+                            </dt>
+                            <dd class="props-card__value" style="font-weight: 500; color: var(--textColor);">
+                                <span id="sync-stat-right-only" style="font-weight: 600;">0</span> items
+                            </dd>
+                        </div>
+
+                        <!-- Mismatched Items Count -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label" style="color: var(--warningColor);">
+                                <i class="fa-solid fa-triangle-exclamation"></i><span>Mismatched</span>
+                            </dt>
+                            <dd class="props-card__value" style="font-weight: 500; color: var(--textColor);">
+                                <span id="sync-stat-different" style="font-weight: 600;">0</span> items
+                            </dd>
+                        </div>
+
+                        <!-- Delete Extraneous Toggle -->
+                        <div class="props-card__row" style="align-items: center;">
+                            <dt class="props-card__label" style="color: var(--dangerColor);">
+                                <i class="fa-solid fa-trash-can"></i><span>Delete Extra</span>
+                            </dt>
+                            <dd class="props-card__value" style="display: flex; align-items: center; gap: 15px;">
+                                <label class="switch" style="margin: 0;">
+                                    <input id="sync-delete-extraneous" type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                                <span style="font-size: 12px; opacity: 0.7; color: var(--textColor); line-height: 1.3;">Delete files in destination that do not exist in source.</span>
+                            </dd>
+                        </div>
+                    </dl>
                 </div>
-                <div class="popup-controls">
-                    <button class="icon-button" onclick="closeSyncPopup()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
-                    <button class="icon-button" onclick="executeSync()"><span class="button-icon"><i class="fa-solid fa-play"></i></span>Start Sync</button>
-                </div>
+
+                <footer class="props-card__footer">
+                    <button class="props-card__btn" onclick="closeSyncPopup()">
+                        <i class="fa-solid fa-ban"></i><span>Cancel</span>
+                    </button>
+                    <button class="props-card__btn props-card__btn--primary" onclick="executeSync()">
+                        <i class="fa-solid fa-play"></i><span>Start Sync</span>
+                    </button>
+                </footer>
             </div>
 
             <!-- :progressbar | Progress bar popup -->
