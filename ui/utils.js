@@ -302,16 +302,28 @@ function removeAction(actionId) {
 }
 
 function renderActiveActionsPill() {
-  const container = document.querySelector(".active-actions-container");
-  if (!container) return;
+  const isDual = typeof IsDualPaneEnabled !== "undefined" && IsDualPaneEnabled;
+  const activeContainer = isDual
+    ? document.querySelector(".active-actions-header-placeholder")
+    : document.querySelector(".active-actions-container");
+  const inactiveContainer = isDual
+    ? document.querySelector(".active-actions-container")
+    : document.querySelector(".active-actions-header-placeholder");
+
+  if (inactiveContainer) {
+    inactiveContainer.innerHTML = "";
+  }
+
+  if (!activeContainer) return;
+
   if (ArrActiveActions.length === 0) {
-    container.innerHTML = "";
+    activeContainer.innerHTML = "";
     closeActiveActionsPopup();
     return;
   }
-  let pill = container.querySelector(".active-actions-pill");
+  let pill = activeContainer.querySelector(".active-actions-pill");
   if (!pill) {
-    container.innerHTML = `
+    activeContainer.innerHTML = `
       <button class="active-actions-pill" type="button"
         onclick="toggleActiveActionsPopup(event)"
         aria-label="Show active actions">
@@ -320,7 +332,7 @@ function renderActiveActionsPill() {
         <span class="active-actions-pill__count">0</span>
       </button>
     `;
-    pill = container.querySelector(".active-actions-pill");
+    pill = activeContainer.querySelector(".active-actions-pill");
   }
   pill.querySelector(".active-actions-pill__count").textContent = ArrActiveActions.length;
   pill.setAttribute("title", `${ArrActiveActions.length} active action${ArrActiveActions.length === 1 ? "" : "s"}`);
@@ -351,6 +363,17 @@ function showActiveActionsPopup() {
     </header>
     <div class="active-actions-popup__list"></div>
   `;
+
+  if (IsDualPaneEnabled) {
+    const pill = document.querySelector(".active-actions-pill");
+    if (pill) {
+      const rect = pill.getBoundingClientRect();
+      popup.style.top = `${rect.bottom + 8}px`;
+      popup.style.left = `${rect.left}px`;
+      popup.style.bottom = "auto";
+    }
+  }
+
   document.body.appendChild(popup);
   refreshActiveActionsPopup();
   requestAnimationFrame(() => popup.classList.add("is-open"));
@@ -546,7 +569,7 @@ function getIconForFile(item, itemsCount) {
       case ".jfif":
       case ".avif":
       case ".icns":
-        if (IsImagePreview) {
+        if (IsImagePreview && !item.path.startsWith("ftp://")) {
           if (item.size < 50000000 && itemsCount < 1000) {
             // ~50 mb
             fileIcon = item.path;
@@ -620,6 +643,7 @@ function getIconForFile(item, itemsCount) {
 
 let FileOpProgressActionId = null;
 let lastFileOpProgressUpdate = 0;
+window.IsProgressModalDismissed = false;
 
 function getOrCreateFileOpAction(name = "File operation", description = "Preparing…") {
   if (FileOpProgressActionId) {
@@ -635,8 +659,87 @@ function getOrCreateFileOpAction(name = "File operation", description = "Prepari
   return action;
 }
 
+function reopenProgressModal(actionId) {
+  window.IsProgressModalDismissed = false;
+  showProgressbar();
+  closeActiveActionsPopup();
+}
+
 function showProgressbar() {
-  getOrCreateFileOpAction();
+  const action = getOrCreateFileOpAction();
+
+  if (window.IsProgressModalDismissed) {
+    return;
+  }
+
+  // Create detailed progress modal
+  let modal = document.querySelector(".file-progress-modal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.className = "file-progress-modal props-card";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("aria-label", "File progress");
+    
+    let actionTitle = (typeof IsCopyToCut !== "undefined" && IsCopyToCut === true) ? "Moving Items" : "Copying Items";
+
+    const progress = action.progress ?? 0;
+    const currentFile = action.currentFile || "Preparing...";
+    const countLabel = action.countLabel || "0 / 0";
+    const speedLabel = action.speedLabel || "0 MB/s";
+    const chipText = countLabel ? countLabel.split(" · ")[0] : "0 / 0";
+
+    modal.innerHTML = `
+      <section class="props-card__hero file-progress-modal__hero">
+        <div class="props-card__thumb file-progress-modal__thumb">
+          <div class="preloader-small-invert"></div>
+        </div>
+        <div class="props-card__heading">
+          <h2 class="props-card__name progress-modal-title">${actionTitle}...</h2>
+          <div class="props-card__meta">
+            <span class="progress-modal-meta-speed">${speedLabel}</span>
+            <span class="props-card__chip progress-modal-meta-count">${chipText}</span>
+          </div>
+        </div>
+      </section>
+ 
+      <dl class="props-card__list">
+        <div class="props-card__row props-card__row--block">
+          <dt class="props-card__label"><i class="fa-regular fa-file"></i>Current File</dt>
+          <dd class="props-card__value progress-modal-current-file" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${currentFile}">
+            ${currentFile}
+          </dd>
+        </div>
+        <div class="props-card__row props-card__row--block" style="gap: 12px; padding-top: 12px; padding-bottom: 12px;">
+          <div style="width: 100%; background: rgba(255, 255, 255, 0.08); height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); position: relative;">
+            <div class="progress-modal-fill" style="width: ${progress}%; height: 100%; background: linear-gradient(90deg, var(--selectColor2), #4da3ff); box-shadow: 0 0 12px rgba(77, 163, 255, 0.6); transition: width 0.1s ease-out; border-radius: 4px;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--textColor2); margin-top: -4px;">
+            <span class="progress-modal-percent-text">${Math.round(progress)}% completed</span>
+            <span class="progress-modal-count-text">${countLabel} items</span>
+          </div>
+        </div>
+      </dl>
+
+      <footer class="props-card__footer">
+        <button class="props-card__btn props-card__btn--primary" data-progress-background>
+          <i class="fa-solid fa-window-minimize"></i><span>Run in Background</span>
+        </button>
+      </footer>
+    `;
+    document.body.appendChild(modal);
+    modal.classList.add("popup-enter");
+    IsPopUpOpen = true;
+
+    modal.querySelector("[data-progress-background]").onclick = () => {
+      window.IsProgressModalDismissed = true;
+      modal.classList.add("popup-exit");
+      modal.addEventListener("animationend", () => {
+        modal.remove();
+        IsPopUpOpen = false;
+      }, { once: true });
+    };
+  }
 }
 
 function updateProgressBar(totalPercentage, elementsPercentage, countElements, currentElementNumber, currentFile, currentSpeed) {
@@ -667,10 +770,42 @@ function updateProgressBar(totalPercentage, elementsPercentage, countElements, c
     } else {
       refreshActiveActionsPopup();
     }
+
+    // Update detailed progress modal if visible
+    const modal = document.querySelector(".file-progress-modal");
+    if (modal) {
+      let actionTitle = (typeof IsCopyToCut !== "undefined" && IsCopyToCut === true) ? "Moving Items" : "Copying Items";
+      modal.querySelector(".progress-modal-title").textContent = `${actionTitle}...`;
+
+      const currentFileEl = modal.querySelector(".progress-modal-current-file");
+      if (currentFileEl) {
+        currentFileEl.textContent = currentFile || "Preparing...";
+        currentFileEl.setAttribute("title", currentFile || "");
+      }
+
+      const fillEl = modal.querySelector(".progress-modal-fill");
+      if (fillEl) fillEl.style.width = `${totalPercentage}%`;
+
+      const percentEl = modal.querySelector(".progress-modal-percent-text");
+      if (percentEl) percentEl.textContent = `${Math.round(totalPercentage)}% completed`;
+
+      const countEl = modal.querySelector(".progress-modal-count-text");
+      const countPillEl = modal.querySelector(".progress-modal-meta-count");
+      const countText = countElements > 1
+        ? `${currentElementNumber} / ${countElements} · ${elementsPercentage.toFixed(0)}%`
+        : `${currentElementNumber} / ${countElements}`;
+      const pillText = `${currentElementNumber} / ${countElements}`;
+      if (countEl) countEl.textContent = `${countText} items`;
+      if (countPillEl) countPillEl.textContent = pillText;
+
+      const speedEl = modal.querySelector(".progress-modal-meta-speed");
+      if (speedEl) speedEl.textContent = `${currentSpeed.toFixed(0)} MB/s`;
+    }
   }
 }
 
 function finishProgressBar(time = 0) {
+  window.IsProgressModalDismissed = false;
   const id = FileOpProgressActionId;
   if (!id) return;
   const action = ArrActiveActions.find((a) => a.id === id);
@@ -687,6 +822,42 @@ function finishProgressBar(time = 0) {
     const speed = row.querySelector(".active-action__speed");
     if (speed && action) speed.textContent = action.speedLabel;
   }
+
+  // Finalize and close the detailed progress modal if visible
+  const modal = document.querySelector(".file-progress-modal");
+  if (modal) {
+    modal.querySelector(".progress-modal-title").textContent = "Completed Successfully!";
+    
+    const thumbEl = modal.querySelector(".file-progress-modal__thumb");
+    if (thumbEl) {
+      thumbEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--successColor, #4ade80);"></i>`;
+    }
+
+    const fillEl = modal.querySelector(".progress-modal-fill");
+    if (fillEl) {
+      fillEl.style.width = "100%";
+      fillEl.style.background = "var(--successColor, #4ade80)";
+      fillEl.style.boxShadow = "0 0 12px rgba(74, 222, 128, 0.6)";
+    }
+
+    const percentEl = modal.querySelector(".progress-modal-percent-text");
+    if (percentEl) percentEl.textContent = "100% completed";
+
+    const speedEl = modal.querySelector(".progress-modal-meta-speed");
+    if (speedEl) speedEl.textContent = time ? `Done in ${time.toFixed(2)}s` : "Done";
+
+    const currentFileEl = modal.querySelector(".progress-modal-current-file");
+    if (currentFileEl) currentFileEl.textContent = "All operations completed.";
+
+    setTimeout(() => {
+      modal.classList.add("popup-exit");
+      modal.addEventListener("animationend", () => {
+        modal.remove();
+        if (IsPopUpOpen) IsPopUpOpen = false;
+      }, { once: true });
+    }, 1200);
+  }
+
   setTimeout(() => {
     if (FileOpProgressActionId === id) FileOpProgressActionId = null;
     removeAction(id);

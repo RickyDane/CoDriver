@@ -626,382 +626,193 @@ function isShortcut(key) {
 }
 
 document.onkeydown = async (e) => {
-  if (IsDisableShortcuts === false) {
-    // Shortcut for jumping to configured directory
-    if (e.altKey && e.code == "Digit1") {
-      if (ConfiguredPathOne == "") return;
+  if (IsDisableShortcuts === true) return;
+
+  // 1. Check custom slot paths shortcuts first
+  if (matchShortcut("slot_1", e)) {
+    if (ConfiguredPathOne != "") {
       openItem(null, SelectedItemPaneSide, ConfiguredPathOne);
+      e.preventDefault(); e.stopPropagation();
     }
-    if (e.altKey && e.code == "Digit2") {
-      if (ConfiguredPathTwo == "") return;
+  }
+  else if (matchShortcut("slot_2", e)) {
+    if (ConfiguredPathTwo != "") {
       openItem(null, SelectedItemPaneSide, ConfiguredPathTwo);
+      e.preventDefault(); e.stopPropagation();
     }
-    if (e.altKey && e.code == "Digit3") {
-      if (ConfiguredPathThree == "") return;
+  }
+  else if (matchShortcut("slot_3", e)) {
+    if (ConfiguredPathThree != "") {
       openItem(null, SelectedItemPaneSide, ConfiguredPathThree);
+      e.preventDefault(); e.stopPropagation();
     }
-
-    // :dual_pane :shortcuts
-    if (
-      IsDualPaneEnabled == true &&
-      IsDisableShortcuts == false &&
-      IsPopUpOpen == false
-    ) {
-      // check if return is pressed
-      if (!e.altKey && e.keyCode == 13) {
-        e.preventDefault();
-        e.stopPropagation();
-        await openSelectedItem();
-      }
-      // check if backspace is pressed
-      if (e.keyCode == 8 && IsPopUpOpen == false) {
-        goBack(e);
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      // check if lshift + f5 is pressed
-      if (e.shiftKey && e.key == "F5") {
-        e.preventDefault();
-        e.stopPropagation();
-        let isToMove = await showCopyMovePopup(true);
-        if (isToMove == true) {
-          IsCopyToCut = true;
-          await pasteItem();
-        }
-      }
-      // check if f5 is pressed
-      else if (e.key == "F5" && IsTabsEnabled == false) {
-        e.preventDefault();
-        e.stopPropagation();
-        let isToCopy = await showCopyMovePopup(false);
-        if (isToCopy == true) {
-          pasteItem();
-        }
-      }
-      // check if arrow up is pressed
-      if (e.keyCode == 38) {
-        if (SelectedElement == null) {
-          goUp(false, true);
-        } else {
-          goUp();
-        }
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      // check if arrow down is pressed
-      if (e.keyCode == 40) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (SelectedElement == null) {
-          goUp(false, true);
-        } else {
-          goDown();
-        }
-      }
-      // check if tab is pressed
-      if (e.keyCode == 9) {
-        e.preventDefault();
-        e.stopPropagation();
-        goToOtherPane();
-      }
-      if (e.key == "PageUp") {
-        goUp();
-        goUp();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      if (e.key == "PageDown") {
-        goDown();
-        goDown();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      // Open disk dropdown / :dropdown :disk_dropdown
-      if (e.key == "F1" && (e.metaKey || e.altKey)) {
-        let diskDropdown = document.querySelector(".left-disk-dropdown");
-        let evt = document.createEvent("MouseEvents");
-        evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
-        diskDropdown.dispatchEvent(evt);
-      } else if (e.key == "F2" && (e.metaKey || e.altKey)) {
-        SelectedItemPaneSide = "right";
-        let diskDropdown = document.querySelector(".right-disk-dropdown");
-        let evt = document.createEvent("MouseEvents");
-        evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
-        diskDropdown.dispatchEvent(evt);
-      }
-    } else if (IsItemPreviewOpen == true && IsDualPaneEnabled === true) {
-      // check if arrow up is pressed
-      if (e.keyCode == 38) {
-        goUp();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      // check if arrow down is pressed
-      if (e.keyCode == 40) {
-        goDown(e);
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }
-
-    // Check if cmd / ctrl + shift + c is pressed
-    if (
-      ((Platform != "darwin" && e.ctrlKey && e.altKey) ||
-        (Platform == "darwin" && e.shiftKey)) &&
-      e.key == "c"
-    ) {
-      await writeText(CurrentDir);
-      showToast("Current dir path copied", ToastType.SUCCESS);
-      return;
-    }
-
-    // Check if cmd / ctrl + f is pressed
-    if (e.key == "f" && (e.ctrlKey || e.metaKey)) {
-      if (IsDualPaneEnabled == true) return;
-      $(".search-bar-input").focus();
-      IsInputFocused = true;
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    // Check if space is pressed on selected item
-    if (e.key == " " && SelectedElement != null) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (
-        IsPopUpOpen == false &&
-        IsInputFocused == false &&
-        IsItemPreviewOpen == false
-      ) {
-        showItemPreview(SelectedElement);
-      } else {
-        closeItemPreview();
-      }
-    }
-
-    if (IsPopUpOpen == false) {
-      // check if del is pressed
-      if (
-        IsInputFocused == false &&
-        (e.keyCode == 46 || (e.metaKey && e.keyCode == 8))
-      ) {
-        await deleteItems();
-        closeLoadingPopup();
-        await listDirectories();
-        goUp();
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-
-      // Check if cmd / ctrl + a is pressed
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.key == "a" &&
-        IsInputFocused === false &&
-        IsPopUpOpen === false
-      ) {
-        if (IsDualPaneEnabled) {
-          if (SelectedItemPaneSide == "left") {
-            await unSelectAllItems();
-            for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
-              selectItem(LeftPaneItemCollection.children[i]);
-            }
-          } else {
-            await unSelectAllItems();
-            for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
-              selectItem(RightPaneItemCollection.children[i]);
-            }
-          }
-        } else {
-          await unSelectAllItems();
-          for (let i = 0; i < DirectoryList.children.length; i++) {
-            selectItem(DirectoryList.children[i]);
-          }
-        }
-      }
-
-      if (
-        (e.altKey && e.key == "Enter") ||
-        (e.key == "F2" && !e.metaKey && !e.ctrlKey && !e.altKey) ||
-        (Platform == "darwin" &&
-          e.key == "Enter" &&
-          IsDualPaneEnabled == false &&
-          IsInputFocused == false)
-      ) {
-        // check if alt + enter is pressed
-        renameElementInputPrompt(SelectedElement);
-      }
-
-      // check if cmd / ctrl + r is pressed
-      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "r") {
-        e.preventDefault();
-        e.stopPropagation();
-        await unSelectAllItems();
-        if (IsDualPaneEnabled === true) {
-          refreshBothViews(SelectedItemPaneSide);
-        } else {
-          refreshView();
-        }
-      }
-
-      // check if cmd / ctrl + c is pressed
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.key == "c" &&
-        IsInputFocused == false
-      ) {
-        copyItem(SelectedElement);
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      // check if cmd / ctrl + x is pressed
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.key == "x" &&
-        IsInputFocused == false
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        await copyItem(SelectedElement, true);
-      }
-
-      // check if cmd / ctrl + v is pressed
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.key == "v" &&
-        IsInputFocused == false
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
+  }
+  
+  // Dual-pane explorer action contexts
+  else if (IsDualPaneEnabled == true && IsPopUpOpen == false) {
+    if (matchShortcut("pane_copy", e) && IsTabsEnabled == false) {
+      e.preventDefault(); e.stopPropagation();
+      let isToCopy = await showCopyMovePopup(false);
+      if (isToCopy == true) {
         pasteItem();
       }
-
-      // check if cmd / ctrl + g is pressed | Path input
-      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
-        e.preventDefault();
-        e.stopPropagation();
-        showInputPopup("Input path to jump to");
-      }
-
-      // New folder input prompt when f7 is pressed
-      if (e.key == "F7") {
-        e.preventDefault();
-        e.stopPropagation();
-        createFolderInputPrompt();
-      }
-
-      // New file input prompt when f6 is pressed
-      if (e.keyCode == 117) {
-        e.preventDefault();
-        e.stopPropagation();
-        createFileInputPrompt();
-      }
-
-      // Open file search container when f8 is pressed
-      if (e.key == "F8" || e.keyCode == 119) {
-        e.preventDefault();
-        e.stopPropagation();
-        openFullSearchContainer();
-      }
-
-      // check if ctrl / cmd + shift + m is pressed
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.shiftKey &&
-        (e.key == "M" || e.key == "m") &&
-        ArrSelectedItems.length >= 1
-      ) {
-        showMultiRenamePopup();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      if (IsDualPaneEnabled === false) {
-        // check if return is pressed
-        if (!e.altKey && e.keyCode == 13 && Platform != "darwin") {
-          await openSelectedItem();
-          e.preventDefault();
-          e.stopPropagation();
-        }
-
-        // check if backspace is pressed
-        if (
-          e.keyCode == 8 &&
-          IsPopUpOpen === false &&
-          IsInputFocused === false &&
-          ArrSelectedItems.length == 0
-        ) {
-          goBack(e);
-          e.preventDefault();
-          e.stopPropagation();
-        }
+    }
+    else if (matchShortcut("pane_move", e)) {
+      e.preventDefault(); e.stopPropagation();
+      let isToMove = await showCopyMovePopup(true);
+      if (isToMove == true) {
+        IsCopyToCut = true;
+        await pasteItem();
       }
     }
-
-    if (
-      IsDualPaneEnabled === false &&
-      IsItemPreviewOpen === false &&
-      IsInputFocused === false
-    ) {
-      if (
-        (e.metaKey || e.ctrlKey || e.key == "Super") &&
-        e.key.toLowerCase() == "k"
-      ) {
-        showCompressPopup(ArrSelectedItems[0]);
-      }
-      // :new_shortcut :new :shortcut
+    else if (matchShortcut("pane_switch", e)) {
+      e.preventDefault(); e.stopPropagation();
+      goToOtherPane();
     }
-
-    // Item preview :preview
-    if (
-      IsDualPaneEnabled === false &&
-      ((IsItemPreviewOpen === true && IsPopUpOpen === true) ||
-        IsPopUpOpen === false) &&
-      IsInputFocused === false
-    ) {
-      if (ViewMode == "wrap") {
-        // check if arrow up is pressed
-        if (e.keyCode == 38) {
-          e.preventDefault();
-          e.stopPropagation();
-          goGridUp();
-        }
-
-        // check if arrow down is pressed
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          e.stopPropagation();
-          goGridDown();
-        }
+    else if (matchShortcut("disk_menu_left", e)) {
+      e.preventDefault(); e.stopPropagation();
+      let diskDropdown = document.querySelector(".left-disk-dropdown");
+      let evt = document.createEvent("MouseEvents");
+      evt.initMouseEvent("mousedown");
+      diskDropdown.dispatchEvent(evt);
+    }
+    else if (matchShortcut("disk_menu_right", e)) {
+      e.preventDefault(); e.stopPropagation();
+      SelectedItemPaneSide = "right";
+      let diskDropdown = document.querySelector(".right-disk-dropdown");
+      let evt = document.createEvent("MouseEvents");
+      evt.initMouseEvent("mousedown");
+      diskDropdown.dispatchEvent(evt);
+    }
+  }
+  
+  // Now standard shortcuts
+  if (matchShortcut("copy_dir_path", e)) {
+    e.preventDefault(); e.stopPropagation();
+    await writeText(CurrentDir);
+    showToast("Current dir path copied", ToastType.SUCCESS);
+  }
+  else if (matchShortcut("focus_search", e)) {
+    if (IsDualPaneEnabled != true) {
+      $(".search-bar-input").focus();
+      IsInputFocused = true;
+      e.preventDefault(); e.stopPropagation();
+    }
+  }
+  else if (matchShortcut("quick_preview", e) && SelectedElement != null) {
+    e.preventDefault(); e.stopPropagation();
+    if (IsPopUpOpen == false && IsInputFocused == false && IsItemPreviewOpen == false) {
+      showItemPreview(SelectedElement);
+    } else {
+      closeItemPreview();
+    }
+  }
+  
+  // Actions allowed when popup is closed
+  if (IsPopUpOpen == false) {
+    if (matchShortcut("delete_item", e) && IsInputFocused == false) {
+      e.preventDefault(); e.stopPropagation();
+      await deleteItems();
+      closeLoadingPopup();
+      await listDirectories();
+      goUp();
+    }
+    else if (matchShortcut("select_all", e) && IsInputFocused === false) {
+      e.preventDefault(); e.stopPropagation();
+      await selectAllExplorerItems();
+    }
+    else if (matchShortcut("rename_item", e) && IsInputFocused == false) {
+      e.preventDefault(); e.stopPropagation();
+      renameElementInputPrompt(SelectedElement);
+    }
+    else if (matchShortcut("refresh_view", e)) {
+      e.preventDefault(); e.stopPropagation();
+      await unSelectAllItems();
+      if (IsDualPaneEnabled === true) {
+        refreshBothViews(SelectedItemPaneSide);
+      } else {
+        refreshView();
       }
-
-      // check if arrow left is pressed
-      if (
-        e.keyCode == 37 ||
-        ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        goLeft();
+    }
+    else if (matchShortcut("copy_item", e) && IsInputFocused == false) {
+      e.preventDefault(); e.stopPropagation();
+      copyItem(SelectedElement);
+    }
+    else if (matchShortcut("cut_item", e) && IsInputFocused == false) {
+      e.preventDefault(); e.stopPropagation();
+      await copyItem(SelectedElement, true);
+    }
+    else if (matchShortcut("paste_item", e) && IsInputFocused == false) {
+      e.preventDefault(); e.stopPropagation();
+      pasteItem();
+    }
+    else if (matchShortcut("jump_to_path", e)) {
+      e.preventDefault(); e.stopPropagation();
+      showInputPopup("Input path to jump to");
+    }
+    else if (matchShortcut("new_folder", e)) {
+      e.preventDefault(); e.stopPropagation();
+      createFolderInputPrompt();
+    }
+    else if (matchShortcut("new_file", e)) {
+      e.preventDefault(); e.stopPropagation();
+      createFileInputPrompt();
+    }
+    else if (matchShortcut("search_files", e)) {
+      e.preventDefault(); e.stopPropagation();
+      openFullSearchContainer();
+    }
+    else if (matchShortcut("multi_rename", e) && ArrSelectedItems.length >= 1) {
+      e.preventDefault(); e.stopPropagation();
+      showMultiRenamePopup();
+    }
+    else if (matchShortcut("compress_item", e) && IsInputFocused === false && IsDualPaneEnabled === false && IsItemPreviewOpen === false) {
+      e.preventDefault(); e.stopPropagation();
+      showCompressPopup(ArrSelectedItems[0]);
+    }
+  }
+  
+  // Standard list navigations (ArrowUp, ArrowDown, Backspace, Return)
+  if (IsPopUpOpen == false && IsInputFocused == false) {
+    if (matchShortcut("nav_up", e)) {
+      e.preventDefault(); e.stopPropagation();
+      if (SelectedElement == null) {
+        goUp(false, true);
+      } else if (ViewMode === "wrap") {
+        goGridUp();
+      } else {
+        goUp();
       }
-
-      // check if arrow right is pressed
-      if (
-        e.keyCode == 39 ||
-        ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        goRight();
+    }
+    else if (matchShortcut("nav_down", e)) {
+      e.preventDefault(); e.stopPropagation();
+      if (SelectedElement == null) {
+        goUp(false, true);
+      } else if (ViewMode === "wrap") {
+        goGridDown();
+      } else {
+        goDown();
       }
+    }
+    else if (matchShortcut("nav_left", e)) {
+      e.preventDefault(); e.stopPropagation();
+      goLeft();
+    }
+    else if (matchShortcut("nav_right", e)) {
+      e.preventDefault(); e.stopPropagation();
+      goRight();
+    }
+    else if (e.keyCode == 13 && !e.altKey) {
+      e.preventDefault(); e.stopPropagation();
+      await openSelectedItem();
+    }
+    else if (e.keyCode == 8 && ArrSelectedItems.length == 0) {
+      e.preventDefault(); e.stopPropagation();
+      goBack(e);
     }
   }
 };
 
-// Reset key toggle
 document.onkeyup = (e) => {
   if (e.key == "G" || e.key == "g") IsGDown = false;
 };
@@ -3501,42 +3312,60 @@ async function checkAppConfig() {
     }
 
     // Theme options
-    CurrentTheme = appConfig.current_theme;
+    CurrentTheme = appConfig.current_theme || "Default Dark";
     ArrFavorites = appConfig.arr_favorites || [];
-    appConfig.themes = await invoke("get_themes");
-    // Fallback when there's no theme installed
-    if (appConfig.themes.length == 0) {
-      appConfig.themes = [
-        {
-          name: "Default",
-          primary_color: "#3f4352",
-          secondary_color: "rgba(56, 59, 71, 1)",
-          tertiary_color: "#474b5c",
-          text_color: "rgba(255, 255, 255, 0.8)",
-          text_color2: "rgba(255, 255, 255, 0.6)",
-          text_color3: "rgb(255, 255, 255)",
-          transparent_color: "rgba(0, 0, 0, 0.15)",
-          transparent_color_active: "rgba(0, 0, 0, 0.25)",
-          site_bar_color: "rgb(45, 47, 57)",
-          nav_bar_color: "rgba(30, 30, 40, 0.5)",
-        },
-      ];
+    
+    // Load custom user themes from the backend
+    try {
+      LoadedUserThemes = await invoke("get_themes");
+    } catch (err) {
+      console.error("Failed to load user themes:", err);
+      LoadedUserThemes = [];
     }
+    
+    // Rework themeSelect population to be name-based
     let themeSelect = document.querySelector(".theme-select");
     themeSelect.innerHTML = "";
-    let themeCounter = 0;
-    appConfig.themes.forEach((theme) => {
+    
+    // 1. Add built-in themes
+    Object.keys(BuiltInThemes).forEach(themeName => {
       let themeOption = document.createElement("option");
-      themeOption.value = themeCounter;
-      themeOption.textContent = theme.name;
+      themeOption.value = themeName;
+      themeOption.textContent = themeName;
       themeSelect.appendChild(themeOption);
-      themeCounter++;
+    });
+    
+    // 2. Add custom loaded themes
+    LoadedUserThemes.forEach(theme => {
+      // Avoid duplicating built-in names
+      if (!BuiltInThemes[theme.name]) {
+        let themeOption = document.createElement("option");
+        themeOption.value = theme.name;
+        themeOption.textContent = theme.name;
+        themeSelect.appendChild(themeOption);
+      }
     });
 
-    // Set current theme
-    themeSelect.value = CurrentTheme;
+    // Set current theme in select dropdown
+    if (themeSelect.querySelector(`option[value="${CurrentTheme}"]`)) {
+      themeSelect.value = CurrentTheme;
+    } else {
+      CurrentTheme = "Default Dark";
+      themeSelect.value = CurrentTheme;
+    }
+
+    // Toggle delete button visibility based on whether the theme is built-in
+    if (BuiltInThemes[CurrentTheme]) {
+      $(".delete-theme-btn").css("display", "none");
+    } else {
+      $(".delete-theme-btn").css("display", "block");
+    }
 
     checkColorMode(appConfig);
+
+    // Keyboard Shortcuts Initialization
+    ConfiguredShortcuts = { ...DefaultShortcuts, ...(appConfig.shortcuts || {}) };
+    populateShortcutsUI();
 
     // General configurations
     document.querySelector(".configured-path-one-input").value =
@@ -5120,6 +4949,7 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     isWindowTransparency,
     geminiApiKey,
     isAiEnabled,
+    shortcuts: ConfiguredShortcuts,
   });
   if (isVerbose === true) {
     showToast("Settings have been saved", ToastType.INFO);
@@ -5130,7 +4960,8 @@ async function saveConfig(isToReload = true, isVerbose = true) {
 }
 
 async function resetSettingsToDefaults() {
-  if (!confirm("Reset all settings to their default values?")) return;
+  const confirmed = await confirm("Reset all settings to their default values?");
+  if (!confirmed) return;
 
   document.querySelector(".theme-select").value = "0";
   document.querySelector("#choose-interaction-mode").checked = true;
@@ -6277,45 +6108,256 @@ function getFDirObjectListFromDirectoryList(arrElements) {
   });
 }
 
+const BuiltInThemes = {
+  "Default Dark": {
+    name: "Default Dark",
+    primary_color: "#3f4352",
+    secondary_color: "rgba(56, 59, 71, 1)",
+    tertiary_color: "#474b5c",
+    text_color: "rgba(255, 255, 255, 0.8)",
+    text_color2: "rgba(255, 255, 255, 0.6)",
+    text_color3: "rgb(255, 255, 255)",
+    transparent_color: "rgba(0, 0, 0, 0.15)",
+    transparent_color_active: "rgba(0, 0, 0, 0.25)",
+    site_bar_color: "rgb(45, 47, 57)",
+    nav_bar_color: "rgba(30, 30, 40, 0.5)",
+    sidebar_top_blur_overlay_color: "rgb(45, 47, 57)"
+  },
+  "Default Light": {
+    name: "Default Light",
+    primary_color: "#cbd0df",
+    secondary_color: "rgba(244, 245, 248, 1)",
+    tertiary_color: "#d0d4e3",
+    text_color: "rgba(30, 30, 35, 0.9)",
+    text_color2: "rgba(30, 30, 35, 0.6)",
+    text_color3: "rgb(20, 20, 25)",
+    transparent_color: "rgba(0, 0, 0, 0.05)",
+    transparent_color_active: "rgba(0, 0, 0, 0.12)",
+    site_bar_color: "rgb(230, 232, 238)",
+    nav_bar_color: "rgba(220, 222, 228, 0.5)",
+    sidebar_top_blur_overlay_color: "rgb(230, 232, 238)"
+  }
+};
+
+let LoadedUserThemes = [];
+let OriginalThemeBackup = null;
+
 function checkColorMode(appConfig) {
   var r = document.querySelector(":root");
-  let themeId = parseInt(CurrentTheme);
-  r.style.setProperty(
-    "--primaryColor",
-    appConfig.themes[themeId].primary_color,
-  );
-  r.style.setProperty(
-    "--secondaryColor",
-    appConfig.themes[themeId].secondary_color,
-  );
-  r.style.setProperty(
-    "--tertiaryColor",
-    appConfig.themes[themeId].tertiary_color,
-  );
-  r.style.setProperty(
-    "--transparentColor",
-    appConfig.themes[themeId].transparent_color,
-  );
-  r.style.setProperty(
-    "--transparentColorActive",
-    appConfig.themes[themeId].transparent_color_active,
-  );
-  r.style.setProperty("--textColor", appConfig.themes[themeId].text_color);
-  r.style.setProperty("--textColor2", appConfig.themes[themeId].text_color2);
-  r.style.setProperty(
-    "--textColor3",
-    appConfig.themes[themeId].text_color3.replace('"', "").replace('"', ""),
-  );
-  r.style.setProperty(
-    "--siteBarColor",
-    appConfig.themes[themeId].site_bar_color,
-  );
-  r.style.setProperty(
-    "--sidebarTopBlurOverlayColor",
-    appConfig.themes[themeId].sidebar_top_blur_overlay_color ||
-      appConfig.themes[themeId].site_bar_color,
-  );
-  r.style.setProperty("--navBarColor", appConfig.themes[themeId].nav_bar_color);
+  let activeThemeName = CurrentTheme || "Default Dark";
+  
+  // Find theme by name (either built-in or user-created loaded from backend)
+  let activeTheme = BuiltInThemes[activeThemeName];
+  if (!activeTheme && LoadedUserThemes) {
+    activeTheme = LoadedUserThemes.find(t => t.name === activeThemeName);
+  }
+  
+  // Fallback to Default Dark
+  if (!activeTheme) {
+    activeTheme = BuiltInThemes["Default Dark"];
+  }
+
+  r.style.setProperty("--primaryColor", activeTheme.primary_color);
+  r.style.setProperty("--secondaryColor", activeTheme.secondary_color);
+  r.style.setProperty("--tertiaryColor", activeTheme.tertiary_color);
+  r.style.setProperty("--transparentColor", activeTheme.transparent_color);
+  r.style.setProperty("--transparentColorActive", activeTheme.transparent_color_active);
+  r.style.setProperty("--textColor", activeTheme.text_color);
+  r.style.setProperty("--textColor2", activeTheme.text_color2);
+  r.style.setProperty("--textColor3", activeTheme.text_color3.replace(/"/g, ""));
+  r.style.setProperty("--siteBarColor", activeTheme.site_bar_color);
+  r.style.setProperty("--sidebarTopBlurOverlayColor", activeTheme.sidebar_top_blur_overlay_color || activeTheme.site_bar_color);
+  r.style.setProperty("--navBarColor", activeTheme.nav_bar_color);
+  
+  // Update styling variables for glassmorphism popups to adapt perfectly to dark vs light mode!
+  let isLight = !activeThemeName.toLowerCase().includes("dark") && 
+                 (activeTheme.text_color.includes("rgba(30") || 
+                  activeTheme.text_color.includes("#1e") || 
+                  activeTheme.text_color.includes("rgba(0") || 
+                  activeTheme.text_color.includes("#32") ||
+                  activeTheme.text_color.startsWith("#0") ||
+                  activeTheme.text_color.startsWith("#1") ||
+                  activeTheme.text_color.startsWith("#2"));
+  if (isLight) {
+    r.style.setProperty("--glass-bg", "rgba(255, 255, 255, 0.7)");
+    r.style.setProperty("--glass-header-bg", "rgba(240, 240, 245, 0.85)");
+    r.style.setProperty("--glass-shadow", "0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.06)");
+    r.style.setProperty("--glass-border", "1px solid rgba(0, 0, 0, 0.08)");
+    r.style.setProperty("--glass-border-subtle", "1px solid rgba(0, 0, 0, 0.05)");
+  } else {
+    r.style.setProperty("--glass-bg", "color-mix(in srgb, var(--primaryColor) 85%, transparent)");
+    r.style.setProperty("--glass-header-bg", "color-mix(in srgb, var(--secondaryColor) 80%, transparent)");
+    r.style.setProperty("--glass-shadow", "0 8px 32px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.06)");
+    r.style.setProperty("--glass-border", "1px solid color-mix(in srgb, var(--tertiaryColor) 50%, transparent)");
+    r.style.setProperty("--glass-border-subtle", "1px solid color-mix(in srgb, var(--tertiaryColor) 35%, transparent)");
+  }
+}
+
+async function applyTheme(themeName) {
+  CurrentTheme = themeName;
+  checkColorMode();
+}
+
+async function applyThemeFromSelect() {
+  let themeName = $(".theme-select").val();
+  CurrentTheme = themeName;
+  checkColorMode();
+  
+  // Toggle delete button visibility based on whether the theme is built-in
+  if (BuiltInThemes[CurrentTheme]) {
+    $(".delete-theme-btn").css("display", "none");
+  } else {
+    $(".delete-theme-btn").css("display", "block");
+  }
+  
+  await saveConfig(false, false);
+}
+
+function openThemeCreator() {
+  $("#theme-creator-popup").css("display", "flex");
+  IsPopUpOpen = true;
+  IsDisableShortcuts = true;
+  
+  // Backup currently active theme in case they click cancel
+  OriginalThemeBackup = CurrentTheme;
+  
+  // Initialize pickers and inputs with the currently active theme's colors
+  let activeThemeName = CurrentTheme || "Default Dark";
+  let activeTheme = BuiltInThemes[activeThemeName] || LoadedUserThemes.find(t => t.name === activeThemeName) || BuiltInThemes["Default Dark"];
+  
+  $(".theme-name-input").val("");
+  
+  setThemeCreatorColorRow("primary-color", activeTheme.primary_color, "--primaryColor");
+  setThemeCreatorColorRow("secondary-color", activeTheme.secondary_color, "--secondaryColor");
+  setThemeCreatorColorRow("tertiary-color", activeTheme.tertiary_color, "--tertiaryColor");
+  setThemeCreatorColorRow("text-color", activeTheme.text_color, "--textColor");
+  setThemeCreatorColorRow("text-color2", activeTheme.text_color2, "--textColor2");
+  setThemeCreatorColorRow("text-color3", activeTheme.text_color3, "--textColor3");
+  setThemeCreatorColorRow("sitebar-color", activeTheme.site_bar_color, "--siteBarColor");
+  setThemeCreatorColorRow("navbar-color", activeTheme.nav_bar_color, "--navBarColor");
+}
+
+function setThemeCreatorColorRow(cssClass, colorVal, varName) {
+  let hexColor = convertToHex(colorVal);
+  $(`.theme-${cssClass}`).val(hexColor);
+  $(`.theme-${cssClass}-text`).val(colorVal);
+  
+  // Link inputs
+  $(`.theme-${cssClass}`).off("input").on("input", function() {
+    let newVal = this.value;
+    $(`.theme-${cssClass}-text`).val(newVal);
+    previewThemeColor(varName, newVal);
+  });
+  
+  $(`.theme-${cssClass}-text`).off("input").on("input", function() {
+    let newVal = this.value;
+    let hexColor = convertToHex(newVal);
+    $(`.theme-${cssClass}`).val(hexColor);
+    previewThemeColor(varName, newVal);
+  });
+}
+
+function convertToHex(colorStr) {
+  if (colorStr.startsWith("#")) return colorStr;
+  if (colorStr.startsWith("rgb")) {
+    let parts = colorStr.match(/\d+/g);
+    if (parts && parts.length >= 3) {
+      let r = parseInt(parts[0]).toString(16).padStart(2, "0");
+      let g = parseInt(parts[1]).toString(16).padStart(2, "0");
+      let b = parseInt(parts[2]).toString(16).padStart(2, "0");
+      return `#${r}${g}${b}`;
+    }
+  }
+  return "#000000";
+}
+
+function previewThemeColor(varName, val) {
+  document.documentElement.style.setProperty(varName, val);
+  if (varName === "--primaryColor") {
+    document.documentElement.style.setProperty("--glass-bg", `color-mix(in srgb, ${val} 85%, transparent)`);
+  }
+}
+
+function previewThemeColorText(varName, val) {
+  previewThemeColor(varName, val);
+}
+
+function closeThemeCreator() {
+  $("#theme-creator-popup").css("display", "none");
+  IsPopUpOpen = false;
+  IsDisableShortcuts = false;
+  
+  // Restore original theme since they canceled
+  if (OriginalThemeBackup) {
+    CurrentTheme = OriginalThemeBackup;
+    checkColorMode();
+  }
+}
+
+async function saveCustomTheme() {
+  let name = $(".theme-name-input").val().trim();
+  if (!name) {
+    alert("Please enter a theme name");
+    return;
+  }
+  
+  if (BuiltInThemes[name]) {
+    alert("Theme name conflicts with a built-in theme. Please choose a different name.");
+    return;
+  }
+  
+  let newTheme = {
+    name: name,
+    primary_color: $(".theme-primary-color-text").val().trim(),
+    secondary_color: $(".theme-secondary-color-text").val().trim(),
+    tertiary_color: $(".theme-tertiary-color-text").val().trim(),
+    text_color: $(".theme-text-color-text").val().trim(),
+    text_color2: $(".theme-text-color2-text").val().trim(),
+    text_color3: $(".theme-text-color3-text").val().trim(),
+    transparent_color: "rgba(0, 0, 0, 0.15)",
+    transparent_color_active: "rgba(0, 0, 0, 0.25)",
+    site_bar_color: $(".theme-sitebar-color-text").val().trim(),
+    nav_bar_color: $(".theme-navbar-color-text").val().trim(),
+    sidebar_top_blur_overlay_color: $(".theme-sitebar-color-text").val().trim()
+  };
+  
+  try {
+    await invoke("save_theme", { theme: newTheme });
+    showToast("Theme saved successfully!", ToastType.SUCCESS);
+    
+    CurrentTheme = name;
+    $("#theme-creator-popup").css("display", "none");
+    IsPopUpOpen = false;
+    IsDisableShortcuts = false;
+    
+    await checkAppConfig();
+    await saveConfig(false, false);
+  } catch (err) {
+    alert("Failed to save custom theme: " + err);
+  }
+}
+
+async function deleteActiveTheme() {
+  let activeThemeName = $(".theme-select").val();
+  if (BuiltInThemes[activeThemeName]) {
+    alert("Cannot delete built-in default themes.");
+    return;
+  }
+  const confirmed = await confirm(`Are you sure you want to delete the custom theme "${activeThemeName}"?`);
+  if (!confirmed) {
+    return;
+  }
+  
+  try {
+    await invoke("delete_theme", { themeName: activeThemeName });
+    showToast("Theme deleted successfully!", ToastType.SUCCESS);
+    
+    CurrentTheme = "Default Dark";
+    await checkAppConfig();
+    await saveConfig(true, false);
+  } catch (err) {
+    alert("Failed to delete theme: " + err);
+  }
 }
 
 async function open_with(filePath, appPath) {
@@ -8502,5 +8544,279 @@ async function handleDynamicUpdate(path) {
     }
   } catch (error) {
     console.error("Error handling dynamic update:", error);
+  }
+}
+
+/* Custom Keyboard Shortcuts Customization Engine */
+const DefaultShortcuts = {
+  "copy_item": "CmdOrCtrl+c",
+  "cut_item": "CmdOrCtrl+x",
+  "paste_item": "CmdOrCtrl+v",
+  "delete_item": "Delete",
+  "select_all": "CmdOrCtrl+a",
+  "quick_preview": "Space",
+  "new_folder": "F7",
+  "new_file": "F6",
+  "search_files": "F8",
+  "refresh_view": "CmdOrCtrl+r",
+  "jump_to_path": "CmdOrCtrl+g",
+  "multi_rename": "CmdOrCtrl+Shift+m",
+  "compress_item": "CmdOrCtrl+k",
+  "focus_search": "CmdOrCtrl+f",
+  "copy_dir_path": "CmdOrCtrl+Shift+c",
+  "pane_copy": "F5",
+  "pane_move": "Shift+F5",
+  "pane_switch": "Tab",
+  "disk_menu_left": "Alt+F1",
+  "disk_menu_right": "Alt+F2",
+  "slot_1": "Alt+1",
+  "slot_2": "Alt+2",
+  "slot_3": "Alt+3"
+};
+
+const ShortcutLabels = {
+  "copy_item": { name: "Copy Item", desc: "Copy the currently selected item(s)" },
+  "cut_item": { name: "Cut Item", desc: "Cut the currently selected item(s)" },
+  "paste_item": { name: "Paste Item", desc: "Paste the copied or cut item(s) here" },
+  "delete_item": { name: "Delete Item", desc: "Delete the currently selected item(s)" },
+  "select_all": { name: "Select All", desc: "Select all items in the current directory" },
+  "quick_preview": { name: "Quick Preview", desc: "Open or close a quick visual preview of the selected file" },
+  "new_folder": { name: "New Folder", desc: "Create a new directory" },
+  "new_file": { name: "New File", desc: "Create a new empty file" },
+  "search_files": { name: "Search Files", desc: "Open the search modal to look for files recursively" },
+  "refresh_view": { name: "Refresh View", desc: "Refresh the current folder listing" },
+  "jump_to_path": { name: "Jump to Path", desc: "Open the path input popup to jump to any local path" },
+  "multi_rename": { name: "Multi-Rename", desc: "Perform batch rename on all selected items" },
+  "compress_item": { name: "Compress Item", desc: "Compress the selected item(s) into an archive" },
+  "focus_search": { name: "Focus Search Input", desc: "Place the cursor in the file name filter bar" },
+  "copy_dir_path": { name: "Copy Folder Path", desc: "Copy the current directory's absolute path to the clipboard" },
+  "pane_copy": { name: "Pane Copy (Dual)", desc: "Copy selected items to the other side folder in dual-pane" },
+  "pane_move": { name: "Pane Move (Dual)", desc: "Move selected items to the other side folder in dual-pane" },
+  "pane_switch": { name: "Pane Focus Switch (Dual)", desc: "Toggle keyboard focus between the left and right dual panes" },
+  "disk_menu_left": { name: "Left Disk Dropdown (Dual)", desc: "Open the disk selection list for the left pane" },
+  "disk_menu_right": { name: "Right Disk Dropdown (Dual)", desc: "Open the disk selection list for the right pane" },
+  "slot_1": { name: "Quick Access Slot 1", desc: "Quickly navigate to path configured in settings Slot 1" },
+  "slot_2": { name: "Quick Access Slot 2", desc: "Quickly navigate to path configured in settings Slot 2" },
+  "slot_3": { name: "Quick Access Slot 3", desc: "Quickly navigate to path configured in settings Slot 3" }
+};
+
+let ConfiguredShortcuts = {};
+let RecordingAction = null;
+
+function matchShortcut(actionName, e) {
+  let binding = ConfiguredShortcuts[actionName];
+  if (!binding) return false;
+  
+  let resolvedBinding = binding;
+  if (binding.includes("CmdOrCtrl")) {
+    if (Platform === "darwin") {
+      resolvedBinding = binding.replace("CmdOrCtrl", "Cmd");
+    } else {
+      resolvedBinding = binding.replace("CmdOrCtrl", "Ctrl");
+    }
+  }
+  
+  let bindingParts = resolvedBinding.split("+");
+  let hasCmd = bindingParts.includes("Cmd");
+  let hasMeta = bindingParts.includes("Meta");
+  let hasCtrl = bindingParts.includes("Ctrl");
+  let hasAlt = bindingParts.includes("Alt");
+  let hasShift = bindingParts.includes("Shift");
+  
+  if (hasCmd || hasMeta) {
+    if (!e.metaKey) return false;
+  } else {
+    if (e.metaKey) return false;
+  }
+  
+  if (hasCtrl) {
+    if (!e.ctrlKey) return false;
+  } else {
+    if (e.ctrlKey) return false;
+  }
+  
+  if (hasAlt) {
+    if (!e.altKey) return false;
+  } else {
+    if (e.altKey) return false;
+  }
+  
+  if (hasShift) {
+    if (!e.shiftKey) return false;
+  } else {
+    if (e.shiftKey) return false;
+  }
+  
+  let keyVal = e.key;
+  if (keyVal === " ") {
+    keyVal = "Space";
+  } else if (keyVal.length === 1) {
+    keyVal = keyVal.toLowerCase();
+  }
+  
+  let bindKey = bindingParts[bindingParts.length - 1];
+  if (bindKey.length === 1) {
+    bindKey = bindKey.toLowerCase();
+  }
+  
+  if (bindKey.startsWith("digit") || /^\d$/.test(bindKey)) {
+    let digitStr = bindKey.replace("digit", "");
+    return keyVal === digitStr || e.code === bindKey || e.code === "Digit" + digitStr;
+  }
+  
+  return keyVal === bindKey;
+}
+
+function formatShortcutForDisplay(binding) {
+  if (!binding) return "None";
+  let parts = binding.split("+");
+  let resolvedParts = parts.map(part => {
+    if (part === "CmdOrCtrl") {
+      return Platform === "darwin" ? "⌘" : "Ctrl";
+    }
+    if (part === "Cmd") return "⌘";
+    if (part === "Shift") return Platform === "darwin" ? "⇧" : "Shift";
+    if (part === "Alt") return Platform === "darwin" ? "⌥" : "Alt";
+    if (part === "Ctrl") return "Ctrl";
+    if (part === "Space") return "Space";
+    if (part.startsWith("Digit")) return part.replace("Digit", "");
+    if (part.length === 1) return part.toUpperCase();
+    return part;
+  });
+  return resolvedParts.join(" + ");
+}
+
+function startRecordingShortcut(actionName, element) {
+  RecordingAction = actionName;
+  
+  let btn = $(element);
+  btn.addClass("recording").text("Press keys...");
+  
+  IsDisableShortcuts = true;
+  IsInputFocused = true;
+  
+  let recordKeyDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    let parts = [];
+    if (e.metaKey) parts.push(Platform === "darwin" ? "Cmd" : "Meta");
+    if (e.ctrlKey) parts.push("Ctrl");
+    if (e.altKey) parts.push("Alt");
+    if (e.shiftKey) parts.push("Shift");
+    
+    let keyVal = e.key;
+    if (keyVal === " ") {
+      keyVal = "Space";
+    } else if (keyVal.length === 1) {
+      keyVal = keyVal.toLowerCase();
+    }
+    
+    if (!["control", "shift", "alt", "meta"].includes(e.key.toLowerCase())) {
+      parts.push(keyVal);
+    }
+    
+    let combo = parts.join("+");
+    btn.text(formatShortcutForDisplay(combo));
+    
+    if (!["control", "shift", "alt", "meta"].includes(e.key.toLowerCase())) {
+      ConfiguredShortcuts[actionName] = combo;
+      stopRecording(combo);
+    }
+  };
+  
+  let stopRecording = (finalCombo) => {
+    window.removeEventListener("keydown", recordKeyDown, true);
+    RecordingAction = null;
+    IsDisableShortcuts = false;
+    IsInputFocused = false;
+    btn.removeClass("recording").text(formatShortcutForDisplay(finalCombo));
+  };
+  
+  window.addEventListener("keydown", recordKeyDown, true);
+}
+
+function populateShortcutsUI() {
+  let container = $(".shortcuts-list-container");
+  container.html("");
+  
+  Object.keys(DefaultShortcuts).forEach(actionName => {
+    let currentShortcut = ConfiguredShortcuts[actionName] || DefaultShortcuts[actionName];
+    let label = ShortcutLabels[actionName] || { name: actionName, desc: "" };
+    
+    let row = document.createElement("div");
+    row.className = "shortcut-row";
+    row.style.display = "flex";
+    row.style.justifyContent = "space-between";
+    row.style.alignItems = "center";
+    row.style.padding = "6px 8px";
+    row.style.borderBottom = "1px solid var(--tertiaryColor)";
+    row.style.gap = "10px";
+    row.setAttribute("data-action", actionName);
+    
+    row.innerHTML = `
+      <div class="shortcut-info" style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1;">
+        <span class="shortcut-name" style="font-size: 12px; font-weight: 600; color: var(--textColor);">${label.name}</span>
+        <span class="shortcut-desc" style="font-size: 10px; color: var(--textColor2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${label.desc}</span>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="settings-action-btn secondary shortcut-record-btn" onclick="startRecordingShortcut('${actionName}', this)" style="min-width: 90px; height: 26px; padding: 0 10px; font-size: 10px; border-radius: 6px; font-family: monospace;">
+          ${formatShortcutForDisplay(currentShortcut)}
+        </button>
+        <button class="settings-action-btn secondary shortcut-row-reset-btn" onclick="resetSingleShortcut('${actionName}', this)" title="Reset to default" style="width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px;">
+          <i class="fa-solid fa-rotate-left" style="font-size: 10px;"></i>
+        </button>
+      </div>
+    `;
+    
+    container.append(row);
+  });
+}
+
+function filterShortcuts(query) {
+  let q = query.toLowerCase().trim();
+  $(".shortcut-row").each(function() {
+    let actionName = $(this).attr("data-action");
+    let label = ShortcutLabels[actionName] || { name: "", desc: "" };
+    if (label.name.toLowerCase().includes(q) || label.desc.toLowerCase().includes(q)) {
+      $(this).css("display", "flex");
+    } else {
+      $(this).css("display", "none");
+    }
+  });
+}
+
+function resetSingleShortcut(actionName, btn) {
+  ConfiguredShortcuts[actionName] = DefaultShortcuts[actionName];
+  let recordBtn = $(btn).siblings(".shortcut-record-btn");
+  recordBtn.text(formatShortcutForDisplay(ConfiguredShortcuts[actionName]));
+}
+
+async function resetAllShortcuts() {
+  const confirmed = await confirm("Are you sure you want to reset all keyboard shortcuts to their defaults?");
+  if (confirmed) {
+    ConfiguredShortcuts = { ...DefaultShortcuts };
+    populateShortcutsUI();
+  }
+}
+
+async function selectAllExplorerItems() {
+  if (IsDualPaneEnabled) {
+    if (SelectedItemPaneSide == "left") {
+      await unSelectAllItems();
+      for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
+        selectItem(LeftPaneItemCollection.children[i]);
+      }
+    } else {
+      await unSelectAllItems();
+      for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
+        selectItem(RightPaneItemCollection.children[i]);
+      }
+    }
+  } else {
+    await unSelectAllItems();
+    for (let i = 0; i < DirectoryList.children.length; i++) {
+      selectItem(DirectoryList.children[i]);
+    }
   }
 }

@@ -197,6 +197,8 @@ fn main() {
             get_selection_size,
             get_capped_selection_size,
             get_themes,
+            save_theme,
+            delete_theme,
             stop_searching,
             get_file_content,
             get_file_base64,
@@ -279,6 +281,7 @@ struct AppConfig {
     is_window_transparency: String,
     gemini_api_key: String,
     is_ai_enabled: String,
+    shortcuts: std::collections::HashMap<String, String>,
 }
 
 fn log_debug(msg: String) {
@@ -361,6 +364,7 @@ async fn check_app_config() -> AppConfig {
             is_window_transparency: "0".to_string(),
             gemini_api_key: "".to_string(),
             is_ai_enabled: "0".to_string(),
+            shortcuts: std::collections::HashMap::new(),
         };
         let _ = serde_json::to_writer_pretty(
             File::create(
@@ -385,6 +389,15 @@ async fn check_app_config() -> AppConfig {
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
 
     let default_vec: Vec<Value> = vec![];
+    let mut shortcuts_map = std::collections::HashMap::new();
+    if let Some(shortcuts_obj) = app_config["shortcuts"].as_object() {
+        for (k, v) in shortcuts_obj {
+            if let Some(v_str) = v.as_str() {
+                shortcuts_map.insert(k.clone(), v_str.to_string());
+            }
+        }
+    }
+
     AppConfig {
         view_mode: app_config["view_mode"].to_string().replace('"', ""),
         last_modified: app_config["last_modified"].to_string().replace('"', ""),
@@ -437,6 +450,7 @@ async fn check_app_config() -> AppConfig {
             .to_string()
             .replace('"', "")
             .replace("null", "0"),
+        shortcuts: shortcuts_map,
     }
 }
 
@@ -476,6 +490,53 @@ async fn get_themes() -> Vec<Theme> {
         })
     }
     vec_themes
+}
+
+#[tauri::command]
+async fn save_theme(theme: Theme) -> Result<(), String> {
+    let theme_dir = app_config_dir(&Config::default())
+        .ok_or_else(|| "Could not find config directory".to_string())?
+        .join("com.codriver.dev")
+        .join("Themes");
+    
+    // Create theme directory if it doesn't exist
+    let _ = fs::create_dir_all(&theme_dir);
+    
+    // Make safe filename
+    let safe_name = theme.name.chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect::<String>();
+    
+    let theme_path = theme_dir.join(format!("{}.json", safe_name));
+    
+    let file = File::create(&theme_path)
+        .map_err(|e| format!("Failed to create theme file: {}", e))?;
+    
+    serde_json::to_writer_pretty(file, &theme)
+        .map_err(|e| format!("Failed to write theme JSON: {}", e))?;
+    
+    Ok(())
+}
+
+#[tauri::command]
+async fn delete_theme(theme_name: String) -> Result<(), String> {
+    let theme_dir = app_config_dir(&Config::default())
+        .ok_or_else(|| "Could not find config directory".to_string())?
+        .join("com.codriver.dev")
+        .join("Themes");
+    
+    // Make safe filename
+    let safe_name = theme_name.chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect::<String>();
+    
+    let theme_path = theme_dir.join(format!("{}.json", safe_name));
+    if theme_path.exists() {
+        fs::remove_file(theme_path)
+            .map_err(|e| format!("Failed to delete theme file: {}", e))?;
+    }
+    
+    Ok(())
 }
 
 #[derive(serde::Serialize)]
@@ -2743,6 +2804,7 @@ async fn save_config(
     is_window_transparency: String,
     gemini_api_key: String,
     is_ai_enabled: String,
+    shortcuts: std::collections::HashMap<String, String>,
 ) {
     let app_config_file = File::open(
         app_config_dir(&Config::default())
@@ -2790,6 +2852,7 @@ async fn save_config(
         is_window_transparency: is_window_transparency.replace("\\", ""),
         gemini_api_key: final_gemini_api_key,
         is_ai_enabled: is_ai_enabled.replace("\\", ""),
+        shortcuts,
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()

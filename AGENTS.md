@@ -122,7 +122,7 @@ To maintain visual excellence, follow these rules:
    backdrop-filter: var(--glass-blur);
    ```
 2. **Unified Modals & Popups (`.props-card`)**: Refrain from using crude custom layouts or old `.uni-popup` overlays. All interactive modal dialogs (such as Properties, Compress, Extract, Delete Confirm, and FTP Connection) must inherit from the `.props-card` design pattern:
-   - **Hero Header (`.props-card__hero`)**: Houses a `.props-card__thumb` holding a dedicated Font Awesome icon, and a `.props-card__heading` containing the `.props-card__name` (title) and `.props-card__meta` (subtext or `.props-card__chip` labels).
+    - **Hero Header (`.props-card__hero`)**: Houses a `.props-card__thumb` holding a dedicated Font Awesome icon (or a circular progress loader styled with `.preloader-small-invert` for ongoing processes), and a `.props-card__heading` containing the `.props-card__name` (title) and `.props-card__meta` (subtext or `.props-card__chip` labels).
    - **Form Grid Items (`.props-card__list`)**: Wrapped in a `<dl>` list using `<div class="props-card__row">` grid containers (`88px 1fr` layout split). Labels (`<dt class="props-card__label">`) should feature small, clean icons. Value fields (`<dd class="props-card__value">`) house high-contrast text inputs, number fields, or dropdown select boxes styled with the `.props-card__input` class.
    - **Form Layout**: Prefer simple vertical stacking for multiple inputs over dynamic horizontal row division to avoid alignment splits and wrap breaks.
    - **Structured Footer (`.props-card__footer`)**: Placed at the bottom holding primary and secondary buttons styled with `.props-card__btn` and `.props-card__btn--primary`.
@@ -152,6 +152,7 @@ File operations are handled asynchronously to keep the UI smooth:
 - Selecting items buffers them in `ArrSelectedItems` or `ArrCopyItems` (for copy/cut).
 - Invoking `arr_copy_paste` runs chunked operations in the Rust backend.
 - Rust emits events like `"update-progress-bar"` and `"finish-progress-bar"` which are picked up in `ui/events.js` to update the `.active-actions-container` layout.
+- Dismissing the detailed progress modal via **Run in Background** tracks progress silently. Users can click on a progress action item within the active actions popup to invoke `reopenProgressModal()`, which resets the dismissal state, closes the active actions popup, and opens the detailed progress modal populated with live data.
 
 ### 4. Running a Local Build
 Ensure you have the tauri-cli installed:

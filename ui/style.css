@@ -742,6 +742,13 @@ body {
   align-items: stretch;
   gap: 8px;
   min-width: 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.25s ease;
+}
+
+.active-action--progress:hover {
+  background-color: color-mix(in srgb, var(--secondaryColor) 92%, transparent);
+  border-color: var(--selectColor2);
 }
 
 .active-action__progress-header {
@@ -5015,6 +5022,11 @@ button>svg {
   border-color: color-mix(in srgb, var(--selectColor2) 85%, white);
 }
 
+.props-card__btn--primary:focus {
+  outline: 2px dotted var(--selectColor2);
+  outline-offset: 2px;
+}
+
 .props-card.props-card--wide {
   width: min(520px, 92vw);
 }
@@ -5089,9 +5101,11 @@ select.props-card__input {
 }
 
 /* =====================================================================
-   .delete-popup — delete confirmation modal
+   .delete-popup & .copy-move-popup & .file-progress-modal — confirmation modals
    ===================================================================== */
-.delete-popup.props-card {
+.delete-popup.props-card,
+.copy-move-popup.props-card,
+.file-progress-modal.props-card {
   width: min(480px, 92vw);
 }
 
@@ -5499,3 +5513,92 @@ select.props-card__input {
   backdrop-filter: blur(14px) !important;
   -webkit-backdrop-filter: blur(14px) !important;
 }
+
+/* =====================================================================
+   Active Actions — Dual Pane Top Header Position Override
+   ===================================================================== */
+body.dual-pane-mode .active-actions-container {
+  display: none !important;
+}
+
+body.dual-pane-mode .active-actions-pill {
+  width: auto;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  box-shadow: none;
+  background-color: var(--secondaryColor);
+}
+
+body.dual-pane-mode .active-actions-popup {
+  bottom: auto;
+  transform-origin: left top;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+body.dual-pane-mode .active-actions-popup::before {
+  top: -5px;
+  bottom: auto;
+  border-right: none;
+  border-bottom: none;
+  border-left: var(--glass-border);
+  border-top: var(--glass-border);
+}
+
+/* =====================================================================
+   Keyboard Shortcuts Custom Search Input Styling
+   ===================================================================== */
+.settings-search-box {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 1px solid var(--tertiaryColor);
+  border-radius: 10px;
+  padding: 10px 15px;
+  background-color: var(--secondaryColor);
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.settings-search-box:hover {
+  background-color: var(--tertiaryColor);
+}
+
+.settings-search-box:focus-within {
+  background-color: var(--tertiaryColor);
+  border-color: var(--selectColor2);
+  box-shadow: 0 0 0 3px var(--selectColor3);
+}
+
+.settings-search-box i,
+.settings-search-box svg {
+  color: var(--textColor) !important;
+  fill: var(--textColor) !important;
+  margin-right: 12px;
+  font-size: 13px;
+}
+
+.settings-search-box input.shortcuts-search-input {
+  border: none !important;
+  background: none !important;
+  outline: none !important;
+  width: 100% !important;
+  color: var(--textColor) !important;
+  font-size: 13px !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.settings-search-box input.shortcuts-search-input::placeholder {
+  color: var(--textColor3) !important;
+  opacity: 0.60 !important;
+}
+
+.settings-search-box input.shortcuts-search-input::-webkit-input-placeholder {
+  color: var(--textColor3) !important;
+  opacity: 0.60 !important;
+}
+
+
+
+

@@ -203,9 +203,15 @@
                                         <p class="settings-label">Color Theme</p>
                                         <p class="settings-hint">Choose your preferred visual style</p>
                                     </div>
-                                    <div class="settings-control-inline">
-                                        <i class="fa-solid fa-rotate settings-refresh-icon" onclick="checkAppConfig(true)"></i>
-                                        <select class="select theme-select" onchange="saveConfig(true, true)"></select>
+                                    <div class="settings-control-inline" style="display: flex; gap: 8px; align-items: center;">
+                                        <i class="fa-solid fa-rotate settings-refresh-icon" onclick="checkAppConfig(true)" title="Refresh themes"></i>
+                                        <select class="select theme-select" onchange="applyThemeFromSelect()"></select>
+                                        <button class="settings-action-btn secondary" onclick="openThemeCreator()" title="Create custom theme" style="padding: 6px 10px; height: 30px; font-size: 11px;">
+                                            <i class="fa-solid fa-plus"></i> New
+                                        </button>
+                                        <button class="settings-action-btn danger delete-theme-btn" onclick="deleteActiveTheme()" title="Delete active theme" style="padding: 6px 10px; height: 30px; font-size: 11px; display: none;">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="settings-row">
@@ -283,6 +289,28 @@
                                         <p class="settings-label">Slot 3 <span class="settings-kbd">Alt + 3</span></p>
                                         <input type="text" class="text-input configured-path-three-input" placeholder="/home/user/downloads" />
                                     </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-section" style="margin-top: 25px;">
+                                <h3 class="settings-section-title">Keyboard Shortcuts</h3>
+                                <p class="settings-hint settings-section-desc">Customize keyboard shortcuts for explorer actions. Click a shortcut button to record a new key combination.</p>
+                                
+                                <div style="margin-bottom: 14px; padding: 0; border: none;">
+                                    <div class="settings-search-box">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                        <input type="text" class="shortcuts-search-input" placeholder="Search shortcuts..." oninput="filterShortcuts(this.value)" />
+                                    </div>
+                                </div>
+
+                                <div class="shortcuts-list-container" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 8px; background-color: var(--transparentColor);">
+                                    <!-- Keyboard shortcuts rows will be loaded dynamically via JavaScript -->
+                                </div>
+
+                                <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+                                    <button class="settings-action-btn secondary" onclick="resetAllShortcuts()" style="padding: 6px 12px; font-size: 11px;">
+                                        <i class="fa-solid fa-rotate-left"></i> Reset All Shortcuts
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -451,6 +479,113 @@
                     </button>
                     <button class="props-card__btn props-card__btn--primary fullsearch-search-button" onclick="startFullSearch()">
                         <i class="fa-solid fa-magnifying-glass"></i><span>Search</span>
+                    </button>
+                </footer>
+            </div>
+
+            <!-- :theme-creator | Theme Creator UI -->
+            <div id="theme-creator-popup" class="props-card props-card--wide" style="display: none; width: min(450px, 90vw); z-index: 9999;">
+                <section class="props-card__hero">
+                    <div class="props-card__thumb"><i class="fa-solid fa-palette"></i></div>
+                    <div class="props-card__heading">
+                        <h2 class="props-card__name" id="theme-creator-title">Create Theme</h2>
+                        <div class="props-card__meta">
+                            <span>Aesthetics</span>
+                            <span class="props-card__chip">Theme Editor</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="props-card__scroll-wrap" style="max-height: 50vh; overflow-y: auto;">
+                    <dl class="props-card__list">
+                        <!-- Row: Theme Name -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-tag"></i>Name</dt>
+                            <dd class="props-card__value">
+                                <input type="text" class="props-card__input theme-name-input" placeholder="e.g. Neon Sunset" required />
+                            </dd>
+                        </div>
+                        
+                        <!-- Row: Primary Accent -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--primaryColor);"></i>Primary</dt>
+                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
+                                <input type="color" class="theme-color-picker theme-primary-color" value="#3f4352" oninput="previewThemeColor('--primaryColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
+                                <input type="text" class="props-card__input theme-primary-color-text" value="#3f4352" oninput="previewThemeColorText('--primaryColor', this.value)" style="font-family: monospace;" />
+                            </dd>
+                        </div>
+
+                        <!-- Row: Secondary Accent -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--secondaryColor);"></i>Secondary</dt>
+                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
+                                <input type="color" class="theme-color-picker theme-secondary-color" value="#383b47" oninput="previewThemeColor('--secondaryColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
+                                <input type="text" class="props-card__input theme-secondary-color-text" value="#383b47" oninput="previewThemeColorText('--secondaryColor', this.value)" style="font-family: monospace;" />
+                            </dd>
+                        </div>
+
+                        <!-- Row: Tertiary Color -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--tertiaryColor);"></i>Tertiary</dt>
+                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
+                                <input type="color" class="theme-color-picker theme-tertiary-color" value="#474b5c" oninput="previewThemeColor('--tertiaryColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
+                                <input type="text" class="props-card__input theme-tertiary-color-text" value="#474b5c" oninput="previewThemeColorText('--tertiaryColor', this.value)" style="font-family: monospace;" />
+                            </dd>
+                        </div>
+
+                        <!-- Row: Text Color -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-font" style="color: var(--textColor);"></i>Primary Text</dt>
+                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
+                                <input type="color" class="theme-color-picker theme-text-color" value="#ffffff" oninput="previewThemeColor('--textColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
+                                <input type="text" class="props-card__input theme-text-color-text" value="#ffffff" oninput="previewThemeColorText('--textColor', this.value)" style="font-family: monospace;" />
+                            </dd>
+                        </div>
+
+                        <!-- Row: Text Color 2 -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-font" style="color: var(--textColor2); opacity: 0.65;"></i>Secondary Text</dt>
+                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
+                                <input type="color" class="theme-color-picker theme-text-color2" value="#a0a0a0" oninput="previewThemeColor('--textColor2', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
+                                <input type="text" class="props-card__input theme-text-color2-text" value="#a0a0a0" oninput="previewThemeColorText('--textColor2', this.value)" style="font-family: monospace;" />
+                            </dd>
+                        </div>
+
+                        <!-- Row: Text Color 3 -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-font" style="color: var(--textColor3); opacity: 0.85;"></i>Subtext</dt>
+                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
+                                <input type="color" class="theme-color-picker theme-text-color3" value="#d0d0d0" oninput="previewThemeColor('--textColor3', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
+                                <input type="text" class="props-card__input theme-text-color3-text" value="#d0d0d0" oninput="previewThemeColorText('--textColor3', this.value)" style="font-family: monospace;" />
+                            </dd>
+                        </div>
+
+                        <!-- Row: Sidebar Color -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-window-maximize" style="color: var(--siteBarColor);"></i>Sidebar</dt>
+                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
+                                <input type="color" class="theme-color-picker theme-sitebar-color" value="#2d2f39" oninput="previewThemeColor('--siteBarColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
+                                <input type="text" class="props-card__input theme-sitebar-color-text" value="#2d2f39" oninput="previewThemeColorText('--siteBarColor', this.value)" style="font-family: monospace;" />
+                            </dd>
+                        </div>
+
+                        <!-- Row: Navbar Color -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-heading" style="color: var(--navBarColor);"></i>Header Nav</dt>
+                            <dd class="props-card__value" style="display: flex; gap: 8px; align-items: center;">
+                                <input type="color" class="theme-color-picker theme-navbar-color" value="#1e1e28" oninput="previewThemeColor('--navBarColor', this.value)" style="border: none; border-radius: 4px; width: 32px; height: 32px; padding: 0; background: none; cursor: pointer;" />
+                                <input type="text" class="props-card__input theme-navbar-color-text" value="#1e1e28" oninput="previewThemeColorText('--navBarColor', this.value)" style="font-family: monospace;" />
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <footer class="props-card__footer">
+                    <button class="props-card__btn" onclick="closeThemeCreator()">
+                        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+                    </button>
+                    <button class="props-card__btn props-card__btn--primary" onclick="saveCustomTheme()">
+                        <i class="fa-solid fa-check"></i><span>Save Theme</span>
                     </button>
                 </footer>
             </div>

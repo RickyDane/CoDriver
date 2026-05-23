@@ -24,7 +24,8 @@ class ActiveAction {
         if (this.isProgress) {
             return `
                 <div class="active-action active-action-${this.id} active-action--progress"
-                     title="${tooltip}">
+                     title="${tooltip}"
+                     onclick="reopenProgressModal('${this.id}')">
                     <div class="active-action__progress-header">
                         <div class="active-action__text">
                             <p class="active-action__name">${esc(this.name)}</p>
