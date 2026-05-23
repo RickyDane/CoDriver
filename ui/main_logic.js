@@ -8641,6 +8641,304 @@ async function showDuplicateFinderPopup(path) {
   renderSetupScreen();
 }
 
+function closeSmartOrganizerPopup() {
+  const popup = document.querySelector(".smart-organizer-popup");
+  if (popup) {
+    IsPopUpOpen = false;
+    popup.classList.add("popup-exit");
+    $(".popup-background").css("opacity", "0");
+    setTimeout(() => {
+      $(".popup-background").css("display", "none");
+    }, 150);
+    popup.addEventListener("animationend", () => {
+      popup.remove();
+    }, { once: true });
+  }
+}
+
+async function showSmartOrganizerPopup(path) {
+  if (IsPopUpOpen !== false) return;
+  if (!IsAiEnabled) {
+    showToast("AI features are disabled in Settings", ToastType.ERROR);
+    return;
+  }
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  let fileName = path.split('/').pop() || path.split('\\').pop() || "Directory";
+
+  const popup = document.createElement("div");
+  popup.className = "smart-organizer-popup props-card props-card--wide";
+  popup.style.width = "min(480px, 95vw)";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Smart Folder Organizer");
+  popup.innerHTML = `
+    <section class="props-card__hero" style="border-radius: var(--glass-radius) var(--glass-radius) 0 0; padding: 12px 16px;">
+      <div class="props-card__thumb"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(fileName)}">Smart Organizer</h2>
+        <div class="props-card__meta">
+          <span>Folder: ${escHtml(path)}</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="smart-organizer-body" style="flex: 1 1 auto; overflow-y: auto; max-height: 480px; padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 8px; border-bottom: var(--glass-border-subtle);">
+      <div class="organizer-setup" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 24px; align-items: center; justify-content: center; max-width: 440px; margin: 0 auto; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; margin-bottom: 0px;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--selectColor2) 15%, transparent); display: flex; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--selectColor2) 30%, transparent); margin-bottom: 2px; filter: drop-shadow(0 0 8px rgba(11, 100, 253, 0.25));">
+            <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 18px; color: #4da3ff;"></i>
+          </div>
+          <h3 style="font-size: 14px; font-weight: 700; color: var(--textColor); letter-spacing: 0.5px;">AI Folder Organizer</h3>
+          <p style="font-size: 11px; color: var(--textColor2); line-height: 1.4; max-width: 320px;">
+            This tool uses AI to scan the files in this folder and automatically group them into logical, structured categories (like Documents, Images, Code, etc.).
+          </p>
+        </div>
+
+        <button class="props-card__btn props-card__btn--primary" id="btn-org-start-scan" style="width: 100%; padding: 11px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border-radius: 8px; margin-top: 2px; box-shadow: 0 4px 12px rgba(11, 100, 253, 0.25);">
+          <i class="fa-solid fa-play"></i><span>Start</span>
+        </button>
+      </div>
+    </div>
+
+    <footer class="props-card__footer" style="padding: 10px 14px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; background: var(--glass-header-bg);">
+      <button class="props-card__btn" id="btn-org-cancel" style="cursor: pointer;">
+        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary" id="btn-org-apply" disabled style="opacity: 0.5; cursor: not-allowed;">
+        <i class="fa-solid fa-folder-tree"></i><span>Organize Files</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  $(".popup-background").css("display", "block");
+  setTimeout(() => $(".popup-background").css("opacity", "1"));
+
+  popup.querySelector("#btn-org-cancel").onclick = () => closeSmartOrganizerPopup();
+
+  const body = popup.querySelector(".smart-organizer-body");
+
+  popup.querySelector("#btn-org-start-scan").onclick = async () => {
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+        <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));"></div>
+        <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">Consulting AI Organizer...</span>
+        <span style="font-size: 11px; opacity: 0.6; max-width: 80%;">Analyzing files inside the directory and computing semantic folder layout...</span>
+      </div>
+    `;
+
+    try {
+      const suggestions = await invoke("ai_get_organizer_suggestions", { path });
+      const directories = suggestions.directories || [];
+      const mappings = suggestions.mappings || [];
+
+      if (mappings.length === 0) {
+        body.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+            <i class="fa-solid fa-folder-open" style="font-size: 32px; color: var(--textColor3);"></i>
+            <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">No organization needed</span>
+            <span style="font-size: 11px; opacity: 0.6; max-width: 80%;">All files in this directory seem perfectly organized or there are no files to sort.</span>
+          </div>
+        `;
+        return;
+      }
+
+      popup.style.width = "min(740px, 95vw)";
+
+      const grouped = {};
+      directories.forEach(dir => {
+        grouped[dir] = [];
+      });
+
+      mappings.forEach(map => {
+        let targetDir = "";
+        const lastSep = map.to.lastIndexOf("/");
+        if (lastSep !== -1) {
+          targetDir = map.to.substring(0, lastSep);
+        }
+        if (!grouped[targetDir]) {
+          grouped[targetDir] = [];
+        }
+        grouped[targetDir].push(map);
+      });
+
+      let html = `
+        <div style="font-size: 11.5px; opacity: 0.8; margin-top: 4px; margin-bottom: 6px; line-height: 1.4; color: var(--textColor2);">
+          AI analyzed this folder and recommends creating <strong>${directories.length}</strong> new categories to organize <strong>${mappings.length}</strong> files. Uncheck any files you do not wish to move.
+        </div>
+        <div class="organizer-groups-list" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+      `;
+
+      Object.keys(grouped).forEach((dir, dirIdx) => {
+        const groupFiles = grouped[dir];
+        if (groupFiles.length === 0) return;
+
+        const groupHtml = groupFiles.map((fileMap, fileIdx) => {
+          return `
+            <div class="organizer-file-row" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.02); gap: 12px; font-size: 12px;">
+              <label style="display: flex; align-items: center; min-width: 0; flex: 1 1 45%; cursor: pointer; margin: 0; gap: 8px; user-select: none;">
+                <input type="checkbox" class="org-file-checkbox" data-from="${escHtml(fileMap.from)}" data-to="${escHtml(fileMap.to)}" data-dir-index="${dirIdx}" style="cursor: pointer; accent-color: var(--selectColor2);" checked />
+                <span style="color: var(--textColor); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escHtml(fileMap.from)}">${escHtml(fileMap.from)}</span>
+              </label>
+              <i class="fa-solid fa-arrow-right-long" style="opacity: 0.4; font-size: 11px; flex-shrink: 0;"></i>
+              <span style="color: var(--textColor2); font-family: monospace; font-size: 11px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 45%; min-width: 0;" title="${escHtml(fileMap.to)}">${escHtml(fileMap.to)}</span>
+            </div>
+          `;
+        }).join('');
+
+        html += `
+          <div class="organizer-group-card" style="border: 1px solid var(--tertiaryColor); border-radius: 8px; background: rgba(255, 255, 255, 0.015); overflow: hidden; display: flex; flex-direction: column;">
+            <div class="organizer-group-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.05);">
+              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                <i class="fa-solid fa-folder-open" style="color: #4da3ff; font-size: 14px;"></i>
+                <span style="font-weight: 700; font-size: 13px; color: var(--textColor); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="New directory: ${escHtml(dir)}">${escHtml(dir)}</span>
+                <span style="font-size: 10px; background: rgba(77, 163, 255, 0.15); border: 1px solid rgba(77, 163, 255, 0.3); border-radius: 12px; padding: 1px 6px; color: #4da3ff; font-weight: 600; flex-shrink: 0;">${groupFiles.length} files</span>
+              </div>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; user-select: none; color: var(--textColor3); margin: 0;">
+                <input type="checkbox" class="org-group-select-all" data-dir-index="${dirIdx}" style="cursor: pointer; accent-color: var(--selectColor2);" checked />
+                <span>Select All</span>
+              </label>
+            </div>
+            <div class="organizer-group-files-list" id="org-group-list-${dirIdx}" style="display: flex; flex-direction: column; padding: 4px 0;">
+              ${groupHtml}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      body.innerHTML = html;
+
+      const applyBtn = popup.querySelector("#btn-org-apply");
+
+      const updateApplyState = () => {
+        const checkedCount = popup.querySelectorAll(".org-file-checkbox:checked").length;
+        if (checkedCount > 0) {
+          applyBtn.removeAttribute("disabled");
+          applyBtn.style.opacity = "1";
+          applyBtn.style.cursor = "pointer";
+        } else {
+          applyBtn.setAttribute("disabled", "true");
+          applyBtn.style.opacity = "0.5";
+          applyBtn.style.cursor = "not-allowed";
+        }
+      };
+
+      updateApplyState();
+
+      popup.querySelectorAll(".org-group-select-all").forEach(groupSelectAll => {
+        groupSelectAll.onchange = (e) => {
+          const dirIdx = groupSelectAll.getAttribute("data-dir-index");
+          const list = popup.querySelector(`#org-group-list-${dirIdx}`);
+          if (list) {
+            list.querySelectorAll(".org-file-checkbox").forEach(cb => {
+              cb.checked = groupSelectAll.checked;
+            });
+          }
+          updateApplyState();
+        };
+      });
+
+      popup.querySelectorAll(".org-file-checkbox").forEach(fileCb => {
+        fileCb.onchange = () => {
+          const dirIdx = fileCb.getAttribute("data-dir-index");
+          const list = popup.querySelector(`#org-group-list-${dirIdx}`);
+          const groupSelectAll = popup.querySelector(`.org-group-select-all[data-dir-index="${dirIdx}"]`);
+          if (list && groupSelectAll) {
+            const totalInGroup = list.querySelectorAll(".org-file-checkbox").length;
+            const checkedInGroup = list.querySelectorAll(".org-file-checkbox:checked").length;
+            groupSelectAll.checked = (totalInGroup === checkedInGroup);
+          }
+          updateApplyState();
+        };
+      });
+
+      applyBtn.onclick = async () => {
+        applyBtn.setAttribute("disabled", "true");
+        applyBtn.style.opacity = "0.5";
+        applyBtn.style.cursor = "not-allowed";
+
+        const selectedMappings = [];
+        popup.querySelectorAll(".org-file-checkbox:checked").forEach(cb => {
+          selectedMappings.push({
+            from: cb.getAttribute("data-from"),
+            to: cb.getAttribute("data-to")
+          });
+        });
+
+        const activeDirectories = new Set();
+        selectedMappings.forEach(map => {
+          let dir = "";
+          const lastSep = map.to.lastIndexOf("/");
+          if (lastSep !== -1) {
+            dir = map.to.substring(0, lastSep);
+          }
+          if (dir) {
+            let currentDir = "";
+            const segments = dir.split("/");
+            segments.forEach(seg => {
+              if (currentDir) {
+                currentDir += "/" + seg;
+              } else {
+                currentDir = seg;
+              }
+              activeDirectories.add(currentDir);
+            });
+          }
+        });
+        const directoriesToCreate = Array.from(activeDirectories);
+
+        body.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+            <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));"></div>
+            <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">Organizing and moving files...</span>
+            <span style="font-size: 11px; opacity: 0.6; max-width: 80%;">Creating subdirectories and moving selected files safely...</span>
+          </div>
+        `;
+
+        try {
+          await invoke("ai_execute_organize", {
+            parentPath: path,
+            directories: directoriesToCreate,
+            mappings: selectedMappings
+          });
+
+          showToast(`Successfully organized files!`, ToastType.SUCCESS);
+
+          if (IsDualPaneEnabled === true) {
+            refreshBothViews(SelectedItemPaneSide);
+          } else {
+            await listDirectories();
+          }
+
+          scheduleDiskUsageRefresh();
+          closeSmartOrganizerPopup();
+        } catch (err) {
+          showToast(`Organization failed: ${err}`, ToastType.ERROR);
+          closeSmartOrganizerPopup();
+        }
+      };
+
+    } catch (err) {
+      body.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; color: var(--errorColor);"></i>
+          <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">AI Consultation Failed</span>
+          <span style="font-size: 11px; opacity: 0.6; max-width: 80%;">${escHtml(err)}</span>
+        </div>
+      `;
+    }
+  };
+}
+
+
 (async () => {
 
   await getSetInstalledApplications();

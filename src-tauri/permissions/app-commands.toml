@@ -74,5 +74,7 @@ commands.allow = [
   "cancel_duplicate_finder",
   "get_clipboard_files",
   "write_clipboard_files",
-  "save_clipboard_image"
+  "save_clipboard_image",
+  "ai_get_organizer_suggestions",
+  "ai_execute_organize"
 ]

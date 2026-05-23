@@ -175,3 +175,5 @@ When developing or debugging this repository, you should prioritize:
    ```javascript
    showToast("Action failed: " + error, ToastType.ERROR);
    ```
+4. **Respect AI Provider Selection**: Do not hardcode a specific AI provider (such as Gemini or OpenAI). Always check the active `ai_provider` configuration (e.g. the global `AiProvider` on the frontend, and the settings map in `app_config.json` on the backend). AI commands must query the selected provider and model to ensure user settings and keychain API keys are fully respected.
+

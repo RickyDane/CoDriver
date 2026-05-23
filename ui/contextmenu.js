@@ -43,6 +43,17 @@ class CDContextMenu {
               this.hide();
             },
           },
+          {
+            label: "Smart Organize",
+            icon: "fa-solid fa-wand-magic-sparkles",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showSmartOrganizerPopup(path);
+              this.hide();
+            },
+          },
         ],
       },
     ],
@@ -155,6 +166,17 @@ class CDContextMenu {
               this.hide();
             },
           },
+          {
+            label: "Smart Organize",
+            icon: "fa-solid fa-wand-magic-sparkles",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showSmartOrganizerPopup(path);
+              this.hide();
+            },
+          },
         ],
       },
     ],
@@ -224,6 +246,17 @@ class CDContextMenu {
                 ? this.selectedItem.getAttribute("itempath")
                 : CurrentDir;
               showDuplicateFinderPopup(path);
+              this.hide();
+            },
+          },
+          {
+            label: "Smart Organize",
+            icon: "fa-solid fa-wand-magic-sparkles",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showSmartOrganizerPopup(path);
               this.hide();
             },
           },

@@ -238,7 +238,9 @@ fn main() {
             cancel_duplicate_finder,
             get_clipboard_files,
             write_clipboard_files,
-            save_clipboard_image
+            save_clipboard_image,
+            ai_get_organizer_suggestions,
+            ai_execute_organize
         ])
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_drag::init())
@@ -4082,6 +4084,225 @@ async fn ai_style_image(
 
         save_ai_image(&output_path, b64_data).await
     }
+}
+
+#[tauri::command]
+async fn ai_get_organizer_suggestions(path: String) -> Result<serde_json::Value, String> {
+    // 1. Validate and scan the target directory path.
+    let dir_path = Path::new(&path);
+    if !dir_path.exists() || !dir_path.is_dir() {
+        return Err("Directory does not exist".to_string());
+    }
+
+    // List immediate entries (non-recursive).
+    let entries = std::fs::read_dir(dir_path)
+        .map_err(|e| format!("Failed to read directory: {}", e))?;
+
+    let mut files_list = Vec::new();
+    for entry in entries {
+        if let Ok(entry) = entry {
+            let file_type = entry.file_type().map_err(|e| e.to_string())?;
+            if file_type.is_file() {
+                let filename = entry.file_name().to_string_lossy().to_string();
+                if filename.starts_with('.') {
+                    continue; // Skip hidden system files
+                }
+                let metadata = entry.metadata().ok();
+                let size = metadata.map(|m| m.len()).unwrap_or(0);
+                files_list.push(serde_json::json!({
+                    "name": filename,
+                    "size": size,
+                }));
+            }
+        }
+    }
+
+    if files_list.is_empty() {
+        return Err("No files to organize in this directory".to_string());
+    }
+
+    // 2. Load API configuration
+    let config_path = config_dir()
+        .unwrap()
+        .join("com.codriver.dev/app_config.json");
+
+    let (ai_provider, gemini_text_model, openai_text_model) = {
+        if let Ok(file) = File::open(&config_path) {
+            if let Ok(config_json) = serde_json::from_reader::<_, serde_json::Value>(BufReader::new(file)) {
+                (
+                    config_json["ai_provider"].as_str().unwrap_or("gemini").to_string(),
+                    config_json["gemini_text_model"].as_str().unwrap_or("gemini-3.1-flash-lite-preview").to_string(),
+                    config_json["openai_text_model"].as_str().unwrap_or("gpt-4o").to_string(),
+                )
+            } else {
+                ("gemini".to_string(), "gemini-3.1-flash-lite-preview".to_string(), "gpt-4o".to_string())
+            }
+        } else {
+            ("gemini".to_string(), "gemini-3.1-flash-lite-preview".to_string(), "gpt-4o".to_string())
+        }
+    };
+
+    let resolved_api_key = {
+        let mut key = String::new();
+        if let Ok(file) = File::open(&config_path) {
+            if let Ok(config_json) = serde_json::from_reader::<_, serde_json::Value>(BufReader::new(file)) {
+                if ai_provider == "openai" {
+                    key = config_json["openai_api_key"].as_str().unwrap_or("").to_string();
+                } else {
+                    key = config_json["gemini_api_key"].as_str().unwrap_or("").to_string();
+                }
+            }
+        }
+        if key == "__keychain__" || key.is_empty() {
+            #[cfg(target_os = "macos")]
+            {
+                if ai_provider == "openai" {
+                    get_openai_keychain_key().unwrap_or(key)
+                } else {
+                    get_gemini_keychain_key().unwrap_or(key)
+                }
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                key
+            }
+        } else {
+            key
+        }
+    };
+
+    if resolved_api_key.is_empty() {
+        return Err("API key is not configured. Please add your key in the Settings panel.".to_string());
+    }
+
+    // 3. Construct the prompt
+    let dir_name = dir_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let files_json_str = serde_json::to_string_pretty(&files_list).unwrap_or_default();
+
+    let system_prompt = format!(
+        "You are an expert file organizer. Analyze the following list of files (including extensions and size in bytes) inside the directory \"{}\".\n\
+         Suggest a clean, logical folder structure (creating new subdirectories if helpful, e.g., \"Documents\", \"Images\", \"Invoices\", \"Code\", \"Archives\", \"Audio\") and assign each file to its best-suited target folder.\n\n\
+         Rules:\n\
+         1. ONLY return a raw JSON object. Do NOT wrap it in markdown code blocks like ```json ... ``` and do NOT include any introductory or surrounding text.\n\
+         2. The JSON object MUST strictly adhere to this schema:\n\
+         {{\n\
+           \"directories\": [\"Subdir1\", \"Subdir2/Nested\"],\n\
+           \"mappings\": [\n\
+             {{ \"from\": \"file1.txt\", \"to\": \"Subdir1/file1.txt\" }},\n\
+             {{ \"from\": \"pic.jpg\", \"to\": \"Subdir2/pic.jpg\" }}\n\
+           ]\n\
+         }}\n\
+         3. If a file is already in a logical place, or you do not think it needs to be categorized, do not include it in the mapping.\n\
+         4. Keep the original filename EXACTLY the same in the \"to\" field (only prefix it with the suggested folder path).\n\n\
+         Files to organize:\n\
+         {}",
+        dir_name, files_json_str
+    );
+
+    // 4. Call the selected AI provider
+    let raw_text = if ai_provider == "openai" {
+        let payload = serde_json::json!({
+            "model": openai_text_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": system_prompt
+                }
+            ],
+            "response_format": { "type": "json_object" }
+        });
+
+        let json_resp = call_openai_api(&resolved_api_key, "chat/completions", payload).await?;
+        extract_openai_text(&json_resp)?
+    } else {
+        let payload = serde_json::json!({
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": system_prompt
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "responseMimeType": "application/json"
+            }
+        });
+
+        let json_resp = call_gemini_api(&resolved_api_key, &gemini_text_model, payload).await?;
+        extract_gemini_text(&json_resp)?
+    };
+
+    // 5. Sanitize and parse JSON response
+    let cleaned_text = raw_text
+        .replace("```json", "")
+        .replace("```", "")
+        .trim()
+        .to_string();
+
+    let suggestions: serde_json::Value = serde_json::from_str(&cleaned_text)
+        .map_err(|e| format!("Failed to parse AI response as JSON: {}. Response was: {}", e, cleaned_text))?;
+
+    Ok(suggestions)
+}
+
+#[tauri::command]
+async fn ai_execute_organize(
+    parent_path: String,
+    directories: Vec<String>,
+    mappings: Vec<serde_json::Value>,
+) -> Result<(), String> {
+    let parent = Path::new(&parent_path);
+    if !parent.exists() || !parent.is_dir() {
+        return Err("Parent directory does not exist".to_string());
+    }
+
+    // 1. Create all suggested subdirectories
+    for dir in directories {
+        // Prevent path traversal
+        if dir.contains("..") || dir.starts_with('/') || dir.contains('\\') || dir.contains(':') {
+            return Err(format!("Invalid directory path: {}", dir));
+        }
+        let full_dir_path = parent.join(&dir);
+        if !full_dir_path.exists() {
+            std::fs::create_dir_all(&full_dir_path)
+                .map_err(|e| format!("Failed to create directory '{}': {}", dir, e))?;
+        }
+    }
+
+    // 2. Perform safe file movements
+    for mapping in mappings {
+        let from_name = mapping["from"].as_str().ok_or("Invalid mapping 'from'")?;
+        let to_rel_path = mapping["to"].as_str().ok_or("Invalid mapping 'to'")?;
+
+        // Prevent path traversal
+        if from_name.contains("..") || from_name.contains('/') || from_name.contains('\\') {
+            return Err(format!("Invalid source filename: {}", from_name));
+        }
+        if to_rel_path.contains("..") || to_rel_path.starts_with('/') || to_rel_path.contains('\\') || to_rel_path.contains(':') {
+            return Err(format!("Invalid target relative path: {}", to_rel_path));
+        }
+
+        let from_full = parent.join(from_name);
+        let to_full = parent.join(to_rel_path);
+
+        if from_full.exists() && from_full.is_file() {
+            // Check if destination directory parent exists
+            if let Some(to_parent) = to_full.parent() {
+                if !to_parent.exists() {
+                    std::fs::create_dir_all(to_parent)
+                        .map_err(|e| format!("Failed to create intermediate target directory: {}", e))?;
+                }
+            }
+
+            // Move file (rename)
+            std::fs::rename(&from_full, &to_full)
+                .map_err(|e| format!("Failed to move file '{}' to '{}': {}", from_name, to_rel_path, e))?;
+        }
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
