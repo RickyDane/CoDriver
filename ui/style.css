@@ -1795,6 +1795,7 @@ label {
 
 /* Save profile in modal footer - Styled as a Premium Checkbox */
 .ftp-save-profile-footer {
+    margin-left: 8px;
   margin-right: auto;
   display: flex;
   align-items: center;
@@ -1859,10 +1860,10 @@ label {
   display: none !important;
 }
 
-.ftp-connect-container input[type=number]::-webkit-inner-spin-button, 
-.ftp-connect-container input[type=number]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
+.ftp-connect-container input[type=number]::-webkit-inner-spin-button,
+.ftp-connect-container input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* Redesigned 2-column input grid for FTP modal */
@@ -1926,7 +1927,7 @@ label {
   flex-direction: column;
   height: 160px !important;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--tertiaryColor);
   border: var(--glass-border-subtle);
   border-radius: 12px;
   padding: 12px;
@@ -2118,7 +2119,7 @@ label {
   flex-direction: column;
   height: 160px !important;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--tertiaryColor);
   border: var(--glass-border-subtle);
   border-radius: 12px;
   padding: 12px;
@@ -2955,45 +2956,94 @@ button>svg {
   opacity: 0;
 }
 
-/* Compact Favorites Button */
-.site-nav-bar-button-fav {
-  background-color: transparent;
-  border: 1px solid transparent;
+/* Compact Favorites Button & Container */
+.favorites-container {
+  display: flex;
+  flex-flow: column;
   width: 100%;
-  height: 28px;
-  min-height: 28px;
-  text-align: left;
-  border-radius: 8px;
-  padding: 4px 10px;
-  cursor: pointer;
+  margin-top: 0;
+  gap: 2px;
+  padding: 0 0 2px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.favorites-container::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: -5px;
+  bottom: 13px;
+  width: 1px;
+  background: linear-gradient(to bottom,
+      color-mix(in srgb, var(--sidebarConnector) 70%, transparent),
+      color-mix(in srgb, var(--sidebarConnector) 35%, transparent));
+  pointer-events: none;
+}
+
+.site-nav-bar-button-fav {
+  width: calc(100% - 18px);
+  min-height: 26px;
+  height: 26px;
+  margin-left: 16px;
+  padding: 2px 7px 2px 6px;
+  gap: 6px;
+  position: relative;
+  isolation: isolate;
+  color: var(--textColor);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  box-shadow: none;
+  overflow: visible;
   display: flex;
   flex-flow: row;
   align-items: center;
-  gap: 6px;
   font-size: var(--fontSize);
-  color: var(--textColor);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.12s ease !important;
 }
 
-.site-nav-bar-button-fav>p {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: calc(var(--fontSize) * 0.92);
-}
-
-.site-nav-bar-button-fav>i {
-  font-size: 9px;
+.site-nav-bar-button-fav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: transparent;
+  opacity: 0;
+  z-index: -1;
 }
 
 .site-nav-bar-button-fav:hover {
   background-color: var(--sidebarHover) !important;
-  color: var(--textColor);
+  border-color: color-mix(in srgb, var(--tertiaryColor) 45%, transparent) !important;
 }
 
 .site-nav-bar-button-fav:focus-visible {
-  outline: 2px solid var(--selectColor2);
-  outline-offset: 2px;
-  background-color: var(--sidebarFocus) !important;
+  background-color: color-mix(in srgb, var(--sidebarFocus) 78%, transparent) !important;
+  border-color: color-mix(in srgb, var(--selectColor2) 55%, transparent) !important;
+  box-shadow: none;
+}
+
+.site-nav-bar-button-fav .disk-tree-elbow {
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  width: 7px;
+  height: 1px;
+  background: color-mix(in srgb, var(--sidebarConnector) 65%, transparent);
+  pointer-events: none;
+}
+
+.site-nav-bar-button-fav:hover .disk-nav-icon {
+  color: var(--textColor);
 }
 
 .horizontal-seperator {
@@ -5669,5 +5719,3 @@ body.dual-pane-mode .active-actions-popup::before {
   box-shadow: 0 0 6px var(--selectColor3);
   transform: scale(1.05);
 }
-
-

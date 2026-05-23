@@ -6,7 +6,7 @@
   },
   "bundle": {
     "resources": [
-      "resources/*"
+      "resources/**/*"
     ],
     "active": true,
     "category": "DeveloperTool",

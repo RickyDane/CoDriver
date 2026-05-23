@@ -162,6 +162,7 @@ let FoundItemsCountIndex = 0;
 
 let IsImagePreview = false;
 let IsAiEnabled = false;
+let AiProvider = "gemini";
 let CurrentFtpPath = "";
 let IsCopyToCut = false;
 let Platform = "";
@@ -654,7 +655,7 @@ document.onkeydown = async (e) => {
       e.preventDefault(); e.stopPropagation();
     }
   }
-  
+
   // Dual-pane explorer action contexts
   else if (IsDualPaneEnabled == true && IsPopUpOpen == false) {
     if (matchShortcut("pane_copy", e) && IsTabsEnabled == false) {
@@ -692,7 +693,7 @@ document.onkeydown = async (e) => {
       diskDropdown.dispatchEvent(evt);
     }
   }
-  
+
   // Now standard shortcuts
   if (matchShortcut("copy_dir_path", e)) {
     e.preventDefault(); e.stopPropagation();
@@ -706,15 +707,15 @@ document.onkeydown = async (e) => {
       e.preventDefault(); e.stopPropagation();
     }
   }
-  else if (matchShortcut("quick_preview", e) && SelectedElement != null) {
+  else if (matchShortcut("quick_preview", e) && SelectedElement != null && IsInputFocused === false && (IsPopUpOpen === false || IsItemPreviewOpen === true)) {
     e.preventDefault(); e.stopPropagation();
-    if (IsPopUpOpen == false && IsInputFocused == false && IsItemPreviewOpen == false) {
+    if (IsPopUpOpen == false && IsItemPreviewOpen == false) {
       showItemPreview(SelectedElement);
     } else {
       closeItemPreview();
     }
   }
-  
+
   // Actions allowed when popup is closed
   if (IsPopUpOpen == false) {
     if (matchShortcut("delete_item", e) && IsInputFocused == false) {
@@ -730,7 +731,9 @@ document.onkeydown = async (e) => {
     }
     else if (matchShortcut("rename_item", e) && IsInputFocused == false) {
       e.preventDefault(); e.stopPropagation();
-      renameElementInputPrompt(SelectedElement);
+      if (SelectedElement != null) {
+        renameElementInputPrompt(SelectedElement);
+      }
     }
     else if (matchShortcut("refresh_view", e)) {
       e.preventDefault(); e.stopPropagation();
@@ -778,9 +781,9 @@ document.onkeydown = async (e) => {
       showCompressPopup(ArrSelectedItems[0]);
     }
   }
-  
+
   // Standard list navigations (ArrowUp, ArrowDown, Backspace, Return)
-  if (IsPopUpOpen == false && IsInputFocused == false) {
+  if ((IsPopUpOpen == false || IsItemPreviewOpen == true) && IsInputFocused == false) {
     if (matchShortcut("nav_up", e)) {
       e.preventDefault(); e.stopPropagation();
       if (SelectedElement == null) {
@@ -811,7 +814,13 @@ document.onkeydown = async (e) => {
     }
     else if (e.keyCode == 13 && !e.altKey) {
       e.preventDefault(); e.stopPropagation();
-      await openSelectedItem();
+      if (Platform === "darwin" && IsDualPaneEnabled === false) {
+        if (SelectedElement != null) {
+          renameElementInputPrompt(SelectedElement);
+        }
+      } else {
+        await openSelectedItem();
+      }
     }
     else if (e.keyCode == 8 && ArrSelectedItems.length == 0) {
       e.preventDefault(); e.stopPropagation();
@@ -1346,13 +1355,13 @@ function updateCurrentPath(currentDir, dualPaneSide) {
     CurrentDir = currentDir;
     let currentDirContainer = document.querySelector(".current-path");
     currentDirContainer.innerHTML = "";
-    
+
     let isFtp = currentDir.startsWith("ftp://");
     let currentPathTracker = "/";
     if (Platform != "darwin" && Platform.includes("win")) {
       currentPathTracker = "";
     }
-    
+
     if (isFtp) {
       currentPathTracker = "ftp://";
     }
@@ -1376,13 +1385,13 @@ function updateCurrentPath(currentDir, dualPaneSide) {
       let pathItem = document.createElement("button");
       pathItem.textContent = path;
       pathItem.className = "path-item";
-      
+
       if (isFtp && counter == 0) {
         currentPathTracker += path; // e.g. ftp://connectionName
       } else {
         currentPathTracker += (currentPathTracker.endsWith("/") ? "" : "/") + path;
       }
-      
+
       pathItem.setAttribute(
         "itempath",
         currentPathTracker
@@ -1408,7 +1417,7 @@ function updateCurrentPath(currentDir, dualPaneSide) {
         pathItem.style.backgroundColor = "var(--transparentColor)";
         pathItem.style.scale = "1";
       };
-      
+
       let divider = document.createElement("i");
       divider.className = "fa fa-chevron-right";
       divider.style.color = "var(--textColor)";
@@ -1841,6 +1850,14 @@ async function copyItem(item, toCut = false, fromInternal = false) {
   }
   // ContextMenu.style.display = "none";
   await writeText(CopyFilePath);
+
+  let paths = ArrCopyItems.map((element) => element.getAttribute("itempath")).filter(Boolean);
+  try {
+    await invoke("write_clipboard_files", { files: paths });
+  } catch (err) {
+    console.error("Failed to write files to system clipboard:", err);
+  }
+
   if (toCut == true) {
     IsCopyToCut = true;
   } else {
@@ -2175,9 +2192,15 @@ async function showImageEditPopup(item) {
   let width = 0;
   let height = 0;
 
-  const getGeminiApiKey = () => {
-    return document.querySelector(".gemini-api-key-input")?.value.trim() || "";
+  const getActiveApiKey = () => {
+    if (AiProvider === "openai") {
+      return document.querySelector(".openai-api-key-input")?.value.trim() || "";
+    } else {
+      return document.querySelector(".gemini-api-key-input")?.value.trim() || "";
+    }
   };
+
+  const providerName = AiProvider === "openai" ? "OpenAI" : "Gemini";
 
   const tabsHtml = IsAiEnabled ? `
     <!-- Navigation Tabs -->
@@ -2281,7 +2304,7 @@ async function showImageEditPopup(item) {
         </div>
         <div class="upscale-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
           <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
-            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>Gemini API Key is not configured.
+            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>${providerName} API Key is not configured.
           </p>
           <button class="props-card__btn" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="closeUpscalePopup(); openSettings(); showSettingsTab('ai', document.querySelector('.settings-sidebar button[onclick*=\\'ai\\']'));">
             <i class="fa-solid fa-key" style="font-size: 10px;"></i>Configure Key
@@ -2314,12 +2337,12 @@ async function showImageEditPopup(item) {
         <div class="props-card__row">
           <dt class="props-card__label"><i class="fa-solid fa-info-circle"></i>Method</dt>
           <dd class="props-card__value" style="font-size: 12px; color: var(--textColor2); line-height: 1.4;">
-            Analyzes and creatively regenerates a high-fidelity, high-resolution counterpart of your image using Gemini 3.1 Flash Image.
+            Analyzes and creatively regenerates a high-fidelity, high-resolution counterpart of your image using ${providerName} AI.
           </dd>
         </div>
         <div class="enhance-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
           <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
-            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>Gemini API Key is not configured.
+            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>${providerName} API Key is not configured.
           </p>
           <button class="props-card__btn" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="closeUpscalePopup(); openSettings(); showSettingsTab('ai', document.querySelector('.settings-sidebar button[onclick*=\\'ai\\']'));">
             <i class="fa-solid fa-key" style="font-size: 10px;"></i>Configure Key
@@ -2345,7 +2368,7 @@ async function showImageEditPopup(item) {
         </div>
         <div class="style-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
           <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
-            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>Gemini API Key is not configured.
+            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>${providerName} API Key is not configured.
           </p>
           <button class="props-card__btn" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="closeUpscalePopup(); openSettings(); showSettingsTab('ai', document.querySelector('.settings-sidebar button[onclick*=\\'ai\\']'));">
             <i class="fa-solid fa-key" style="font-size: 10px;"></i>Configure Key
@@ -2398,7 +2421,7 @@ async function showImageEditPopup(item) {
       standardRows.forEach(r => r.style.display = "none");
       aiRows.forEach(r => r.style.display = "grid");
 
-      const apiKey = getGeminiApiKey();
+      const apiKey = getActiveApiKey();
       if (!apiKey) {
         apiKeyWarning.style.display = "block";
         popup.querySelector(".upscale-item-button").disabled = true;
@@ -2458,7 +2481,7 @@ async function showImageEditPopup(item) {
         popup.querySelector(".style-item-button").style.display = "none";
 
         // Validate API key for Enhance tab
-        const apiKey = getGeminiApiKey();
+        const apiKey = getActiveApiKey();
         const enhanceWarning = popup.querySelector(".enhance-api-key-warning");
         if (!apiKey) {
           enhanceWarning.style.display = "block";
@@ -2477,7 +2500,7 @@ async function showImageEditPopup(item) {
         popup.querySelector(".style-item-button").style.display = "inline-flex";
 
         // Check API key for Style tab
-        const apiKey = getGeminiApiKey();
+        const apiKey = getActiveApiKey();
         const styleWarning = popup.querySelector(".style-api-key-warning");
         if (!apiKey) {
           styleWarning.style.display = "block";
@@ -2554,18 +2577,19 @@ async function showImageEditPopup(item) {
     let actionId = crypto.randomUUID();
 
     if (method === "ai") {
-      const apiKey = getGeminiApiKey();
+      const apiKey = getActiveApiKey();
       const aspectRatio = popup.querySelector(".upscale-aspect-select").value;
 
       createNewAction(
         actionId,
         "AI Upscaling",
-        `${filename} via Gemini AI (as-is)`,
+        `${filename} via ${providerName} AI (as-is)`,
         path
       );
 
       try {
         await invoke("ai_upscale_image", {
+          aiProvider: AiProvider,
           apiKey,
           fromPath: path,
           aspectRatio,
@@ -2573,11 +2597,17 @@ async function showImageEditPopup(item) {
           creative: false,
         });
         showToast("AI Upscaling completed successfully", ToastType.SUCCESS);
+        const existing = document.querySelector(`[itempath="${outputPath}"]`);
+        if (existing) {
+          await handleDynamicUpdate(outputPath);
+        } else {
+          await handleDynamicCreate(outputPath);
+        }
       } catch (error) {
         showToast(`AI Upscaling failed: ${error}`, ToastType.ERROR);
       } finally {
         removeAction(actionId);
-        await listDirectories();
+        scheduleDiskUsageRefresh();
       }
     } else {
       const scaleFactor = parseFloat(scaleSelect.value);
@@ -2598,11 +2628,17 @@ async function showImageEditPopup(item) {
           outputPath: outputPath,
         });
         showToast("Upscaling completed", ToastType.SUCCESS);
+        const existing = document.querySelector(`[itempath="${outputPath}"]`);
+        if (existing) {
+          await handleDynamicUpdate(outputPath);
+        } else {
+          await handleDynamicCreate(outputPath);
+        }
       } catch (error) {
         showToast(`Upscaling failed: ${error}`, ToastType.ERROR);
       } finally {
         removeAction(actionId);
-        await listDirectories();
+        scheduleDiskUsageRefresh();
       }
     }
   });
@@ -2621,18 +2657,19 @@ async function showImageEditPopup(item) {
       closeUpscalePopup();
 
       let actionId = crypto.randomUUID();
-      const apiKey = getGeminiApiKey();
+      const apiKey = getActiveApiKey();
       const aspectRatio = popup.querySelector(".enhance-aspect-select").value;
 
       createNewAction(
         actionId,
         "AI Enhancing",
-        `${filename} via Gemini AI (creative)`,
+        `${filename} via ${providerName} AI (creative)`,
         path
       );
 
       try {
         await invoke("ai_upscale_image", {
+          aiProvider: AiProvider,
           apiKey,
           fromPath: path,
           aspectRatio,
@@ -2640,11 +2677,17 @@ async function showImageEditPopup(item) {
           creative: true,
         });
         showToast("AI Enhancement completed successfully", ToastType.SUCCESS);
+        const existing = document.querySelector(`[itempath="${outputPath}"]`);
+        if (existing) {
+          await handleDynamicUpdate(outputPath);
+        } else {
+          await handleDynamicCreate(outputPath);
+        }
       } catch (error) {
         showToast(`AI Enhancement failed: ${error}`, ToastType.ERROR);
       } finally {
         removeAction(actionId);
-        await listDirectories();
+        scheduleDiskUsageRefresh();
       }
     });
 
@@ -2666,7 +2709,7 @@ async function showImageEditPopup(item) {
       closeUpscalePopup();
 
       let actionId = crypto.randomUUID();
-      const apiKey = getGeminiApiKey();
+      const apiKey = getActiveApiKey();
 
       createNewAction(
         actionId,
@@ -2677,17 +2720,24 @@ async function showImageEditPopup(item) {
 
       try {
         await invoke("ai_style_image", {
+          aiProvider: AiProvider,
           apiKey,
           fromPath: path,
           prompt,
           outputPath,
         });
         showToast("Image styling completed successfully", ToastType.SUCCESS);
+        const existing = document.querySelector(`[itempath="${outputPath}"]`);
+        if (existing) {
+          await handleDynamicUpdate(outputPath);
+        } else {
+          await handleDynamicCreate(outputPath);
+        }
       } catch (error) {
         showToast("Image styling failed: " + error, ToastType.ERROR);
       } finally {
         removeAction(actionId);
-        await listDirectories();
+        scheduleDiskUsageRefresh();
       }
     });
   }
@@ -3076,13 +3126,19 @@ async function itemMoveTo(isForDualPane = false) {
 
 async function pasteItem(copyToPath = "", isCopyToCut = false) {
   let arr = [];
-  if (IsDualPaneEnabled == true) {
-    arr = ArrSelectedItems;
-  } else {
-    arr = ArrCopyItems;
-  }
+  let isSystemClipboard = false;
+  let isMove = false;
 
-  arr = arr.map(toCopyModel);
+  // Try to retrieve files from the system clipboard
+  try {
+    let sysFiles = await invoke("get_clipboard_files");
+    if (sysFiles && sysFiles.length > 0) {
+      arr = sysFiles;
+      isSystemClipboard = true;
+    }
+  } catch (err) {
+    console.error("Failed to read system clipboard:", err);
+  }
 
   let targetPath = copyToPath;
 
@@ -3098,7 +3154,47 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
     targetPath = copyToPath || CurrentDir;
   }
 
-  if (isCopyToCut == true || IsCopyToCut == true) {
+  if (!isSystemClipboard) {
+    // If no system files, try to save an image from the system clipboard!
+    try {
+      let savedImage = await invoke("save_clipboard_image", { targetDir: targetPath });
+      if (savedImage) {
+        showToast("Pasted screenshot from clipboard", ToastType.SUCCESS);
+        if (IsDualPaneEnabled === true) {
+          refreshBothViews(SelectedItemPaneSide);
+        } else {
+          await listDirectories();
+        }
+        scheduleDiskUsageRefresh();
+        return;
+      }
+    } catch (err) {
+      console.log("No image in system clipboard:", err);
+    }
+
+    if (IsDualPaneEnabled == true) {
+      arr = ArrSelectedItems;
+    } else {
+      arr = ArrCopyItems;
+    }
+    arr = arr.map(toCopyModel);
+    isMove = (isCopyToCut == true || IsCopyToCut == true);
+  } else {
+    // If it's from the system clipboard, determine if it was a cut operation
+    if (IsCopyToCut && ArrCopyItems.length > 0) {
+      let internalPaths = ArrCopyItems.map((item) => item.getAttribute("itempath"));
+      let sysPaths = arr.map((item) => item.path);
+      if (internalPaths.length === sysPaths.length && internalPaths.every((val, i) => val === sysPaths[i])) {
+        isMove = true;
+      }
+    }
+  }
+
+  if (arr.length === 0) {
+    return;
+  }
+
+  if (isMove) {
     let targetDirectory = normalizePath(targetPath);
     let sourceParents = arr.map((element) => parentPath(element.path));
     if (sourceParents.includes(targetDirectory)) {
@@ -3325,7 +3421,7 @@ async function checkAppConfig() {
     // Theme options
     CurrentTheme = appConfig.current_theme || "Default Dark";
     ArrFavorites = appConfig.arr_favorites || [];
-    
+
     // Load custom user themes from the backend
     try {
       LoadedUserThemes = await invoke("get_themes");
@@ -3333,11 +3429,11 @@ async function checkAppConfig() {
       console.error("Failed to load user themes:", err);
       LoadedUserThemes = [];
     }
-    
+
     // Rework themeSelect population to be name-based
     let themeSelect = document.querySelector(".theme-select");
     themeSelect.innerHTML = "";
-    
+
     // 1. Add built-in themes
     Object.keys(BuiltInThemes).forEach(themeName => {
       let themeOption = document.createElement("option");
@@ -3345,7 +3441,7 @@ async function checkAppConfig() {
       themeOption.textContent = themeName;
       themeSelect.appendChild(themeOption);
     });
-    
+
     // 2. Add custom loaded themes
     LoadedUserThemes.forEach(theme => {
       // Avoid duplicating built-in names
@@ -3400,6 +3496,65 @@ async function checkAppConfig() {
     document.documentElement.style.setProperty("--fontSize", fontSize + "px");
 
     document.querySelector(".gemini-api-key-input").value = appConfig.gemini_api_key || "";
+    document.querySelector(".openai-api-key-input").value = appConfig.openai_api_key || "";
+
+    const geminiTextVal = appConfig.gemini_text_model || "gemini-3.1-flash-lite-preview";
+    const geminiTextInput = document.querySelector(".gemini-text-model-input");
+    if (geminiTextInput) {
+      geminiTextInput.value = geminiTextVal;
+    }
+
+    const geminiImageVal = appConfig.gemini_image_model || "gemini-3.1-flash-image-preview";
+    const geminiImageSelect = document.querySelector(".gemini-image-model-select");
+    const geminiImageCustom = document.querySelector(".gemini-image-model-custom-input");
+    if (geminiImageSelect) {
+      const isKnownModel = ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview"].includes(geminiImageVal);
+      if (isKnownModel) {
+        geminiImageSelect.value = geminiImageVal;
+        if (geminiImageCustom) {
+          geminiImageCustom.value = "";
+          geminiImageCustom.style.display = "none";
+        }
+      } else {
+        geminiImageSelect.value = "custom";
+        if (geminiImageCustom) {
+          geminiImageCustom.value = geminiImageVal;
+          geminiImageCustom.style.display = "block";
+        }
+      }
+    }
+
+    const openaiTextVal = appConfig.openai_text_model || "gpt-4o";
+    const openaiTextInput = document.querySelector(".openai-text-model-input");
+    if (openaiTextInput) {
+      openaiTextInput.value = openaiTextVal;
+    }
+
+    const openaiImageVal = appConfig.openai_image_model || "gpt-image-2";
+    const openaiImageSelect = document.querySelector(".openai-image-model-select");
+    const openaiImageCustom = document.querySelector(".openai-image-model-custom-input");
+    if (openaiImageSelect) {
+      const isKnownModel = ["gpt-image-2"].includes(openaiImageVal);
+      if (isKnownModel) {
+        openaiImageSelect.value = openaiImageVal;
+        if (openaiImageCustom) {
+          openaiImageCustom.value = "";
+          openaiImageCustom.style.display = "none";
+        }
+      } else {
+        openaiImageSelect.value = "custom";
+        if (openaiImageCustom) {
+          openaiImageCustom.value = openaiImageVal;
+          openaiImageCustom.style.display = "block";
+        }
+      }
+    }
+
+    AiProvider = appConfig.ai_provider || "gemini";
+    const providerSelect = document.querySelector(".ai-provider-select");
+    if (providerSelect) {
+      providerSelect.value = AiProvider;
+    }
 
     if (appConfig.is_ai_enabled && appConfig.is_ai_enabled.includes("1")) {
       document.querySelector(".ai-enabled-checkbox").checked = true;
@@ -3409,10 +3564,7 @@ async function checkAppConfig() {
       IsAiEnabled = false;
     }
 
-    const geminiApiRow = document.querySelector(".gemini-api-key-row");
-    if (geminiApiRow) {
-      geminiApiRow.style.display = IsAiEnabled ? "flex" : "none";
-    }
+    toggleAiProviderRows();
 
     if (appConfig.is_window_transparency && appConfig.is_window_transparency.includes("1")) {
       document.querySelector(".window-transparency-checkbox").checked = true;
@@ -4880,7 +5032,21 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     ".window-transparency-checkbox",
   ).checked;
   let geminiApiKey = document.querySelector(".gemini-api-key-input").value.trim();
+  let openaiApiKey = document.querySelector(".openai-api-key-input").value.trim();
+  let aiProvider = document.querySelector(".ai-provider-select")?.value || "gemini";
   let isAiEnabled = document.querySelector(".ai-enabled-checkbox").checked;
+
+  let geminiTextModel = document.querySelector(".gemini-text-model-input")?.value?.trim() || "gemini-3.1-flash-lite-preview";
+  let geminiImageSelect = document.querySelector(".gemini-image-model-select");
+  let geminiImageModel = (geminiImageSelect?.value === "custom"
+    ? document.querySelector(".gemini-image-model-custom-input")?.value?.trim()
+    : geminiImageSelect?.value) || "gemini-3.1-flash-image-preview";
+
+  let openaiTextModel = document.querySelector(".openai-text-model-input")?.value?.trim() || "gpt-4o";
+  let openaiImageSelect = document.querySelector(".openai-image-model-select");
+  let openaiImageModel = (openaiImageSelect?.value === "custom"
+    ? document.querySelector(".openai-image-model-custom-input")?.value?.trim()
+    : openaiImageSelect?.value) || "gpt-image-2";
 
   if (isOpenInTerminal == true) {
     isOpenInTerminal = "1";
@@ -4947,7 +5113,13 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     fontSize,
     isWindowTransparency,
     geminiApiKey,
+    openaiApiKey,
     isAiEnabled,
+    aiProvider,
+    geminiTextModel,
+    geminiImageModel,
+    openaiTextModel,
+    openaiImageModel,
     shortcuts: ConfiguredShortcuts,
   });
   if (isVerbose === true) {
@@ -4976,6 +5148,37 @@ async function resetSettingsToDefaults() {
   document.getElementById("font-size-value").textContent = "12px";
   document.querySelector(".window-transparency-checkbox").checked = false;
   document.querySelector(".gemini-api-key-input").value = "";
+  document.querySelector(".openai-api-key-input").value = "";
+
+  const geminiTxtInput = document.querySelector(".gemini-text-model-input");
+  if (geminiTxtInput) geminiTxtInput.value = "gemini-3.1-flash-lite-preview";
+  const geminiImgSelect = document.querySelector(".gemini-image-model-select");
+  if (geminiImgSelect) geminiImgSelect.value = "gemini-3.1-flash-image-preview";
+  const geminiImgCustom = document.querySelector(".gemini-image-model-custom-input");
+  if (geminiImgCustom) {
+    geminiImgCustom.value = "";
+    geminiImgCustom.style.display = "none";
+  }
+
+  const openaiTxtInput = document.querySelector(".openai-text-model-input");
+  if (openaiTxtInput) openaiTxtInput.value = "gpt-4o";
+  const openaiImgSelect = document.querySelector(".openai-image-model-select");
+  if (openaiImgSelect) openaiImgSelect.value = "gpt-image-2";
+  const openaiImgCustom = document.querySelector(".openai-image-model-custom-input");
+  if (openaiImgCustom) {
+    openaiImgCustom.value = "";
+    openaiImgCustom.style.display = "none";
+  }
+
+  const advancedContainer = document.querySelector(".advanced-ai-settings-container");
+  if (advancedContainer) advancedContainer.style.display = "none";
+  const chevron = document.querySelector(".advanced-ai-chevron");
+  if (chevron) chevron.style.transform = "rotate(0deg)";
+
+  const providerSelect = document.querySelector(".ai-provider-select");
+  if (providerSelect) {
+    providerSelect.value = "gemini";
+  }
   document.querySelector(".ai-enabled-checkbox").checked = false;
 
   await saveConfig(true, true);
@@ -5194,6 +5397,7 @@ async function showItemPreview(item, isOverride = false) {
     case ".webp":
     case ".ico":
     case ".jfif":
+    case ".tiff":
     case ".avif":
       if (isFtp) {
         module = `
@@ -5435,7 +5639,7 @@ async function showItemPreview(item, isOverride = false) {
 function showMultiRenamePopup() {
   IsPopUpOpen = true;
   const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  
+
   let arrItemsToRename = ArrSelectedItems;
   const itemsListHtml = `<ul class="props-card__items-list">
     ${arrItemsToRename.map((item) => {
@@ -5652,7 +5856,7 @@ function switchFtpTab(tabName) {
   activeFtpTab = tabName;
   $(".ftp-tab-btn").removeClass("active");
   $(`.ftp-tab-btn[data-target="${tabName}"]`).addClass("active");
-  
+
   if (tabName === "discovered") {
     $(".ftp-discovery-section").css("display", "flex");
     $(".ftp-saved-section").css("display", "none");
@@ -5708,16 +5912,16 @@ async function startFtpDiscovery(event) {
     event.preventDefault();
     event.stopPropagation();
   }
-  
+
   if (isFtpScanning) return;
   isFtpScanning = true;
-  
+
   const refreshBtn = $(".ftp-discovery-refresh-btn");
   const listContainer = $(".ftp-discovery-list");
-  
+
   refreshBtn.addClass("scanning");
   $(".ftp-discovery-section").removeClass("is-empty");
-  
+
   // Show premium glassmorphic loader
   listContainer.html(`
     <div class="ftp-discovery-loader">
@@ -5725,7 +5929,7 @@ async function startFtpDiscovery(event) {
       <span>Scanning local network for active FTP hosts...</span>
     </div>
   `);
-  
+
   try {
     const servers = await invoke("discover_ftp_servers");
     if (!servers || servers.length === 0) {
@@ -5780,11 +5984,11 @@ function selectDiscoveredServer(event, name, host, port) {
     event.preventDefault();
     event.stopPropagation();
   }
-  
+
   $(".ftp-dirname-input").val(name);
   $(".ftp-hostname-input").val(host);
   $(".ftp-port-input").val(port);
-  
+
   // Cursor-focus the Username input field as specified
   const userField = $(".ftp-username-input");
   userField.focus();
@@ -5794,7 +5998,7 @@ function selectDiscoveredServer(event, name, host, port) {
 async function loadSavedFtpConnections() {
   const savedSection = $(".ftp-saved-section");
   const listContainer = $(".ftp-saved-list");
-  
+
   try {
     const connections = await invoke("get_saved_ftp_connections");
     if (!connections || connections.length === 0) {
@@ -5812,7 +6016,7 @@ async function loadSavedFtpConnections() {
         const port = parseInt(conn.port) || 21;
         const user = escapeHtml(conn.username || "");
         const path = escapeHtml(conn.remote_path || "/");
-        
+
         const nameEscaped = name.replace(/'/g, "\\'");
         const hostEscaped = host.replace(/'/g, "\\'");
         const userEscaped = user.replace(/'/g, "\\'");
@@ -5863,14 +6067,14 @@ function selectSavedConnection(event, name, host, port, username, password, remo
     event.preventDefault();
     event.stopPropagation();
   }
-  
+
   $(".ftp-dirname-input").val(name);
   $(".ftp-hostname-input").val(host);
   $(".ftp-port-input").val(port);
   $(".ftp-username-input").val(username);
   $(".ftp-password-input").val(password);
   $(".ftp-path-input").val(remotePath);
-  
+
   // Check the Save Profile checkbox to maintain/overwrite credentials easily
   $("#ftp-save-checkbox").prop("checked", true);
 
@@ -5970,7 +6174,7 @@ async function connectToFtp() {
   let remotePath = ($(".ftp-path-input").val() || "").trim();
   let name = ($(".ftp-dirname-input").val() || "").trim();
   let port = ($(".ftp-port-input").val() || "").trim() || "21";
-  
+
   $(".ftp-loader").css("display", "flex");
   await openFTP(hostname, username, password, remotePath, name, port);
 }
@@ -6162,7 +6366,7 @@ function getRgbComponents(colorStr) {
   document.body.appendChild(tempEl);
   let computedColor = window.getComputedStyle(tempEl).color;
   document.body.removeChild(tempEl);
-  
+
   let match = computedColor.match(/\d+(\.\d+)?/g);
   if (match && match.length >= 3) {
     return {
@@ -6189,13 +6393,13 @@ function parseCssColor(colorStr) {
 function checkColorMode(appConfig) {
   var r = document.querySelector(":root");
   let activeThemeName = CurrentTheme || "Default Dark";
-  
+
   // Find theme by name (either built-in or user-created loaded from backend)
   let activeTheme = BuiltInThemes[activeThemeName];
   if (!activeTheme && LoadedUserThemes) {
     activeTheme = LoadedUserThemes.find(t => t.name === activeThemeName);
   }
-  
+
   // Fallback to Default Dark
   if (!activeTheme) {
     activeTheme = BuiltInThemes["Default Dark"];
@@ -6212,16 +6416,16 @@ function checkColorMode(appConfig) {
   r.style.setProperty("--siteBarColor", activeTheme.site_bar_color);
   r.style.setProperty("--sidebarTopBlurOverlayColor", activeTheme.sidebar_top_blur_overlay_color || activeTheme.site_bar_color);
   r.style.setProperty("--navBarColor", activeTheme.nav_bar_color);
-  
+
   // Set custom selection accent colors
   r.style.setProperty("--selectColor2", activeTheme.select_color2 || "rgba(11, 100, 253, 0.75)");
   r.style.setProperty("--selectColor3", activeTheme.select_color3 || "rgba(11, 100, 253, 0.25)");
-  
+
   // Update styling variables for glassmorphism popups to adapt perfectly to dark vs light mode!
-  let isLight = !activeThemeName.toLowerCase().includes("dark") && 
-                 (activeTheme.text_color.includes("rgba(30") || 
-                  activeTheme.text_color.includes("#1e") || 
-                  activeTheme.text_color.includes("rgba(0") || 
+  let isLight = !activeThemeName.toLowerCase().includes("dark") &&
+                 (activeTheme.text_color.includes("rgba(30") ||
+                  activeTheme.text_color.includes("#1e") ||
+                  activeTheme.text_color.includes("rgba(0") ||
                   activeTheme.text_color.includes("#32") ||
                   activeTheme.text_color.startsWith("#0") ||
                   activeTheme.text_color.startsWith("#1") ||
@@ -6250,7 +6454,7 @@ async function applyThemeFromSelect() {
   let themeName = $(".theme-select").val();
   CurrentTheme = themeName;
   checkColorMode();
-  
+
   // Toggle delete/edit button visibility based on whether the theme is built-in
   if (BuiltInThemes[CurrentTheme]) {
     $(".delete-theme-btn").css("display", "none");
@@ -6259,7 +6463,7 @@ async function applyThemeFromSelect() {
     $(".delete-theme-btn").css("display", "block");
     $(".edit-theme-btn").css("display", "block");
   }
-  
+
   await saveConfig(false, false);
 }
 
@@ -6267,18 +6471,18 @@ function openThemeCreator() {
   $("#theme-creator-popup").css("display", "flex");
   IsPopUpOpen = true;
   IsDisableShortcuts = true;
-  
+
   // Backup currently active theme in case they click cancel
   OriginalThemeBackup = CurrentTheme;
   IsEditingTheme = false;
-  
+
   $("#theme-creator-title").text("Create Theme");
   $(".theme-name-input").val("");
-  
+
   // Initialize pickers and inputs with the currently active theme's colors
   let activeThemeName = CurrentTheme || "Default Dark";
   let activeTheme = BuiltInThemes[activeThemeName] || LoadedUserThemes.find(t => t.name === activeThemeName) || BuiltInThemes["Default Dark"];
-  
+
   setThemeCreatorColorRow("primary-color", activeTheme.primary_color, "--primaryColor");
   setThemeCreatorColorRow("secondary-color", activeTheme.secondary_color, "--secondaryColor");
   setThemeCreatorColorRow("tertiary-color", activeTheme.tertiary_color, "--tertiaryColor");
@@ -6295,21 +6499,21 @@ function editActiveTheme() {
   if (BuiltInThemes[activeThemeName]) {
     return; // Built-in themes are read-only
   }
-  
+
   let activeTheme = LoadedUserThemes.find(t => t.name === activeThemeName);
   if (!activeTheme) return;
-  
+
   $("#theme-creator-popup").css("display", "flex");
   IsPopUpOpen = true;
   IsDisableShortcuts = true;
-  
+
   OriginalThemeBackup = CurrentTheme;
   IsEditingTheme = true;
   ThemeToEditOriginalName = activeThemeName;
-  
+
   $("#theme-creator-title").text("Edit Theme");
   $(".theme-name-input").val(activeTheme.name);
-  
+
   setThemeCreatorColorRow("primary-color", activeTheme.primary_color, "--primaryColor");
   setThemeCreatorColorRow("secondary-color", activeTheme.secondary_color, "--secondaryColor");
   setThemeCreatorColorRow("tertiary-color", activeTheme.tertiary_color, "--tertiaryColor");
@@ -6323,38 +6527,38 @@ function editActiveTheme() {
 
 function setThemeCreatorColorRow(cssClass, colorVal, varName) {
   let parsed = parseCssColor(colorVal);
-  
+
   $(`.theme-${cssClass}`).val(parsed.hex);
   $(`.theme-${cssClass}-text`).val(colorVal);
   $(`.theme-${cssClass}-opacity`).val(parsed.alpha);
   $(`.theme-${cssClass}-opacity-val`).text(parsed.alpha.toFixed(2));
-  
+
   const updateFromControls = () => {
     let hex = $(`.theme-${cssClass}`).val();
     let alpha = parseFloat($(`.theme-${cssClass}-opacity`).val());
     $(`.theme-${cssClass}-opacity-val`).text(alpha.toFixed(2));
-    
+
     let combinedColor = hex;
     if (alpha < 1) {
       combinedColor = hexToRgba(hex, alpha);
     }
-    
+
     $(`.theme-${cssClass}-text`).val(combinedColor);
     previewThemeColor(varName, combinedColor);
   };
-  
+
   $(`.theme-${cssClass}`).off("input").on("input", updateFromControls);
   $(`.theme-${cssClass}-opacity`).off("input").on("input", updateFromControls);
-  
+
   $(`.theme-${cssClass}-text`).off("input").on("input", function() {
     let newVal = this.value.trim();
     if (!newVal) return;
-    
+
     let parsed = parseCssColor(newVal);
     $(`.theme-${cssClass}`).val(parsed.hex);
     $(`.theme-${cssClass}-opacity`).val(parsed.alpha);
     $(`.theme-${cssClass}-opacity-val`).text(parsed.alpha.toFixed(2));
-    
+
     previewThemeColor(varName, newVal);
   });
 }
@@ -6393,7 +6597,7 @@ function closeThemeCreator() {
   $("#theme-creator-popup").css("display", "none");
   IsPopUpOpen = false;
   IsDisableShortcuts = false;
-  
+
   // Restore original theme since they canceled
   if (OriginalThemeBackup) {
     CurrentTheme = OriginalThemeBackup;
@@ -6407,17 +6611,17 @@ async function saveCustomTheme() {
     alert("Please enter a theme name");
     return;
   }
-  
+
   // Only check conflicts if not editing the original theme name
   if ((!IsEditingTheme || name !== ThemeToEditOriginalName) && BuiltInThemes[name]) {
     alert("Theme name conflicts with a built-in theme. Please choose a different name.");
     return;
   }
-  
+
   let selectColor2Val = $(".theme-accent-color-text").val().trim();
   let comps = getRgbComponents(selectColor2Val);
   let selectColor3Val = `rgba(${comps.r}, ${comps.g}, ${comps.b}, 0.25)`;
-  
+
   let newTheme = {
     name: name,
     primary_color: $(".theme-primary-color-text").val().trim(),
@@ -6434,21 +6638,21 @@ async function saveCustomTheme() {
     select_color2: selectColor2Val,
     select_color3: selectColor3Val
   };
-  
+
   try {
     // If editing and renamed, delete the old file
     if (IsEditingTheme && name !== ThemeToEditOriginalName) {
       await invoke("delete_theme", { themeName: ThemeToEditOriginalName });
     }
-    
+
     await invoke("save_theme", { theme: newTheme });
     showToast("Theme saved successfully!", ToastType.SUCCESS);
-    
+
     CurrentTheme = name;
     $("#theme-creator-popup").css("display", "none");
     IsPopUpOpen = false;
     IsDisableShortcuts = false;
-    
+
     await checkAppConfig();
     await saveConfig(false, false);
   } catch (err) {
@@ -6466,11 +6670,11 @@ async function deleteActiveTheme() {
   if (!confirmed) {
     return;
   }
-  
+
   try {
     await invoke("delete_theme", { themeName: activeThemeName });
     showToast("Theme deleted successfully!", ToastType.SUCCESS);
-    
+
     CurrentTheme = "Default Dark";
     await checkAppConfig();
     await saveConfig(true, false);
@@ -6615,16 +6819,64 @@ function getDiskUsedPercentage(mount) {
 }
 
 function updateSidebarDiskButtonUsage(button, mount) {
-  let usedPercentage = getDiskUsedPercentage(mount).toFixed(2);
+  const path = button.dataset.itempath || button.getAttribute("itempath") || "";
+  const format = mount?.format || button.getAttribute("itemformat") || "";
+  const isFtp = (format && format.includes("FTP")) || path.startsWith("ftp://");
+
   let displayName = displayDiskName(mount?.name);
   let nameLabel = button.querySelector(".disk-nav-name");
-  let usageLabel = button.querySelector(".disk-nav-usage");
-  let progressFill = button.querySelector(".disk-nav-progress-fill");
-
   if (nameLabel) nameLabel.textContent = displayName;
-  if (usageLabel) usageLabel.textContent = `${usedPercentage}%`;
-  if (progressFill) progressFill.style.width = `${usedPercentage}%`;
-  button.title = `${displayName} • ${usedPercentage}% used`;
+
+  if (isFtp) {
+    button.title = `${displayName} • FTP`;
+    let usageLabel = button.querySelector(".disk-nav-usage");
+    let progressTrack = button.querySelector(".disk-nav-progress-track");
+    let usageRow = button.querySelector(".disk-nav-usage-row");
+    if (progressTrack) {
+      progressTrack.remove();
+    }
+    if (!usageRow) {
+      usageRow = document.createElement("span");
+      usageRow.className = "disk-nav-usage-row";
+      button.querySelector(".disk-nav-copy")?.append(usageRow);
+    }
+    if (!usageLabel) {
+      usageLabel = document.createElement("span");
+      usageLabel.className = "disk-nav-usage";
+      usageRow.append(usageLabel);
+    }
+    usageLabel.textContent = "(FTP)";
+  } else {
+    let usedPercentage = getDiskUsedPercentage(mount).toFixed(2);
+    let usageLabel = button.querySelector(".disk-nav-usage");
+    let progressTrack = button.querySelector(".disk-nav-progress-track");
+    let progressFill = button.querySelector(".disk-nav-progress-fill");
+    let usageRow = button.querySelector(".disk-nav-usage-row");
+
+    if (!usageRow) {
+      usageRow = document.createElement("span");
+      usageRow.className = "disk-nav-usage-row";
+      button.querySelector(".disk-nav-copy")?.append(usageRow);
+    }
+    if (!usageLabel) {
+      usageLabel = document.createElement("span");
+      usageLabel.className = "disk-nav-usage";
+      usageRow.append(usageLabel);
+    }
+    if (!progressTrack) {
+      progressTrack = document.createElement("span");
+      progressTrack.className = "disk-nav-progress-track";
+      progressTrack.setAttribute("aria-hidden", "true");
+      progressFill = document.createElement("span");
+      progressFill.className = "disk-nav-progress-fill";
+      progressTrack.append(progressFill);
+      usageRow.append(progressTrack);
+    }
+
+    usageLabel.textContent = `${usedPercentage}%`;
+    if (progressFill) progressFill.style.width = `${usedPercentage}%`;
+    button.title = `${displayName} • ${usedPercentage}% used`;
+  }
 }
 
 let DiskUsageRefreshTimer = null;
@@ -6663,11 +6915,12 @@ function createSidebarDiskButton(mount, pathOverride = "") {
   diskButton.setAttribute("itemisdir", "1");
   diskButton.setAttribute("itemisdisk", "1");
   diskButton.setAttribute("itemname", name);
-  const isRemovable = mount.is_removable == true || mount.format.includes("SSHFS") || mount.format.includes("FTP") ? "1" : "0";
+  const isRemovable = mount.is_removable == true || (mount.format && mount.format.includes("SSHFS")) || (mount.format && mount.format.includes("FTP")) ? "1" : "0";
   diskButton.setAttribute("itemisremovable", isRemovable);
   diskButton.setAttribute("itemformat", mount.format || "");
   diskButton.className = "site-nav-bar-button disk-site-nav-button";
-  diskButton.title = `${name} • ${usedPercentage}% used`;
+
+  const isFtp = (mount.format && mount.format.includes("FTP")) || path.startsWith("ftp://");
 
   const treeElbow = document.createElement("span");
   treeElbow.className = "disk-tree-elbow";
@@ -6683,25 +6936,36 @@ function createSidebarDiskButton(mount, pathOverride = "") {
   const nameLabel = document.createElement("span");
   nameLabel.className = "disk-nav-name";
   nameLabel.textContent = name;
+  copy.append(nameLabel);
 
   const usageLabel = document.createElement("span");
   usageLabel.className = "disk-nav-usage";
-  usageLabel.textContent = `${usedPercentage}%`;
 
   const usageRow = document.createElement("span");
   usageRow.className = "disk-nav-usage-row";
 
-  const progressTrack = document.createElement("span");
-  progressTrack.className = "disk-nav-progress-track";
-  progressTrack.setAttribute("aria-hidden", "true");
+  if (isFtp) {
+    diskButton.title = `${name} • FTP`;
+    usageLabel.textContent = "(FTP)";
+    usageRow.append(usageLabel);
+    copy.append(usageRow);
+  } else {
+    diskButton.title = `${name} • ${usedPercentage}% used`;
+    usageLabel.textContent = `${usedPercentage}%`;
 
-  const progressFill = document.createElement("span");
-  progressFill.className = "disk-nav-progress-fill";
-  progressFill.style.width = `${usedPercentage}%`;
+    const progressTrack = document.createElement("span");
+    progressTrack.className = "disk-nav-progress-track";
+    progressTrack.setAttribute("aria-hidden", "true");
 
-  progressTrack.append(progressFill);
-  usageRow.append(usageLabel, progressTrack);
-  copy.append(nameLabel, usageRow);
+    const progressFill = document.createElement("span");
+    progressFill.className = "disk-nav-progress-fill";
+    progressFill.style.width = `${usedPercentage}%`;
+
+    progressTrack.append(progressFill);
+    usageRow.append(usageLabel, progressTrack);
+    copy.append(usageRow);
+  }
+
   diskButton.append(treeElbow, icon, copy);
 
   diskButton.onclick = async () => {
@@ -6838,15 +7102,36 @@ async function insertSiteNavButtons() {
     favContent.id = "favorites-content";
     favContent.setAttribute("role", "region");
 
+    let favContainer = document.createElement("div");
+    favContainer.className = "favorites-container";
+
     ArrFavorites.forEach((path) => {
       let button = document.createElement("button");
       button.className = "site-nav-bar-button-fav";
       let name = path.split(/[\\\/]/).pop() || path;
-      button.innerHTML = `<p>${name}</p>`;
       button.setAttribute("itempath", path);
       button.setAttribute("itemisdir", "1");
       button.setAttribute("itemname", name);
       button.title = path;
+
+      const treeElbow = document.createElement("span");
+      treeElbow.className = "disk-tree-elbow";
+      treeElbow.setAttribute("aria-hidden", "true");
+
+      const icon = document.createElement("i");
+      icon.className = "fa-solid fa-folder disk-nav-icon";
+      icon.setAttribute("aria-hidden", "true");
+
+      const copy = document.createElement("span");
+      copy.className = "disk-nav-copy";
+
+      const nameLabel = document.createElement("span");
+      nameLabel.className = "disk-nav-name";
+      nameLabel.textContent = name;
+      copy.append(nameLabel);
+
+      button.append(treeElbow, icon, copy);
+
       button.onclick = async () => {
         await openDirAndSwitch(path);
         await listDirectories();
@@ -6868,8 +7153,10 @@ async function insertSiteNavButtons() {
         button.style.border = "1px solid transparent";
         button.style.backgroundColor = "transparent";
       };
-      favContent.append(button);
+      favContainer.append(button);
     });
+
+    favContent.append(favContainer);
 
     favSection.append(favHeader);
     favSection.append(favContent);
@@ -8209,6 +8496,7 @@ async function showDuplicateFinderPopup(path) {
             let successCount = 0;
             let failCount = 0;
             let completedCount = 0;
+            let spaceReclaimed = 0;
 
             const concurrency = total > 50 ? 8 : 1; // Batch deletes concurrently for larger selections
             const delayMs = total > 50 ? 0 : Math.max(5, Math.min(60, 300 / total)); // Smooth dynamic animation delay for small deletions
@@ -8244,6 +8532,7 @@ async function showDuplicateFinderPopup(path) {
                 try {
                   await invoke("delete_item", { actFileName: file });
                   successCount++;
+                  spaceReclaimed += filePathToSize.get(file) || 0;
                 } catch (err) {
                   console.error(`Failed to delete ${file}:`, err);
                   failCount++;
@@ -8275,9 +8564,60 @@ async function showDuplicateFinderPopup(path) {
               showToast(`Deleted ${successCount} duplicate file(s) (${failCount} failed)`, ToastType.WARNING);
             }
 
-            confirmOverlay.remove();
-            closePopup();
+            // Trigger list view refresh behind the popup immediately
             await listDirectories();
+
+            // Transition the overlay to show stats and done button
+            confirmOverlay.innerHTML = `
+              <div class="dup-overview-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; max-width: 360px; width: 100%; padding: 10px; animation: propsCardIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+                <div style="width: 52px; height: 52px; border-radius: 50%; background: ${failCount === 0 ? 'rgba(46, 204, 113, 0.15)' : 'rgba(230, 126, 34, 0.15)'}; border: 1px solid ${failCount === 0 ? 'rgb(46, 204, 113)' : 'rgb(230, 126, 34)'}; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; filter: drop-shadow(0 0 10px ${failCount === 0 ? 'rgba(46, 204, 113, 0.25)' : 'rgba(230, 126, 34, 0.25)'});">
+                  <i class="${failCount === 0 ? 'fa-solid fa-circle-check' : 'fa-solid fa-triangle-exclamation'}" style="font-size: 24px; color: ${failCount === 0 ? 'rgb(46, 204, 113)' : 'rgb(230, 126, 34)'};"></i>
+                </div>
+
+                <div style="text-align: center;">
+                  <h3 style="font-size: 15px; font-weight: 700; color: var(--textColor); margin-bottom: 4px; letter-spacing: 0.5px;">
+                    ${failCount === 0 ? 'Cleanup Completed' : 'Cleanup Finished'}
+                  </h3>
+                  <p style="font-size: 11.5px; color: var(--textColor2); line-height: 1.4;">
+                    ${failCount === 0
+                      ? 'All selected duplicate files have been successfully deleted.'
+                      : 'The duplicate cleanup process finished with some errors.'
+                    }
+                  </p>
+                </div>
+
+                <div style="width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0;">
+                  <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <i class="fa-solid fa-check" style="color: rgb(46, 204, 113); font-size: 11px;"></i>
+                    <span style="font-size: 9px; color: var(--textColor2); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Deleted</span>
+                    <span style="font-size: 14px; font-weight: 700; color: var(--textColor); font-family: monospace;">${successCount}</span>
+                  </div>
+
+                  <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <i class="fa-solid fa-xmark" style="color: ${failCount > 0 ? 'var(--errorColor)' : 'var(--textColor3)'}; font-size: 11px; opacity: ${failCount > 0 ? '1' : '0.4'};"></i>
+                    <span style="font-size: 9px; color: var(--textColor2); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Failed</span>
+                    <span style="font-size: 14px; font-weight: 700; color: ${failCount > 0 ? 'var(--errorColor)' : 'var(--textColor)'}; font-family: monospace;">${failCount}</span>
+                  </div>
+
+                  <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <i class="fa-solid fa-chart-pie" style="color: #4da3ff; font-size: 11px;"></i>
+                    <span style="font-size: 9px; color: var(--textColor2); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Reclaimed</span>
+                    <span style="font-size: 12px; font-weight: 700; color: rgb(46, 204, 113); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="${formatBytes(spaceReclaimed)}">${formatBytes(spaceReclaimed)}</span>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; width: 100%; justify-content: center; margin-top: 4px;">
+                  <button class="props-card__btn props-card__btn--primary" id="btn-dup-overview-close" style="width: 120px; padding: 8px; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; border-radius: 6px;">
+                    <i class="fa-solid fa-check"></i><span>Done</span>
+                  </button>
+                </div>
+              </div>
+            `;
+
+            confirmOverlay.querySelector("#btn-dup-overview-close").onclick = () => {
+              confirmOverlay.remove();
+              closePopup();
+            };
           };
         };
       }
@@ -8310,10 +8650,7 @@ async function showDuplicateFinderPopup(path) {
 
   // Handle AI toggle visibility of API key row dynamically
   document.querySelector(".ai-enabled-checkbox")?.addEventListener("change", (e) => {
-    const apiRow = document.querySelector(".gemini-api-key-row");
-    if (apiRow) {
-      apiRow.style.display = e.target.checked ? "flex" : "none";
-    }
+    toggleAiProviderRows();
   });
 })();
 
@@ -8349,11 +8686,11 @@ function getParentPath(path) {
 function getTargetContainers(parentPath) {
   const normParent = parentPath.replace(/\\/g, '/').replace(/\/$/, '') || '/';
   let containers = [];
-  
+
   if (IsDualPaneEnabled) {
     const normLeft = (LeftDualPanePath || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
     const normRight = (RightDualPanePath || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
-    
+
     if (normLeft === normParent && LeftPaneItemCollection) {
       containers.push({ element: LeftPaneItemCollection, side: 'left', mode: 'column' });
     }
@@ -8373,7 +8710,7 @@ function getTargetContainers(parentPath) {
   } else {
     const normCurrent = (CurrentDir || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
     if (normCurrent === normParent) {
-      const dirList = document.querySelector('.explorer-container:not(.miller-column) > .directory-list') || 
+      const dirList = document.querySelector('.explorer-container:not(.miller-column) > .directory-list') ||
                       document.querySelector('.explorer-container:not(.miller-column) > .directory-list-dual-pane') ||
                       document.querySelector('.directory-list');
       if (dirList) {
@@ -8388,7 +8725,7 @@ function createItemInnerHtml(item, itemIconId, viewMode, dualPaneSide) {
   let fileIcon = "resources/file-icon.png";
   let iconSize = "56px";
   fileIcon = getIconForFile(item, 1);
-  
+
   if (viewMode === "wrap") {
     return `
       <div class="item-button directory-entry">
@@ -8458,15 +8795,15 @@ function compareItems(itemA, itemB, sortBy, ascending) {
 function findInsertionIndex(container, fileInfo) {
   const children = Array.from(container.children);
   if (children.length === 0) return 0;
-  
+
   let low = 0;
   let high = children.length;
-  
+
   while (low < high) {
     const mid = Math.floor((low + high) / 2);
     const midInfo = getFDirFromElement(children[mid]);
     const cmp = compareItems(fileInfo, midInfo, CurrentSortMethod, CurrentSortAscending);
-    
+
     if (cmp < 0) {
       high = mid;
     } else {
@@ -8481,7 +8818,7 @@ async function handleDynamicCreate(path) {
     const parentPath = getParentPath(path);
     const targets = getTargetContainers(parentPath);
     if (targets.length === 0) return;
-    
+
     let fileInfo;
     try {
       fileInfo = await invoke("get_single_item_info", { path });
@@ -8493,14 +8830,14 @@ async function handleDynamicCreate(path) {
       throw e;
     }
     if (!fileInfo) return;
-    
+
     // Normalize extension to have a leading dot if it doesn't
     let ext = fileInfo.extension;
     if (ext && !ext.startsWith('.')) {
       ext = '.' + ext;
     }
     fileInfo.extension = ext;
-    
+
     if (IsShowHiddenFiles === false) {
       if (fileInfo.name.startsWith(".") || fileInfo.name.toLowerCase().includes("desktop.ini")) {
         return;
@@ -8509,13 +8846,13 @@ async function handleDynamicCreate(path) {
     if (fileInfo.name.toLowerCase().includes("ntuser")) {
       return;
     }
-    
+
     for (const target of targets) {
       const existing = target.element.querySelector(`[itempath="${path}"]`);
       if (existing) continue;
-      
+
       applyDirectoryListStyles(target.element, target.mode);
-      
+
       const itemLink = document.createElement("button");
       const itemIconId = crypto.randomUUID();
       itemLink.setAttribute("onclick", "interactWithItem(this, '" + target.side + "', null, event)");
@@ -8533,9 +8870,9 @@ async function handleDynamicCreate(path) {
       itemLink.setAttribute("itemformillercol", target.colNum ? (parseInt(target.colNum) + 1) : 2);
       itemLink.setAttribute("itemisselected", false);
       itemLink.className = "item-link directory-entry";
-      
+
       itemLink.innerHTML = createItemInnerHtml(fileInfo, itemIconId, target.mode, target.side);
-      
+
       itemLink.ondragstart = (e) => {
         handleDragStart(e, itemLink);
       };
@@ -8567,26 +8904,26 @@ async function handleDynamicCreate(path) {
         cdCtMenu.setSelectedItem(itemLink, e);
         cdCtMenu.show(e);
       });
-      
+
       const insertionIndex = findInsertionIndex(target.element, fileInfo);
       if (insertionIndex >= target.element.children.length) {
         target.element.appendChild(itemLink);
       } else {
         target.element.insertBefore(itemLink, target.element.children[insertionIndex]);
       }
-      
+
       let idx = 0;
       Array.from(target.element.children).forEach(child => {
         child.setAttribute("itemindex", idx++);
       });
-      
+
       if (ArrDirectoryItems.indexOf(itemLink) === -1) {
         ArrDirectoryItems.push(itemLink);
       }
-      
+
       arrLoadItemImage([itemLink], true);
     }
-    
+
     ds.setSettings({
       selectables: document.querySelectorAll(".item-link"),
     });
@@ -8600,21 +8937,21 @@ function handleDynamicRemove(path) {
     const parentPath = getParentPath(path);
     const targets = getTargetContainers(parentPath);
     if (targets.length === 0) return;
-    
+
     for (const target of targets) {
       const existing = target.element.querySelector(`[itempath="${path}"]`);
       if (existing) {
         existing.remove();
-        
+
         let idx = 0;
         Array.from(target.element.children).forEach(child => {
           child.setAttribute("itemindex", idx++);
         });
-        
+
         ArrDirectoryItems = ArrDirectoryItems.filter(item => item !== existing);
       }
     }
-    
+
     ds.setSettings({
       selectables: document.querySelectorAll(".item-link"),
     });
@@ -8628,7 +8965,7 @@ async function handleDynamicUpdate(path) {
     const parentPath = getParentPath(path);
     const targets = getTargetContainers(parentPath);
     if (targets.length === 0) return;
-    
+
     let fileInfo;
     try {
       fileInfo = await invoke("get_single_item_info", { path });
@@ -8640,14 +8977,14 @@ async function handleDynamicUpdate(path) {
       throw e;
     }
     if (!fileInfo) return;
-    
+
     // Normalize extension to have a leading dot if it doesn't
     let ext = fileInfo.extension;
     if (ext && !ext.startsWith('.')) {
       ext = '.' + ext;
     }
     fileInfo.extension = ext;
-    
+
     for (const target of targets) {
       const existing = target.element.querySelector(`[itempath="${path}"]`);
       if (existing) {
@@ -8657,11 +8994,11 @@ async function handleDynamicUpdate(path) {
         existing.setAttribute("itemext", fileInfo.extension);
         existing.setAttribute("itemicon", getIconForFile(fileInfo, 1));
         existing.setAttribute("itemisdir", fileInfo.is_dir ? 1 : 0);
-        
+
         const itemIconId = existing.getAttribute("itemiconid") || crypto.randomUUID();
         existing.setAttribute("itemiconid", itemIconId);
         existing.innerHTML = createItemInnerHtml(fileInfo, itemIconId, target.mode, target.side);
-        
+
         arrLoadItemImage([existing], true);
       }
     }
@@ -8676,6 +9013,7 @@ const DefaultShortcuts = {
   "cut_item": "CmdOrCtrl+x",
   "paste_item": "CmdOrCtrl+v",
   "delete_item": "Delete",
+  "rename_item": "F2",
   "select_all": "CmdOrCtrl+a",
   "quick_preview": "Space",
   "new_folder": "F7",
@@ -8706,6 +9044,7 @@ const ShortcutLabels = {
   "cut_item": { name: "Cut Item", desc: "Cut the currently selected item(s)" },
   "paste_item": { name: "Paste Item", desc: "Paste the copied or cut item(s) here" },
   "delete_item": { name: "Delete Item", desc: "Delete the currently selected item(s)" },
+  "rename_item": { name: "Rename Item", desc: "Rename the currently selected item" },
   "select_all": { name: "Select All", desc: "Select all items in the current directory" },
   "quick_preview": { name: "Quick Preview", desc: "Open or close a quick visual preview of the selected file" },
   "new_folder": { name: "New Folder", desc: "Create a new directory" },
@@ -8737,7 +9076,7 @@ let RecordingAction = null;
 function matchShortcut(actionName, e) {
   let binding = ConfiguredShortcuts[actionName];
   if (!binding) return false;
-  
+
   let resolvedBinding = binding;
   if (binding.includes("CmdOrCtrl")) {
     if (Platform === "darwin") {
@@ -8746,55 +9085,55 @@ function matchShortcut(actionName, e) {
       resolvedBinding = binding.replace("CmdOrCtrl", "Ctrl");
     }
   }
-  
+
   let bindingParts = resolvedBinding.split("+");
   let hasCmd = bindingParts.includes("Cmd");
   let hasMeta = bindingParts.includes("Meta");
   let hasCtrl = bindingParts.includes("Ctrl");
   let hasAlt = bindingParts.includes("Alt");
   let hasShift = bindingParts.includes("Shift");
-  
+
   if (hasCmd || hasMeta) {
     if (!e.metaKey) return false;
   } else {
     if (e.metaKey) return false;
   }
-  
+
   if (hasCtrl) {
     if (!e.ctrlKey) return false;
   } else {
     if (e.ctrlKey) return false;
   }
-  
+
   if (hasAlt) {
     if (!e.altKey) return false;
   } else {
     if (e.altKey) return false;
   }
-  
+
   if (hasShift) {
     if (!e.shiftKey) return false;
   } else {
     if (e.shiftKey) return false;
   }
-  
+
   let keyVal = e.key;
   if (keyVal === " ") {
     keyVal = "Space";
   } else if (keyVal.length === 1) {
     keyVal = keyVal.toLowerCase();
   }
-  
+
   let bindKey = bindingParts[bindingParts.length - 1];
   if (bindKey.length === 1) {
     bindKey = bindKey.toLowerCase();
   }
-  
+
   if (bindKey.startsWith("digit") || /^\d$/.test(bindKey)) {
     let digitStr = bindKey.replace("digit", "");
     return keyVal === digitStr || e.code === bindKey || e.code === "Digit" + digitStr;
   }
-  
+
   return keyVal === bindKey;
 }
 
@@ -8819,43 +9158,43 @@ function formatShortcutForDisplay(binding) {
 
 function startRecordingShortcut(actionName, element) {
   RecordingAction = actionName;
-  
+
   let btn = $(element);
   btn.addClass("recording").text("Press keys...");
-  
+
   IsDisableShortcuts = true;
   IsInputFocused = true;
-  
+
   let recordKeyDown = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     let parts = [];
     if (e.metaKey) parts.push(Platform === "darwin" ? "Cmd" : "Meta");
     if (e.ctrlKey) parts.push("Ctrl");
     if (e.altKey) parts.push("Alt");
     if (e.shiftKey) parts.push("Shift");
-    
+
     let keyVal = e.key;
     if (keyVal === " ") {
       keyVal = "Space";
     } else if (keyVal.length === 1) {
       keyVal = keyVal.toLowerCase();
     }
-    
+
     if (!["control", "shift", "alt", "meta"].includes(e.key.toLowerCase())) {
       parts.push(keyVal);
     }
-    
+
     let combo = parts.join("+");
     btn.text(formatShortcutForDisplay(combo));
-    
+
     if (!["control", "shift", "alt", "meta"].includes(e.key.toLowerCase())) {
       ConfiguredShortcuts[actionName] = combo;
       stopRecording(combo);
     }
   };
-  
+
   let stopRecording = (finalCombo) => {
     window.removeEventListener("keydown", recordKeyDown, true);
     RecordingAction = null;
@@ -8863,18 +9202,18 @@ function startRecordingShortcut(actionName, element) {
     IsInputFocused = false;
     btn.removeClass("recording").text(formatShortcutForDisplay(finalCombo));
   };
-  
+
   window.addEventListener("keydown", recordKeyDown, true);
 }
 
 function populateShortcutsUI() {
   let container = $(".shortcuts-list-container");
   container.html("");
-  
+
   Object.keys(DefaultShortcuts).forEach(actionName => {
     let currentShortcut = ConfiguredShortcuts[actionName] || DefaultShortcuts[actionName];
     let label = ShortcutLabels[actionName] || { name: actionName, desc: "" };
-    
+
     let row = document.createElement("div");
     row.className = "shortcut-row";
     row.style.display = "flex";
@@ -8884,7 +9223,7 @@ function populateShortcutsUI() {
     row.style.borderBottom = "1px solid var(--tertiaryColor)";
     row.style.gap = "10px";
     row.setAttribute("data-action", actionName);
-    
+
     row.innerHTML = `
       <div class="shortcut-info" style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1;">
         <span class="shortcut-name" style="font-size: 12px; font-weight: 600; color: var(--textColor);">${label.name}</span>
@@ -8899,7 +9238,7 @@ function populateShortcutsUI() {
         </button>
       </div>
     `;
-    
+
     container.append(row);
   });
 }
@@ -8949,5 +9288,75 @@ async function selectAllExplorerItems() {
     for (let i = 0; i < DirectoryList.children.length; i++) {
       selectItem(DirectoryList.children[i]);
     }
+  }
+}
+
+function toggleAiProviderRows() {
+  const isEnabled = document.querySelector(".ai-enabled-checkbox")?.checked;
+  const provider = document.querySelector(".ai-provider-select")?.value;
+
+  const providerRow = document.querySelector(".ai-provider-row");
+  const geminiRow = document.querySelector(".gemini-api-key-row");
+  const openaiRow = document.querySelector(".openai-api-key-row");
+
+  const advancedToggle = document.querySelector(".settings-advanced-ai-toggle-container");
+  const advancedContainer = document.querySelector(".advanced-ai-settings-container");
+
+  if (providerRow) {
+    providerRow.style.display = isEnabled ? "flex" : "none";
+  }
+  if (geminiRow) {
+    geminiRow.style.display = (isEnabled && provider === "gemini") ? "flex" : "none";
+  }
+  if (openaiRow) {
+    openaiRow.style.display = (isEnabled && provider === "openai") ? "flex" : "none";
+  }
+
+  if (advancedToggle) {
+    advancedToggle.style.display = isEnabled ? "block" : "none";
+  }
+
+  if (advancedContainer) {
+    if (!isEnabled) {
+      advancedContainer.style.display = "none";
+      const chevron = document.querySelector(".advanced-ai-chevron");
+      if (chevron) chevron.style.transform = "rotate(0deg)";
+    } else {
+      // Toggle individual model group visibility based on provider
+      const geminiModels = document.querySelectorAll(".gemini-models-row");
+      const openaiModels = document.querySelectorAll(".openai-models-row");
+      geminiModels.forEach(row => row.style.display = provider === "gemini" ? "flex" : "none");
+      openaiModels.forEach(row => row.style.display = provider === "openai" ? "flex" : "none");
+    }
+  }
+}
+
+function toggleAdvancedAiSettings() {
+  const container = document.querySelector(".advanced-ai-settings-container");
+  const chevron = document.querySelector(".advanced-ai-chevron");
+  if (container) {
+    if (container.style.display === "none") {
+      container.style.display = "flex";
+      if (chevron) chevron.style.transform = "rotate(90deg)";
+    } else {
+      container.style.display = "none";
+      if (chevron) chevron.style.transform = "rotate(0deg)";
+    }
+  }
+}
+
+function onGeminiImageModelChange() {
+  const select = document.querySelector(".gemini-image-model-select");
+  const customInput = document.querySelector(".gemini-image-model-custom-input");
+  if (select && customInput) {
+    customInput.style.display = select.value === "custom" ? "block" : "none";
+  }
+}
+
+function onOpenAiImageModelChange() {
+  const select = document.querySelector(".openai-image-model-select");
+  const customInput = document.querySelector(".openai-image-model-custom-input");
+  if (select && customInput) {
+    customInput.style.display = select.value === "custom" ? "block" : "none";
   }
 }

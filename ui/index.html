@@ -298,7 +298,7 @@
                             <div class="settings-section" style="margin-top: 25px;">
                                 <h3 class="settings-section-title">Keyboard Shortcuts</h3>
                                 <p class="settings-hint settings-section-desc">Customize keyboard shortcuts for explorer actions. Click a shortcut button to record a new key combination.</p>
-                                
+
                                 <div style="margin-bottom: 14px; padding: 0; border: none;">
                                     <div class="settings-search-box">
                                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -367,23 +367,91 @@
                         <!-- AI Settings Tab -->
                         <div id="settings-tab-ai" class="settings-tab-content">
                             <div class="settings-section">
-                                <h3 class="settings-section-title">Gemini AI Configuration</h3>
+                                <h3 class="settings-section-title">AI Configuration</h3>
                                 <div class="settings-row">
                                     <div class="settings-control-group">
                                         <p class="settings-label">Enable AI Features</p>
-                                        <p class="settings-hint">Opt-in to use Gemini AI features like creative enhancement, style transfer, and AI super-resolution</p>
+                                        <p class="settings-hint">Opt-in to use AI features like creative enhancement, style transfer, and AI super-resolution</p>
                                     </div>
                                     <label class="switch">
                                         <input id="switch-ai-enabled" type="checkbox" class="ai-enabled-checkbox">
                                         <span class="slider"></span>
                                     </label>
                                 </div>
-                                <div class="settings-row gemini-api-key-row">
+                                <div class="settings-row ai-provider-row" style="display: none;">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">AI Provider</p>
+                                        <p class="settings-hint">Choose between Google Gemini and OpenAI</p>
+                                    </div>
+                                    <select class="select ai-provider-select" onchange="toggleAiProviderRows()" style="width: 250px;">
+                                        <option value="gemini">Google Gemini (Recommended)</option>
+                                        <option value="openai">OpenAI</option>
+                                    </select>
+                                </div>
+                                <div class="settings-row gemini-api-key-row" style="display: none;">
                                     <div class="settings-control-group">
                                         <p class="settings-label">Gemini API Key</p>
                                         <p class="settings-hint">Enter your Google AI Studio Gemini API key to enable AI upscaling</p>
                                     </div>
                                     <input type="password" class="text-input gemini-api-key-input" placeholder="AIzaSy..." style="width: 250px;" />
+                                </div>
+                                <div class="settings-row openai-api-key-row" style="display: none;">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">OpenAI API Key</p>
+                                        <p class="settings-hint">Enter your OpenAI API key to enable AI upscaling and styling</p>
+                                    </div>
+                                    <input type="password" class="text-input openai-api-key-input" placeholder="sk-..." style="width: 250px;" />
+                                </div>
+                                <div class="settings-advanced-ai-toggle-container" style="display: none; margin-top: 15px; margin-bottom: 8px;">
+                                    <span class="settings-advanced-ai-toggle" onclick="toggleAdvancedAiSettings()" style="cursor: pointer; font-size: 12px; color: #4ba3ff; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; user-select: none;">
+                                        <i class="fa-solid fa-chevron-right advanced-ai-chevron" style="transition: transform 0.2s ease;"></i>
+                                        Advanced Model Settings
+                                    </span>
+                                </div>
+                                <div class="advanced-ai-settings-container" style="display: none; flex-direction: column; gap: 12px; margin-top: 8px; border-left: 2px solid var(--tertiaryColor); padding-left: 12px; margin-left: 6px;">
+                                    <!-- Gemini Advanced Models -->
+                                    <div class="settings-row gemini-models-row" style="display: none;">
+                                        <div class="settings-control-group">
+                                            <p class="settings-label">Gemini Text Model</p>
+                                            <p class="settings-hint">Model used for generating detailed descriptions</p>
+                                        </div>
+                                        <input type="text" class="text-input gemini-text-model-input" placeholder="gemini-3.1-flash-lite-preview" style="width: 250px;" />
+                                    </div>
+                                    <div class="settings-row gemini-models-row" style="display: none;">
+                                        <div class="settings-control-group">
+                                            <p class="settings-label">Gemini Image Model</p>
+                                            <p class="settings-hint">Model used for image generation</p>
+                                        </div>
+                                        <div style="display: flex; flex-direction: column; gap: 6px; width: 250px;">
+                                            <select class="select gemini-image-model-select" onchange="onGeminiImageModelChange()" style="width: 100%;">
+                                                <option value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image</option>
+                                                <option value="gemini-3-pro-image-preview">Nano Banana Pro</option>
+                                                <option value="custom">Custom...</option>
+                                            </select>
+                                            <input type="text" class="text-input gemini-image-model-custom-input" placeholder="Enter custom model ID" style="display: none; width: 100%;" />
+                                        </div>
+                                    </div>
+                                    <!-- OpenAI Advanced Models -->
+                                    <div class="settings-row openai-models-row" style="display: none;">
+                                        <div class="settings-control-group">
+                                            <p class="settings-label">OpenAI Text Model</p>
+                                            <p class="settings-hint">Model used for description rewriting/beautification</p>
+                                        </div>
+                                        <input type="text" class="text-input openai-text-model-input" placeholder="gpt-4o" style="width: 250px;" />
+                                    </div>
+                                    <div class="settings-row openai-models-row" style="display: none;">
+                                        <div class="settings-control-group">
+                                            <p class="settings-label">OpenAI Image Model</p>
+                                            <p class="settings-hint">Model used for styling and upscaling generations</p>
+                                        </div>
+                                        <div style="display: flex; flex-direction: column; gap: 6px; width: 250px;">
+                                            <select class="select openai-image-model-select" onchange="onOpenAiImageModelChange()" style="width: 100%;">
+                                                <option value="gpt-image-2">GPT Image 2</option>
+                                                <option value="custom">Custom...</option>
+                                            </select>
+                                            <input type="text" class="text-input openai-image-model-custom-input" placeholder="Enter custom model ID" style="display: none; width: 100%;" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -463,7 +531,7 @@
                                 value="10" />
                         </dd>
                     </div>
-                    
+
                     <!-- Search Progress Indicator (Row 5) -->
                     <div class="props-card__row fullsearch-progress-row" style="grid-template-columns: 1fr; display: none; padding-top: 4px; padding-bottom: 4px;">
                         <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
@@ -508,7 +576,7 @@
                                 <input type="text" class="props-card__input theme-name-input" placeholder="e.g. Neon Sunset" required />
                             </dd>
                         </div>
-                        
+
                         <!-- Row: Primary Accent -->
                         <div class="props-card__row">
                             <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--primaryColor);"></i>Primary</dt>

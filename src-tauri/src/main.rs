@@ -112,9 +112,6 @@ lazy_static! {
 
 // static mut IS_SEARCHING: bool = false;
 
-const GEMINI_MODEL_TEXT: &str = "gemini-3.1-flash-lite-preview";
-const GEMINI_MODEL_IMAGE: &str = "gemini-3.1-flash-image-preview";
-
 static WINDOW: OnceLock<WebviewWindow> = OnceLock::new();
 
 fn main() {
@@ -238,7 +235,10 @@ fn main() {
             get_machine_bytes,
             get_single_item_info,
             find_duplicates,
-            cancel_duplicate_finder
+            cancel_duplicate_finder,
+            get_clipboard_files,
+            write_clipboard_files,
+            save_clipboard_image
         ])
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_drag::init())
@@ -309,7 +309,13 @@ struct AppConfig {
     font_size: i32,
     is_window_transparency: String,
     gemini_api_key: String,
+    openai_api_key: String,
     is_ai_enabled: String,
+    ai_provider: String,
+    gemini_text_model: String,
+    gemini_image_model: String,
+    openai_text_model: String,
+    openai_image_model: String,
     shortcuts: std::collections::HashMap<String, String>,
 }
 
@@ -392,7 +398,13 @@ async fn check_app_config() -> AppConfig {
             font_size: 12,
             is_window_transparency: "0".to_string(),
             gemini_api_key: "".to_string(),
+            openai_api_key: "".to_string(),
             is_ai_enabled: "0".to_string(),
+            ai_provider: "gemini".to_string(),
+            gemini_text_model: "gemini-3.1-flash-lite-preview".to_string(),
+            gemini_image_model: "gemini-3.1-flash-image-preview".to_string(),
+            openai_text_model: "gpt-4o".to_string(),
+            openai_image_model: "gpt-image-2".to_string(),
             shortcuts: std::collections::HashMap::new(),
         };
         let _ = serde_json::to_writer_pretty(
@@ -478,10 +490,34 @@ async fn check_app_config() -> AppConfig {
             .to_string()
             .replace('"', "")
             .replace("null", ""),
+        openai_api_key: app_config["openai_api_key"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", ""),
         is_ai_enabled: app_config["is_ai_enabled"]
             .to_string()
             .replace('"', "")
             .replace("null", "0"),
+        ai_provider: app_config["ai_provider"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "gemini"),
+        gemini_text_model: app_config["gemini_text_model"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "gemini-3.1-flash-lite-preview"),
+        gemini_image_model: app_config["gemini_image_model"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "gemini-3.1-flash-image-preview"),
+        openai_text_model: app_config["openai_text_model"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "gpt-4o"),
+        openai_image_model: app_config["openai_image_model"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "gpt-image-2"),
         shortcuts: shortcuts_map,
     }
 }
@@ -3050,7 +3086,13 @@ async fn save_config(
     font_size: i32,
     is_window_transparency: String,
     gemini_api_key: String,
+    openai_api_key: String,
     is_ai_enabled: String,
+    ai_provider: String,
+    gemini_text_model: String,
+    gemini_image_model: String,
+    openai_text_model: String,
+    openai_image_model: String,
     shortcuts: std::collections::HashMap<String, String>,
 ) {
     let app_config_file = File::open(
@@ -3069,6 +3111,23 @@ async fn save_config(
             if !clean_key.is_empty() && clean_key != "__keychain__" {
                 if let Err(e) = set_gemini_keychain_key(&clean_key) {
                     eprintln!("Failed to save Gemini key to macOS Keychain: {}", e);
+                }
+            }
+            "__keychain__".to_string()
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            clean_key
+        }
+    };
+
+    let final_openai_api_key = {
+        let clean_key = openai_api_key.replace("\\", "");
+        #[cfg(target_os = "macos")]
+        {
+            if !clean_key.is_empty() && clean_key != "__keychain__" {
+                if let Err(e) = set_openai_keychain_key(&clean_key) {
+                    eprintln!("Failed to save OpenAI key to macOS Keychain: {}", e);
                 }
             }
             "__keychain__".to_string()
@@ -3098,7 +3157,13 @@ async fn save_config(
         font_size,
         is_window_transparency: is_window_transparency.replace("\\", ""),
         gemini_api_key: final_gemini_api_key,
+        openai_api_key: final_openai_api_key,
         is_ai_enabled: is_ai_enabled.replace("\\", ""),
+        ai_provider: ai_provider.replace("\\", ""),
+        gemini_text_model: gemini_text_model.replace("\\", ""),
+        gemini_image_model: gemini_image_model.replace("\\", ""),
+        openai_text_model: openai_text_model.replace("\\", ""),
+        openai_image_model: openai_image_model.replace("\\", ""),
         shortcuts,
     };
     let config_dir = app_config_dir(&Config::default())
@@ -3538,6 +3603,69 @@ pub fn set_gemini_keychain_key(key: &str) -> Result<(), String> {
     }
 }
 
+pub fn get_openai_keychain_key() -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let output = std::process::Command::new("security")
+            .args(&[
+                "find-generic-password",
+                "-a",
+                "API-Key",
+                "-s",
+                "CoDriver-OpenAI",
+                "-w",
+            ])
+            .output()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if output.status.success() {
+            let key = String::from_utf8(output.stdout)
+                .map_err(|e| format!("Failed to parse API key: {}", e))?;
+            Ok(key
+                .trim_end_matches('\n')
+                .trim_end_matches('\r')
+                .to_string())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("Keychain lookup failed: {}", stderr))
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Keychain not supported on this platform".to_string())
+    }
+}
+
+pub fn set_openai_keychain_key(key: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let status = std::process::Command::new("security")
+            .args(&[
+                "add-generic-password",
+                "-a",
+                "API-Key",
+                "-s",
+                "CoDriver-OpenAI",
+                "-w",
+                key,
+                "-U",
+            ])
+            .status()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if status.success() {
+            Ok(())
+        } else {
+            Err("Failed to save API key to macOS Keychain".to_string())
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = key;
+        Ok(())
+    }
+}
+
 async fn call_gemini_api(
     api_key: &str,
     model: &str,
@@ -3568,6 +3696,47 @@ async fn call_gemini_api(
         .map_err(|e| format!("Failed to parse Gemini response JSON: {}", e))
 }
 
+async fn call_openai_api(
+    api_key: &str,
+    endpoint: &str,
+    payload: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let url = format!("https://api.openai.com/v1/{}", endpoint);
+
+    let resp = HTTP_CLIENT
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", api_key))
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request to OpenAI failed: {}", e))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let err_text = resp.text().await.unwrap_or_default();
+        return Err(format!("OpenAI API error ({}): {}", status, err_text));
+    }
+
+    resp.json()
+        .await
+        .map_err(|e| format!("Failed to parse OpenAI response JSON: {}", e))
+}
+
+fn extract_openai_text(json: &serde_json::Value) -> Result<String, String> {
+    json["choices"][0]["message"]["content"]
+        .as_str()
+        .map(|s| s.trim().to_string())
+        .ok_or_else(|| format!("Invalid text response format from OpenAI: {:?}", json))
+}
+
+fn extract_openai_image(json: &serde_json::Value) -> Result<String, String> {
+    json["data"][0]["b64_json"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| format!("No image data found in OpenAI response: {:?}", json))
+}
+
 fn extract_gemini_text(json: &serde_json::Value) -> Result<String, String> {
     json["candidates"][0]["content"]["parts"][0]["text"]
         .as_str()
@@ -3593,7 +3762,7 @@ fn extract_gemini_image(json: &serde_json::Value) -> Result<String, String> {
     ))
 }
 
-async fn save_gemini_image(output_path: &str, b64_data: String) -> Result<(), String> {
+async fn save_ai_image(output_path: &str, b64_data: String) -> Result<(), String> {
     let path = Path::new(output_path);
     if let Some(parent) = path.parent() {
         if !parent.exists() {
@@ -3604,7 +3773,7 @@ async fn save_gemini_image(output_path: &str, b64_data: String) -> Result<(), St
 
     let decoded_bytes = BASE64_STANDARD
         .decode(b64_data)
-        .map_err(|e| format!("Failed to decode Gemini Image base64 output: {}", e))?;
+        .map_err(|e| format!("Failed to decode AI Image base64 output: {}", e))?;
 
     std::fs::write(output_path, &decoded_bytes)
         .map_err(|e| format!("Failed to write AI generated image file: {}", e))?;
@@ -3613,6 +3782,7 @@ async fn save_gemini_image(output_path: &str, b64_data: String) -> Result<(), St
 
 #[tauri::command]
 async fn ai_upscale_image(
+    ai_provider: String,
     api_key: String,
     from_path: String,
     aspect_ratio: String,
@@ -3622,7 +3792,11 @@ async fn ai_upscale_image(
     let resolved_api_key = if api_key == "__keychain__" || api_key.is_empty() {
         #[cfg(target_os = "macos")]
         {
-            get_gemini_keychain_key().unwrap_or(api_key)
+            if ai_provider == "openai" {
+                get_openai_keychain_key().unwrap_or(api_key)
+            } else {
+                get_gemini_keychain_key().unwrap_or(api_key)
+            }
         }
         #[cfg(not(target_os = "macos"))]
         {
@@ -3632,77 +3806,164 @@ async fn ai_upscale_image(
         api_key
     };
 
+    let config_path = config_dir()
+        .unwrap()
+        .join("com.codriver.dev/app_config.json");
+
+    let (gemini_text_model, gemini_image_model, openai_text_model, openai_image_model) = {
+        if let Ok(file) = File::open(&config_path) {
+            if let Ok(config_json) = serde_json::from_reader::<_, serde_json::Value>(BufReader::new(file)) {
+                (
+                    config_json["gemini_text_model"].as_str().unwrap_or("gemini-3.1-flash-lite-preview").to_string(),
+                    config_json["gemini_image_model"].as_str().unwrap_or("gemini-3.1-flash-image-preview").to_string(),
+                    config_json["openai_text_model"].as_str().unwrap_or("gpt-4o").to_string(),
+                    config_json["openai_image_model"].as_str().unwrap_or("gpt-image-2").to_string(),
+                )
+            } else {
+                ("gemini-3.1-flash-lite-preview".to_string(), "gemini-3.1-flash-image-preview".to_string(), "gpt-4o".to_string(), "gpt-image-2".to_string())
+            }
+        } else {
+            ("gemini-3.1-flash-lite-preview".to_string(), "gemini-3.1-flash-image-preview".to_string(), "gpt-4o".to_string(), "gpt-image-2".to_string())
+        }
+    };
+
     let (mime_type, img_base64) = get_image_data(&from_path)?;
 
-    // 1. Call Gemini Flash to generate a detailed prompt
-    let description_prompt = if creative {
-        "Analyze this image and write a highly detailed, descriptive, professional prompt to re-generate this exact image in ultra-high resolution. Focus on preserving the core layout and subject matter, but creatively enhance details, textures, clarity, lighting, and visual appeal for an outstanding aesthetic result. Only output the prompt, nothing else."
-    } else {
-        "Analyze this image and write a highly detailed, descriptive prompt to re-generate this exact image in ultra-high resolution. You must instruct the generator to keep the image exactly as-is: do not creatively re-interpret, do not add or subtract subjects, and preserve the original composition, layout, color palette, text, and overall style completely. The goal is a high-fidelity super-resolution upscale that maintains total fidelity to the original. Only output the prompt, nothing else."
-    };
+    if ai_provider == "openai" {
+        // 1. Call OpenAI Vision to generate a detailed prompt
+        let description_prompt = if creative {
+            "Analyze this image and write a highly detailed, descriptive, professional prompt to re-generate this exact image in ultra-high resolution. Focus on preserving the core layout and subject matter, but creatively enhance details, textures, clarity, lighting, and visual appeal for an outstanding aesthetic result. Only output the prompt, nothing else."
+        } else {
+            "Analyze this image and write a highly detailed, descriptive prompt to re-generate this exact image in ultra-high resolution. You must instruct the generator to keep the image exactly as-is: do not creatively re-interpret, do not add or subtract subjects, and preserve the original composition, layout, color palette, text, and overall style completely. The goal is a high-fidelity super-resolution upscale that maintains total fidelity to the original. Only output the prompt, nothing else."
+        };
 
-    let gemini_payload = serde_json::json!({
-        "contents": [
-            {
-                "parts": [
-                    {
-                        "inlineData": {
-                            "mimeType": mime_type,
-                            "data": img_base64
+        let text_payload = serde_json::json!({
+            "model": openai_text_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": description_prompt
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": format!("data:{};base64,{}", mime_type, img_base64)
+                            }
                         }
-                    },
-                    {
-                        "text": description_prompt
-                    }
-                ]
-            }
-        ]
-    });
+                    ]
+                }
+            ]
+        });
 
-    let gemini_json = call_gemini_api(&resolved_api_key, GEMINI_MODEL_TEXT, gemini_payload).await?;
-    let detailed_prompt = extract_gemini_text(&gemini_json)?;
+        let text_json = call_openai_api(&resolved_api_key, "chat/completions", text_payload).await?;
+        let detailed_prompt = extract_openai_text(&text_json)?;
 
-    // 2. Call Gemini Image model to generate the high-res image
-    let final_instruction = if creative {
-        format!("Creatively enhance and upscale this image to ultra-high resolution based on this description: {}. Focus on maintaining the core subject and layout, but feel free to beautify details, lighting, and textures.", detailed_prompt)
-    } else {
-        format!("Upscale this image to ultra-high resolution based on this description: {}. You must keep this image exactly as-is: do not change the subject, character's face, hair, orientation, posture, style, colors, background, or lighting. Maintain total visual identity and pixel structure fidelity to the original.", detailed_prompt)
-    };
+        // 2. Call OpenAI Image Model to generate the high-res image
+        let final_instruction = if creative {
+            format!("Creatively enhance and upscale this image to ultra-high resolution based on this description: {}. Focus on maintaining the core subject and layout, but feel free to beautify details, lighting, and textures.", detailed_prompt)
+        } else {
+            format!("Upscale this image to ultra-high resolution based on this description: {}. You must keep this image exactly as-is: do not change the subject, character's face, hair, orientation, posture, style, colors, background, or lighting. Maintain total visual identity and pixel structure fidelity to the original.", detailed_prompt)
+        };
 
-    let imagen_payload = serde_json::json!({
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {
-                        "inlineData": {
-                            "mimeType": mime_type,
-                            "data": img_base64
-                        }
-                    },
-                    {
-                        "text": final_instruction
-                    }
-                ]
-            }
-        ],
-        "generationConfig": {
-            "responseModalities": ["TEXT", "IMAGE"],
-            "imageConfig": {
-                "aspectRatio": aspect_ratio
+        // Map aspect ratio to closest GPT Image / DALL-E 3 size:
+        // Square -> 1024x1024, Tall -> 1024x1792, Wide -> 1792x1024
+        let size_str = match aspect_ratio.as_str() {
+            "16:9" => "1792x1024",
+            "9:16" => "1024x1792",
+            _ => "1024x1024",
+        };
+
+        let mut image_payload = serde_json::json!({
+            "model": openai_image_model,
+            "prompt": final_instruction,
+            "n": 1,
+            "size": size_str
+        });
+        if !openai_image_model.contains("gpt-image") {
+            if let Some(obj) = image_payload.as_object_mut() {
+                obj.insert("response_format".to_string(), serde_json::json!("b64_json"));
             }
         }
-    });
 
-    let imagen_json =
-        call_gemini_api(&resolved_api_key, GEMINI_MODEL_IMAGE, imagen_payload).await?;
-    let b64_data = extract_gemini_image(&imagen_json)?;
+        let image_json = call_openai_api(&resolved_api_key, "images/generations", image_payload).await?;
+        let b64_data = extract_openai_image(&image_json)?;
 
-    save_gemini_image(&output_path, b64_data).await
+        save_ai_image(&output_path, b64_data).await
+    } else {
+        // 1. Call Gemini Flash to generate a detailed prompt
+        let description_prompt = if creative {
+            "Analyze this image and write a highly detailed, descriptive, professional prompt to re-generate this exact image in ultra-high resolution. Focus on preserving the core layout and subject matter, but creatively enhance details, textures, clarity, lighting, and visual appeal for an outstanding aesthetic result. Only output the prompt, nothing else."
+        } else {
+            "Analyze this image and write a highly detailed, descriptive prompt to re-generate this exact image in ultra-high resolution. You must instruct the generator to keep the image exactly as-is: do not creatively re-interpret, do not add or subtract subjects, and preserve the original composition, layout, color palette, text, and overall style completely. The goal is a high-fidelity super-resolution upscale that maintains total fidelity to the original. Only output the prompt, nothing else."
+        };
+
+        let text_payload = serde_json::json!({
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "inlineData": {
+                                "mimeType": mime_type,
+                                "data": img_base64
+                            }
+                        },
+                        {
+                            "text": description_prompt
+                        }
+                    ]
+                }
+            ]
+        });
+
+        let text_json = call_gemini_api(&resolved_api_key, &gemini_text_model, text_payload).await?;
+        let detailed_prompt = extract_gemini_text(&text_json)?;
+
+        // 2. Call Gemini Image model to generate the high-res image
+        let final_instruction = if creative {
+            format!("Creatively enhance and upscale this image to ultra-high resolution based on this description: {}. Focus on maintaining the core subject and layout, but feel free to beautify details, lighting, and textures.", detailed_prompt)
+        } else {
+            format!("Upscale this image to ultra-high resolution based on this description: {}. You must keep this image exactly as-is: do not change the subject, character's face, hair, orientation, posture, style, colors, background, or lighting. Maintain total visual identity and pixel structure fidelity to the original.", detailed_prompt)
+        };
+
+        let image_payload = serde_json::json!({
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "inlineData": {
+                                "mimeType": mime_type,
+                                "data": img_base64
+                            }
+                        },
+                        {
+                            "text": final_instruction
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "responseModalities": ["TEXT", "IMAGE"],
+                "imageConfig": {
+                    "aspectRatio": aspect_ratio
+                }
+            }
+        });
+
+        let image_json =
+            call_gemini_api(&resolved_api_key, &gemini_image_model, image_payload).await?;
+        let b64_data = extract_gemini_image(&image_json)?;
+
+        save_ai_image(&output_path, b64_data).await
+    }
 }
 
 #[tauri::command]
 async fn ai_style_image(
+    ai_provider: String,
     api_key: String,
     from_path: String,
     prompt: String,
@@ -3711,7 +3972,11 @@ async fn ai_style_image(
     let resolved_api_key = if api_key == "__keychain__" || api_key.is_empty() {
         #[cfg(target_os = "macos")]
         {
-            get_gemini_keychain_key().unwrap_or(api_key)
+            if ai_provider == "openai" {
+                get_openai_keychain_key().unwrap_or(api_key)
+            } else {
+                get_gemini_keychain_key().unwrap_or(api_key)
+            }
         }
         #[cfg(not(target_os = "macos"))]
         {
@@ -3723,32 +3988,100 @@ async fn ai_style_image(
 
     let (mime_type, img_base64) = get_image_data(&from_path)?;
 
-    let payload = serde_json::json!({
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {
-                        "inlineData": {
-                            "mimeType": mime_type,
-                            "data": img_base64
-                        }
-                    },
-                    {
-                        "text": format!("Edit and restyle this image. Maintain the overall layout, content, and subject, but apply the following stylistic style instructions: {}. Generate only the resulting image.", prompt)
-                    }
-                ]
+    let config_path = config_dir()
+        .unwrap()
+        .join("com.codriver.dev/app_config.json");
+
+    let (_gemini_text_model, gemini_image_model, openai_text_model, openai_image_model) = {
+        if let Ok(file) = File::open(&config_path) {
+            if let Ok(config_json) = serde_json::from_reader::<_, serde_json::Value>(BufReader::new(file)) {
+                (
+                    config_json["gemini_text_model"].as_str().unwrap_or("gemini-3.1-flash-lite-preview").to_string(),
+                    config_json["gemini_image_model"].as_str().unwrap_or("gemini-3.1-flash-image-preview").to_string(),
+                    config_json["openai_text_model"].as_str().unwrap_or("gpt-5-4-mini").to_string(),
+                    config_json["openai_image_model"].as_str().unwrap_or("gpt-image-2").to_string(),
+                )
+            } else {
+                ("gemini-3.1-flash-lite-preview".to_string(), "gemini-3.1-flash-image-preview".to_string(), "gpt-4o".to_string(), "gpt-image-2".to_string())
             }
-        ],
-        "generationConfig": {
-            "responseModalities": ["TEXT", "IMAGE"]
+        } else {
+            ("gemini-3.1-flash-lite-preview".to_string(), "gemini-3.1-flash-image-preview".to_string(), "gpt-4o".to_string(), "gpt-image-2".to_string())
         }
-    });
+    };
 
-    let json = call_gemini_api(&resolved_api_key, GEMINI_MODEL_IMAGE, payload).await?;
-    let b64_data = extract_gemini_image(&json)?;
+    if ai_provider == "openai" {
+        // Step 1: Use text model to analyze the original image and rewrite/beautify the style instructions
+        let description_prompt = format!("Analyze this image and describe its subject, layout, composition and details accurately. Then, write a highly descriptive prompt for the image generator that instructs it to generate a new image that keeps the exact same layout and subject, but completely applies the following style instructions: {}. Only output the resulting prompt, nothing else.", prompt);
 
-    save_gemini_image(&output_path, b64_data).await
+        let text_payload = serde_json::json!({
+            "model": openai_text_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": description_prompt
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": format!("data:{};base64,{}", mime_type, img_base64)
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
+
+        let text_json = call_openai_api(&resolved_api_key, "chat/completions", text_payload).await?;
+        let style_prompt = extract_openai_text(&text_json)?;
+
+        // Step 2: Use image model to generate the restyled image
+        let mut image_payload = serde_json::json!({
+            "model": openai_image_model,
+            "prompt": style_prompt,
+            "n": 1,
+            "size": "1024x1024"
+        });
+        if !openai_image_model.contains("gpt-image") {
+            if let Some(obj) = image_payload.as_object_mut() {
+                obj.insert("response_format".to_string(), serde_json::json!("b64_json"));
+            }
+        }
+
+        let image_json = call_openai_api(&resolved_api_key, "images/generations", image_payload).await?;
+        let b64_data = extract_openai_image(&image_json)?;
+
+        save_ai_image(&output_path, b64_data).await
+    } else {
+        let image_payload = serde_json::json!({
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "inlineData": {
+                                "mimeType": mime_type,
+                                "data": img_base64
+                            }
+                        },
+                        {
+                            "text": format!("Edit and restyle this image. Maintain the overall layout, content, and subject, but apply the following stylistic style instructions: {}. Generate only the resulting image.", prompt)
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "responseModalities": ["TEXT", "IMAGE"]
+            }
+        });
+
+        let image_json = call_gemini_api(&resolved_api_key, &gemini_image_model, image_payload).await?;
+        let b64_data = extract_gemini_image(&image_json)?;
+
+        save_ai_image(&output_path, b64_data).await
+    }
 }
 
 #[tauri::command]
@@ -4448,3 +4781,312 @@ async fn get_single_item_info(path: String) -> Result<FDir, String> {
         last_modified: file_date.split(".").next().unwrap().into(),
     })
 }
+
+#[tauri::command]
+async fn get_clipboard_files() -> Result<Vec<FDir>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::appkit::NSPasteboard;
+        use cocoa::base::{nil, id};
+        use cocoa::foundation::NSArray;
+        use objc::{msg_send, sel, sel_impl};
+        use std::ffi::CStr;
+
+        let paths = unsafe {
+            let pb = NSPasteboard::generalPasteboard(nil);
+            let files: id = msg_send![pb, propertyListForType: cocoa::appkit::NSFilenamesPboardType];
+            if files == nil {
+                Vec::new()
+            } else {
+                let count = NSArray::count(files);
+                let mut result = Vec::new();
+                for i in 0..count {
+                    let ns_str = NSArray::objectAtIndex(files, i);
+                    if ns_str != nil {
+                        let bytes: *const std::os::raw::c_char = msg_send![ns_str, UTF8String];
+                        if !bytes.is_null() {
+                            let c_str = CStr::from_ptr(bytes);
+                            if let Ok(s) = c_str.to_str() {
+                                result.push(s.to_string());
+                            }
+                        }
+                    }
+                }
+                result
+            }
+        };
+
+        let mut result = Vec::new();
+        for path in paths {
+            if let Ok(info) = get_single_item_info(path).await {
+                result.push(info);
+            }
+        }
+        Ok(result)
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use clipboard_win::{formats, Clipboard};
+        
+        let _clip = match Clipboard::new() {
+            Ok(c) => c,
+            Err(_) => return Ok(Vec::new()),
+        };
+        
+        let mut files: Vec<String> = Vec::new();
+        if formats::FileList.read_clipboard(&mut files).is_ok() {
+            let mut result = Vec::new();
+            for path in files {
+                if let Ok(info) = get_single_item_info(path).await {
+                    result.push(info);
+                }
+            }
+            Ok(result)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Ok(Vec::new())
+    }
+}
+
+#[tauri::command]
+async fn write_clipboard_files(files: Vec<String>) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::appkit::NSPasteboard;
+        use cocoa::base::{nil, id};
+        use cocoa::foundation::{NSArray, NSString};
+        use objc::{msg_send, sel, sel_impl};
+
+        unsafe {
+            let pb = NSPasteboard::generalPasteboard(nil);
+            let _: () = msg_send![pb, clearContents];
+            
+            let types = NSArray::arrayWithObject(nil, cocoa::appkit::NSFilenamesPboardType);
+            let _: id = msg_send![pb, declareTypes: types owner: nil];
+            
+            let mut ns_strings = Vec::new();
+            for file in files {
+                ns_strings.push(NSString::alloc(nil).init_str(&file));
+            }
+            let ns_array = NSArray::arrayWithObjects(nil, &ns_strings);
+            let _: id = msg_send![pb, setPropertyList: ns_array forType: cocoa::appkit::NSFilenamesPboardType];
+            Ok(())
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::ffi::OsStr;
+        use std::os::windows::ffi::OsStrExt;
+        use std::ptr;
+        use windows::Win32::Foundation::{HANDLE, HWND, TRUE};
+        use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE, GMEM_ZEROINIT};
+        use windows::Win32::System::DataExchange::{OpenClipboard, EmptyClipboard, SetClipboardData, CloseClipboard};
+        use windows::Win32::UI::Shell::DROPFILES;
+
+        unsafe {
+            let mut encoded_paths = Vec::new();
+            let mut total_size = std::mem::size_of::<DROPFILES>();
+            
+            for path in files {
+                let win_path = path.replace("/", "\\");
+                let mut utf16: Vec<u16> = OsStr::new(&win_path).encode_wide().collect();
+                utf16.push(0);
+                total_size += utf16.len() * 2;
+                encoded_paths.push(utf16);
+            }
+            total_size += 2;
+
+            let h_mem = match GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, total_size) {
+                Ok(h) => h,
+                Err(err) => return Err(format!("Failed to allocate global memory: {}", err)),
+            };
+            
+            let ptr = GlobalLock(h_mem);
+            if ptr.is_null() {
+                return Err("Failed to lock global memory".to_string());
+            }
+            
+            let dropfiles_ptr = ptr as *mut DROPFILES;
+            (*dropfiles_ptr).pFiles = std::mem::size_of::<DROPFILES>() as u32;
+            (*dropfiles_ptr).fWide = TRUE;
+
+            let mut current_ptr = (ptr as *mut u8).add(std::mem::size_of::<DROPFILES>());
+            for path_data in encoded_paths {
+                let byte_len = path_data.len() * 2;
+                ptr::copy_nonoverlapping(path_data.as_ptr() as *const u8, current_ptr, byte_len);
+                current_ptr = current_ptr.add(byte_len);
+            }
+
+            let _ = GlobalUnlock(h_mem);
+
+            if OpenClipboard(HWND(0)).is_err() {
+                return Err("Failed to open clipboard".to_string());
+            }
+            if EmptyClipboard().is_err() {
+                let _ = CloseClipboard();
+                return Err("Failed to empty clipboard".to_string());
+            }
+            if SetClipboardData(15, HANDLE(h_mem.0 as _)).is_err() {
+                let _ = CloseClipboard();
+                return Err("Failed to set clipboard data".to_string());
+            }
+            let _ = CloseClipboard();
+            Ok(())
+        }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Ok(())
+    }
+}
+
+#[tauri::command]
+async fn save_clipboard_image(target_dir: String) -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::appkit::NSPasteboard;
+        use cocoa::base::{nil, id};
+        use cocoa::foundation::NSString;
+        use objc::{msg_send, sel, sel_impl};
+        use std::fs::File;
+        use std::io::Write;
+        use chrono::Local;
+
+        unsafe {
+            let pb = NSPasteboard::generalPasteboard(nil);
+            
+            // Check for PNG
+            let png_type = NSString::alloc(nil).init_str("public.png");
+            let png_data: id = msg_send![pb, dataForType: png_type];
+            
+            if png_data != nil {
+                let len: usize = msg_send![png_data, length];
+                if len > 0 {
+                    let bytes_ptr: *const u8 = msg_send![png_data, bytes];
+                    if !bytes_ptr.is_null() {
+                        let bytes = std::slice::from_raw_parts(bytes_ptr, len);
+                        
+                        let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
+                        let filename = format!("Screenshot_{}.png", timestamp);
+                        let file_path = std::path::Path::new(&target_dir).join(&filename);
+                        
+                        let mut file = File::create(&file_path)
+                            .map_err(|e| format!("Failed to create file: {}", e))?;
+                        file.write_all(bytes)
+                            .map_err(|e| format!("Failed to write image data: {}", e))?;
+                        
+                        return Ok(file_path.to_string_lossy().to_string());
+                    }
+                }
+            }
+            
+            // If no PNG, check for TIFF and convert to PNG!
+            let tiff_type = NSString::alloc(nil).init_str("public.tiff");
+            let tiff_data: id = msg_send![pb, dataForType: tiff_type];
+            if tiff_data != nil {
+                let len: usize = msg_send![tiff_data, length];
+                if len > 0 {
+                    let bytes_ptr: *const u8 = msg_send![tiff_data, bytes];
+                    if !bytes_ptr.is_null() {
+                        let bytes = std::slice::from_raw_parts(bytes_ptr, len);
+                        
+                        let img = image::load_from_memory(bytes)
+                            .map_err(|e| format!("Failed to decode TIFF image: {}", e))?;
+                        
+                        let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
+                        let filename = format!("Screenshot_{}.png", timestamp);
+                        let file_path = std::path::Path::new(&target_dir).join(&filename);
+                        
+                        img.save(&file_path)
+                            .map_err(|e| format!("Failed to save image as PNG: {}", e))?;
+                        
+                        return Ok(file_path.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+        
+        Err("No image data found on clipboard".to_string())
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::System::DataExchange::{OpenClipboard, GetClipboardData, CloseClipboard};
+        use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock, GlobalSize};
+        use windows::Win32::Foundation::HWND;
+        use std::fs::File;
+        use std::io::Write;
+        use chrono::Local;
+
+        unsafe {
+            if OpenClipboard(HWND(0)).is_ok() {
+                let h_mem = GetClipboardData(8); // CF_DIB
+                if h_mem.is_ok() {
+                    let h_mem = h_mem.unwrap();
+                    let size = GlobalSize(h_mem.0 as _);
+                    if size > 0 {
+                        let ptr = GlobalLock(h_mem.0 as _);
+                        if !ptr.is_null() {
+                            let bytes = std::slice::from_raw_parts(ptr as *const u8, size);
+                            
+                            let dib_header_size = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as usize;
+                            let mut offset = 14 + dib_header_size;
+                            if dib_header_size >= 36 {
+                                let clr_used = u32::from_le_bytes([bytes[32], bytes[33], bytes[34], bytes[35]]) as usize;
+                                if clr_used > 0 {
+                                    offset += clr_used * 4;
+                                } else {
+                                    let bit_count = u16::from_le_bytes([bytes[14], bytes[15]]) as usize;
+                                    if bit_count <= 8 {
+                                        offset += (1 << bit_count) * 4;
+                                    }
+                                }
+                            }
+                            
+                            let mut bmp_header = Vec::with_capacity(14);
+                            let _ = bmp_header.write_all(b"BM");
+                            let _ = bmp_header.write_all(&((size + 14) as u32).to_le_bytes());
+                            let _ = bmp_header.write_all(&[0, 0, 0, 0]); // reserved
+                            let _ = bmp_header.write_all(&(offset as u32).to_le_bytes());
+
+                            let mut bmp_data = Vec::with_capacity(14 + size);
+                            let _ = bmp_data.write_all(&bmp_header);
+                            let _ = bmp_data.write_all(bytes);
+
+                            let img = image::load_from_memory(&bmp_data)
+                                .map_err(|e| format!("Failed to decode BMP image: {}", e))?;
+
+                            let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
+                            let filename = format!("Screenshot_{}.png", timestamp);
+                            let file_path = std::path::Path::new(&target_dir).join(&filename);
+                            
+                            img.save(&file_path)
+                                .map_err(|e| format!("Failed to save image as PNG: {}", e))?;
+                            
+                            let _ = GlobalUnlock(h_mem.0 as _);
+                            let _ = CloseClipboard();
+                            return Ok(file_path.to_string_lossy().to_string());
+                        }
+                    }
+                }
+                let _ = CloseClipboard();
+            }
+        }
+        Err("No DIB data found on clipboard".to_string())
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Err("Not supported on this platform".to_string())
+    }
+}
+
+

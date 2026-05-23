@@ -71,5 +71,8 @@ commands.allow = [
   "get_machine_bytes",
   "get_single_item_info",
   "find_duplicates",
-  "cancel_duplicate_finder"
+  "cancel_duplicate_finder",
+  "get_clipboard_files",
+  "write_clipboard_files",
+  "save_clipboard_image"
 ]
