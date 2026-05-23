@@ -3862,21 +3862,34 @@ button>svg {
 }
 
 .multi-rename-popup {
-  width: 50%;
-  height: fit-content;
-  overflow: hidden;
+  /* Inherits styles from .props-card and .props-card--wide */
 }
 
-.multi-rename-popup-header {
-  background-color: var(--glass-header-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: var(--glass-border-subtle);
-  display: flex;
-  flex-flow: row;
+/* 2-column input grid for Multi-Rename modal */
+.multi-rename-popup .props-card__list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 12px;
+  padding: 6px 14px 10px;
+}
+
+.multi-rename-popup .props-card__row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
   align-items: center;
-  gap: 10px;
-  padding: 10px 15px;
+  gap: 8px;
+  padding: 4px 6px;
+}
+
+/* Full width elements span both columns */
+.multi-rename-popup .props-card__row.props-card__row--full {
+  grid-column: span 2;
+  grid-template-columns: 88px 1fr;
+}
+
+.multi-rename-popup .props-card__row.props-card__row--block {
+  grid-column: span 2;
+  grid-template-columns: 1fr;
 }
 
 .compression-popup,

@@ -5317,73 +5317,114 @@ async function showItemPreview(item, isOverride = false) {
 
 function showMultiRenamePopup() {
   IsPopUpOpen = true;
-  let popup = document.createElement("div");
-  popup.className = "uni-popup multi-rename-popup";
-  popup.innerHTML = `
-    <h3 class="multi-rename-popup-header">
-  		<div style="display: flex; gap: 10px; align-items: center;">
-  		<i class="fa-solid fa-pen-to-square text" style="padding-right: 5px;"></i>
-  		<h4 class="text">Multi-Rename</h4>
-  		</div>
-    </h3>
-    <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
-  		<h4 class="text">Options</h4>
-  		<p class="text-small">If no extension is supplied the extension won't be changed</p>
-    </div>
-    <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
-    <div style="display: flex; flex-flow: row; gap: 10px;">
-  		<div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
-  		<p class="text-small">New name</p>
-  		<input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
-  		</div>
-  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-small">Start at</p>
-  		<input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
-  		</div>
-  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-small">Step by</p>
-  		<input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
-  		</div>
-  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-small">Digits</p>
-  		<input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
-  		</div>
-  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-small">Extension</p>
-		  <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
-  		</div>
-  		</div>
-    </div>
-    <h4 class="text" style="padding: 10px; background-color: var(--secondaryColor);">Selected items to rename</h4>
-    `;
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  
   let arrItemsToRename = ArrSelectedItems;
-  let list = document.createElement("div");
-  list.className = "list";
-  for (let i = 0; i < arrItemsToRename.length; i++) {
-    let item = document.createElement("div");
-    item.className = "list-item";
-    item.innerHTML = `${arrItemsToRename[i].getAttribute("itemname")}`;
-    list.append(item);
-  }
-  popup.append(list);
-  let popupControls = document.createElement("div");
-  popupControls.className = "popup-controls";
-  popupControls.innerHTML = `
-    <button class="icon-button" onclick="closeMultiRenamePopup()">
-  		<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-  		Cancel
-    </button>
-    <button class="icon-button multi-rename-button-run">
-  		<div class="button-icon"><i class="fa-solid fa-pencil"></i></div>
-  		Rename
-    </button>
-    `;
-  popup.append(popupControls);
+  const itemsListHtml = `<ul class="props-card__items-list">
+    ${arrItemsToRename.map((item) => {
+      const name = item.getAttribute("itemname");
+      const isDir = item.getAttribute("itemisdir") === "1";
+      const ext = (item.getAttribute("itemext") || "").replace(".", "").toUpperCase();
+      const size = item.getAttribute("itemsize") || "—";
+      const icon = isDir ? "fa-solid fa-folder" : "fa-regular fa-file";
+      return `<li class="props-card__item-li" title="${escHtml(name)}">
+        <div class="props-card__item-row">
+          <i class="${icon} props-card__item-icon"></i>
+          <span class="props-card__item-name">${escHtml(name)}</span>
+          <span class="props-card__item-meta">${isDir ? "Folder" : escHtml(ext)}</span>
+          <span class="props-card__item-size">${escHtml(size)}</span>
+        </div>
+      </li>`;
+    }).join("")}
+  </ul>`;
+
+  let popup = document.createElement("div");
+  popup.className = "props-card multi-rename-popup props-card--wide";
+  popup.style.display = "flex";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Multi-Rename");
+
+  popup.innerHTML = `
+    <section class="props-card__hero">
+      <div class="props-card__thumb"><i class="fa-solid fa-pen-to-square"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name">Multi-Rename</h2>
+        <div class="props-card__meta">
+          <span class="props-card__chip">Batch Operation</span>
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      <div class="props-card__row props-card__row--full">
+        <dt class="props-card__label"><i class="fa-solid fa-signature"></i>New name</dt>
+        <dd class="props-card__value">
+          <input class="props-card__input multi-rename-input multi-rename-newname" placeholder="Name" />
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-arrow-down-1-9"></i>Start at</dt>
+        <dd class="props-card__value">
+          <input class="props-card__input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-stairs"></i>Step by</dt>
+        <dd class="props-card__value">
+          <input class="props-card__input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-hashtag"></i>Digits</dt>
+        <dd class="props-card__value">
+          <input class="props-card__input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-file-code"></i>Extension</dt>
+        <dd class="props-card__value">
+          <input class="props-card__input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
+        </dd>
+      </div>
+      <div class="props-card__row props-card__row--block" style="margin-top: -2px; margin-bottom: 2px;">
+        <div style="font-size: 11px; color: var(--textColor2); display: flex; align-items: center; gap: 6px; opacity: 0.85;">
+          <i class="fa-solid fa-circle-info" style="font-size: 10px;"></i>
+          <span>If no extension is supplied the extension won't be changed</span>
+        </div>
+      </div>
+      <div class="props-card__row props-card__row--block" style="margin-top: 4px;">
+        <dt class="props-card__label"><i class="fa-regular fa-rectangle-list"></i>Selected items to rename</dt>
+        <dd class="props-card__value">${itemsListHtml}</dd>
+      </div>
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" onclick="closeMultiRenamePopup()">
+        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary multi-rename-button-run">
+        <i class="fa-solid fa-pencil"></i><span>Rename</span>
+      </button>
+    </footer>
+  `;
+
   document.querySelector("body").append(popup);
   popup.classList.add("popup-enter");
   $(".multi-rename-newname").focus();
-  document.querySelectorAll(".multi-rename-input").forEach((input) =>
+
+  document.querySelectorAll(".multi-rename-input").forEach((input) => {
+    input.addEventListener("focus", () => {
+      IsInputFocused = true;
+    });
+    input.addEventListener("blur", () => {
+      IsInputFocused = false;
+    });
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+    });
     input.addEventListener("keyup", async (e) => {
+      e.stopPropagation();
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
         e.key === "Enter"
@@ -5397,8 +5438,9 @@ function showMultiRenamePopup() {
           $(".multi-rename-ext").val(),
         );
       }
-    }),
-  );
+    });
+  });
+
   document
     .querySelector(".multi-rename-button-run")
     .addEventListener("click", async () => {
@@ -5443,9 +5485,11 @@ function closeMultiRenamePopup() {
     popup.addEventListener("animationend", () => {
       popup?.remove();
       IsPopUpOpen = false;
+      IsInputFocused = false;
     }, { once: true });
   } else {
     IsPopUpOpen = false;
+    IsInputFocused = false;
   }
 }
 
