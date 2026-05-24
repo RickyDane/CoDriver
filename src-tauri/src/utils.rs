@@ -18,7 +18,6 @@ use std::io::{self, Error};
 use std::path::Path;
 use std::usize;
 use std::{
-    ffi::OsStr,
     fmt::Debug,
     fs::{self, File},
     io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write},
@@ -422,92 +421,13 @@ pub struct DirWalkerEntry {
 }
 
 pub struct DirWalker {
-    pub items: Vec<DirWalkerEntry>,
-    pub depth: u32,
     pub exts: Vec<String>,
 }
 
 impl DirWalker {
     pub fn new() -> DirWalker {
         DirWalker {
-            items: Vec::new(),
-            depth: 0,
             exts: vec![],
-        }
-    }
-
-    pub fn run(&mut self, path: &str) -> &mut Self {
-        self.walk(path, 0);
-        self
-    }
-
-    pub fn walk(&mut self, path: &str, depth: u32) {
-        if self.depth > 0 && depth > self.depth {
-            return;
-        }
-        let entries = fs::read_dir(path);
-
-        if entries.is_err() {
-            return;
-        }
-
-        for entry in entries.unwrap() {
-            let item = entry;
-            if item.is_err() {
-                continue;
-            }
-            let item = item.unwrap();
-            if item.file_name().to_str().unwrap().starts_with(".") {
-                continue;
-            }
-            let path = item.path();
-            if fs::metadata(&path).is_err()
-                || (!self.exts.is_empty()
-                    && !self.exts.contains(
-                        &item
-                            .file_name()
-                            .to_str()
-                            .unwrap()
-                            .split(".")
-                            .last()
-                            .unwrap()
-                            .to_string(),
-                    ))
-            {
-                continue;
-            }
-            if path.is_dir() {
-                self.items.push(DirWalkerEntry {
-                    name: item.file_name().to_str().unwrap().to_string(),
-                    path: path.to_str().unwrap().to_string().replace("\\", "/"),
-                    depth,
-                    is_dir: true,
-                    is_file: false,
-                    extension: path
-                        .extension()
-                        .unwrap_or(OsStr::new(""))
-                        .to_string_lossy()
-                        .to_string(),
-                    last_modified: format!("{:?}", item.metadata().unwrap().modified().unwrap()),
-                    size: 0,
-                });
-                self.walk(path.to_str().unwrap(), depth + 1);
-            } else {
-                self.items.push(DirWalkerEntry {
-                    name: item.file_name().to_str().unwrap().to_string(),
-                    path: path.to_str().unwrap().to_string().replace("\\", "/"),
-                    depth,
-                    is_dir: false,
-                    is_file: true,
-                    extension: path
-                        .extension()
-                        .unwrap_or(OsStr::new(""))
-                        .to_string_lossy()
-                        .to_string(),
-                    last_modified: format!("{:?}", item.metadata().unwrap().modified().unwrap()),
-                    size: fs::metadata(&path).unwrap().len(),
-                });
-            }
         }
     }
 
@@ -652,35 +572,9 @@ impl DirWalker {
         let _ = app_window.emit("set-filesearch-count", **count_called_back);
     }
 
-    pub fn depth(&mut self, depth: u32) -> &mut Self {
-        self.depth = depth;
-        self
-    }
-
     pub fn set_ext(&mut self, exts: Vec<String>) -> &mut Self {
         self.exts = exts;
         self
-    }
-
-    pub fn ext(&mut self, extensions: Vec<&str>) -> &mut Self {
-        self.items = self
-            .items
-            .clone()
-            .into_iter()
-            .filter(|item| {
-                for ext in &extensions {
-                    if item.name.ends_with(ext) {
-                        return true;
-                    }
-                }
-                false
-            })
-            .collect();
-        self
-    }
-
-    pub fn get_items(&self) -> Vec<DirWalkerEntry> {
-        (*self.items).to_vec()
     }
 }
 

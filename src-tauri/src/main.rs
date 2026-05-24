@@ -1,5 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![allow(unexpected_cfgs)]
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use chrono::prelude::DateTime;
