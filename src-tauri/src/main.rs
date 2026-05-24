@@ -1,5 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![allow(unexpected_cfgs)]
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use chrono::prelude::DateTime;
@@ -30,25 +31,49 @@ use std::{
 };
 use stopwatch::Stopwatch;
 use tauri::async_runtime::Mutex;
-use tauri::{
-    api::path::{
-        app_config_dir, audio_dir, config_dir, desktop_dir, document_dir, download_dir, home_dir,
-        picture_dir, video_dir,
-    },
-    Config,
-};
-#[allow(unused)]
-use tauri::{Manager, Window, WindowEvent};
-#[cfg(target_os = "macos")]
-use window_vibrancy::apply_vibrancy;
+use tauri::{Emitter, Manager, WebviewWindow, WindowEvent, Config};
+
+fn config_dir() -> Option<std::path::PathBuf> {
+    dirs::config_dir()
+}
+
+fn app_config_dir(_config: &tauri::Config) -> Option<std::path::PathBuf> {
+    dirs::config_dir()
+}
+
+fn home_dir() -> Option<std::path::PathBuf> {
+    dirs::home_dir()
+}
+
+fn desktop_dir() -> Option<std::path::PathBuf> {
+    dirs::desktop_dir()
+}
+
+fn download_dir() -> Option<std::path::PathBuf> {
+    dirs::download_dir()
+}
+
+fn document_dir() -> Option<std::path::PathBuf> {
+    dirs::document_dir()
+}
+
+fn picture_dir() -> Option<std::path::PathBuf> {
+    dirs::picture_dir()
+}
+
+fn video_dir() -> Option<std::path::PathBuf> {
+    dirs::video_dir()
+}
+
+fn audio_dir() -> Option<std::path::PathBuf> {
+    dirs::audio_dir()
+}
 use zip_extensions::*;
 mod utils;
-use rayon::prelude::*;
 use sysinfo::Disks;
 use utils::{
     copy_to, copy_to_preserving_existing, count_entries, create_new_action, dbg_log, err_log,
-    format_bytes, remove_action, show_progressbar, success_log, unpack_tar, wng_log, DirWalker,
-    DirWalkerEntry,
+    remove_action, show_progressbar, success_log, unpack_tar, wng_log, DirWalker, DirWalkerEntry,
 };
 #[cfg(target_os = "macos")]
 mod window_tauri_ext;
@@ -57,8 +82,8 @@ use window_tauri_ext::WindowExt;
 mod applications;
 #[allow(unused)]
 use applications::{get_apps, open_file_with};
+mod remote;
 use lazy_static::lazy_static;
-use substring::Substring;
 
 use crate::utils::{
     compress_items, dir_info, extract_brotli_tar, extract_from_density, extract_tar_bz2,
@@ -67,6 +92,7 @@ use crate::utils::{
 
 // Global variables
 lazy_static! {
+    static ref HTTP_CLIENT: reqwest::Client = reqwest::Client::new();
     static ref COUNT_CALLED_BACK: Mutex<i32> = Mutex::new(0);
     static ref ISCANCELED: Mutex<bool> = Mutex::new(false);
     static ref PATH_HISTORY: Mutex<Vec<String>> = Mutex::new(Vec::new());
@@ -76,36 +102,37 @@ lazy_static! {
     static ref IS_SEARCHING: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     pub static ref IS_SIZE_CALC_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
         Arc::new(std::sync::atomic::AtomicBool::new(false));
+    pub static ref IS_SELECTION_SIZE_CALC_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
+        Arc::new(std::sync::atomic::AtomicBool::new(false));
+    pub static ref IS_DUP_FIND_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
+        Arc::new(std::sync::atomic::AtomicBool::new(false));
+    pub static ref CURRENT_DIR_OVERRIDE: std::sync::Mutex<Option<String>> =
+        std::sync::Mutex::new(None);
+    pub static ref CURRENT_SEARCH_ID: std::sync::Mutex<u64> = std::sync::Mutex::new(0);
 }
 
 // static mut IS_SEARCHING: bool = false;
 
-// #[cfg(target_os = "windows")]
-// const SLASH: &str = "\\";
-#[cfg(target_os = "windows")]
-const ASSET_LOCATION: &str = "https://asset.localhost/";
-
-// #[cfg(not(target_os = "windows"))]
-// const SLASH: &str = "/";
-#[cfg(not(target_os = "windows"))]
-const ASSET_LOCATION: &str = "asset://localhost/";
-
-static WINDOW: OnceLock<Window> = OnceLock::new();
+static WINDOW: OnceLock<WebviewWindow> = OnceLock::new();
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_http::init())
         .setup(|app| {
-            let win = app.get_window("main").unwrap();
+            let win = app.get_webview_window("main").unwrap();
             #[cfg(target_os = "macos")]
             win.set_transparent_titlebar(true);
+            // #[cfg(target_os = "macos")]
+            // win.position_traffic_lights(25.0, 32.0);
             #[cfg(target_os = "macos")]
-            win.position_traffic_lights(25.0, 32.0);
-            #[cfg(target_os = "macos")]
-            let _ = apply_vibrancy(
-                &win,
-                window_vibrancy::NSVisualEffectMaterial::HudWindow,
-                None,
-                None,
+            let _ = win.set_effects(
+                tauri::window::EffectsBuilder::new()
+                    .effect(tauri::window::Effect::Sidebar)
+                    .build(),
             );
 
             let _ = win.center();
@@ -125,11 +152,10 @@ fn main() {
 
             Ok(())
         })
-        .on_window_event(|e| match e.event() {
+        .on_window_event(|_win, event| match event {
             #[cfg(target_os = "macos")]
             WindowEvent::Resized { .. } => {
-                let win = e.window();
-                win.position_traffic_lights(25.0, 32.0);
+                _win.position_traffic_lights(25.0, 32.0);
                 std::thread::sleep(std::time::Duration::from_millis(1));
             }
             // Fixes sluggish window resizing on Windows
@@ -164,6 +190,13 @@ fn main() {
             save_config,
             switch_to_directory,
             mount_sshfs,
+            connect_ftp,
+            disconnect_ftp,
+            discover_ftp_servers,
+            save_ftp_connection,
+            get_saved_ftp_connections,
+            delete_saved_ftp_connection,
+            get_ftp_temp_file,
             rename_elements_with_format,
             add_favorite,
             arr_copy_paste,
@@ -172,18 +205,25 @@ fn main() {
             arr_compress_items,
             get_installed_apps,
             open_with,
-            find_duplicates,
             cancel_operation,
             cancel_size_calculation,
+            cancel_selection_size_calculation,
             get_df_dir,
-            // download_yt_video,
             get_app_icns,
             get_thumbnail,
+            get_image_dimensions,
+            upscale_image,
+            ai_upscale_image,
+            ai_style_image,
             get_simple_dir_info,
             get_selection_size,
+            get_capped_selection_size,
             get_themes,
+            save_theme,
+            delete_theme,
             stop_searching,
             get_file_content,
+            get_file_base64,
             open_config_location,
             log,
             get_config_location,
@@ -194,8 +234,16 @@ fn main() {
             load_item_image,
             get_disk_info,
             get_machine_bytes,
-            get_single_item_info
+            get_single_item_info,
+            find_duplicates,
+            cancel_duplicate_finder,
+            get_clipboard_files,
+            write_clipboard_files,
+            save_clipboard_image,
+            ai_get_organizer_suggestions,
+            ai_execute_organize
         ])
+        .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_drag::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -237,6 +285,11 @@ struct Theme {
     transparent_color_active: String,
     site_bar_color: String,
     nav_bar_color: String,
+    sidebar_top_blur_overlay_color: String,
+    #[serde(default)]
+    select_color2: Option<String>,
+    #[serde(default)]
+    select_color3: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -256,6 +309,29 @@ struct AppConfig {
     is_select_mode: String,
     arr_favorites: Vec<String>,
     current_theme: String,
+    font_size: i32,
+    is_window_transparency: String,
+    gemini_api_key: String,
+    openai_api_key: String,
+    is_ai_enabled: String,
+    ai_provider: String,
+    gemini_text_model: String,
+    gemini_image_model: String,
+    openai_text_model: String,
+    openai_image_model: String,
+    shortcuts: std::collections::HashMap<String, String>,
+}
+
+fn log_debug(msg: String) {
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open("/Users/rickyperlick/Coding/CoDriver/progress_debug.log")
+    {
+        use std::io::Write;
+        let _ = writeln!(file, "[{}] {}", chrono::Local::now().to_rfc3339(), msg);
+    }
 }
 
 #[tauri::command]
@@ -322,6 +398,17 @@ async fn check_app_config() -> AppConfig {
             is_select_mode: "1".to_string(),
             arr_favorites: vec![],
             current_theme: "0".to_string(),
+            font_size: 12,
+            is_window_transparency: "0".to_string(),
+            gemini_api_key: "".to_string(),
+            openai_api_key: "".to_string(),
+            is_ai_enabled: "0".to_string(),
+            ai_provider: "gemini".to_string(),
+            gemini_text_model: "gemini-3.1-flash-lite-preview".to_string(),
+            gemini_image_model: "gemini-3.1-flash-image-preview".to_string(),
+            openai_text_model: "gpt-4o".to_string(),
+            openai_image_model: "gpt-image-2".to_string(),
+            shortcuts: std::collections::HashMap::new(),
         };
         let _ = serde_json::to_writer_pretty(
             File::create(
@@ -346,6 +433,15 @@ async fn check_app_config() -> AppConfig {
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
 
     let default_vec: Vec<Value> = vec![];
+    let mut shortcuts_map = std::collections::HashMap::new();
+    if let Some(shortcuts_obj) = app_config["shortcuts"].as_object() {
+        for (k, v) in shortcuts_obj {
+            if let Some(v_str) = v.as_str() {
+                shortcuts_map.insert(k.clone(), v_str.to_string());
+            }
+        }
+    }
+
     AppConfig {
         view_mode: app_config["view_mode"].to_string().replace('"', ""),
         last_modified: app_config["last_modified"].to_string().replace('"', ""),
@@ -371,8 +467,11 @@ async fn check_app_config() -> AppConfig {
         search_depth: app_config["search_depth"]
             .to_string()
             .parse::<i32>()
-            .unwrap(),
-        max_items: app_config["max_items"].to_string().parse::<i32>().unwrap(),
+            .unwrap_or(10),
+        max_items: app_config["max_items"]
+            .to_string()
+            .parse::<i32>()
+            .unwrap_or(1000),
         is_image_preview: app_config["is_image_preview"].to_string().replace('"', ""),
         is_select_mode: app_config["is_select_mode"].to_string().replace('"', ""),
         arr_favorites: app_config["arr_favorites"]
@@ -382,6 +481,47 @@ async fn check_app_config() -> AppConfig {
             .map(|x| x.to_string().replace('"', ""))
             .collect(),
         current_theme: app_config["current_theme"].to_string().replace('"', ""),
+        font_size: app_config["font_size"]
+            .to_string()
+            .replace('"', "")
+            .parse::<i32>()
+            .unwrap_or(12),
+        is_window_transparency: app_config["is_window_transparency"]
+            .to_string()
+            .replace('"', ""),
+        gemini_api_key: app_config["gemini_api_key"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", ""),
+        openai_api_key: app_config["openai_api_key"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", ""),
+        is_ai_enabled: app_config["is_ai_enabled"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "0"),
+        ai_provider: app_config["ai_provider"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "gemini"),
+        gemini_text_model: app_config["gemini_text_model"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "gemini-3.1-flash-lite-preview"),
+        gemini_image_model: app_config["gemini_image_model"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "gemini-3.1-flash-image-preview"),
+        openai_text_model: app_config["openai_text_model"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "gpt-4o"),
+        openai_image_model: app_config["openai_image_model"]
+            .to_string()
+            .replace('"', "")
+            .replace("null", "gpt-image-2"),
+        shortcuts: shortcuts_map,
     }
 }
 
@@ -398,6 +538,17 @@ async fn get_themes() -> Vec<Theme> {
         let app_config_file = File::open(theme_entry.unwrap().path()).unwrap();
         let app_config_reader = BufReader::new(app_config_file);
         let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+        let site_bar_color = app_config["site_bar_color"].to_string().replace('"', "");
+        let sidebar_top_blur_overlay_color = app_config["sidebar_top_blur_overlay_color"]
+            .as_str()
+            .map(String::from)
+            .unwrap_or_else(|| site_bar_color.clone());
+        let select_color2 = app_config["select_color2"]
+            .as_str()
+            .map(String::from);
+        let select_color3 = app_config["select_color3"]
+            .as_str()
+            .map(String::from);
         vec_themes.push(Theme {
             name: app_config["name"].to_string().replace('"', ""),
             primary_color: app_config["primary_color"].to_string().replace('"', ""),
@@ -410,11 +561,63 @@ async fn get_themes() -> Vec<Theme> {
             transparent_color_active: app_config["transparent_color_active"]
                 .to_string()
                 .replace('"', ""),
-            site_bar_color: app_config["site_bar_color"].to_string().replace('"', ""),
+            site_bar_color,
             nav_bar_color: app_config["nav_bar_color"].to_string().replace('"', ""),
+            sidebar_top_blur_overlay_color,
+            select_color2,
+            select_color3,
         })
     }
     vec_themes
+}
+
+#[tauri::command]
+async fn save_theme(theme: Theme) -> Result<(), String> {
+    let theme_dir = app_config_dir(&Config::default())
+        .ok_or_else(|| "Could not find config directory".to_string())?
+        .join("com.codriver.dev")
+        .join("Themes");
+
+    // Create theme directory if it doesn't exist
+    let _ = fs::create_dir_all(&theme_dir);
+
+    // Make safe filename
+    let safe_name = theme
+        .name
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect::<String>();
+
+    let theme_path = theme_dir.join(format!("{}.json", safe_name));
+
+    let file =
+        File::create(&theme_path).map_err(|e| format!("Failed to create theme file: {}", e))?;
+
+    serde_json::to_writer_pretty(file, &theme)
+        .map_err(|e| format!("Failed to write theme JSON: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn delete_theme(theme_name: String) -> Result<(), String> {
+    let theme_dir = app_config_dir(&Config::default())
+        .ok_or_else(|| "Could not find config directory".to_string())?
+        .join("com.codriver.dev")
+        .join("Themes");
+
+    // Make safe filename
+    let safe_name = theme_name
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect::<String>();
+
+    let theme_path = theme_dir.join(format!("{}.json", safe_name));
+    if theme_path.exists() {
+        fs::remove_file(theme_path).map_err(|e| format!("Failed to delete theme file: {}", e))?;
+    }
+
+    Ok(())
 }
 
 #[derive(serde::Serialize)]
@@ -504,6 +707,21 @@ async fn list_disks() -> Vec<DisksInfo> {
             }
         }
     }
+
+    if let Ok(conns) = crate::remote::ftp::FTP_CONNECTIONS.lock() {
+        for (name, _config) in conns.iter() {
+            ls_disks.push(DisksInfo {
+                name: name.clone(),
+                dev: format!("ftp://{}", name),
+                format: "FTP Network-Drive".into(),
+                path: format!("ftp://{}", name),
+                avail: "0".into(),
+                capacity: "0".into(),
+                is_removable: true,
+            });
+        }
+    }
+
     ls_disks
 }
 
@@ -566,6 +784,9 @@ async fn switch_view(view_mode: String) -> Vec<FDir> {
 
 #[tauri::command]
 async fn get_current_dir() -> String {
+    if let Some(ref path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        return path.clone();
+    }
     current_dir()
         .unwrap()
         .as_path()
@@ -578,6 +799,11 @@ async fn get_current_dir() -> String {
 #[tauri::command]
 fn set_dir(current_dir: String) -> bool {
     dbg_log(format!("Current dir: {}", &current_dir));
+    if current_dir.starts_with("ftp://") {
+        *CURRENT_DIR_OVERRIDE.lock().unwrap() = Some(current_dir);
+        return true;
+    }
+    *CURRENT_DIR_OVERRIDE.lock().unwrap() = None;
     let md = fs::metadata(&current_dir);
     if md.is_err() {
         return false;
@@ -586,67 +812,104 @@ fn set_dir(current_dir: String) -> bool {
     true
 }
 
-#[tauri::command]
-async fn list_dirs() -> Vec<FDir> {
-    let mut dir_list: Vec<FDir> = Vec::new();
-    let current_dir_path = current_dir();
-    if current_dir_path.is_err() {
-        return vec![];
+fn parse_ftp_url(url: &str) -> Option<(String, String)> {
+    if !url.starts_with("ftp://") {
+        return None;
     }
-    let current_dir = fs::read_dir(current_dir_path.unwrap());
-    if current_dir.is_err() {
-        return vec![];
-    }
-    for item in current_dir.unwrap() {
-        match item {
-            Ok(temp_item) => {
-                let name = &temp_item.file_name().into_string().unwrap();
-                let path = &temp_item
-                    .path()
-                    .to_str()
-                    .unwrap()
-                    .to_string()
-                    .replace("\\", "/");
-                let file_ext = ".".to_string().to_owned()
-                    + path
-                        .split(".")
-                        .nth(&path.split(".").count() - 1)
-                        .unwrap_or("");
-                let file_data = fs::metadata(temp_item.path());
-                let file_date: String;
-                let size;
-                match temp_item.metadata() {
-                    Ok(metadata) => {
-                        size = metadata.len();
-                    }
-                    Err(_) => size = 0,
-                }
-                match file_data {
-                    Ok(file_data) => {
-                        let dt: DateTime<Local> = file_data.modified().unwrap().into();
-                        file_date = dt.to_string();
-                    }
-                    Err(_) => file_date = "-".into(),
-                }
-                let is_dir_int = match temp_item.path().is_dir() {
-                    true => 1,
-                    false => 0,
-                };
-                dir_list.push(FDir {
-                    name: String::from(name),
-                    is_dir: is_dir_int,
-                    path: String::from(path),
-                    extension: file_ext,
-                    size: size.to_string(),
-                    last_modified: file_date.split(".").next().unwrap().into(),
-                });
-            }
-            _ => continue,
+    let remainder = &url[6..];
+    let slash_idx = remainder.find('/');
+    match slash_idx {
+        Some(idx) => {
+            let conn_name = remainder[..idx].to_string();
+            let remote_path = remainder[idx..].to_string();
+            let clean_remote = if remote_path.is_empty() {
+                "/".to_string()
+            } else {
+                remote_path
+            };
+            Some((conn_name, clean_remote))
+        }
+        None => {
+            let conn_name = remainder.to_string();
+            Some((conn_name, "/".to_string()))
         }
     }
-    // Standard sort them by name
-    dir_list.sort_by_key(|a| a.name.to_lowercase());
-    dir_list
+}
+
+#[tauri::command]
+async fn list_dirs() -> Vec<FDir> {
+    if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(ftp_path) {
+            if let Ok(mut list) = crate::remote::ftp::list_ftp_dir(&conn_name, &remote_path) {
+                list.sort_by_key(|a| a.name.to_lowercase());
+                return list;
+            }
+        }
+        return vec![];
+    }
+    let current_dir_path = match current_dir() {
+        Ok(path) => path,
+        Err(_) => return vec![],
+    };
+
+    let handle = tokio::task::spawn_blocking(move || {
+        let mut dir_list: Vec<FDir> = Vec::new();
+        let current_dir = match fs::read_dir(current_dir_path) {
+            Ok(dir) => dir,
+            Err(_) => return vec![],
+        };
+        for item in current_dir {
+            match item {
+                Ok(temp_item) => {
+                    let name = match temp_item.file_name().into_string() {
+                        Ok(n) => n,
+                        Err(_) => continue,
+                    };
+                    let path = temp_item
+                        .path()
+                        .to_string_lossy()
+                        .to_string()
+                        .replace("\\", "/");
+                    let file_ext =
+                        ".".to_string().to_owned() + path.split(".").last().unwrap_or("");
+                    let size;
+                    let file_date: String;
+
+                    match temp_item.metadata() {
+                        Ok(metadata) => {
+                            size = metadata.len();
+                            file_date = metadata
+                                .modified()
+                                .map(|t| {
+                                    let dt: DateTime<Local> = t.into();
+                                    dt.to_string()
+                                })
+                                .unwrap_or_else(|_| "-".into());
+                        }
+                        Err(_) => {
+                            size = 0;
+                            file_date = "-".into();
+                        }
+                    }
+
+                    let is_dir_int = if temp_item.path().is_dir() { 1 } else { 0 };
+                    dir_list.push(FDir {
+                        name,
+                        is_dir: is_dir_int,
+                        path,
+                        extension: file_ext,
+                        size: size.to_string(),
+                        last_modified: file_date.split(".").next().unwrap_or("-").into(),
+                    });
+                }
+                _ => continue,
+            }
+        }
+        dir_list.sort_by_key(|a| a.name.to_lowercase());
+        dir_list
+    });
+
+    handle.await.unwrap_or_default()
 }
 
 async fn push_history(path: String) {
@@ -661,6 +924,11 @@ async fn pop_history() {
 
 #[tauri::command]
 async fn open_dir(path: String) -> bool {
+    if path.starts_with("ftp://") {
+        let _ = set_dir(path.clone());
+        push_history(path).await;
+        return true;
+    }
     let md = fs::read_dir(&path);
     match md {
         Ok(_) => {
@@ -681,14 +949,37 @@ async fn open_dir(path: String) -> bool {
 
 #[tauri::command]
 async fn go_back(is_dual_pane: bool) {
-    let path_history = (PATH_HISTORY.lock().await).clone();
-    if path_history.len() > 1 && !is_dual_pane {
-        let last_path = path_history[path_history.len() - 2].clone();
-        let _ = set_dir(last_path.into());
-        pop_history().await;
-    } else {
-        let _ = set_dir("./../".into());
+    if !is_dual_pane {
+        let path_history = (PATH_HISTORY.lock().await).clone();
+        if path_history.len() > 1 {
+            let last_path = path_history[path_history.len() - 2].clone();
+            let _ = set_dir(last_path.into());
+            pop_history().await;
+            return;
+        }
     }
+
+    if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(ftp_path) {
+            let clean_remote = remote_path.trim_end_matches('/');
+            if let Some(slash_idx) = clean_remote.rfind('/') {
+                let parent_remote = &clean_remote[..slash_idx];
+                let parent_path = if parent_remote.is_empty() {
+                    format!("ftp://{}", conn_name)
+                } else {
+                    format!("ftp://{}{}", conn_name, parent_remote)
+                };
+                let _ = set_dir(parent_path);
+            } else {
+                *CURRENT_DIR_OVERRIDE.lock().unwrap() = None;
+                if let Some(home) = home_dir() {
+                    let _ = set_dir(home.to_string_lossy().to_string());
+                }
+            }
+        }
+        return;
+    }
+    let _ = set_dir("./../".into());
 }
 
 #[tauri::command]
@@ -826,6 +1117,101 @@ async fn stop_searching() {
     dbg_log(format!("Stopped searching"));
 }
 
+fn search_ftp_recursive(
+    connection_name: &str,
+    remote_path: &str,
+    file_name: &str,
+    max_items: i32,
+    current_depth: u32,
+    max_depth: u32,
+    app_window: &tauri::WebviewWindow,
+    count: &mut i32,
+    search_id: u64,
+) {
+    if *crate::CURRENT_SEARCH_ID.lock().unwrap() != search_id {
+        return;
+    }
+
+    if let Ok(searching) = crate::IS_SEARCHING.try_lock() {
+        if !*searching {
+            return;
+        }
+    }
+
+    if current_depth > max_depth || *count >= max_items {
+        return;
+    }
+
+    if let Ok(entries) = crate::remote::ftp::list_ftp_dir(connection_name, remote_path) {
+        for entry in entries {
+            if *crate::CURRENT_SEARCH_ID.lock().unwrap() != search_id {
+                return;
+            }
+            if let Ok(searching) = crate::IS_SEARCHING.try_lock() {
+                if !*searching {
+                    return;
+                }
+            }
+
+            if *count >= max_items {
+                return;
+            }
+
+            let matches_name = if file_name.is_empty() {
+                true
+            } else {
+                entry
+                    .name
+                    .to_lowercase()
+                    .contains(&file_name.to_lowercase())
+            };
+
+            if matches_name {
+                *count += 1;
+                let is_dir = entry.is_dir == 1;
+                let size_val = entry.size.parse::<u64>().unwrap_or(0);
+                let walker_entry = DirWalkerEntry {
+                    name: entry.name.clone(),
+                    path: entry.path.clone(),
+                    depth: current_depth,
+                    is_dir,
+                    is_file: !is_dir,
+                    size: size_val,
+                    extension: entry.extension.clone(),
+                    last_modified: entry.last_modified.clone(),
+                };
+                let _ = app_window.emit(
+                    "addSingleItem",
+                    serde_json::to_string(&walker_entry).unwrap().to_string(),
+                );
+            }
+
+            if entry.is_dir == 1 {
+                if *crate::CURRENT_SEARCH_ID.lock().unwrap() != search_id {
+                    return;
+                }
+                if let Ok(searching) = crate::IS_SEARCHING.try_lock() {
+                    if !*searching {
+                        return;
+                    }
+                }
+                let raw_sub = crate::remote::ftp::to_raw_ftp_path(&entry.path);
+                search_ftp_recursive(
+                    connection_name,
+                    raw_sub,
+                    file_name,
+                    max_items,
+                    current_depth + 1,
+                    max_depth,
+                    app_window,
+                    count,
+                    search_id,
+                );
+            }
+        }
+    }
+}
+
 #[tauri::command]
 async fn search_for(
     mut file_name: String,
@@ -836,16 +1222,23 @@ async fn search_for(
 ) {
     let app_window = WINDOW.get().unwrap();
     *(IS_SEARCHING.lock().await) = true;
-    let mut count_called_back = COUNT_CALLED_BACK.lock().await;
-    *count_called_back = 0;
+    let local_counter = Mutex::new(0);
+    let mut count_called_back = local_counter.lock().await;
+
+    let search_id = {
+        let mut id = CURRENT_SEARCH_ID.lock().unwrap();
+        *id += 1;
+        *id
+    };
 
     dbg_log(format!(
-        "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}",
+        "Start searching for: {} with depth: {}, max items: {}, content: {}, threads: {}, search_id: {}",
         &file_name,
         search_depth,
         max_items,
         &file_content,
-        num_cpus::get() - 1
+        num_cpus::get() - 1,
+        search_id
     ));
     let temp_file_name = String::from(&file_name);
     if temp_file_name.split(".").next().unwrap().contains("*") {
@@ -866,26 +1259,49 @@ async fn search_for(
 
     let sw = Stopwatch::start_new();
 
-    DirWalker::new()
-        .set_ext(v_exts)
-        .search(
-            current_dir().unwrap().to_str().unwrap(),
-            search_depth as u32,
-            file_name,
-            max_items,
-            is_quick_search,
-            file_content,
-            &|item: DirWalkerEntry| {
-                app_window
-                    .emit(
-                        "addSingleItem",
-                        serde_json::to_string(&item).unwrap().to_string(),
-                    )
-                    .expect("Failed to emit");
-            },
-            &mut count_called_back,
-        )
-        .await;
+    let curr_dir = get_current_dir().await;
+    log_debug(format!(
+        "search_for execution: file_name = {}, is_quick_search = {}, curr_dir = {}, search_id = {}",
+        &file_name, is_quick_search, &curr_dir, search_id
+    ));
+    if curr_dir.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&curr_dir) {
+            let mut count = 0;
+            search_ftp_recursive(
+                &conn_name,
+                &remote_path,
+                &file_name,
+                max_items,
+                1,
+                search_depth as u32,
+                app_window,
+                &mut count,
+                search_id,
+            );
+            *count_called_back = count;
+        }
+    } else {
+        DirWalker::new()
+            .set_ext(v_exts)
+            .search(
+                current_dir().unwrap().to_str().unwrap(),
+                search_depth as u32,
+                file_name,
+                max_items,
+                is_quick_search,
+                file_content,
+                &|item: DirWalkerEntry| {
+                    app_window
+                        .emit(
+                            "addSingleItem",
+                            serde_json::to_string(&item).unwrap().to_string(),
+                        )
+                        .expect("Failed to emit");
+                },
+                &mut count_called_back,
+            )
+            .await;
+    }
 
     *(IS_SEARCHING.lock().await) = false;
 
@@ -964,8 +1380,318 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
     // Reset counter
     *(COPY_COUNTER.lock().await) = 0.0;
     *(TOTAL_BYTES_COPIED.lock().await) = 0.0;
+    crate::utils::reset_copy_start_time();
 
     show_progressbar(app_window);
+
+    let dest_is_ftp = copy_to_path.starts_with("ftp://");
+    let src_has_ftp = arr_items.iter().any(|item| item.path.starts_with("ftp://"));
+
+    if dest_is_ftp || src_has_ftp {
+        let sw = Stopwatch::start_new();
+
+        // Compute count_to_copy and total_size
+        let mut count_to_copy = 0.0;
+        let mut total_size = 0.0;
+
+        if dest_is_ftp && !src_has_ftp {
+            // Local to FTP (Upload) - can accurately walk the local directory
+            for item in arr_items.clone() {
+                count_to_copy += count_entries(&item.path).unwrap_or(1.0) as f32;
+                total_size += dir_info(item.path.clone()).size as f32;
+            }
+        } else {
+            // FTP involved as source - recursively compute sizes and file counts
+            for item in arr_items.clone() {
+                if item.path.starts_with("ftp://") {
+                    if let Some((conn_name, remote_path)) = parse_ftp_url(&item.path) {
+                        if item.is_dir == 1 {
+                            match crate::remote::ftp::get_ftp_dir_size_and_count(
+                                &conn_name,
+                                &remote_path,
+                                None,
+                            ) {
+                                Ok((sz, cnt)) => {
+                                    total_size += sz;
+                                    count_to_copy += cnt;
+                                    log_debug(format!(
+                                        "FTP get_ftp_dir_size_and_count success: sz = {}, cnt = {}",
+                                        sz, cnt
+                                    ));
+                                }
+                                Err(err) => {
+                                    count_to_copy += 1.0;
+                                    log_debug(format!(
+                                        "FTP get_ftp_dir_size_and_count FAILED: {}",
+                                        err
+                                    ));
+                                }
+                            }
+                        } else {
+                            count_to_copy += 1.0;
+                            if let Ok(sz) = item.size.parse::<f32>() {
+                                total_size += sz;
+                            }
+                        }
+                    } else {
+                        count_to_copy += 1.0;
+                        if item.is_dir == 0 {
+                            if let Ok(sz) = item.size.parse::<f32>() {
+                                total_size += sz;
+                            }
+                        }
+                    }
+                } else {
+                    // Local item as source
+                    count_to_copy += count_entries(&item.path).unwrap_or(1.0) as f32;
+                    total_size += dir_info(item.path.clone()).size as f32;
+                }
+            }
+        }
+
+        log_debug(format!(
+            "arr_copy_paste calculated: total_size = {}, count_to_copy = {}",
+            total_size, count_to_copy
+        ));
+
+        let last_file_path = Arc::new(std::sync::Mutex::new(String::new()));
+        let last_file_path_clone = last_file_path.clone();
+
+        let progress_callback = move |bytes_transferred: usize, current_filepath: &str| {
+            if let Ok(mut last) = last_file_path_clone.lock() {
+                if *last != current_filepath {
+                    *last = current_filepath.to_string();
+                    if let Ok(mut count) = COPY_COUNTER.try_lock() {
+                        *count += 1.0;
+                    }
+                }
+            }
+            if let Ok(mut total_bytes) = TOTAL_BYTES_COPIED.try_lock() {
+                *total_bytes += bytes_transferred as f32;
+                let current_total = *total_bytes as u64;
+
+                let elapsed_ms = crate::utils::get_copy_start_time()
+                    .map(|start| start.elapsed().as_millis() as i64)
+                    .unwrap_or(1);
+                let speed = crate::utils::calc_transfer_speed(current_total, elapsed_ms);
+
+                let copy_count = if let Ok(cnt) = COPY_COUNTER.try_lock() {
+                    *cnt
+                } else {
+                    0.0
+                };
+
+                let overall_progress = if count_to_copy > 0.0 {
+                    (copy_count / count_to_copy * 100.0).clamp(0.0, 100.0)
+                } else {
+                    0.0
+                };
+
+                let short_filename = current_filepath
+                    .replace("\\", "/")
+                    .split("/")
+                    .last()
+                    .unwrap_or_default()
+                    .to_string();
+
+                crate::utils::update_progressbar(
+                    overall_progress,
+                    overall_progress,
+                    count_to_copy,
+                    copy_count,
+                    &short_filename,
+                    speed,
+                );
+            }
+        };
+
+        let cb_ref: Option<&crate::remote::ftp::FtpProgressCallback> = Some(&progress_callback);
+
+        for item in arr_items {
+            let item_path = item.path;
+            let filename = item_path
+                .replace("\\", "/")
+                .split("/")
+                .last()
+                .unwrap_or_default()
+                .to_string();
+
+            if dest_is_ftp && !src_has_ftp {
+                // Local to FTP (Upload)
+                if let Some((conn_name, remote_dir)) = parse_ftp_url(&copy_to_path) {
+                    let clean_remote = remote_dir.trim_end_matches('/');
+                    let remote_dest = format!("{}/{}", clean_remote, filename);
+                    let is_dir = Path::new(&item_path).is_dir();
+                    if is_dir {
+                        if let Err(err) = crate::remote::ftp::upload_ftp_dir_recursive(
+                            &conn_name,
+                            Path::new(&item_path),
+                            &remote_dest,
+                            cb_ref,
+                        ) {
+                            err_log(format!("FTP Upload directory failed: {}", err));
+                        }
+                    } else {
+                        if let Err(err) = crate::remote::ftp::upload_ftp_file(
+                            &conn_name,
+                            Path::new(&item_path),
+                            &remote_dest,
+                            cb_ref,
+                        ) {
+                            err_log(format!("FTP Upload file failed: {}", err));
+                        }
+                    }
+                }
+            } else if !dest_is_ftp && src_has_ftp {
+                // FTP to Local (Download)
+                if let Some((conn_name, remote_path)) = parse_ftp_url(&item_path) {
+                    let local_dest = format!("{}/{}", copy_to_path.trim_end_matches('/'), filename);
+                    let config = {
+                        let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                        conns.get(&conn_name).cloned()
+                    };
+                    if let Some(config) = config {
+                        match crate::remote::ftp::get_ftp_client(&config) {
+                            Ok(mut client) => {
+                                if item.is_dir == 1 {
+                                    if let Err(err) = crate::remote::ftp::download_ftp_dir_recursive(
+                                        &mut client,
+                                        &conn_name,
+                                        &remote_path,
+                                        &local_dest,
+                                        cb_ref,
+                                    ) {
+                                        err_log(format!("FTP Download directory failed: {}", err));
+                                    }
+                                } else {
+                                    if let Err(err) = crate::remote::ftp::download_ftp_file(
+                                        &mut client,
+                                        &remote_path,
+                                        &local_dest,
+                                        cb_ref,
+                                    ) {
+                                        err_log(format!("FTP Download file failed: {}", err));
+                                    }
+                                }
+                            }
+                            Err(err) => {
+                                err_log(format!("FTP connection failed: {}", err));
+                            }
+                        }
+                    } else {
+                        err_log(format!("Connection {} not found", conn_name));
+                    }
+                }
+            } else {
+                // FTP to FTP (Remote Copy)
+                if let Some((src_conn, src_remote)) = parse_ftp_url(&item_path) {
+                    if let Some((dest_conn, dest_remote)) = parse_ftp_url(&copy_to_path) {
+                        let clean_dest = dest_remote.trim_end_matches('/');
+                        let final_dest = format!("{}/{}", clean_dest, filename);
+                        if src_conn == dest_conn {
+                            if item.is_dir == 1 {
+                                if let Err(err) = crate::remote::ftp::copy_ftp_dir_to_ftp_recursive(
+                                    &src_conn,
+                                    &src_remote,
+                                    &final_dest,
+                                    cb_ref,
+                                ) {
+                                    err_log(format!("FTP-to-FTP Copy directory failed: {}", err));
+                                }
+                            } else {
+                                if let Err(err) = crate::remote::ftp::copy_ftp_to_ftp(
+                                    &src_conn,
+                                    &src_remote,
+                                    &final_dest,
+                                    cb_ref,
+                                ) {
+                                    err_log(format!("FTP-to-FTP Copy file failed: {}", err));
+                                }
+                            }
+                        } else {
+                            // Cross-server remote copy via temp file
+                            if item.is_dir == 1 {
+                                let uuid_str = uuid::Uuid::new_v4().to_string();
+                                let temp_local_dir =
+                                    std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
+                                let temp_local_dir_str =
+                                    temp_local_dir.to_string_lossy().to_string();
+
+                                let src_config = {
+                                    let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                                    conns.get(&src_conn).cloned()
+                                };
+                                let mut src_client_opt = None;
+                                if let Some(ref cfg) = src_config {
+                                    src_client_opt = crate::remote::ftp::get_ftp_client(cfg).ok();
+                                }
+
+                                if let Some(mut src_client) = src_client_opt {
+                                    if crate::remote::ftp::download_ftp_dir_recursive(
+                                        &mut src_client,
+                                        &src_conn,
+                                        &src_remote,
+                                        &temp_local_dir_str,
+                                        cb_ref,
+                                    )
+                                    .is_ok()
+                                    {
+                                        let _ = crate::remote::ftp::upload_ftp_dir_recursive(
+                                            &dest_conn,
+                                            Path::new(&temp_local_dir_str),
+                                            &final_dest,
+                                            cb_ref,
+                                        );
+                                        let _ = std::fs::remove_dir_all(&temp_local_dir);
+                                    }
+                                } else {
+                                    err_log(format!("Failed to connect to source FTP server: {}", src_conn));
+                                }
+                            } else {
+                                let uuid_str = uuid::Uuid::new_v4().to_string();
+                                let temp_local_file =
+                                    std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
+                                let temp_local_file_str =
+                                    temp_local_file.to_string_lossy().to_string();
+
+                                let src_config = {
+                                    let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                                    conns.get(&src_conn).cloned()
+                                };
+                                let mut src_client_opt = None;
+                                if let Some(ref cfg) = src_config {
+                                    src_client_opt = crate::remote::ftp::get_ftp_client(cfg).ok();
+                                }
+
+                                if let Some(mut src_client) = src_client_opt {
+                                    if crate::remote::ftp::download_ftp_file(
+                                        &mut src_client,
+                                        &src_remote,
+                                        &temp_local_file_str,
+                                        cb_ref,
+                                    )
+                                    .is_ok()
+                                    {
+                                        let _ = crate::remote::ftp::upload_ftp_file(
+                                            &dest_conn,
+                                            Path::new(&temp_local_file_str),
+                                            &final_dest,
+                                            cb_ref,
+                                        );
+                                        let _ = std::fs::remove_file(&temp_local_file);
+                                    }
+                                } else {
+                                    err_log(format!("Failed to connect to source FTP server: {}", src_conn));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let _ = app_window.emit("finish-progress-bar", sw.elapsed().as_secs_f32());
+        return;
+    }
 
     let mut filename: String;
     let mut counter = 0.0;
@@ -1012,15 +1738,84 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
 
     *(COPY_COUNTER.lock().await) = 0.0;
     *(TOTAL_BYTES_COPIED.lock().await) = 0.0;
+    crate::utils::reset_copy_start_time();
 
     show_progressbar(app_window);
 
     let mut counter = 0.0;
     let mut total_bytes = 0.0;
     for item in items.clone() {
-        counter += count_entries(&item.source_path).unwrap_or(0.0);
-        total_bytes += dir_info(item.source_path.clone()).size as f32;
+        if item.policy == "skip" {
+            continue;
+        }
+        if !item.source_path.starts_with("ftp://") {
+            counter += count_entries(&item.source_path).unwrap_or(1.0);
+            total_bytes += dir_info(item.source_path.clone()).size as f32;
+        } else {
+            counter += 1.0;
+        }
     }
+
+    let total_size = total_bytes as f32;
+    let count_to_copy = counter as f32;
+
+    let last_file_path = Arc::new(std::sync::Mutex::new(String::new()));
+    let last_file_path_clone = last_file_path.clone();
+
+    let progress_callback = move |bytes_transferred: usize, current_filepath: &str| {
+        if let Ok(mut last) = last_file_path_clone.lock() {
+            if *last != current_filepath {
+                *last = current_filepath.to_string();
+                if let Ok(mut count) = COPY_COUNTER.try_lock() {
+                    *count += 1.0;
+                }
+            }
+        }
+        if let Ok(mut total_bytes) = TOTAL_BYTES_COPIED.try_lock() {
+            *total_bytes += bytes_transferred as f32;
+            let current_total = *total_bytes as u64;
+
+            let elapsed_ms = crate::utils::get_copy_start_time()
+                .map(|start| start.elapsed().as_millis() as i64)
+                .unwrap_or(1);
+            let speed = crate::utils::calc_transfer_speed(current_total, elapsed_ms);
+
+            let copy_count = if let Ok(cnt) = COPY_COUNTER.try_lock() {
+                *cnt
+            } else {
+                0.0
+            };
+
+            let overall_progress = if count_to_copy > 0.0 {
+                (copy_count / count_to_copy * 100.0).clamp(0.0, 100.0)
+            } else {
+                0.0
+            };
+
+            log_debug(format!(
+                "FTP Progress Debug: file = {}, current_total = {}, total_size = {}, count_to_copy = {}, copy_count = {}, overall_progress = {}",
+                current_filepath, current_total, total_size, count_to_copy, copy_count, overall_progress
+            ));
+
+            let short_filename = current_filepath
+                .replace("\\", "/")
+                .split("/")
+                .last()
+                .unwrap_or_default()
+                .to_string();
+
+            crate::utils::update_progressbar(
+                overall_progress,
+                overall_progress,
+                count_to_copy,
+                copy_count,
+                &short_filename,
+                speed,
+            );
+        }
+    };
+
+    let cb_ref: Option<&crate::remote::ftp::FtpProgressCallback> = Some(&progress_callback);
 
     let sw = Stopwatch::start_new();
     let mut copied_sources: Vec<String> = Vec::new();
@@ -1034,22 +1829,387 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
         let source = item.source_path.replace("\\", "/");
         let mut destination = item.destination_path.replace("\\", "/");
         let source_path = Path::new(&source);
-        let destination_path = Path::new(&destination);
 
-        if let Err(err) = validate_copy_destination(source_path, destination_path) {
-            wng_log(format!(
-                "Skipping unsafe copy from '{}' to '{}': {}",
-                source, destination, err
-            ));
-            errors.push(err);
+        let dest_is_ftp = destination.starts_with("ftp://");
+        let src_is_ftp = source.starts_with("ftp://");
+
+        if dest_is_ftp || src_is_ftp {
+            let filename = source.split("/").last().unwrap_or_default().to_string();
+
+            if let Err(err) = validate_copy_destination(Path::new(&source), Path::new(&destination))
+            {
+                wng_log(format!(
+                    "Skipping unsafe copy from '{}' to '{}': {}",
+                    source, destination, err
+                ));
+                errors.push(err);
+                continue;
+            }
+
+            if item.policy == "replace" {
+                if dest_is_ftp {
+                    if let Some((conn_name, remote_path)) = parse_ftp_url(&destination) {
+                        let _ =
+                            crate::remote::ftp::delete_ftp_item_recursive(&conn_name, &remote_path);
+                    }
+                } else {
+                    let _ = remove_path(Path::new(&destination)).await;
+                }
+            } else if item.policy == "duplicate" {
+                if dest_is_ftp {
+                    if let Some((conn_name, remote_path)) = parse_ftp_url(&destination) {
+                        let parent_path = if let Some(idx) = remote_path.rfind('/') {
+                            &remote_path[..idx]
+                        } else {
+                            ""
+                        };
+                        let parent_path_clean = if parent_path.is_empty() {
+                            "/"
+                        } else {
+                            parent_path
+                        };
+                        if let Ok(entries) =
+                            crate::remote::ftp::list_ftp_dir(&conn_name, parent_path_clean)
+                        {
+                            let mut counter = 1;
+                            let stem = Path::new(&filename)
+                                .file_stem()
+                                .and_then(|v| v.to_str())
+                                .unwrap_or("Untitled");
+                            let ext = Path::new(&filename)
+                                .extension()
+                                .and_then(|v| v.to_str())
+                                .unwrap_or("");
+                            let mut candidate_name = filename.clone();
+                            while entries.iter().any(|e| e.name == candidate_name) {
+                                candidate_name = if ext.is_empty() {
+                                    format!("{} ({})", stem, counter)
+                                } else {
+                                    format!("{} ({}).{}", stem, counter, ext)
+                                };
+                                counter += 1;
+                            }
+                            destination = format!(
+                                "ftp://{}{}/{}",
+                                conn_name,
+                                parent_path_clean.trim_end_matches('/'),
+                                candidate_name
+                            );
+                        }
+                    }
+                } else {
+                    let destination_path = Path::new(&destination);
+                    destination = get_available_path(destination_path);
+                }
+            } else {
+                if item.policy != "merge" {
+                    if dest_is_ftp {
+                        if let Some((conn_name, remote_path)) = parse_ftp_url(&destination) {
+                            let parent_path = if let Some(idx) = remote_path.rfind('/') {
+                                &remote_path[..idx]
+                            } else {
+                                ""
+                            };
+                            let parent_path_clean = if parent_path.is_empty() {
+                                "/"
+                            } else {
+                                parent_path
+                            };
+                            if let Ok(entries) =
+                                crate::remote::ftp::list_ftp_dir(&conn_name, parent_path_clean)
+                            {
+                                if entries.iter().any(|e| e.name == filename) {
+                                    let mut counter = 1;
+                                    let stem = Path::new(&filename)
+                                        .file_stem()
+                                        .and_then(|v| v.to_str())
+                                        .unwrap_or("Untitled");
+                                    let ext = Path::new(&filename)
+                                        .extension()
+                                        .and_then(|v| v.to_str())
+                                        .unwrap_or("");
+                                    let mut candidate_name = filename.clone();
+                                    while entries.iter().any(|e| e.name == candidate_name) {
+                                        candidate_name = if ext.is_empty() {
+                                            format!("{} ({})", stem, counter)
+                                        } else {
+                                            format!("{} ({}).{}", stem, counter, ext)
+                                        };
+                                        counter += 1;
+                                    }
+                                    destination = format!(
+                                        "ftp://{}{}/{}",
+                                        conn_name,
+                                        parent_path_clean.trim_end_matches('/'),
+                                        candidate_name
+                                    );
+                                }
+                            }
+                        }
+                    } else {
+                        let destination_path = Path::new(&destination);
+                        if destination_path.exists() {
+                            destination = get_available_path(destination_path);
+                        }
+                    }
+                }
+            }
+
+            let transfer_result = if dest_is_ftp && !src_is_ftp {
+                if let Some((conn_name, remote_dir)) = parse_ftp_url(&destination) {
+                    let is_dir = Path::new(&source).is_dir();
+                    if is_dir {
+                        crate::remote::ftp::upload_ftp_dir_recursive(
+                            &conn_name,
+                            Path::new(&source),
+                            &remote_dir,
+                            cb_ref,
+                        )
+                    } else {
+                        crate::remote::ftp::upload_ftp_file(
+                            &conn_name,
+                            Path::new(&source),
+                            &remote_dir,
+                            cb_ref,
+                        )
+                    }
+                } else {
+                    Err("Failed to parse FTP destination URL".to_string())
+                }
+            } else if !dest_is_ftp && src_is_ftp {
+                if let Some((conn_name, remote_path)) = parse_ftp_url(&source) {
+                    let mut is_dir = false;
+                    let parent_path = if let Some(idx) = remote_path.rfind('/') {
+                        &remote_path[..idx]
+                    } else {
+                        ""
+                    };
+                    let parent_path_clean = if parent_path.is_empty() {
+                        "/"
+                    } else {
+                        parent_path
+                    };
+                    if let Ok(entries) =
+                        crate::remote::ftp::list_ftp_dir(&conn_name, parent_path_clean)
+                    {
+                        let fname = remote_path.split('/').last().unwrap_or_default();
+                        if let Some(entry) = entries.into_iter().find(|e| e.name == fname) {
+                            is_dir = entry.is_dir == 1;
+                        }
+                    }
+
+                    let config = {
+                        let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                        conns.get(&conn_name).cloned()
+                    };
+                    if let Some(config) = config {
+                        match crate::remote::ftp::get_ftp_client(&config) {
+                            Ok(mut client) => {
+                                if is_dir {
+                                    crate::remote::ftp::download_ftp_dir_recursive(
+                                        &mut client,
+                                        &conn_name,
+                                        &remote_path,
+                                        &destination,
+                                        cb_ref,
+                                    )
+                                } else {
+                                    crate::remote::ftp::download_ftp_file(
+                                        &mut client,
+                                        &remote_path,
+                                        &destination,
+                                        cb_ref,
+                                    )
+                                }
+                            }
+                            Err(err) => Err(format!("Failed to connect: {}", err)),
+                        }
+                    } else {
+                        Err(format!("Connection {} not found", conn_name))
+                    }
+                } else {
+                    Err("Failed to parse FTP source URL".to_string())
+                }
+            } else {
+                if let Some((src_conn, src_remote)) = parse_ftp_url(&source) {
+                    if let Some((dest_conn, dest_remote)) = parse_ftp_url(&destination) {
+                        if src_conn == dest_conn {
+                            let mut is_dir = false;
+                            let parent_path = if let Some(idx) = src_remote.rfind('/') {
+                                &src_remote[..idx]
+                            } else {
+                                ""
+                            };
+                            let parent_path_clean = if parent_path.is_empty() {
+                                "/"
+                            } else {
+                                parent_path
+                            };
+                            if let Ok(entries) =
+                                crate::remote::ftp::list_ftp_dir(&src_conn, parent_path_clean)
+                            {
+                                let fname = src_remote.split('/').last().unwrap_or_default();
+                                if let Some(entry) = entries.into_iter().find(|e| e.name == fname) {
+                                    is_dir = entry.is_dir == 1;
+                                }
+                            }
+
+                            if is_dir {
+                                crate::remote::ftp::copy_ftp_dir_to_ftp_recursive(
+                                    &src_conn,
+                                    &src_remote,
+                                    &dest_remote,
+                                    cb_ref,
+                                )
+                            } else {
+                                crate::remote::ftp::copy_ftp_to_ftp(
+                                    &src_conn,
+                                    &src_remote,
+                                    &dest_remote,
+                                    cb_ref,
+                                )
+                            }
+                        } else {
+                            let mut is_dir = false;
+                            let parent_path = if let Some(idx) = src_remote.rfind('/') {
+                                &src_remote[..idx]
+                            } else {
+                                ""
+                            };
+                            let parent_path_clean = if parent_path.is_empty() {
+                                "/"
+                            } else {
+                                parent_path
+                            };
+                            if let Ok(entries) =
+                                crate::remote::ftp::list_ftp_dir(&src_conn, parent_path_clean)
+                            {
+                                let fname = src_remote.split('/').last().unwrap_or_default();
+                                if let Some(entry) = entries.into_iter().find(|e| e.name == fname) {
+                                    is_dir = entry.is_dir == 1;
+                                }
+                            }
+
+                            if is_dir {
+                                let uuid_str = uuid::Uuid::new_v4().to_string();
+                                let temp_local_dir =
+                                    std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
+                                let temp_local_dir_str =
+                                    temp_local_dir.to_string_lossy().to_string();
+
+                                let src_config = {
+                                    let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                                    conns.get(&src_conn).cloned()
+                                };
+                                let mut src_client_opt = None;
+                                if let Some(ref cfg) = src_config {
+                                    src_client_opt = crate::remote::ftp::get_ftp_client(cfg).ok();
+                                }
+
+                                if let Some(mut src_client) = src_client_opt {
+                                    let res = crate::remote::ftp::download_ftp_dir_recursive(
+                                        &mut src_client,
+                                        &src_conn,
+                                        &src_remote,
+                                        &temp_local_dir_str,
+                                        cb_ref,
+                                    )
+                                    .and_then(|_| {
+                                        crate::remote::ftp::upload_ftp_dir_recursive(
+                                            &dest_conn,
+                                            Path::new(&temp_local_dir_str),
+                                            &dest_remote,
+                                            cb_ref,
+                                        )
+                                    });
+                                    let _ = std::fs::remove_dir_all(&temp_local_dir);
+                                    res
+                                } else {
+                                    Err(format!("Failed to connect to source FTP server: {}", src_conn))
+                                }
+                            } else {
+                                let uuid_str = uuid::Uuid::new_v4().to_string();
+                                let temp_local_file =
+                                    std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
+                                let temp_local_file_str =
+                                    temp_local_file.to_string_lossy().to_string();
+
+                                let src_config = {
+                                    let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                                    conns.get(&src_conn).cloned()
+                                };
+                                let mut src_client_opt = None;
+                                if let Some(ref cfg) = src_config {
+                                    src_client_opt = crate::remote::ftp::get_ftp_client(cfg).ok();
+                                }
+
+                                if let Some(mut src_client) = src_client_opt {
+                                    let res = crate::remote::ftp::download_ftp_file(
+                                        &mut src_client,
+                                        &src_remote,
+                                        &temp_local_file_str,
+                                        cb_ref,
+                                    )
+                                    .and_then(|_| {
+                                        crate::remote::ftp::upload_ftp_file(
+                                            &dest_conn,
+                                            Path::new(&temp_local_file_str),
+                                            &dest_remote,
+                                            cb_ref,
+                                        )
+                                    });
+                                    let _ = std::fs::remove_file(&temp_local_file);
+                                    res
+                                } else {
+                                    Err(format!("Failed to connect to source FTP server: {}", src_conn))
+                                }
+                            }
+                        }
+                    } else {
+                        Err("Failed to parse FTP destination URL".to_string())
+                    }
+                } else {
+                    Err("Failed to parse FTP source URL".to_string())
+                }
+            };
+
+            match transfer_result {
+                Ok(()) => copied_sources.push(source),
+                Err(err) => {
+                    err_log(format!(
+                        "Copy failed from '{}' to '{}': {}",
+                        source, destination, err
+                    ));
+                    errors.push(format!("{} → {}: {}", source, destination, err));
+                }
+            }
+
             continue;
         }
 
         let copy_result = match item.policy.as_str() {
             "replace" => {
+                let destination_path = Path::new(&destination);
+                if let Err(err) = validate_copy_destination(source_path, destination_path) {
+                    wng_log(format!(
+                        "Skipping unsafe copy from '{}' to '{}': {}",
+                        source, destination, err
+                    ));
+                    errors.push(err);
+                    continue;
+                }
                 replace_path_safely(source_path, destination_path, total_bytes, counter).await
             }
             "merge" => {
+                let destination_path = Path::new(&destination);
+                if let Err(err) = validate_copy_destination(source_path, destination_path) {
+                    wng_log(format!(
+                        "Skipping unsafe copy from '{}' to '{}': {}",
+                        source, destination, err
+                    ));
+                    errors.push(err);
+                    continue;
+                }
                 if source_path.is_dir() && destination_path.is_dir() {
                     copy_to_preserving_existing(
                         destination.clone(),
@@ -1063,12 +2223,32 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
                 }
             }
             "duplicate" => {
+                let destination_path = Path::new(&destination);
                 destination = get_available_path(destination_path);
+                let destination_path = Path::new(&destination);
+                if let Err(err) = validate_copy_destination(source_path, destination_path) {
+                    wng_log(format!(
+                        "Skipping unsafe copy from '{}' to '{}': {}",
+                        source, destination, err
+                    ));
+                    errors.push(err);
+                    continue;
+                }
                 copy_to(destination.clone(), source.clone(), total_bytes, counter).await
             }
             _ => {
+                let destination_path = Path::new(&destination);
                 if destination_path.exists() {
                     destination = get_available_path(destination_path);
+                }
+                let destination_path = Path::new(&destination);
+                if let Err(err) = validate_copy_destination(source_path, destination_path) {
+                    wng_log(format!(
+                        "Skipping unsafe copy from '{}' to '{}': {}",
+                        source, destination, err
+                    ));
+                    errors.push(err);
+                    continue;
                 }
                 copy_to(destination.clone(), source.clone(), total_bytes, counter).await
             }
@@ -1130,6 +2310,59 @@ fn comparable_path(path: &Path) -> String {
 }
 
 fn validate_copy_destination(source_path: &Path, destination_path: &Path) -> Result<(), String> {
+    let source_str = source_path.to_string_lossy().replace("\\", "/");
+    let dest_str = destination_path.to_string_lossy().replace("\\", "/");
+
+    let src_is_ftp = source_str.starts_with("ftp://");
+    let dest_is_ftp = dest_str.starts_with("ftp://");
+
+    if src_is_ftp || dest_is_ftp {
+        let source_cmp = if src_is_ftp {
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            {
+                source_str.to_lowercase()
+            }
+            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+            {
+                source_str.clone()
+            }
+        } else {
+            let source_canonical = source_path.canonicalize().map_err(|err| {
+                format!(
+                    "Failed to canonicalize source '{}': {}",
+                    source_path.display(),
+                    err
+                )
+            })?;
+            comparable_path(&source_canonical)
+        };
+
+        let destination_cmp = if dest_is_ftp {
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            {
+                dest_str.to_lowercase()
+            }
+            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+            {
+                dest_str.clone()
+            }
+        } else {
+            let destination_canonical = canonical_or_parent_path(destination_path)?;
+            comparable_path(&destination_canonical)
+        };
+
+        if source_cmp == destination_cmp {
+            return Err("Source and destination resolve to the same path".to_string());
+        }
+
+        let source_prefix = format!("{}/", source_cmp.trim_end_matches('/'));
+        if destination_cmp.starts_with(&source_prefix) {
+            return Err("Cannot copy or move a folder into itself or its descendant".to_string());
+        }
+
+        return Ok(());
+    }
+
     let source_canonical = source_path.canonicalize().map_err(|err| {
         format!(
             "Failed to canonicalize source '{}': {}",
@@ -1365,43 +2598,307 @@ async fn get_final_filename(
 }
 
 #[tauri::command]
-async fn delete_item(act_file_name: String) {
+async fn delete_item(act_file_name: String) -> Result<(), String> {
     dbg_log(format!("Deleting: {}", String::from(&act_file_name)));
 
-    #[cfg(target_os = "windows")]
-    let dir_remove = remove_dir_all(&act_file_name.replace("\\", "/"));
-    #[cfg(target_os = "windows")]
-    if dir_remove.is_err() {
-        let _ = delete_file(&act_file_name.replace("\\", "/")).expect("Failed to delete file");
-        return;
-    } else {
-        return;
+    if act_file_name.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&act_file_name) {
+            crate::remote::ftp::delete_ftp_item_recursive(&conn_name, &remote_path)?;
+        }
+        return Ok(());
     }
 
-    let file = File::open(&act_file_name);
-    let mut is_dir = false;
-    if file.is_ok() {
-        is_dir = file.unwrap().metadata().unwrap().is_dir();
+    #[cfg(target_os = "windows")]
+    {
+        let dir_remove = remove_dir_all(&act_file_name.replace("\\", "/"));
+        if dir_remove.is_err() {
+            delete_file(&act_file_name.replace("\\", "/")).map_err(|err| err.to_string())?;
+        }
+        return Ok(());
     }
-    if is_dir {
-        rapid_delete_dir_all(&act_file_name.replace("\\", "/"), None, None)
-            .await
-            .expect("Failed to delete dir");
-    } else {
-        let file_deletion = delete_file(&act_file_name.replace("\\", "/"));
-        if file_deletion.is_err() {}
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let file = File::open(&act_file_name);
+        let mut is_dir = false;
+        if file.is_ok() {
+            is_dir = file.unwrap().metadata().unwrap().is_dir();
+        }
+        if is_dir {
+            rapid_delete_dir_all(&act_file_name.replace("\\", "/"), None, None)
+                .await
+                .map_err(|err| err.to_string())?;
+        } else {
+            delete_file(&act_file_name.replace("\\", "/")).map_err(|err| err.to_string())?;
+        }
+        Ok(())
     }
 }
 
 #[tauri::command]
-async fn arr_delete_items(arr_items: Vec<String>) {
+async fn arr_delete_items(arr_items: Vec<String>) -> Result<(), String> {
     for path in arr_items {
-        delete_item(path).await;
+        delete_item(path).await?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn cancel_duplicate_finder() {
+    IS_DUP_FIND_CANCELLED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[derive(serde::Serialize)]
+struct DuplicateFile {
+    path: String,
+    modified: u64,
+}
+
+#[derive(serde::Serialize)]
+struct DuplicateGroup {
+    size: u64,
+    hash: String,
+    files: Vec<DuplicateFile>,
+}
+
+#[tauri::command]
+async fn find_duplicates(
+    path: String,
+    max_depth: Option<usize>,
+) -> Result<Vec<DuplicateGroup>, String> {
+    use rayon::prelude::*;
+    use std::collections::hash_map::DefaultHasher;
+    use std::collections::HashMap;
+    use std::fs::File;
+    use std::hash::{Hash, Hasher};
+    use std::io::{BufReader, Read};
+    use std::path::PathBuf;
+
+    IS_DUP_FIND_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
+
+    let base_path = std::path::Path::new(&path);
+    if !base_path.exists() {
+        return Err("Directory does not exist".to_string());
+    }
+
+    let mut size_groups: HashMap<u64, Vec<PathBuf>> = HashMap::new();
+
+    let mut walker = jwalk::WalkDir::new(base_path)
+        .skip_hidden(true)
+        .follow_links(false);
+    if let Some(depth) = max_depth {
+        walker = walker.max_depth(depth);
+    }
+
+    for entry in walker {
+        if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err("Search cancelled".to_string());
+        }
+        if let Ok(entry) = entry {
+            if entry.file_type().is_file() {
+                let file_path = entry.path();
+                if let Ok(metadata) = std::fs::metadata(&file_path) {
+                    let size = metadata.len();
+                    if size > 0 {
+                        size_groups.entry(size).or_default().push(file_path);
+                    }
+                }
+            }
+        }
+    }
+
+    let candidate_groups: Vec<(u64, Vec<PathBuf>)> = size_groups
+        .into_iter()
+        .filter(|(_, files)| files.len() > 1)
+        .collect();
+
+    fn calculate_partial_file_hash(file_path: &std::path::Path) -> std::io::Result<u64> {
+        let file = File::open(file_path)?;
+        let mut reader = BufReader::new(file);
+        let mut hasher = DefaultHasher::new();
+        let mut buffer = [0; 16384]; // 16 KB partial buffer
+
+        if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Interrupted,
+                "Search cancelled",
+            ));
+        }
+        let count = reader.read(&mut buffer)?;
+        buffer[..count].hash(&mut hasher);
+
+        Ok(hasher.finish())
+    }
+
+    fn calculate_file_hash(file_path: &std::path::Path) -> std::io::Result<u64> {
+        let file = File::open(file_path)?;
+        let mut reader = BufReader::new(file);
+        let mut hasher = DefaultHasher::new();
+        let mut buffer = [0; 65536];
+
+        loop {
+            if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Interrupted,
+                    "Search cancelled",
+                ));
+            }
+            let count = reader.read(&mut buffer)?;
+            if count == 0 {
+                break;
+            }
+            buffer[..count].hash(&mut hasher);
+        }
+
+        Ok(hasher.finish())
+    }
+
+    let mut duplicates: Vec<DuplicateGroup> = Vec::new();
+
+    for (size, files) in candidate_groups {
+        if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err("Search cancelled".to_string());
+        }
+
+        // Phase 1: Compute partial hashes in parallel using Rayon
+        let hashed_partials: Vec<(PathBuf, u64)> = files
+            .into_par_iter()
+            .filter_map(|file_path| {
+                if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                    return None;
+                }
+                calculate_partial_file_hash(&file_path)
+                    .ok()
+                    .map(|hash| (file_path, hash))
+            })
+            .collect();
+
+        let mut partial_groups: HashMap<u64, Vec<PathBuf>> = HashMap::new();
+        for (file_path, hash) in hashed_partials {
+            partial_groups.entry(hash).or_default().push(file_path);
+        }
+
+        // Phase 2: Compute full hashes only for partial match candidates in parallel
+        for (_, p_files) in partial_groups {
+            if p_files.len() <= 1 {
+                continue;
+            }
+            if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err("Search cancelled".to_string());
+            }
+
+            let full_hashed_files: Vec<(PathBuf, u64)> = p_files
+                .into_par_iter()
+                .filter_map(|file_path| {
+                    if IS_DUP_FIND_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                        return None;
+                    }
+                    calculate_file_hash(&file_path)
+                        .ok()
+                        .map(|hash| (file_path, hash))
+                })
+                .collect();
+
+            let mut hash_groups: HashMap<u64, Vec<DuplicateFile>> = HashMap::new();
+            for (file_path, hash) in full_hashed_files {
+                let path_str = file_path.to_string_lossy().to_string().replace("\\", "/");
+                let modified = std::fs::metadata(&file_path)
+                    .and_then(|meta| meta.modified())
+                    .map(|time| {
+                        time.duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_secs()
+                    })
+                    .unwrap_or(0);
+                hash_groups.entry(hash).or_default().push(DuplicateFile {
+                    path: path_str,
+                    modified,
+                });
+            }
+
+            for (hash, dup_files) in hash_groups {
+                if dup_files.len() > 1 {
+                    duplicates.push(DuplicateGroup {
+                        size,
+                        hash: format!("{:016x}", hash),
+                        files: dup_files,
+                    });
+                }
+            }
+        }
+    }
+
+    duplicates.sort_by(|a, b| b.size.cmp(&a.size));
+
+    Ok(duplicates)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_find_duplicates() {
+        use std::fs::{create_dir_all, write};
+        use std::path::Path;
+
+        let test_dir = Path::new("temp_test_duplicates");
+        if test_dir.exists() {
+            let _ = std::fs::remove_dir_all(test_dir);
+        }
+        create_dir_all(test_dir).unwrap();
+
+        // Create identical duplicates group A (size 10 bytes)
+        let dir_a = test_dir.join("group_a");
+        create_dir_all(&dir_a).unwrap();
+        let file_a1 = dir_a.join("file1.txt");
+        let file_a2 = dir_a.join("file2.txt");
+        write(&file_a1, b"1234567890").unwrap();
+        write(&file_a2, b"1234567890").unwrap();
+
+        // Create identical duplicates group B (size 20 bytes - larger, should be sorted first)
+        let dir_b = test_dir.join("sub/group_b");
+        create_dir_all(&dir_b).unwrap();
+        let file_b1 = dir_b.join("file_b1.bin");
+        let file_b2 = dir_b.join("file_b2.bin");
+        let file_b3 = dir_b.join("file_b3.bin");
+        write(&file_b1, b"abcdefghijklmnopqrst").unwrap();
+        write(&file_b2, b"abcdefghijklmnopqrst").unwrap();
+        write(&file_b3, b"abcdefghijklmnopqrst").unwrap();
+
+        // Create a file with same size as group A but different contents (should not group with A)
+        let file_diff_content = test_dir.join("diff_content.txt");
+        write(&file_diff_content, b"0987654321").unwrap();
+
+        // Create a unique file (size 15 bytes)
+        let file_unique = test_dir.join("unique.txt");
+        write(&file_unique, b"1234567890abcde").unwrap();
+
+        // Run find_duplicates
+        let res = find_duplicates(test_dir.to_string_lossy().to_string(), None).await;
+
+        // Clean up immediately
+        let _ = std::fs::remove_dir_all(test_dir);
+
+        let dup_groups = res.expect("find_duplicates should succeed");
+
+        // We expect exactly 2 groups of duplicates:
+        // Group 1: size 20 (3 files)
+        // Group 2: size 10 (2 files)
+        assert_eq!(dup_groups.len(), 2);
+
+        // First group should be the larger one (size 20)
+        assert_eq!(dup_groups[0].size, 20);
+        assert_eq!(dup_groups[0].files.len(), 3);
+
+        // Second group should be size 10
+        assert_eq!(dup_groups[1].size, 10);
+        assert_eq!(dup_groups[1].files.len(), 2);
     }
 }
 
 #[tauri::command]
-async fn extract_item(from_path: String, app_window: Window) {
+async fn extract_item(from_path: String, app_window: WebviewWindow) {
     let action_id = create_new_action(
         &app_window,
         "Extracting ...".into(),
@@ -1518,6 +3015,42 @@ async fn extract_item(from_path: String, app_window: Window) {
 #[tauri::command]
 async fn open_item(path: String) {
     dbg_log(format!("Opening: {}", &path));
+    if path.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+            let filename = Path::new(&remote_path)
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            let temp_dir = std::env::temp_dir().join("codriver-ftp-temp");
+            let _ = std::fs::create_dir_all(&temp_dir);
+            let local_dest = temp_dir.join(&filename);
+            let local_dest_str = local_dest.to_string_lossy().to_string();
+            let config = {
+                let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                conns.get(&conn_name).cloned()
+            };
+            let mut downloaded = false;
+            if let Some(config) = config {
+                if let Ok(mut client) = crate::remote::ftp::get_ftp_client(&config) {
+                    if crate::remote::ftp::download_ftp_file(
+                        &mut client,
+                        &remote_path,
+                        &local_dest_str,
+                        None,
+                    )
+                    .is_ok()
+                    {
+                        downloaded = true;
+                    }
+                }
+            }
+            if downloaded {
+                let _ = open::that_detached(local_dest_str);
+            }
+        }
+        return;
+    }
     let _ = open::that_detached(path);
 }
 
@@ -1570,18 +3103,60 @@ async fn arr_compress_items(
 
 #[tauri::command]
 async fn create_folder(folder_name: String) {
+    if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(ftp_path) {
+            let clean_remote = remote_path.trim_end_matches('/');
+            let final_remote = format!("{}/{}", clean_remote, folder_name);
+            let _ = crate::remote::ftp::create_ftp_folder(&conn_name, &final_remote);
+        }
+        return;
+    }
     let new_folder_path = PathBuf::from(&folder_name);
     let _ = fs::create_dir(current_dir().unwrap().join(new_folder_path));
 }
 
 #[tauri::command]
 async fn create_file(file_name: String) {
+    if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(ftp_path) {
+            let clean_remote = remote_path.trim_end_matches('/');
+            let final_remote = format!("{}/{}", clean_remote, file_name);
+            let _ = crate::remote::ftp::create_ftp_file(&conn_name, &final_remote);
+        }
+        return;
+    }
     let new_file_path = PathBuf::from(&file_name);
     let _ = File::create(current_dir().unwrap().join(new_file_path));
 }
 
 #[tauri::command]
-async fn rename_element(path: String, new_name: String, app_window: Window) -> Vec<FDir> {
+async fn rename_element(path: String, new_name: String, app_window: WebviewWindow) -> Vec<FDir> {
+    let ftp_opt = CURRENT_DIR_OVERRIDE.lock().unwrap().clone();
+    if let Some(ftp_path) = ftp_opt {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&ftp_path) {
+            let from_remote = if path.starts_with("ftp://") {
+                parse_ftp_url(&path).map(|(_, p)| p).unwrap_or(path.clone())
+            } else {
+                let clean = remote_path.trim_end_matches('/');
+                format!("{}/{}", clean, path)
+            };
+            let to_remote = if new_name.starts_with("ftp://") {
+                parse_ftp_url(&new_name)
+                    .map(|(_, p)| p)
+                    .unwrap_or(new_name.clone())
+            } else {
+                let clean = remote_path.trim_end_matches('/');
+                format!("{}/{}", clean, new_name)
+            };
+            if let Err(err) =
+                crate::remote::ftp::rename_ftp_element(&conn_name, &from_remote, &to_remote)
+            {
+                err_log(format!("Failed to rename FTP element: {}", err));
+                let _ = app_window.eval("alert('Failed to rename remote element')");
+            }
+        }
+        return list_dirs().await;
+    }
     let renamed = fs::rename(
         current_dir().unwrap().join(path.replace("\\", "/")),
         current_dir().unwrap().join(new_name.replace("\\", "/")),
@@ -1612,6 +3187,17 @@ async fn save_config(
     is_select_mode: String,
     arr_favorites: Vec<String>,
     current_theme: String,
+    font_size: i32,
+    is_window_transparency: String,
+    gemini_api_key: String,
+    openai_api_key: String,
+    is_ai_enabled: String,
+    ai_provider: String,
+    gemini_text_model: String,
+    gemini_image_model: String,
+    openai_text_model: String,
+    openai_image_model: String,
+    shortcuts: std::collections::HashMap<String, String>,
 ) {
     let app_config_file = File::open(
         app_config_dir(&Config::default())
@@ -1621,6 +3207,41 @@ async fn save_config(
     .unwrap();
     let app_config_reader = BufReader::new(app_config_file);
     let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+
+    let final_gemini_api_key = {
+        let clean_key = gemini_api_key.replace("\\", "");
+        #[cfg(target_os = "macos")]
+        {
+            if !clean_key.is_empty() && clean_key != "__keychain__" {
+                if let Err(e) = set_gemini_keychain_key(&clean_key) {
+                    eprintln!("Failed to save Gemini key to macOS Keychain: {}", e);
+                }
+            }
+            "__keychain__".to_string()
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            clean_key
+        }
+    };
+
+    let final_openai_api_key = {
+        let clean_key = openai_api_key.replace("\\", "");
+        #[cfg(target_os = "macos")]
+        {
+            if !clean_key.is_empty() && clean_key != "__keychain__" {
+                if let Err(e) = set_openai_keychain_key(&clean_key) {
+                    eprintln!("Failed to save OpenAI key to macOS Keychain: {}", e);
+                }
+            }
+            "__keychain__".to_string()
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            clean_key
+        }
+    };
+
     let app_config_json = AppConfig {
         view_mode: app_config["view_mode"].to_string().replace('"', ""),
         last_modified: chrono::offset::Local::now().to_string(),
@@ -1637,6 +3258,17 @@ async fn save_config(
         is_select_mode: is_select_mode.replace("\\", "/"),
         arr_favorites,
         current_theme: current_theme.replace("\\", "/"),
+        font_size,
+        is_window_transparency: is_window_transparency.replace("\\", ""),
+        gemini_api_key: final_gemini_api_key,
+        openai_api_key: final_openai_api_key,
+        is_ai_enabled: is_ai_enabled.replace("\\", ""),
+        ai_provider: ai_provider.replace("\\", ""),
+        gemini_text_model: gemini_text_model.replace("\\", ""),
+        gemini_image_model: gemini_image_model.replace("\\", ""),
+        openai_text_model: openai_text_model.replace("\\", ""),
+        openai_image_model: openai_image_model.replace("\\", ""),
+        shortcuts,
     };
     let config_dir = app_config_dir(&Config::default())
         .unwrap()
@@ -1723,146 +3355,6 @@ async fn open_with(_file_path: String, _app_path: String) {
 }
 
 #[tauri::command]
-async fn find_duplicates(app_window: Window, path: String, depth: u32) -> Vec<Vec<DirWalkerEntry>> {
-    let files = DirWalker::new()
-        .depth(depth)
-        .run(&path)
-        .ext(vec![
-            "png", "jpg", "jpeg", "txt", "svg", "gif", "mp4", "mp3", "wav", "pdf", "docx", "xlsx",
-            "doc", "zip", "rar", "7z", "dmg", "iso", "exe", "msi", "jar", "deb", "sh", "py", "htm",
-            "html",
-        ])
-        .get_items();
-    let mut seen_items: Vec<DirWalkerEntry> = Vec::new();
-    let mut duplicates: Vec<Vec<DirWalkerEntry>> = Vec::new();
-    for item in files.into_par_iter().collect::<Vec<DirWalkerEntry>>() {
-        let seen_item = seen_items.par_iter().find_any(|x| {
-            x.is_file
-                && x.size == item.size
-                && x.size > 0
-                && x.name.contains(item.name.substring(0, item.name.len() - 3))
-        });
-        if seen_item.is_some() {
-            if duplicates.is_empty() {
-                duplicates.push(vec![seen_item.unwrap().clone(), item.clone()]);
-            } else {
-                let collection = duplicates.par_iter_mut().find_any(|x| {
-                    x[0].size == seen_item.unwrap().size
-                        && x[0].size > 0
-                        && x[0]
-                            .name
-                            .contains(item.name.substring(0, item.name.len() - 3))
-                });
-                if collection.is_some() {
-                    collection.unwrap().push(item.clone());
-                } else {
-                    duplicates.push(vec![item.clone(), seen_item.unwrap().clone()]);
-                }
-            }
-        } else {
-            seen_items.push(item);
-        }
-    }
-    for (idx, arr_duplicate) in duplicates.clone().iter().enumerate() {
-        let var_idx = &idx.clone().to_string();
-        let mut inner_html = String::new();
-        let mut js_query = String::new()
-            + "
-            var duplicate"
-            + var_idx
-            + " = document.createElement('div');
-            duplicate"
-            + var_idx
-            + ".setAttribute('itempaneside', '');
-            duplicate"
-            + var_idx
-            + ".setAttribute('itemisdir', '0');
-            duplicate"
-            + var_idx
-            + ".setAttribute('itemext', '');
-            duplicate"
-            + var_idx
-            + ".setAttribute('isftp', '0');
-            duplicate"
-            + var_idx
-            + ".className = 'list-item duplicate-item';
-        ";
-        for (idx, item) in arr_duplicate.clone().iter().enumerate() {
-            inner_html.push_str(
-                &(String::new()
-                    + "
-                <div style='display: flex; align-items: center; justify-content: space-between;'>
-                    <div>
-                        <h4>"
-                    + &item.name
-                    + "</h3>
-                        <h4 class='text-2'>"
-                    + &item.path
-                    + "</h4>
-                        <h4 class='text-2'>"
-                    + &format_bytes(item.size)
-                    + "</h4>
-                    </div>
-            "),
-            );
-            if item.name.ends_with("jpg")
-                || item.name.ends_with("jpeg")
-                || item.name.ends_with("png")
-                || item.name.ends_with("gif")
-                || item.name.ends_with("svg")
-                || item.name.ends_with("webp")
-                || item.name.ends_with("jfif")
-                || item.name.ends_with("tiff")
-            {
-                inner_html.push_str(&(String::new()+"
-                    <img style='box-shadow: 0px 0px 10px 1px var(--transparentColorActive); border-radius: 5px;' width='64px' height='auto' src='"+ASSET_LOCATION+""+&item.path+"'>
-                </div>
-                "));
-            } else {
-                inner_html.push_str(
-                    &(String::new()
-                        + "
-                    </div>
-                "),
-                );
-            }
-            js_query.push_str(
-                &(String::new()
-                    + "
-                duplicate"
-                    + var_idx
-                    + ".setAttribute('"
-                    + &format!("itempath-{}", idx)
-                    + "', '"
-                    + &item.path
-                    + "');
-            "),
-            );
-        }
-        js_query.push_str(
-            &(String::new()
-                + "
-            duplicate"
-                + var_idx
-                + ".innerHTML = `"
-                + &inner_html
-                + "`;
-            duplicate"
-                + var_idx
-                + ".oncontextmenu = (e) => showExtraContextMenu(e, duplicate"
-                + var_idx
-                + ");
-            document.querySelector('.duplicates-list').append(duplicate"
-                + var_idx
-                + ");
-        "),
-        );
-        let _ = app_window.eval(&js_query);
-    }
-    duplicates
-}
-
-#[tauri::command]
 async fn cancel_operation() {
     *ISCANCELED.lock().await = true;
 }
@@ -1870,6 +3362,11 @@ async fn cancel_operation() {
 #[tauri::command]
 async fn cancel_size_calculation() {
     IS_SIZE_CALC_CANCELLED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[tauri::command]
+async fn cancel_selection_size_calculation() {
+    IS_SELECTION_SIZE_CALC_CANCELLED.store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
 #[tauri::command]
@@ -1903,54 +3400,6 @@ async fn get_df_dir(number: u8) -> String {
     }
 }
 
-// #[tauri::command]
-// async fn download_yt_video(app_window: Window, url: String, quality: String) {
-//     let action_id = create_new_action(
-//         &app_window,
-//         "Downloading ...".into(),
-//         url.clone(),
-//         &"".into(),
-//     );
-//     dbg_log(format!("Downloading {} as {}", url, quality));
-//     let chosen_quality = match quality.as_str() {
-//         "lowestvideo" => VideoQuality::LowestVideo,
-//         "lowestaudio" => VideoQuality::LowestAudio,
-//         "highestvideo" => VideoQuality::HighestVideo,
-//         "highestaudio" => VideoQuality::HighestAudio,
-//         _ => VideoQuality::HighestVideo,
-//     };
-
-//     dbg_log(format!("Chosen quality: {:?}", chosen_quality));
-
-//     let video_options = VideoOptions {
-//         quality: chosen_quality,
-//         filter: VideoSearchOptions::Video,
-//         ..Default::default()
-//     };
-
-//     let video = Video::new_with_options(url, video_options).unwrap();
-
-//     let stream = video.stream().await;
-//     if stream.is_err() {
-//         let _ = &app_window.eval("alert('Failed to retrieve source')");
-//         remove_action(action_id);
-//         return;
-//     }
-//     let stream = stream.unwrap();
-//     let video_info = video.get_basic_info().await.unwrap();
-//     let mut file = File::create(video_info.video_details.title.to_owned() + ".mp4").unwrap();
-//     let _total_size = stream.content_length() as f32;
-//     let mut downloaded: u64 = 0;
-//     let sw = Stopwatch::start_new();
-
-//     while let Some(chunk) = stream.chunk().await.unwrap_or_default() {
-//         file.write_all(&chunk).unwrap();
-//         downloaded += chunk.len() as u64;
-//         let _speed = calc_transfer_speed(downloaded, sw.elapsed_ms());
-//     }
-//     remove_action(action_id);
-// }
-
 #[tauri::command]
 async fn get_app_icns(_path: String) -> String {
     #[cfg(target_os = "linux")]
@@ -1975,8 +3424,10 @@ async fn get_app_icns(_path: String) -> String {
                 + icns.file_name().unwrap().to_str().unwrap()
                 + ".png";
 
-            if PathBuf::from(new_img_path.clone()).exists() {
-                return new_img_path;
+            if let Ok(metadata) = fs::metadata(&new_img_path) {
+                if metadata.len() > 0 {
+                    return new_img_path;
+                }
             }
 
             let file = BufReader::new(File::open(icns.to_string_lossy().to_string()).unwrap());
@@ -2069,15 +3520,20 @@ async fn get_app_icns(_path: String) -> String {
 
             // Save additional icon to read from codriver
             let image = image.unwrap();
-            if !PathBuf::from(&new_img_path).exists() {
-                let file = File::create(&new_img_path);
-                if file.is_err() {
-                    return icns.to_string_lossy().to_string();
+            let mut should_write = true;
+            if let Ok(metadata) = fs::metadata(&new_img_path) {
+                if metadata.len() > 0 {
+                    should_write = false;
                 }
-                let file = file.unwrap();
-                BufWriter::new(&file);
-                image.write_png(file).unwrap();
-                dbg_log(format!("Writing image to: {}", new_img_path));
+            }
+            if should_write {
+                if let Ok(file) = File::create(&new_img_path) {
+                    let mut writer = BufWriter::new(file);
+                    if image.write_png(&mut writer).is_ok() {
+                        let _ = writer.flush();
+                        dbg_log(format!("Writing image to: {}", new_img_path));
+                    }
+                }
             }
 
             new_img_path
@@ -2135,15 +3591,866 @@ async fn get_thumbnail(image_path: String) -> String {
 }
 
 #[tauri::command]
+async fn get_image_dimensions(path: String) -> Result<(u32, u32), String> {
+    let img = image::open(&path).map_err(|e| format!("Failed to open image: {}", e))?;
+    Ok((img.width(), img.height()))
+}
+
+#[tauri::command]
+async fn upscale_image(
+    from_path: String,
+    scale_factor: f32,
+    filter_type: String,
+    output_path: String,
+) -> Result<(), String> {
+    let img = image::open(&from_path).map_err(|e| format!("Failed to open image: {}", e))?;
+
+    let filter = match filter_type.to_lowercase().as_str() {
+        "nearest" => image::imageops::FilterType::Nearest,
+        "triangle" => image::imageops::FilterType::Triangle,
+        "catmull_rom" => image::imageops::FilterType::CatmullRom,
+        "gaussian" => image::imageops::FilterType::Gaussian,
+        "lanczos3" | _ => image::imageops::FilterType::Lanczos3,
+    };
+
+    let width = img.width();
+    let height = img.height();
+    let new_width = (width as f32 * scale_factor).round() as u32;
+    let new_height = (height as f32 * scale_factor).round() as u32;
+
+    let res = img.resize(new_width, new_height, filter);
+
+    res.save(&output_path)
+        .map_err(|e| format!("Failed to save upscaled image: {}", e))?;
+
+    Ok(())
+}
+
+fn get_image_mime_type(path: &str) -> &'static str {
+    let ext = path.split('.').last().unwrap_or("").to_lowercase();
+    match ext.as_str() {
+        "png" => "image/png",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        _ => "image/jpeg",
+    }
+}
+
+fn get_image_data(path: &str) -> Result<(String, String), String> {
+    let mime_type = get_image_mime_type(path).to_string();
+    let img_bytes =
+        std::fs::read(path).map_err(|e| format!("Failed to read source image: {}", e))?;
+    let img_base64 = BASE64_STANDARD.encode(&img_bytes);
+    Ok((mime_type, img_base64))
+}
+
+pub fn get_gemini_keychain_key() -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let output = std::process::Command::new("security")
+            .args(&[
+                "find-generic-password",
+                "-a",
+                "API-Key",
+                "-s",
+                "CoDriver-Gemini",
+                "-w",
+            ])
+            .output()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if output.status.success() {
+            let key = String::from_utf8(output.stdout)
+                .map_err(|e| format!("Failed to parse API key: {}", e))?;
+            Ok(key
+                .trim_end_matches('\n')
+                .trim_end_matches('\r')
+                .to_string())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("Keychain lookup failed: {}", stderr))
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Keychain not supported on this platform".to_string())
+    }
+}
+
+pub fn set_gemini_keychain_key(key: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let status = std::process::Command::new("security")
+            .args(&[
+                "add-generic-password",
+                "-a",
+                "API-Key",
+                "-s",
+                "CoDriver-Gemini",
+                "-w",
+                key,
+                "-U",
+            ])
+            .status()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if status.success() {
+            Ok(())
+        } else {
+            Err("Failed to save API key to macOS Keychain".to_string())
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = key;
+        Ok(())
+    }
+}
+
+pub fn get_openai_keychain_key() -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let output = std::process::Command::new("security")
+            .args(&[
+                "find-generic-password",
+                "-a",
+                "API-Key",
+                "-s",
+                "CoDriver-OpenAI",
+                "-w",
+            ])
+            .output()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if output.status.success() {
+            let key = String::from_utf8(output.stdout)
+                .map_err(|e| format!("Failed to parse API key: {}", e))?;
+            Ok(key
+                .trim_end_matches('\n')
+                .trim_end_matches('\r')
+                .to_string())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("Keychain lookup failed: {}", stderr))
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Keychain not supported on this platform".to_string())
+    }
+}
+
+pub fn set_openai_keychain_key(key: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let status = std::process::Command::new("security")
+            .args(&[
+                "add-generic-password",
+                "-a",
+                "API-Key",
+                "-s",
+                "CoDriver-OpenAI",
+                "-w",
+                key,
+                "-U",
+            ])
+            .status()
+            .map_err(|e| format!("Failed to execute security command: {}", e))?;
+
+        if status.success() {
+            Ok(())
+        } else {
+            Err("Failed to save API key to macOS Keychain".to_string())
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = key;
+        Ok(())
+    }
+}
+
+async fn call_gemini_api(
+    api_key: &str,
+    model: &str,
+    payload: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+        model, api_key
+    );
+
+    let resp = HTTP_CLIENT
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .header("x-goog-api-key", api_key)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request to Gemini failed: {}", e))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let err_text = resp.text().await.unwrap_or_default();
+        return Err(format!("Gemini API error ({}): {}", status, err_text));
+    }
+
+    resp.json()
+        .await
+        .map_err(|e| format!("Failed to parse Gemini response JSON: {}", e))
+}
+
+async fn call_openai_api(
+    api_key: &str,
+    endpoint: &str,
+    payload: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let url = format!("https://api.openai.com/v1/{}", endpoint);
+
+    let resp = HTTP_CLIENT
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", api_key))
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request to OpenAI failed: {}", e))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let err_text = resp.text().await.unwrap_or_default();
+        return Err(format!("OpenAI API error ({}): {}", status, err_text));
+    }
+
+    resp.json()
+        .await
+        .map_err(|e| format!("Failed to parse OpenAI response JSON: {}", e))
+}
+
+fn extract_openai_text(json: &serde_json::Value) -> Result<String, String> {
+    json["choices"][0]["message"]["content"]
+        .as_str()
+        .map(|s| s.trim().to_string())
+        .ok_or_else(|| format!("Invalid text response format from OpenAI: {:?}", json))
+}
+
+fn extract_openai_image(json: &serde_json::Value) -> Result<String, String> {
+    json["data"][0]["b64_json"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| format!("No image data found in OpenAI response: {:?}", json))
+}
+
+fn extract_gemini_text(json: &serde_json::Value) -> Result<String, String> {
+    json["candidates"][0]["content"]["parts"][0]["text"]
+        .as_str()
+        .map(|s| s.trim().to_string())
+        .ok_or_else(|| format!("Invalid text response format from Gemini: {:?}", json))
+}
+
+fn extract_gemini_image(json: &serde_json::Value) -> Result<String, String> {
+    let parts = json["candidates"][0]["content"]["parts"]
+        .as_array()
+        .ok_or_else(|| format!("Invalid image response format from Gemini: {:?}", json))?;
+
+    for part in parts {
+        if let Some(inline_data) = part.get("inlineData") {
+            if let Some(data) = inline_data.get("data").and_then(|d| d.as_str()) {
+                return Ok(data.to_string());
+            }
+        }
+    }
+    Err(format!(
+        "No image data found in Gemini response: {:?}",
+        json
+    ))
+}
+
+async fn save_ai_image(output_path: &str, b64_data: String) -> Result<(), String> {
+    let path = Path::new(output_path);
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create output directory: {}", e))?;
+        }
+    }
+
+    let decoded_bytes = BASE64_STANDARD
+        .decode(b64_data)
+        .map_err(|e| format!("Failed to decode AI Image base64 output: {}", e))?;
+
+    std::fs::write(output_path, &decoded_bytes)
+        .map_err(|e| format!("Failed to write AI generated image file: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn ai_upscale_image(
+    ai_provider: String,
+    api_key: String,
+    from_path: String,
+    aspect_ratio: String,
+    output_path: String,
+    creative: bool,
+) -> Result<(), String> {
+    let resolved_api_key = if api_key == "__keychain__" || api_key.is_empty() {
+        #[cfg(target_os = "macos")]
+        {
+            if ai_provider == "openai" {
+                get_openai_keychain_key().unwrap_or(api_key)
+            } else {
+                get_gemini_keychain_key().unwrap_or(api_key)
+            }
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            api_key
+        }
+    } else {
+        api_key
+    };
+
+    let config_path = config_dir()
+        .unwrap()
+        .join("com.codriver.dev/app_config.json");
+
+    let (gemini_text_model, gemini_image_model, openai_text_model, openai_image_model) = {
+        if let Ok(file) = File::open(&config_path) {
+            if let Ok(config_json) = serde_json::from_reader::<_, serde_json::Value>(BufReader::new(file)) {
+                (
+                    config_json["gemini_text_model"].as_str().unwrap_or("gemini-3.1-flash-lite-preview").to_string(),
+                    config_json["gemini_image_model"].as_str().unwrap_or("gemini-3.1-flash-image-preview").to_string(),
+                    config_json["openai_text_model"].as_str().unwrap_or("gpt-4o").to_string(),
+                    config_json["openai_image_model"].as_str().unwrap_or("gpt-image-2").to_string(),
+                )
+            } else {
+                ("gemini-3.1-flash-lite-preview".to_string(), "gemini-3.1-flash-image-preview".to_string(), "gpt-4o".to_string(), "gpt-image-2".to_string())
+            }
+        } else {
+            ("gemini-3.1-flash-lite-preview".to_string(), "gemini-3.1-flash-image-preview".to_string(), "gpt-4o".to_string(), "gpt-image-2".to_string())
+        }
+    };
+
+    let (mime_type, img_base64) = get_image_data(&from_path)?;
+
+    if ai_provider == "openai" {
+        // 1. Call OpenAI Vision to generate a detailed prompt
+        let description_prompt = if creative {
+            "Analyze this image and write a highly detailed, descriptive, professional prompt to re-generate this exact image in ultra-high resolution. Focus on preserving the core layout and subject matter, but creatively enhance details, textures, clarity, lighting, and visual appeal for an outstanding aesthetic result. Only output the prompt, nothing else."
+        } else {
+            "Analyze this image and write a highly detailed, descriptive prompt to re-generate this exact image in ultra-high resolution. You must instruct the generator to keep the image exactly as-is: do not creatively re-interpret, do not add or subtract subjects, and preserve the original composition, layout, color palette, text, and overall style completely. The goal is a high-fidelity super-resolution upscale that maintains total fidelity to the original. Only output the prompt, nothing else."
+        };
+
+        let text_payload = serde_json::json!({
+            "model": openai_text_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": description_prompt
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": format!("data:{};base64,{}", mime_type, img_base64)
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
+
+        let text_json = call_openai_api(&resolved_api_key, "chat/completions", text_payload).await?;
+        let detailed_prompt = extract_openai_text(&text_json)?;
+
+        // 2. Call OpenAI Image Model to generate the high-res image
+        let final_instruction = if creative {
+            format!("Creatively enhance and upscale this image to ultra-high resolution based on this description: {}. Focus on maintaining the core subject and layout, but feel free to beautify details, lighting, and textures.", detailed_prompt)
+        } else {
+            format!("Upscale this image to ultra-high resolution based on this description: {}. You must keep this image exactly as-is: do not change the subject, character's face, hair, orientation, posture, style, colors, background, or lighting. Maintain total visual identity and pixel structure fidelity to the original.", detailed_prompt)
+        };
+
+        // Map aspect ratio to closest GPT Image / DALL-E 3 size:
+        // Square -> 1024x1024, Tall -> 1024x1792, Wide -> 1792x1024
+        let size_str = match aspect_ratio.as_str() {
+            "16:9" => "1792x1024",
+            "9:16" => "1024x1792",
+            _ => "1024x1024",
+        };
+
+        let mut image_payload = serde_json::json!({
+            "model": openai_image_model,
+            "prompt": final_instruction,
+            "n": 1,
+            "size": size_str
+        });
+        if !openai_image_model.contains("gpt-image") {
+            if let Some(obj) = image_payload.as_object_mut() {
+                obj.insert("response_format".to_string(), serde_json::json!("b64_json"));
+            }
+        }
+
+        let image_json = call_openai_api(&resolved_api_key, "images/generations", image_payload).await?;
+        let b64_data = extract_openai_image(&image_json)?;
+
+        save_ai_image(&output_path, b64_data).await
+    } else {
+        // 1. Call Gemini Flash to generate a detailed prompt
+        let description_prompt = if creative {
+            "Analyze this image and write a highly detailed, descriptive, professional prompt to re-generate this exact image in ultra-high resolution. Focus on preserving the core layout and subject matter, but creatively enhance details, textures, clarity, lighting, and visual appeal for an outstanding aesthetic result. Only output the prompt, nothing else."
+        } else {
+            "Analyze this image and write a highly detailed, descriptive prompt to re-generate this exact image in ultra-high resolution. You must instruct the generator to keep the image exactly as-is: do not creatively re-interpret, do not add or subtract subjects, and preserve the original composition, layout, color palette, text, and overall style completely. The goal is a high-fidelity super-resolution upscale that maintains total fidelity to the original. Only output the prompt, nothing else."
+        };
+
+        let text_payload = serde_json::json!({
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "inlineData": {
+                                "mimeType": mime_type,
+                                "data": img_base64
+                            }
+                        },
+                        {
+                            "text": description_prompt
+                        }
+                    ]
+                }
+            ]
+        });
+
+        let text_json = call_gemini_api(&resolved_api_key, &gemini_text_model, text_payload).await?;
+        let detailed_prompt = extract_gemini_text(&text_json)?;
+
+        // 2. Call Gemini Image model to generate the high-res image
+        let final_instruction = if creative {
+            format!("Creatively enhance and upscale this image to ultra-high resolution based on this description: {}. Focus on maintaining the core subject and layout, but feel free to beautify details, lighting, and textures.", detailed_prompt)
+        } else {
+            format!("Upscale this image to ultra-high resolution based on this description: {}. You must keep this image exactly as-is: do not change the subject, character's face, hair, orientation, posture, style, colors, background, or lighting. Maintain total visual identity and pixel structure fidelity to the original.", detailed_prompt)
+        };
+
+        let image_payload = serde_json::json!({
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "inlineData": {
+                                "mimeType": mime_type,
+                                "data": img_base64
+                            }
+                        },
+                        {
+                            "text": final_instruction
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "responseModalities": ["TEXT", "IMAGE"],
+                "imageConfig": {
+                    "aspectRatio": aspect_ratio
+                }
+            }
+        });
+
+        let image_json =
+            call_gemini_api(&resolved_api_key, &gemini_image_model, image_payload).await?;
+        let b64_data = extract_gemini_image(&image_json)?;
+
+        save_ai_image(&output_path, b64_data).await
+    }
+}
+
+#[tauri::command]
+async fn ai_style_image(
+    ai_provider: String,
+    api_key: String,
+    from_path: String,
+    prompt: String,
+    output_path: String,
+) -> Result<(), String> {
+    let resolved_api_key = if api_key == "__keychain__" || api_key.is_empty() {
+        #[cfg(target_os = "macos")]
+        {
+            if ai_provider == "openai" {
+                get_openai_keychain_key().unwrap_or(api_key)
+            } else {
+                get_gemini_keychain_key().unwrap_or(api_key)
+            }
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            api_key
+        }
+    } else {
+        api_key
+    };
+
+    let (mime_type, img_base64) = get_image_data(&from_path)?;
+
+    let config_path = config_dir()
+        .unwrap()
+        .join("com.codriver.dev/app_config.json");
+
+    let (_gemini_text_model, gemini_image_model, openai_text_model, openai_image_model) = {
+        if let Ok(file) = File::open(&config_path) {
+            if let Ok(config_json) = serde_json::from_reader::<_, serde_json::Value>(BufReader::new(file)) {
+                (
+                    config_json["gemini_text_model"].as_str().unwrap_or("gemini-3.1-flash-lite-preview").to_string(),
+                    config_json["gemini_image_model"].as_str().unwrap_or("gemini-3.1-flash-image-preview").to_string(),
+                    config_json["openai_text_model"].as_str().unwrap_or("gpt-5-4-mini").to_string(),
+                    config_json["openai_image_model"].as_str().unwrap_or("gpt-image-2").to_string(),
+                )
+            } else {
+                ("gemini-3.1-flash-lite-preview".to_string(), "gemini-3.1-flash-image-preview".to_string(), "gpt-4o".to_string(), "gpt-image-2".to_string())
+            }
+        } else {
+            ("gemini-3.1-flash-lite-preview".to_string(), "gemini-3.1-flash-image-preview".to_string(), "gpt-4o".to_string(), "gpt-image-2".to_string())
+        }
+    };
+
+    if ai_provider == "openai" {
+        // Step 1: Use text model to analyze the original image and rewrite/beautify the style instructions
+        let description_prompt = format!("Analyze this image and describe its subject, layout, composition and details accurately. Then, write a highly descriptive prompt for the image generator that instructs it to generate a new image that keeps the exact same layout and subject, but completely applies the following style instructions: {}. Only output the resulting prompt, nothing else.", prompt);
+
+        let text_payload = serde_json::json!({
+            "model": openai_text_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": description_prompt
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": format!("data:{};base64,{}", mime_type, img_base64)
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
+
+        let text_json = call_openai_api(&resolved_api_key, "chat/completions", text_payload).await?;
+        let style_prompt = extract_openai_text(&text_json)?;
+
+        // Step 2: Use image model to generate the restyled image
+        let mut image_payload = serde_json::json!({
+            "model": openai_image_model,
+            "prompt": style_prompt,
+            "n": 1,
+            "size": "1024x1024"
+        });
+        if !openai_image_model.contains("gpt-image") {
+            if let Some(obj) = image_payload.as_object_mut() {
+                obj.insert("response_format".to_string(), serde_json::json!("b64_json"));
+            }
+        }
+
+        let image_json = call_openai_api(&resolved_api_key, "images/generations", image_payload).await?;
+        let b64_data = extract_openai_image(&image_json)?;
+
+        save_ai_image(&output_path, b64_data).await
+    } else {
+        let image_payload = serde_json::json!({
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "inlineData": {
+                                "mimeType": mime_type,
+                                "data": img_base64
+                            }
+                        },
+                        {
+                            "text": format!("Edit and restyle this image. Maintain the overall layout, content, and subject, but apply the following stylistic style instructions: {}. Generate only the resulting image.", prompt)
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "responseModalities": ["TEXT", "IMAGE"]
+            }
+        });
+
+        let image_json = call_gemini_api(&resolved_api_key, &gemini_image_model, image_payload).await?;
+        let b64_data = extract_gemini_image(&image_json)?;
+
+        save_ai_image(&output_path, b64_data).await
+    }
+}
+
+#[tauri::command]
+async fn ai_get_organizer_suggestions(path: String) -> Result<serde_json::Value, String> {
+    // 1. Validate and scan the target directory path.
+    let dir_path = Path::new(&path);
+    if !dir_path.exists() || !dir_path.is_dir() {
+        return Err("Directory does not exist".to_string());
+    }
+
+    // List immediate entries (non-recursive).
+    let entries = std::fs::read_dir(dir_path)
+        .map_err(|e| format!("Failed to read directory: {}", e))?;
+
+    let mut files_list = Vec::new();
+    for entry in entries {
+        if let Ok(entry) = entry {
+            let file_type = entry.file_type().map_err(|e| e.to_string())?;
+            if file_type.is_file() {
+                let filename = entry.file_name().to_string_lossy().to_string();
+                if filename.starts_with('.') {
+                    continue; // Skip hidden system files
+                }
+                let metadata = entry.metadata().ok();
+                let size = metadata.map(|m| m.len()).unwrap_or(0);
+                files_list.push(serde_json::json!({
+                    "name": filename,
+                    "size": size,
+                }));
+            }
+        }
+    }
+
+    if files_list.is_empty() {
+        return Err("No files to organize in this directory".to_string());
+    }
+
+    // 2. Load API configuration
+    let config_path = config_dir()
+        .unwrap()
+        .join("com.codriver.dev/app_config.json");
+
+    let (ai_provider, gemini_text_model, openai_text_model) = {
+        if let Ok(file) = File::open(&config_path) {
+            if let Ok(config_json) = serde_json::from_reader::<_, serde_json::Value>(BufReader::new(file)) {
+                (
+                    config_json["ai_provider"].as_str().unwrap_or("gemini").to_string(),
+                    config_json["gemini_text_model"].as_str().unwrap_or("gemini-3.1-flash-lite-preview").to_string(),
+                    config_json["openai_text_model"].as_str().unwrap_or("gpt-4o").to_string(),
+                )
+            } else {
+                ("gemini".to_string(), "gemini-3.1-flash-lite-preview".to_string(), "gpt-4o".to_string())
+            }
+        } else {
+            ("gemini".to_string(), "gemini-3.1-flash-lite-preview".to_string(), "gpt-4o".to_string())
+        }
+    };
+
+    let resolved_api_key = {
+        let mut key = String::new();
+        if let Ok(file) = File::open(&config_path) {
+            if let Ok(config_json) = serde_json::from_reader::<_, serde_json::Value>(BufReader::new(file)) {
+                if ai_provider == "openai" {
+                    key = config_json["openai_api_key"].as_str().unwrap_or("").to_string();
+                } else {
+                    key = config_json["gemini_api_key"].as_str().unwrap_or("").to_string();
+                }
+            }
+        }
+        if key == "__keychain__" || key.is_empty() {
+            #[cfg(target_os = "macos")]
+            {
+                if ai_provider == "openai" {
+                    get_openai_keychain_key().unwrap_or(key)
+                } else {
+                    get_gemini_keychain_key().unwrap_or(key)
+                }
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                key
+            }
+        } else {
+            key
+        }
+    };
+
+    if resolved_api_key.is_empty() {
+        return Err("API key is not configured. Please add your key in the Settings panel.".to_string());
+    }
+
+    // 3. Construct the prompt
+    let dir_name = dir_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let files_json_str = serde_json::to_string_pretty(&files_list).unwrap_or_default();
+
+    let system_prompt = format!(
+        "You are an expert file organizer. Analyze the following list of files (including extensions and size in bytes) inside the directory \"{}\".\n\
+         Suggest a clean, logical folder structure (creating new subdirectories if helpful, e.g., \"Documents\", \"Images\", \"Invoices\", \"Code\", \"Archives\", \"Audio\") and assign each file to its best-suited target folder.\n\n\
+         Rules:\n\
+         1. ONLY return a raw JSON object. Do NOT wrap it in markdown code blocks like ```json ... ``` and do NOT include any introductory or surrounding text.\n\
+         2. The JSON object MUST strictly adhere to this schema:\n\
+         {{\n\
+           \"directories\": [\"Subdir1\", \"Subdir2/Nested\"],\n\
+           \"mappings\": [\n\
+             {{ \"from\": \"file1.txt\", \"to\": \"Subdir1/file1.txt\" }},\n\
+             {{ \"from\": \"pic.jpg\", \"to\": \"Subdir2/pic.jpg\" }}\n\
+           ]\n\
+         }}\n\
+         3. If a file is already in a logical place, or you do not think it needs to be categorized, do not include it in the mapping.\n\
+         4. Keep the original filename EXACTLY the same in the \"to\" field (only prefix it with the suggested folder path).\n\n\
+         Files to organize:\n\
+         {}",
+        dir_name, files_json_str
+    );
+
+    // 4. Call the selected AI provider
+    let raw_text = if ai_provider == "openai" {
+        let payload = serde_json::json!({
+            "model": openai_text_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": system_prompt
+                }
+            ],
+            "response_format": { "type": "json_object" }
+        });
+
+        let json_resp = call_openai_api(&resolved_api_key, "chat/completions", payload).await?;
+        extract_openai_text(&json_resp)?
+    } else {
+        let payload = serde_json::json!({
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": system_prompt
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "responseMimeType": "application/json"
+            }
+        });
+
+        let json_resp = call_gemini_api(&resolved_api_key, &gemini_text_model, payload).await?;
+        extract_gemini_text(&json_resp)?
+    };
+
+    // 5. Sanitize and parse JSON response
+    let cleaned_text = raw_text
+        .replace("```json", "")
+        .replace("```", "")
+        .trim()
+        .to_string();
+
+    let suggestions: serde_json::Value = serde_json::from_str(&cleaned_text)
+        .map_err(|e| format!("Failed to parse AI response as JSON: {}. Response was: {}", e, cleaned_text))?;
+
+    Ok(suggestions)
+}
+
+#[tauri::command]
+async fn ai_execute_organize(
+    parent_path: String,
+    directories: Vec<String>,
+    mappings: Vec<serde_json::Value>,
+) -> Result<(), String> {
+    let parent = Path::new(&parent_path);
+    if !parent.exists() || !parent.is_dir() {
+        return Err("Parent directory does not exist".to_string());
+    }
+
+    // 1. Create all suggested subdirectories
+    for dir in directories {
+        // Prevent path traversal
+        if dir.contains("..") || dir.starts_with('/') || dir.contains('\\') || dir.contains(':') {
+            return Err(format!("Invalid directory path: {}", dir));
+        }
+        let full_dir_path = parent.join(&dir);
+        if !full_dir_path.exists() {
+            std::fs::create_dir_all(&full_dir_path)
+                .map_err(|e| format!("Failed to create directory '{}': {}", dir, e))?;
+        }
+    }
+
+    // 2. Perform safe file movements
+    for mapping in mappings {
+        let from_name = mapping["from"].as_str().ok_or("Invalid mapping 'from'")?;
+        let to_rel_path = mapping["to"].as_str().ok_or("Invalid mapping 'to'")?;
+
+        // Prevent path traversal
+        if from_name.contains("..") || from_name.contains('/') || from_name.contains('\\') {
+            return Err(format!("Invalid source filename: {}", from_name));
+        }
+        if to_rel_path.contains("..") || to_rel_path.starts_with('/') || to_rel_path.contains('\\') || to_rel_path.contains(':') {
+            return Err(format!("Invalid target relative path: {}", to_rel_path));
+        }
+
+        let from_full = parent.join(from_name);
+        let to_full = parent.join(to_rel_path);
+
+        if from_full.exists() && from_full.is_file() {
+            // Check if destination directory parent exists
+            if let Some(to_parent) = to_full.parent() {
+                if !to_parent.exists() {
+                    std::fs::create_dir_all(to_parent)
+                        .map_err(|e| format!("Failed to create intermediate target directory: {}", e))?;
+                }
+            }
+
+            // Move file (rename)
+            std::fs::rename(&from_full, &to_full)
+                .map_err(|e| format!("Failed to move file '{}' to '{}': {}", from_name, to_rel_path, e))?;
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 async fn get_selection_size(paths: Vec<String>, update_id: String) -> u64 {
     IS_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
-    crate::utils::ACCUMULATED_SIZE.store(0, std::sync::atomic::Ordering::Relaxed);
-    crate::utils::ACCUMULATED_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
 
     let mut total_size = 0;
     for path in paths {
-        total_size += crate::utils::dir_info_incremental(path, Some(&update_id)).size;
+        if path.starts_with("ftp://") {
+            if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+                if let Ok(size) = crate::remote::ftp::get_ftp_file_size(&conn_name, &remote_path) {
+                    total_size += size;
+                } else if let Ok((size, _)) = crate::remote::ftp::get_ftp_dir_size_and_count(&conn_name, &remote_path, Some(&update_id)) {
+                    total_size += size as u64;
+                }
+            }
+        } else {
+            total_size += crate::utils::dir_info_incremental(path, Some(&update_id)).size;
+        }
         if IS_SIZE_CALC_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
+    }
+    total_size
+}
+
+#[tauri::command]
+async fn get_capped_selection_size(paths: Vec<String>, update_id: String) -> u64 {
+    IS_SELECTION_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
+
+    let mut total_size = 0;
+    let mut state = crate::utils::SizeCalcState::new_selection_capped();
+    for path in paths {
+        if path.starts_with("ftp://") {
+            if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+                if let Ok(size) = crate::remote::ftp::get_ftp_file_size(&conn_name, &remote_path) {
+                    total_size += size;
+                } else if let Ok((size, _)) = crate::remote::ftp::get_ftp_dir_size_and_count(&conn_name, &remote_path, Some(&update_id)) {
+                    total_size += size as u64;
+                }
+            }
+        } else {
+            total_size +=
+                crate::utils::dir_info_incremental_capped(path, Some(&update_id), &mut state).size;
+        }
+        if state.should_stop() {
             break;
         }
     }
@@ -2153,31 +4460,268 @@ async fn get_selection_size(paths: Vec<String>, update_id: String) -> u64 {
 #[tauri::command]
 async fn get_simple_dir_info(
     path: String,
-    _app_window: Window,
+    _app_window: WebviewWindow,
     _class_to_fill: String,
     update_id: Option<String>,
+    is_dir: Option<bool>,
 ) -> crate::utils::SimpleDirInfo {
     IS_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
-    crate::utils::ACCUMULATED_SIZE.store(0, std::sync::atomic::Ordering::Relaxed);
-    crate::utils::ACCUMULATED_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
+
+    if path.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+            let is_directory = is_dir.unwrap_or(true);
+            if is_directory {
+                match crate::remote::ftp::get_ftp_dir_size_and_count(&conn_name, &remote_path, update_id.as_deref()) {
+                    Ok((sz, cnt)) => {
+                        return crate::utils::SimpleDirInfo {
+                            size: sz as u64,
+                            count_elements: cnt as u64,
+                        };
+                    }
+                    Err(e) => {
+                        utils::log(format!("Failed to calculate FTP directory size: {}", e));
+                    }
+                }
+            } else {
+                match crate::remote::ftp::get_ftp_file_size(&conn_name, &remote_path) {
+                    Ok(sz) => {
+                        return crate::utils::SimpleDirInfo {
+                            size: sz,
+                            count_elements: 1,
+                        };
+                    }
+                    Err(e) => {
+                        utils::log(format!("Failed to get FTP file size: {}", e));
+                    }
+                }
+            }
+        }
+        return crate::utils::SimpleDirInfo {
+            size: 0,
+            count_elements: 0,
+        };
+    }
 
     crate::utils::dir_info_incremental(path, update_id.as_deref())
 }
 
 #[tauri::command]
 async fn get_file_content(path: String) -> String {
-    let content = fs::read_to_string(&path).unwrap();
+    let target_path = if path.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+            let filename = Path::new(&remote_path)
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            let temp_dir = std::env::temp_dir().join("codriver-ftp-temp");
+            let _ = std::fs::create_dir_all(&temp_dir);
+            let local_dest = temp_dir.join(&filename);
+            let local_dest_str = local_dest.to_string_lossy().to_string();
+            let config = {
+                let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                conns.get(&conn_name).cloned()
+            };
+            let mut downloaded = false;
+            if let Some(config) = config {
+                if let Ok(mut client) = crate::remote::ftp::get_ftp_client(&config) {
+                    if crate::remote::ftp::download_ftp_file(
+                        &mut client,
+                        &remote_path,
+                        &local_dest_str,
+                        None,
+                    )
+                    .is_ok()
+                    {
+                        downloaded = true;
+                    }
+                }
+            }
+            if downloaded {
+                local_dest_str
+            } else {
+                path.clone()
+            }
+        } else {
+            path.clone()
+        }
+    } else {
+        path.clone()
+    };
+
+    let content = fs::read_to_string(&target_path).unwrap_or_default();
+    if path.starts_with("ftp://") && target_path != path {
+        let _ = fs::remove_file(&target_path);
+    }
     if path.ends_with(".json") {
-        let json: Value = serde_json::from_str(&content).unwrap();
-        let json_string_pretty = serde_json::to_string_pretty(&json).unwrap();
-        return json_string_pretty;
+        if let Ok(json) = serde_json::from_str::<Value>(&content) {
+            if let Ok(json_string_pretty) = serde_json::to_string_pretty(&json) {
+                return json_string_pretty;
+            }
+        }
     }
     content
 }
 
 #[tauri::command]
+async fn get_file_base64(path: String) -> Result<String, String> {
+    let target_path = if path.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+            let filename = Path::new(&remote_path)
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            let temp_dir = std::env::temp_dir().join("codriver-ftp-temp");
+            let _ = std::fs::create_dir_all(&temp_dir);
+            let local_dest = temp_dir.join(&filename);
+            let local_dest_str = local_dest.to_string_lossy().to_string();
+            let config = {
+                let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                conns.get(&conn_name).cloned()
+            };
+            let mut downloaded = false;
+            if let Some(config) = config {
+                if let Ok(mut client) = crate::remote::ftp::get_ftp_client(&config) {
+                    if crate::remote::ftp::download_ftp_file(
+                        &mut client,
+                        &remote_path,
+                        &local_dest_str,
+                        None,
+                    )
+                    .is_ok()
+                    {
+                        downloaded = true;
+                    }
+                }
+            }
+            if downloaded {
+                local_dest_str
+            } else {
+                return Err("Failed to download remote file".to_string());
+            }
+        } else {
+            return Err("Invalid FTP URL".to_string());
+        }
+    } else {
+        path.clone()
+    };
+
+    let bytes = std::fs::read(&target_path).map_err(|e| e.to_string())?;
+    if path.starts_with("ftp://") && target_path != path {
+        let _ = fs::remove_file(&target_path);
+    }
+    Ok(BASE64_STANDARD.encode(&bytes))
+}
+
+#[tauri::command]
 async fn open_config_location() {
     let _ = open::that(config_dir().unwrap().join("com.codriver.dev"));
+}
+
+#[tauri::command]
+async fn discover_ftp_servers(
+) -> Result<Vec<crate::remote::ftp::ftp_discovery::DiscoveredFtpServer>, String> {
+    Ok(crate::remote::ftp::ftp_discovery::run_discovery().await)
+}
+
+#[tauri::command]
+async fn connect_ftp(config: crate::remote::ftp::FtpConfig) -> Result<String, String> {
+    let mut client = crate::remote::ftp::get_ftp_client(&config)
+        .map_err(|e| format!("Failed to connect to FTP: {}", e))?;
+
+    let _pwd = client
+        .pwd()
+        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+
+    let name = config.name.clone();
+
+    {
+        let mut conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+        conns.insert(name.clone(), config);
+    }
+
+    Ok(format!("Successfully connected to {}", name))
+}
+
+#[tauri::command]
+async fn disconnect_ftp(name: String) -> Result<(), String> {
+    let mut conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+    if conns.remove(&name).is_some() {
+        if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+            if ftp_path.starts_with(&format!("ftp://{}", name)) {
+                *CURRENT_DIR_OVERRIDE.lock().unwrap() = None;
+            }
+        }
+        Ok(())
+    } else {
+        Err("Connection not found".to_string())
+    }
+}
+
+#[tauri::command]
+async fn save_ftp_connection(config: crate::remote::ftp::FtpConfig) -> Result<(), String> {
+    let mut conns = crate::remote::ftp::load_saved_connections();
+    conns.insert(config.name.clone(), config.clone());
+    crate::remote::ftp::save_connections(&conns)?;
+
+    // Also update active in-memory mapping
+    let mut active_conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+    active_conns.insert(config.name.clone(), config);
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_saved_ftp_connections() -> Result<Vec<crate::remote::ftp::FtpConfig>, String> {
+    let conns = crate::remote::ftp::load_saved_connections();
+    let list: Vec<crate::remote::ftp::FtpConfig> = conns.into_values().collect();
+    Ok(list)
+}
+
+#[tauri::command]
+async fn delete_saved_ftp_connection(name: String) -> Result<(), String> {
+    let mut conns = crate::remote::ftp::load_saved_connections();
+    if conns.remove(&name).is_some() {
+        crate::remote::ftp::save_connections(&conns)?;
+        let _ = crate::remote::ftp::delete_keychain_password(&name);
+    }
+
+    // Also remove from active in-memory mapping
+    let mut active_conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+    active_conns.remove(&name);
+
+    if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
+        if ftp_path.starts_with(&format!("ftp://{}", name)) {
+            *CURRENT_DIR_OVERRIDE.lock().unwrap() = None;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_ftp_temp_file(path: String) -> Result<String, String> {
+    if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+        let filename = Path::new(&remote_path)
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        let temp_dir = std::env::temp_dir().join("codriver-ftp-temp");
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let local_dest = temp_dir.join(&filename);
+        let local_dest_str = local_dest.to_string_lossy().to_string();
+        let config = {
+            let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+            conns.get(&conn_name).cloned()
+        }
+        .ok_or_else(|| "Connection not found".to_string())?;
+
+        let mut client = crate::remote::ftp::get_ftp_client(&config)?;
+        crate::remote::ftp::download_ftp_file(&mut client, &remote_path, &local_dest_str, None)?;
+        Ok(local_dest_str)
+    } else {
+        Err("Invalid FTP URL".to_string())
+    }
 }
 
 #[tauri::command]
@@ -2240,19 +4784,24 @@ async fn unmount_network_drive(path: String, sudo_password: String) -> Result<()
 }
 
 #[tauri::command]
-async fn unmount_drive(path: String) {
+async fn unmount_drive(_path: String) {
     #[cfg(target_os = "macos")]
     let _ = Command::new("diskutil")
         .arg("unmountDisk")
-        .arg(path)
+        .arg(_path)
         .spawn();
     #[cfg(target_os = "linux")]
-    let _ = Command::new("umount").arg(path).spawn();
+    let _ = Command::new("umount").arg(_path).spawn();
 }
 
 #[tauri::command]
 async fn eject_disk(path: String) -> Result<String, String> {
     let path = path.trim();
+    if path.starts_with("ftp://") {
+        let conn_name = path.replace("ftp://", "");
+        disconnect_ftp(conn_name).await?;
+        return Ok("FTP connection closed successfully".into());
+    }
     if path.is_empty() || path == "/" {
         return Err("Refusing to eject system root".into());
     }
@@ -2327,62 +4876,179 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
             }
             let thumbnail_size = 50;
             let mut bytes = Vec::new();
+
+            // 1. Check supported formats (excluding ICNS for now)
+            let supported_formats = vec![
+                "png", "jpg", "jpeg", "gif", "webp", "tiff", "tif", "bmp", "ico", "avif",
+            ];
+
+            // 2. Handle ICNS on macOS
+            #[cfg(target_os = "macos")]
+            if item.image_type == "icns" {
+                let mut decoded = false;
+                if let Ok(file) = File::open(&item.image_url) {
+                    if let Ok(icon_family) = IconFamily::read(BufReader::new(file)) {
+                        let mut icns_image =
+                            icon_family.get_icon_with_type(IconType::RGBA32_512x512_2x);
+                        if icns_image.is_err() {
+                            icns_image = icon_family.get_icon_with_type(IconType::RGBA32_512x512);
+                            if icns_image.is_err() {
+                                icns_image =
+                                    icon_family.get_icon_with_type(IconType::RGBA32_256x256_2x);
+                                if icns_image.is_err() {
+                                    icns_image =
+                                        icon_family.get_icon_with_type(IconType::RGBA32_256x256);
+                                    if icns_image.is_err() {
+                                        icns_image = icon_family
+                                            .get_icon_with_type(IconType::RGBA32_128x128_2x);
+                                        if icns_image.is_err() {
+                                            icns_image = icon_family
+                                                .get_icon_with_type(IconType::RGBA32_128x128);
+                                            if icns_image.is_err() {
+                                                icns_image = icon_family
+                                                    .get_icon_with_type(IconType::RGBA32_64x64);
+                                                if icns_image.is_err() {
+                                                    icns_image = icon_family.get_icon_with_type(
+                                                        IconType::RGBA32_32x32_2x,
+                                                    );
+                                                    if icns_image.is_err() {
+                                                        icns_image = icon_family
+                                                            .get_icon_with_type(
+                                                                IconType::RGBA32_32x32,
+                                                            );
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if let Ok(icon) = icns_image {
+                            let mut png_bytes = Vec::new();
+                            if icon.write_png(&mut png_bytes).is_ok() {
+                                if let Ok(image) = image::load_from_memory(&png_bytes) {
+                                    if image
+                                        .thumbnail(thumbnail_size, thumbnail_size)
+                                        .write_to(
+                                            &mut Cursor::new(&mut bytes),
+                                            image::ImageFormat::Png,
+                                        )
+                                        .is_ok()
+                                    {
+                                        decoded = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if decoded && !bytes.is_empty() {
+                    let data = BASE64_STANDARD.encode(&bytes);
+                    let _ = &app_window.eval(&format!(
+                        "setItemImage('{}', '{}', '{}')",
+                        data, &item.image_id, &item.image_url
+                    ));
+                } else {
+                    let _ = WINDOW
+                        .get()
+                        .unwrap()
+                        .emit("set_default_image", (&item.image_id, &item.image_url));
+                }
+                return;
+            }
+
+            // 3. Fallback for completely unsupported types (e.g. svg or non-macOS icns)
+            if !supported_formats.contains(&item.image_type.as_str()) {
+                let _ = WINDOW
+                    .get()
+                    .unwrap()
+                    .emit("set_default_image", (&item.image_id, &item.image_url));
+                return;
+            }
+
+            // 4. Standard image loading & decoding
             match ImageReader::open(&item.image_url) {
                 Ok(image) => {
+                    let mut decoded = false;
                     match image.decode() {
                         Ok(image) if item.image_type == String::from("png") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("gif") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Gif)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("webp") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::WebP)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image)
                             if item.image_type == String::from("jpg")
                                 || item.image_type == String::from("jpeg") =>
                         {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Jpeg)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("tiff") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Tiff)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("ico") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Ico)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("avif") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Avif)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(image) if item.image_type == String::from("bmp") => {
-                            image
+                            if image
                                 .thumbnail(thumbnail_size, thumbnail_size)
                                 .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Bmp)
-                                .unwrap();
+                                .is_ok()
+                            {
+                                decoded = true;
+                            }
                         }
                         Ok(_) => {
-                            // If image type not supported (yet?), try default way
                             let _ = WINDOW
                                 .get()
                                 .unwrap()
@@ -2393,29 +5059,23 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
                                 .get()
                                 .unwrap()
                                 .emit("set_default_image", (&item.image_id, &item.image_url));
-                            err_log(format!("Failed to decode/load image: {}", err));
+                            dbg_log(format!("Failed to decode/load image: {}", err));
                         }
                     }
-                    let data = BASE64_STANDARD.encode(&bytes);
-                    // let _ = &app_window.eval(&format!("tryLoadCachedImage({}, {}, {})", &item.image_id, &item.image_type, &item.image_url));
-                    let _ = &app_window.eval(&format!(
-                        "setItemImage('{}', '{}', '{}')",
-                        data, &item.image_id, &item.image_url
-                    ));
-                    // let _ = WINDOW.get().unwrap().emit(
-                    //     "set-item-image",
-                    //     format!(
-                    //         "{{\"data\": \"{}\", \"id\": \"{}\", \"url\": \"{}\" }}",
-                    //         data, item.image_id, item.image_url
-                    //     ),
-                    // );
+                    if decoded && !bytes.is_empty() {
+                        let data = BASE64_STANDARD.encode(&bytes);
+                        let _ = &app_window.eval(&format!(
+                            "setItemImage('{}', '{}', '{}')",
+                            data, &item.image_id, &item.image_url
+                        ));
+                    }
                 }
                 Err(err) => {
                     let _ = WINDOW
                         .get()
                         .unwrap()
                         .emit("set_default_image", (item.image_id, item.image_url));
-                    err_log(format!("Failed to load image: {}", err));
+                    dbg_log(format!("Failed to load image: {}", err));
                 }
             }
         });
@@ -2474,6 +5134,28 @@ async fn get_machine_bytes(size_string: String) -> u64 {
 
 #[tauri::command]
 async fn get_single_item_info(path: String) -> Result<FDir, String> {
+    if path.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+            let parent_path = if let Some(idx) = remote_path.rfind('/') {
+                &remote_path[..idx]
+            } else {
+                ""
+            };
+            let parent_path_clean = if parent_path.is_empty() {
+                "/"
+            } else {
+                parent_path
+            };
+            if let Ok(entries) = crate::remote::ftp::list_ftp_dir(&conn_name, parent_path_clean) {
+                let filename = remote_path.split('/').last().unwrap_or_default();
+                if let Some(entry) = entries.into_iter().find(|e| e.name == filename) {
+                    return Ok(entry);
+                }
+            }
+        }
+        return Err(format!("FTP item '{}' not found", path));
+    }
+
     let metadata = match fs::metadata(&path) {
         Ok(metadata) => metadata,
         Err(err) => {
@@ -2492,7 +5174,13 @@ async fn get_single_item_info(path: String) -> Result<FDir, String> {
     let size = metadata.len();
     let is_dir = metadata.is_dir();
     let file_ext = path.split(".").last().unwrap_or("").into();
-    let file_date = format!("{:?}", metadata.modified().unwrap());
+    let file_date = match metadata.modified() {
+        Ok(mod_time) => {
+            let dt: chrono::DateTime<chrono::Local> = mod_time.into();
+            dt.to_string()
+        }
+        Err(_) => "-".into(),
+    };
 
     Ok(FDir {
         name: name,
@@ -2503,3 +5191,312 @@ async fn get_single_item_info(path: String) -> Result<FDir, String> {
         last_modified: file_date.split(".").next().unwrap().into(),
     })
 }
+
+#[tauri::command]
+async fn get_clipboard_files() -> Result<Vec<FDir>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::appkit::NSPasteboard;
+        use cocoa::base::{nil, id};
+        use cocoa::foundation::NSArray;
+        use objc::{msg_send, sel, sel_impl};
+        use std::ffi::CStr;
+
+        let paths = unsafe {
+            let pb = NSPasteboard::generalPasteboard(nil);
+            let files: id = msg_send![pb, propertyListForType: cocoa::appkit::NSFilenamesPboardType];
+            if files == nil {
+                Vec::new()
+            } else {
+                let count = NSArray::count(files);
+                let mut result = Vec::new();
+                for i in 0..count {
+                    let ns_str = NSArray::objectAtIndex(files, i);
+                    if ns_str != nil {
+                        let bytes: *const std::os::raw::c_char = msg_send![ns_str, UTF8String];
+                        if !bytes.is_null() {
+                            let c_str = CStr::from_ptr(bytes);
+                            if let Ok(s) = c_str.to_str() {
+                                result.push(s.to_string());
+                            }
+                        }
+                    }
+                }
+                result
+            }
+        };
+
+        let mut result = Vec::new();
+        for path in paths {
+            if let Ok(info) = get_single_item_info(path).await {
+                result.push(info);
+            }
+        }
+        Ok(result)
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use clipboard_win::{formats, Clipboard, Getter};
+        
+        let _clip = match Clipboard::new() {
+            Ok(c) => c,
+            Err(_) => return Ok(Vec::new()),
+        };
+        
+        let mut files: Vec<String> = Vec::new();
+        if formats::FileList.read_clipboard(&mut files).is_ok() {
+            let mut result = Vec::new();
+            for path in files {
+                if let Ok(info) = get_single_item_info(path).await {
+                    result.push(info);
+                }
+            }
+            Ok(result)
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Ok(Vec::new())
+    }
+}
+
+#[tauri::command]
+async fn write_clipboard_files(files: Vec<String>) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::appkit::NSPasteboard;
+        use cocoa::base::{nil, id};
+        use cocoa::foundation::{NSArray, NSString};
+        use objc::{msg_send, sel, sel_impl};
+
+        unsafe {
+            let pb = NSPasteboard::generalPasteboard(nil);
+            let _: () = msg_send![pb, clearContents];
+            
+            let types = NSArray::arrayWithObject(nil, cocoa::appkit::NSFilenamesPboardType);
+            let _: id = msg_send![pb, declareTypes: types owner: nil];
+            
+            let mut ns_strings = Vec::new();
+            for file in files {
+                ns_strings.push(NSString::alloc(nil).init_str(&file));
+            }
+            let ns_array = NSArray::arrayWithObjects(nil, &ns_strings);
+            let _: id = msg_send![pb, setPropertyList: ns_array forType: cocoa::appkit::NSFilenamesPboardType];
+            Ok(())
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::ffi::OsStr;
+        use std::os::windows::ffi::OsStrExt;
+        use std::ptr;
+        use windows::Win32::Foundation::{HANDLE, HWND, TRUE};
+        use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE, GMEM_ZEROINIT};
+        use windows::Win32::System::DataExchange::{OpenClipboard, EmptyClipboard, SetClipboardData, CloseClipboard};
+        use windows::Win32::UI::Shell::DROPFILES;
+
+        unsafe {
+            let mut encoded_paths = Vec::new();
+            let mut total_size = std::mem::size_of::<DROPFILES>();
+            
+            for path in files {
+                let win_path = path.replace("/", "\\");
+                let mut utf16: Vec<u16> = OsStr::new(&win_path).encode_wide().collect();
+                utf16.push(0);
+                total_size += utf16.len() * 2;
+                encoded_paths.push(utf16);
+            }
+            total_size += 2;
+
+            let h_mem = match GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, total_size) {
+                Ok(h) => h,
+                Err(err) => return Err(format!("Failed to allocate global memory: {}", err)),
+            };
+            
+            let ptr = GlobalLock(h_mem);
+            if ptr.is_null() {
+                return Err("Failed to lock global memory".to_string());
+            }
+            
+            let dropfiles_ptr = ptr as *mut DROPFILES;
+            (*dropfiles_ptr).pFiles = std::mem::size_of::<DROPFILES>() as u32;
+            (*dropfiles_ptr).fWide = TRUE;
+
+            let mut current_ptr = (ptr as *mut u8).add(std::mem::size_of::<DROPFILES>());
+            for path_data in encoded_paths {
+                let byte_len = path_data.len() * 2;
+                ptr::copy_nonoverlapping(path_data.as_ptr() as *const u8, current_ptr, byte_len);
+                current_ptr = current_ptr.add(byte_len);
+            }
+
+            let _ = GlobalUnlock(h_mem);
+
+            if OpenClipboard(HWND(0)).is_err() {
+                return Err("Failed to open clipboard".to_string());
+            }
+            if EmptyClipboard().is_err() {
+                let _ = CloseClipboard();
+                return Err("Failed to empty clipboard".to_string());
+            }
+            if SetClipboardData(15, HANDLE(h_mem.0 as _)).is_err() {
+                let _ = CloseClipboard();
+                return Err("Failed to set clipboard data".to_string());
+            }
+            let _ = CloseClipboard();
+            Ok(())
+        }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Ok(())
+    }
+}
+
+#[tauri::command]
+async fn save_clipboard_image(target_dir: String) -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::appkit::NSPasteboard;
+        use cocoa::base::{nil, id};
+        use cocoa::foundation::NSString;
+        use objc::{msg_send, sel, sel_impl};
+        use std::fs::File;
+        use std::io::Write;
+        use chrono::Local;
+
+        unsafe {
+            let pb = NSPasteboard::generalPasteboard(nil);
+            
+            // Check for PNG
+            let png_type = NSString::alloc(nil).init_str("public.png");
+            let png_data: id = msg_send![pb, dataForType: png_type];
+            
+            if png_data != nil {
+                let len: usize = msg_send![png_data, length];
+                if len > 0 {
+                    let bytes_ptr: *const u8 = msg_send![png_data, bytes];
+                    if !bytes_ptr.is_null() {
+                        let bytes = std::slice::from_raw_parts(bytes_ptr, len);
+                        
+                        let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
+                        let filename = format!("Screenshot_{}.png", timestamp);
+                        let file_path = std::path::Path::new(&target_dir).join(&filename);
+                        
+                        let mut file = File::create(&file_path)
+                            .map_err(|e| format!("Failed to create file: {}", e))?;
+                        file.write_all(bytes)
+                            .map_err(|e| format!("Failed to write image data: {}", e))?;
+                        
+                        return Ok(file_path.to_string_lossy().to_string());
+                    }
+                }
+            }
+            
+            // If no PNG, check for TIFF and convert to PNG!
+            let tiff_type = NSString::alloc(nil).init_str("public.tiff");
+            let tiff_data: id = msg_send![pb, dataForType: tiff_type];
+            if tiff_data != nil {
+                let len: usize = msg_send![tiff_data, length];
+                if len > 0 {
+                    let bytes_ptr: *const u8 = msg_send![tiff_data, bytes];
+                    if !bytes_ptr.is_null() {
+                        let bytes = std::slice::from_raw_parts(bytes_ptr, len);
+                        
+                        let img = image::load_from_memory(bytes)
+                            .map_err(|e| format!("Failed to decode TIFF image: {}", e))?;
+                        
+                        let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
+                        let filename = format!("Screenshot_{}.png", timestamp);
+                        let file_path = std::path::Path::new(&target_dir).join(&filename);
+                        
+                        img.save(&file_path)
+                            .map_err(|e| format!("Failed to save image as PNG: {}", e))?;
+                        
+                        return Ok(file_path.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+        
+        Err("No image data found on clipboard".to_string())
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::System::DataExchange::{OpenClipboard, GetClipboardData, CloseClipboard};
+        use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock, GlobalSize};
+        use windows::Win32::Foundation::{HWND, HGLOBAL};
+        use std::io::Write;
+        use chrono::Local;
+
+        unsafe {
+            if OpenClipboard(HWND(0)).is_ok() {
+                let h_mem = GetClipboardData(8); // CF_DIB
+                if h_mem.is_ok() {
+                    let h_mem = h_mem.unwrap();
+                    let h_global = HGLOBAL(h_mem.0 as *mut std::ffi::c_void);
+                    let size = GlobalSize(h_global);
+                    if size > 0 {
+                        let ptr = GlobalLock(h_global);
+                        if !ptr.is_null() {
+                            let bytes = std::slice::from_raw_parts(ptr as *const u8, size);
+                            
+                            let dib_header_size = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as usize;
+                            let mut offset = 14 + dib_header_size;
+                            if dib_header_size >= 36 {
+                                let clr_used = u32::from_le_bytes([bytes[32], bytes[33], bytes[34], bytes[35]]) as usize;
+                                if clr_used > 0 {
+                                    offset += clr_used * 4;
+                                } else {
+                                    let bit_count = u16::from_le_bytes([bytes[14], bytes[15]]) as usize;
+                                    if bit_count <= 8 {
+                                        offset += (1 << bit_count) * 4;
+                                    }
+                                }
+                            }
+                            
+                            let mut bmp_header = Vec::with_capacity(14);
+                            let _ = bmp_header.write_all(b"BM");
+                            let _ = bmp_header.write_all(&((size + 14) as u32).to_le_bytes());
+                            let _ = bmp_header.write_all(&[0, 0, 0, 0]); // reserved
+                            let _ = bmp_header.write_all(&(offset as u32).to_le_bytes());
+
+                            let mut bmp_data = Vec::with_capacity(14 + size);
+                            let _ = bmp_data.write_all(&bmp_header);
+                            let _ = bmp_data.write_all(bytes);
+
+                            let img = image::load_from_memory(&bmp_data)
+                                .map_err(|e| format!("Failed to decode BMP image: {}", e))?;
+
+                            let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
+                            let filename = format!("Screenshot_{}.png", timestamp);
+                            let file_path = std::path::Path::new(&target_dir).join(&filename);
+                            
+                            img.save(&file_path)
+                                .map_err(|e| format!("Failed to save image as PNG: {}", e))?;
+                            
+                            let _ = GlobalUnlock(h_global);
+                            let _ = CloseClipboard();
+                            return Ok(file_path.to_string_lossy().to_string());
+                        }
+                    }
+                }
+                let _ = CloseClipboard();
+            }
+        }
+        Err("No DIB data found on clipboard".to_string())
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        Err("Not supported on this platform".to_string())
+    }
+}
+
+

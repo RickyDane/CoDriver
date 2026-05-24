@@ -23,33 +23,19 @@
             <div class="file-searching-file-count"></div>
             <div class="file-searching-done"></div>
         </div>
-        <div class="progress-bar-container-popup reverse-bounce">
-            <div class="popup-body-col-section">
-                <div class="popup-body-row-section">
-                    <div class="progress-bar-main-percentage"></div>
-                    <div class="popup-body-col-section" style="width: calc(100% - 10px);">
-                        <div class="progress-bar-detail-info"></div>
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <div class="progress-bar-current-file-text"></div>
-                            <div class="progress-bar-current-file-ext"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="progress-bar-main-progress">
-                    <div class="progress-bar-main-progress-fill"></div>
-                </div>
-            </div>
-        </div>
+
     </div>
     <div class="popup-background"></div>
+    <div class="active-actions-container"></div>
 
     <!-- :instant-search | Instant Search -->
     <input class="instant-search-input text-input" type="text" placeholder="Start typing ..." disabled />
 
-    <div style="display: flex; width: 100%; height: 100vh;">
+    <div style="display: flex; width: 100%; height: 100vh; overflow: hidden;">
         <div class="site-nav-bar">
-            <div class="codriver-name">CoDriver</div>
-            <div class="active-actions-container"></div>
+            <div class="site-nav-bar-blur-top"></div>
+            <div class="site-nav-bar-gradient-top"></div>
+            <div class="codriver-name"><i class="fa-solid fa-bolt" style="color: var(--textColor); font-size: var(--fontSize)"></i>CoDriver</div>
         </div>
         <div style="display: flex; flex-flow: column; position: relative;" class="main-window-container">
             <!-- :header :nav | Header -->
@@ -65,26 +51,30 @@
                     <button onclick="switchToDualPane()" class="switch-dualpane-view-button header-nav-button"><i
                             class="fa-solid fa-table-columns"></i></button>
                     <button onclick="openSettings()" class="header-nav-button"><i class="fa-solid fa-gear"></i></button>
+                    <div class="active-actions-header-placeholder"></div>
                     <div class="preloader-small-invert is-file-searching"></div>
                 </div>
                 <div data-tauri-drag-region class="header-nav-right-container"
                     style="display: flex; flex-flow: row; gap: 10px; justify-content: flex-end; align-items: center; width: 100%;">
-                    <div class="file-searchbar">
-                        <input class="search-bar-input text-input" type="text" placeholder="Cmd / Ctrl + F" />
-                        <button class="search-button" onclick="searchFor($('.search-bar-input').val())"><i
-                                class="fa-solid fa-magnifying-glass"></i></button>
-                        <button class="cancel-search-button" onclick="cancelSearch()"><i
-                                class="fa-solid fa-xmark"></i></button>
+                    <div class="file-searchbar" role="search">
+                        <i class="fa-solid fa-magnifying-glass file-searchbar-icon" aria-hidden="true"></i>
+                        <input class="search-bar-input text-input" type="search" placeholder="Search files" aria-label="Search files" />
+                        <kbd class="file-searchbar-shortcut">⌘F</kbd>
+                        <button class="search-button" aria-label="Search files" onclick="searchFor($('.search-bar-input').val())"><i
+                                class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+                        <button class="cancel-search-button" aria-label="Cancel search" onclick="cancelSearch()"><i
+                                class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                     </div>
-                    <div class="view-mode-container" style="display: flex; align-items: center; gap: 8px; background-color: var(--secondaryColor); border: 1px solid var(--tertiaryColor); border-radius: 10px; padding: 0 10px; height: 35px;">
-                        <span class="view-mode-icon-span" style="display: flex; align-items: center; justify-content: center;">
-                            <i class="fa-solid fa-grip" style="font-size: 12px; color: var(--textColor2);"></i>
-                        </span>
-                        <select class="select view-mode-select" onchange="switchView(this.value)" style="height: 100%; padding: 0; font-size: 11px; min-width: 60px; border: none; background: transparent; box-shadow: none;">
-                            <option value="wrap">Grid</option>
-                            <option value="column">List</option>
-                            <option value="miller">Miller</option>
-                        </select>
+                    <div class="view-mode-group" role="group" aria-label="View mode">
+                        <button class="view-mode-btn active" data-view="wrap" onclick="switchView('wrap')" aria-pressed="true" title="Grid view">
+                            <i class="fa-solid fa-grip"></i>
+                        </button>
+                        <button class="view-mode-btn" data-view="column" onclick="switchView('column')" aria-pressed="false" title="List view">
+                            <i class="fa-solid fa-list"></i>
+                        </button>
+                        <button class="view-mode-btn" data-view="miller" onclick="switchView('miller')" aria-pressed="false" title="Miller columns view">
+                            <i class="fa-solid fa-table-columns"></i>
+                        </button>
                     </div>
                     <div class="windows-linux-titlebar-buttons">
                         <button class="minimize-button"><i class="fa-solid fa-minus"></i></button>
@@ -120,6 +110,11 @@
                                 <option value="1">Disk 1</option>
                                 <option value="2">Disk 2</option>
                             </select>
+                        </div>
+                        <div class="dual-pane-actions">
+                            <button class="dual-pane-btn" onclick="compareDualPanes()" title="Compare Left & Right directories"><i class="fa-solid fa-code-compare"></i> Compare</button>
+                            <button class="dual-pane-btn disabled" id="dual-pane-sync-btn" onclick="showSyncPopup()" title="Sync directories" disabled><i class="fa-solid fa-rotate"></i> Sync</button>
+                            <button class="dual-pane-btn" id="dual-pane-clear-btn" onclick="clearComparison()" title="Clear comparison highlights" style="display: none;"><i class="fa-solid fa-xmark"></i> Clear</button>
                         </div>
                         <div class="dual-pane-disk-dropdown right">
                             <i class="fa-solid fa-hdd" style="font-size: 12px; color: var(--textColor);"></i>
@@ -159,16 +154,6 @@
                 <button class="context-item c-item-newfolder" onclick="createFolderInputPrompt()">New folder<i
                         class="fa-solid fa-folder-plus"></i></button>
                 <button class="context-item c-item-rename">Rename<i class="fa-solid fa-file-signature"></i></button>
-                <div class="context-item context-with-dropdown">
-                    <span>Extras</span>
-                    <i class="fa-solid fa-chevron-right"></i>
-                    <div class="context-dropdown">
-                        <button class="context-item c-item-duplicates">Duplicates<i
-                                class="fa-solid fa-magnifying-glass"></i></button>
-                        <button class="context-item c-item-ytdownload">YT-Download<i
-                                class="fa-solid fa-video"></i></button>
-                    </div>
-                </div>
                 <button class="context-item c-item-properties">Properties<i
                         class="fa-solid fa-info-circle"></i></button>
                 <button class="context-item c-item-openinterminal" onclick="openInTerminal()">Open in Terminal<i
@@ -177,31 +162,39 @@
 
             <!-- :settings | Settings UI -->
             <div class="settings-ui">
-                <div data-tauri-drag-region class="settings-ui-header">
-                    <span style="display: flex; gap: 15px; align-items: center;">
-                        <i class="fa-solid fa-gears"></i>
-                        <p>Application Settings</p>
+                <!--<div data-tauri-drag-region class="settings-ui-header">
+                    <span class="settings-header-title">
+                        <i class="fa-solid fa-gear"></i>
+                        <p>Settings</p>
                     </span>
-                    <button class="button" onclick="showAppInfo()"><i class="fa-solid fa-circle-info"></i></button>
-                </div>
-                
-                <div class="settings-ui-main">
+                </div>-->
+
+
                     <div class="settings-sidebar">
                         <button class="settings-sidebar-button active" onclick="showSettingsTab('general', this)">
-                            <i class="fa-solid fa-house"></i> General
+                            <i class="fa-solid fa-house"></i>
+                            <span>General</span>
                         </button>
                         <button class="settings-sidebar-button" onclick="showSettingsTab('shortcuts', this)">
-                            <i class="fa-solid fa-keyboard"></i> Shortcuts
+                            <i class="fa-solid fa-keyboard"></i>
+                            <span>Shortcuts</span>
                         </button>
                         <button class="settings-sidebar-button" onclick="showSettingsTab('search', this)">
-                            <i class="fa-solid fa-magnifying-glass"></i> Search
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span>Search</span>
                         </button>
                         <button class="settings-sidebar-button" onclick="showSettingsTab('experimental', this)">
-                            <i class="fa-solid fa-flask"></i> Experimental
+                            <i class="fa-solid fa-flask"></i>
+                            <span>Experimental</span>
+                        </button>
+                        <button class="settings-sidebar-button" onclick="showSettingsTab('ai', this)">
+                            <i class="fa-solid fa-robot"></i>
+                            <span>AI Settings</span>
                         </button>
                     </div>
-                    
-                    <div class="settings-content">
+
+                    <div class="settings-main-panel">
+                        <div class="settings-content">
                         <!-- General Tab -->
                         <div id="settings-tab-general" class="settings-tab-content active">
                             <div class="settings-section">
@@ -211,23 +204,52 @@
                                         <p class="settings-label">Color Theme</p>
                                         <p class="settings-hint">Choose your preferred visual style</p>
                                     </div>
-                                    <div style="display: flex; gap: 10px; align-items: center;">
-                                        <i class="fa-solid fa-rotate" style="cursor: pointer;" onclick="checkAppConfig(true)"></i>
-                                        <select class="select theme-select" onchange="saveConfig(true, true)"></select>
+                                    <div class="settings-control-inline" style="display: flex; gap: 8px; align-items: center;">
+                                        <i class="fa-solid fa-rotate settings-refresh-icon" onclick="checkAppConfig(true)" title="Refresh themes"></i>
+                                        <select class="select theme-select" onchange="applyThemeFromSelect()"></select>
+                                        <button class="settings-action-btn secondary" onclick="openThemeCreator()" title="Create custom theme" style="padding: 6px 10px; height: 30px; font-size: 11px;">
+                                            <i class="fa-solid fa-plus"></i> New
+                                        </button>
+                                        <button class="settings-action-btn secondary edit-theme-btn" onclick="editActiveTheme()" title="Edit active theme" style="padding: 6px 10px; height: 30px; font-size: 11px; display: none;">
+                                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                                        </button>
+                                        <button class="settings-action-btn danger delete-theme-btn" onclick="deleteActiveTheme()" title="Delete active theme" style="padding: 6px 10px; height: 30px; font-size: 11px; display: none;">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
                                     </div>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Font Size</p>
+                                        <p class="settings-hint">Adjust the interface font size</p>
+                                    </div>
+                                    <div class="settings-slider-wrap">
+                                        <span class="settings-slider-value" id="font-size-value">12px</span>
+                                        <input type="range" min="10" max="18" value="12" class="settings-slider font-size-slider" oninput="document.getElementById('font-size-value').textContent = this.value + 'px'">
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Window Transparency</p>
+                                        <p class="settings-hint">Enable translucent window background</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" class="window-transparency-checkbox">
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
                                 <div class="settings-row">
                                     <div class="settings-control-group">
                                         <p class="settings-label">Config Location</p>
                                         <p class="settings-hint">Manage your configuration files directly</p>
                                     </div>
-                                    <button class="icon-button" onclick="openConfigLocation()">
-                                        <span class="button-icon"><i class="fa-solid fa-folder-open"></i></span>
+                                    <button class="settings-action-btn secondary" onclick="openConfigLocation()">
+                                        <i class="fa-solid fa-folder-open"></i>
                                         Open
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div class="settings-section">
                                 <h3 class="settings-section-title">Behavior</h3>
                                 <div class="settings-row">
@@ -257,20 +279,42 @@
                         <div id="settings-tab-shortcuts" class="settings-tab-content">
                             <div class="settings-section">
                                 <h3 class="settings-section-title">Quick Access Paths</h3>
-                                <p class="settings-hint" style="margin-bottom: 15px;">Configure paths accessible via Alt + 1, 2, or 3</p>
-                                <div class="settings-body-col-section" style="display: flex; flex-direction: column; gap: 10px;">
-                                    <div class="settings-control-group">
-                                        <p class="settings-label">Slot 1 (Alt + 1)</p>
+                                <p class="settings-hint settings-section-desc">Configure paths accessible via Alt + 1, 2, or 3</p>
+                                <div class="settings-input-list">
+                                    <div class="settings-input-item">
+                                        <p class="settings-label">Slot 1 <span class="settings-kbd">Alt + 1</span></p>
                                         <input type="text" class="text-input configured-path-one-input" placeholder="/home/user" />
                                     </div>
-                                    <div class="settings-control-group">
-                                        <p class="settings-label">Slot 2 (Alt + 2)</p>
+                                    <div class="settings-input-item">
+                                        <p class="settings-label">Slot 2 <span class="settings-kbd">Alt + 2</span></p>
                                         <input type="text" class="text-input configured-path-two-input" placeholder="/home/user/documents" />
                                     </div>
-                                    <div class="settings-control-group">
-                                        <p class="settings-label">Slot 3 (Alt + 3)</p>
+                                    <div class="settings-input-item">
+                                        <p class="settings-label">Slot 3 <span class="settings-kbd">Alt + 3</span></p>
                                         <input type="text" class="text-input configured-path-three-input" placeholder="/home/user/downloads" />
                                     </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-section" style="margin-top: 25px;">
+                                <h3 class="settings-section-title">Keyboard Shortcuts</h3>
+                                <p class="settings-hint settings-section-desc">Customize keyboard shortcuts for explorer actions. Click a shortcut button to record a new key combination.</p>
+
+                                <div style="margin-bottom: 14px; padding: 0; border: none;">
+                                    <div class="settings-search-box">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                        <input type="text" class="shortcuts-search-input" placeholder="Search shortcuts..." oninput="filterShortcuts(this.value)" />
+                                    </div>
+                                </div>
+
+                                <div class="shortcuts-list-container" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 8px; background-color: var(--transparentColor);">
+                                    <!-- Keyboard shortcuts rows will be loaded dynamically via JavaScript -->
+                                </div>
+
+                                <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+                                    <button class="settings-action-btn secondary" onclick="resetAllShortcuts()" style="padding: 6px 12px; font-size: 11px;">
+                                        <i class="fa-solid fa-rotate-left"></i> Reset All Shortcuts
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -284,18 +328,21 @@
                                         <p class="settings-label">Recursive Depth</p>
                                         <p class="settings-hint">How many levels deep should we look?</p>
                                     </div>
-                                    <input style="width: 80px;" type="number" class="text-input search-depth-input" placeholder="10" />
+                                    <input type="number" class="text-input search-depth-input" placeholder="10" />
                                 </div>
                                 <div class="settings-row">
                                     <div class="settings-control-group">
                                         <p class="settings-label">Maximum Results</p>
                                         <p class="settings-hint">Stop searching after finding this many items</p>
                                     </div>
-                                    <input style="width: 100px;" type="number" class="text-input max-items-input" placeholder="1000" />
+                                    <input type="number" class="text-input max-items-input" placeholder="1000" />
                                 </div>
-                                <div class="settings-section">
+                            </div>
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">Startup</h3>
+                                <div class="settings-input-item">
                                     <p class="settings-label">Startup Path</p>
-                                    <p class="settings-hint" style="margin-bottom: 8px;">Initial directory when opening the app</p>
+                                    <p class="settings-hint">Initial directory when opening the app</p>
                                     <input type="text" class="text-input launch-path-input" placeholder="/home" />
                                 </div>
                             </div>
@@ -317,16 +364,125 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- AI Settings Tab -->
+                        <div id="settings-tab-ai" class="settings-tab-content">
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">AI Configuration</h3>
+                                <div class="ai-disclaimer-box">
+                                    <div class="ai-disclaimer-header">
+                                        <i class="fa-solid fa-shield-halved"></i>
+                                        <span>Privacy & Secure Data Notice</span>
+                                    </div>
+                                    <p class="ai-disclaimer-body">
+                                        Enabling AI features allows CoDriver to process selected text, file names, or image data using external Google Gemini or OpenAI models. All requests are securely transmitted directly using your own API keys. CoDriver does not run external proxy servers, collect, or store any of your personal data.
+                                    </p>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Enable AI Features</p>
+                                        <p class="settings-hint">Opt-in to use AI features like creative enhancement, style transfer, and AI super-resolution</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input id="switch-ai-enabled" type="checkbox" class="ai-enabled-checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="settings-row ai-provider-row" style="display: none;">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">AI Provider</p>
+                                        <p class="settings-hint">Choose between Google Gemini and OpenAI</p>
+                                    </div>
+                                    <select class="select ai-provider-select" onchange="toggleAiProviderRows()" style="width: 250px;">
+                                        <option value="gemini">Google Gemini (Recommended)</option>
+                                        <option value="openai">OpenAI</option>
+                                    </select>
+                                </div>
+                                <div class="settings-row gemini-api-key-row" style="display: none;">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Gemini API Key</p>
+                                        <p class="settings-hint">Enter your Google AI Studio Gemini API key to enable AI upscaling</p>
+                                    </div>
+                                    <input type="password" class="text-input gemini-api-key-input" placeholder="AIzaSy..." style="width: 250px;" />
+                                </div>
+                                <div class="settings-row openai-api-key-row" style="display: none;">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">OpenAI API Key</p>
+                                        <p class="settings-hint">Enter your OpenAI API key to enable AI upscaling and styling</p>
+                                    </div>
+                                    <input type="password" class="text-input openai-api-key-input" placeholder="sk-..." style="width: 250px;" />
+                                </div>
+                                <div class="settings-advanced-ai-toggle-container" style="display: none; margin-top: 15px; margin-bottom: 8px;">
+                                    <span class="settings-advanced-ai-toggle" onclick="toggleAdvancedAiSettings()" style="cursor: pointer; font-size: 12px; color: #4ba3ff; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; user-select: none;">
+                                        <i class="fa-solid fa-chevron-right advanced-ai-chevron" style="transition: transform 0.2s ease;"></i>
+                                        Advanced Model Settings
+                                    </span>
+                                </div>
+                                <div class="advanced-ai-settings-container" style="display: none; flex-direction: column; gap: 12px; margin-top: 8px; border-left: 2px solid var(--tertiaryColor); padding-left: 12px; margin-left: 6px;">
+                                    <!-- Gemini Advanced Models -->
+                                    <div class="settings-row gemini-models-row" style="display: none;">
+                                        <div class="settings-control-group">
+                                            <p class="settings-label">Gemini Text Model</p>
+                                            <p class="settings-hint">Model used for generating detailed descriptions</p>
+                                        </div>
+                                        <input type="text" class="text-input gemini-text-model-input" placeholder="gemini-3.1-flash-lite-preview" style="width: 250px;" />
+                                    </div>
+                                    <div class="settings-row gemini-models-row" style="display: none;">
+                                        <div class="settings-control-group">
+                                            <p class="settings-label">Gemini Image Model</p>
+                                            <p class="settings-hint">Model used for image generation</p>
+                                        </div>
+                                        <div style="display: flex; flex-direction: column; gap: 6px; width: 250px;">
+                                            <select class="select gemini-image-model-select" onchange="onGeminiImageModelChange()" style="width: 100%;">
+                                                <option value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image</option>
+                                                <option value="gemini-3-pro-image-preview">Nano Banana Pro</option>
+                                                <option value="custom">Custom...</option>
+                                            </select>
+                                            <input type="text" class="text-input gemini-image-model-custom-input" placeholder="Enter custom model ID" style="display: none; width: 100%;" />
+                                        </div>
+                                    </div>
+                                    <!-- OpenAI Advanced Models -->
+                                    <div class="settings-row openai-models-row" style="display: none;">
+                                        <div class="settings-control-group">
+                                            <p class="settings-label">OpenAI Text Model</p>
+                                            <p class="settings-hint">Model used for description rewriting/beautification</p>
+                                        </div>
+                                        <input type="text" class="text-input openai-text-model-input" placeholder="gpt-4o" style="width: 250px;" />
+                                    </div>
+                                    <div class="settings-row openai-models-row" style="display: none;">
+                                        <div class="settings-control-group">
+                                            <p class="settings-label">OpenAI Image Model</p>
+                                            <p class="settings-hint">Model used for styling and upscaling generations</p>
+                                        </div>
+                                        <div style="display: flex; flex-direction: column; gap: 6px; width: 250px;">
+                                            <select class="select openai-image-model-select" onchange="onOpenAiImageModelChange()" style="width: 100%;">
+                                                <option value="gpt-image-2">GPT Image 2</option>
+                                                <option value="custom">Custom...</option>
+                                            </select>
+                                            <input type="text" class="text-input openai-image-model-custom-input" placeholder="Enter custom model ID" style="display: none; width: 100%;" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="popup-controls">
-                    <button class="icon-button" onclick="closeSettings()" style="background-color: transparent !important; border: none; box-shadow: none;">
-                        <span class="button-icon"><i class="fa-solid fa-xmark"></i></span>Cancel
-                    </button>
-                    <button class="icon-button" onclick="saveConfig(); closeSettings()" style="background-color: var(--tertiaryColor) !important;">
-                        <span class="button-icon"><i class="fa-solid fa-check"></i></span>Save Changes
-                    </button>
+
+                    <div class="settings-ui-footer">
+                        <button class="settings-reset-btn" onclick="resetSettingsToDefaults()">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            Reset to Defaults
+                        </button>
+                        <div class="settings-footer-actions">
+                            <button class="settings-cancel-btn" onclick="closeSettings()">
+                                <i class="fa-solid fa-xmark"></i>
+                                Cancel
+                            </button>
+                            <button class="settings-save-btn" onclick="saveConfig(); closeSettings()">
+                                <i class="fa-solid fa-check"></i>
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -338,103 +494,477 @@
             </div>
 
             <!-- :fullsearch | Dual pane search UI -->
-            <div class="search-full-container uni-popup">
-                <div class="popup-header">
-                    <span style="display: flex; gap: 20px; align-items: center;">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <p>Search</p>
-                    </span>
+            <div class="search-full-container props-card" style="display: none;">
+                <section class="props-card__hero">
+                    <div class="props-card__thumb"><i class="fa-solid fa-magnifying-glass"></i></div>
+                    <div class="props-card__heading">
+                        <h2 class="props-card__name">Search Files</h2>
+                        <div class="props-card__meta">
+                            <span>System</span>
+                            <span class="props-card__chip">Search</span>
+                        </div>
+                    </div>
+                </section>
+
+                <dl class="props-card__list">
+                    <!-- Row 1: Search Input -->
+                    <div class="props-card__row">
+                        <dt class="props-card__label"><i class="fa-solid fa-font"></i>Input</dt>
+                        <dd class="props-card__value">
+                            <input class="props-card__input full-dualpane-search-input trigger-for-full-search" type="text"
+                                placeholder="example.txt (supports globs)" />
+                        </dd>
+                    </div>
+                    <!-- Row 2: File Content -->
+                    <div class="props-card__row">
+                        <dt class="props-card__label"><i class="fa-solid fa-align-left"></i>Content</dt>
+                        <dd class="props-card__value">
+                            <input class="props-card__input full-dualpane-search-file-content-input trigger-for-full-search"
+                                type="text" placeholder="Text inside files (optional)" />
+                        </dd>
+                    </div>
+                    <!-- Row 3: Max count -->
+                    <div class="props-card__row">
+                        <dt class="props-card__label"><i class="fa-solid fa-list-ol"></i>Limit</dt>
+                        <dd class="props-card__value">
+                            <input type="number"
+                                class="props-card__input trigger-for-full-search full-search-max-items-input" placeholder="1000 (0 = off)"
+                                value="1000" />
+                        </dd>
+                    </div>
+                    <!-- Row 4: Search depth -->
+                    <div class="props-card__row">
+                        <dt class="props-card__label"><i class="fa-solid fa-sitemap"></i>Depth</dt>
+                        <dd class="props-card__value">
+                            <input type="number"
+                                class="props-card__input trigger-for-full-search full-search-search-depth-input" placeholder="10 (0 = off)"
+                                value="10" />
+                        </dd>
+                    </div>
+
+                    <!-- Search Progress Indicator (Row 5) -->
+                    <div class="props-card__row fullsearch-progress-row" style="grid-template-columns: 1fr; display: none; padding-top: 4px; padding-bottom: 4px;">
+                        <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                            <div class="full-searching-loader" style="display: none;">
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <p class="text-2 warbing-text fullsearch-current-file" style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(var(--fontSize) * 0.92); color: var(--textColor2);"></p>
+                        </div>
+                    </div>
+                </dl>
+
+                <footer class="props-card__footer">
+                    <button class="props-card__btn" onclick="closeFullSearchContainer()">
+                        <i class="fa-solid fa-xmark"></i><span>Close</span>
+                    </button>
+                    <button class="props-card__btn props-card__btn--primary fullsearch-search-button" onclick="startFullSearch()">
+                        <i class="fa-solid fa-magnifying-glass"></i><span>Search</span>
+                    </button>
+                </footer>
+            </div>
+
+            <!-- :theme-creator | Theme Creator UI -->
+            <div id="theme-creator-popup" class="props-card props-card--wide" style="display: none; width: min(450px, 90vw); z-index: 9999;">
+                <section class="props-card__hero">
+                    <div class="props-card__thumb"><i class="fa-solid fa-palette"></i></div>
+                    <div class="props-card__heading">
+                        <h2 class="props-card__name" id="theme-creator-title">Create Theme</h2>
+                        <div class="props-card__meta">
+                            <span>Aesthetics</span>
+                            <span class="props-card__chip">Theme Editor</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="props-card__scroll-wrap" style="max-height: 50vh; overflow-y: auto;">
+                    <dl class="props-card__list">
+                        <!-- Row: Theme Name -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-tag"></i>Name</dt>
+                            <dd class="props-card__value">
+                                <input type="text" class="props-card__input theme-name-input" placeholder="e.g. Neon Sunset" required />
+                            </dd>
+                        </div>
+
+                        <!-- Row: Primary Accent -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--primaryColor);"></i>Primary</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-primary-color" value="#3f4352" />
+                                    <input type="text" class="props-card__input theme-primary-color-text" value="#3f4352" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-primary-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-primary-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
+                            </dd>
+                        </div>
+
+                        <!-- Row: Secondary Accent -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--secondaryColor);"></i>Secondary</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-secondary-color" value="#383b47" />
+                                    <input type="text" class="props-card__input theme-secondary-color-text" value="#383b47" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-secondary-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-secondary-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
+                            </dd>
+                        </div>
+
+                        <!-- Row: Tertiary Color -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--tertiaryColor);"></i>Tertiary</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-tertiary-color" value="#474b5c" />
+                                    <input type="text" class="props-card__input theme-tertiary-color-text" value="#474b5c" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-tertiary-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-tertiary-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
+                            </dd>
+                        </div>
+
+                        <!-- Row: Accent Color -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-circle" style="color: var(--selectColor2);"></i>Accent</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-accent-color" value="#0b64fd" />
+                                    <input type="text" class="props-card__input theme-accent-color-text" value="#0b64fd" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-accent-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-accent-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
+                            </dd>
+                        </div>
+
+                        <!-- Row: Text Color -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-font" style="color: var(--textColor);"></i>Primary Text</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-text-color" value="#ffffff" />
+                                    <input type="text" class="props-card__input theme-text-color-text" value="#ffffff" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-text-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-text-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
+                            </dd>
+                        </div>
+
+                        <!-- Row: Text Color 2 -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-font" style="color: var(--textColor2); opacity: 0.65;"></i>Secondary Text</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-text-color2" value="#a0a0a0" />
+                                    <input type="text" class="props-card__input theme-text-color2-text" value="#a0a0a0" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-text-color2-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-text-color2-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
+                            </dd>
+                        </div>
+
+                        <!-- Row: Text Color 3 -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-font" style="color: var(--textColor3); opacity: 0.85;"></i>Subtext</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-text-color3" value="#d0d0d0" />
+                                    <input type="text" class="props-card__input theme-text-color3-text" value="#d0d0d0" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-text-color3-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-text-color3-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
+                            </dd>
+                        </div>
+
+                        <!-- Row: Sidebar Color -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-window-maximize" style="color: var(--siteBarColor);"></i>Sidebar</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-sitebar-color" value="#2d2f39" />
+                                    <input type="text" class="props-card__input theme-sitebar-color-text" value="#2d2f39" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-sitebar-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-sitebar-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
+                            </dd>
+                        </div>
+
+                        <!-- Row: Navbar Color -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-heading" style="color: var(--navBarColor);"></i>Header Nav</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <input type="color" class="theme-color-picker theme-navbar-color" value="#1e1e28" />
+                                    <input type="text" class="props-card__input theme-navbar-color-text" value="#1e1e28" style="font-family: monospace; width: 100%;" />
+                                </div>
+                                <div class="theme-opacity-control-container" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                    <span style="font-size: 10px; opacity: 0.65; min-width: 44px; flex-shrink: 0;">Opacity</span>
+                                    <input type="range" class="theme-opacity-slider theme-navbar-color-opacity" min="0" max="1" step="0.01" value="1.00" style="flex-grow: 1;" />
+                                    <span class="theme-opacity-val theme-navbar-color-opacity-val" style="font-size: 10px; font-family: monospace; min-width: 26px; text-align: right; opacity: 0.8;">1.00</span>
+                                </div>
+                            </dd>
+                        </div>
+                    </dl>
                 </div>
-                <div class="popup-body">
-                    <div class="popup-body-col-section">
-                        <p class="text-small">Search input</p>
-                        <input class="full-dualpane-search-input trigger-for-full-search text-input" type="text"
-                            placeholder="example.txt" />
-                    </div>
-                    <div class="popup-body-col-section">
-                        <p class="text-small">File content</p>
-                        <input class="full-dualpane-search-file-content-input trigger-for-full-search text-input"
-                            type="text" placeholder="A long, long time ago in a galaxy far far away..." />
-                    </div>
-                    <div class="popup-body-col-section">
-                        <p class="text-small">Max count of search results (0 = off)</p>
-                        <input style="width: 100px;" type="number"
-                            class="number-input trigger-for-full-search full-search-max-items-input" placeholder="1000"
-                            value="1000" />
-                    </div>
-                    <div class="popup-body-col-section">
-                        <p class="text-small">Search depth (0 = off)</p>
-                        <input style="width: 100px;" type="number"
-                            class="number-input trigger-for-full-search full-search-search-depth-input" placeholder="10"
-                            value="10" />
-                    </div>
-                </div>
-                <div class="popup-controls">
-                    <!-- show current file which is being searched -->
-                    <div style="width: 50%; display: flex; align-items: center; gap: 15px; margin-left: 10px;">
-                        <div class="preloader-small-invert full-searching-loader" style="display: none;"></div>
-                        <p class="text-2 warbing-text fullsearch-current-file"></p>
-                    </div>
-                    <div style="width: 50%; display: flex; flex-flow: row; gap: 5px; justify-content: flex-end;">
-                        <button class="icon-button" onclick="closeFullSearchContainer()">
-                            <div class="button-icon"><i class="fa-solid fa-ban"></i></div>
-                            Close
-                        </button>
-                        <button class="fullsearch-search-button icon-button" onclick="startFullSearch()">
-                            <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-                            Start
-                            <div class="fullsearch-loader preloader-small-invert" style="display: none;"></div>
-                        </button>
-                    </div>
-                </div>
+
+                <footer class="props-card__footer">
+                    <button class="props-card__btn" onclick="closeThemeCreator()">
+                        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+                    </button>
+                    <button class="props-card__btn props-card__btn--primary" onclick="saveCustomTheme()">
+                        <i class="fa-solid fa-check"></i><span>Save Theme</span>
+                    </button>
+                </footer>
             </div>
 
             <!-- :ftp | FTP connection UI -->
-            <div class="ftp-connect-container uni-popup">
-                <div class="popup-header">
-                    <div style="display: flex; gap: 20px; align-items: center;">
-                        <i class="fa-solid fa-gears"></i>
-                        <h3>SSHFS - Connection</h3>
+            <div class="ftp-connect-container props-card props-card--wide" style="display: none;">
+                <section class="props-card__hero">
+                    <div class="props-card__thumb"><i class="fa-solid fa-server"></i></div>
+                    <div class="props-card__heading">
+                        <h2 class="props-card__name">FTP Connection</h2>
+                        <div class="props-card__meta">
+                            <span>Network</span>
+                            <span class="props-card__chip">FTP</span>
+                        </div>
                     </div>
+                </section>
+
+                <!-- Scrollable Wrapper for Modal Content -->
+                <div class="props-card__scroll-wrap">
+                    <!-- FTP Tabs Navigation -->
+                    <div class="ftp-tabs-nav">
+                        <button class="ftp-tab-btn active" data-target="discovered" onclick="switchFtpTab('discovered')">
+                            <i class="fa-solid fa-satellite-dish"></i><span>Discovered</span>
+                        </button>
+                        <button class="ftp-tab-btn" data-target="saved" onclick="switchFtpTab('saved')">
+                            <i class="fa-solid fa-bookmark"></i><span>Saved Profiles</span>
+                        </button>
+                    </div>
+
+                    <!-- FTP Discovery Section -->
+                    <div class="ftp-discovery-section">
+                        <div class="ftp-discovery-header">
+                            <span class="ftp-discovery-title">
+                                <i class="fa-solid fa-satellite-dish"></i>Discovered Servers
+                            </span>
+                            <button class="ftp-discovery-refresh-btn" onclick="startFtpDiscovery(event)">
+                                <i class="fa-solid fa-arrows-rotate"></i>Refresh
+                            </button>
+                        </div>
+                        <div class="ftp-discovery-list">
+                            <!-- Dynamic content loaded via JS -->
+                        </div>
+                    </div>
+
+                    <!-- FTP Saved Section -->
+                    <div class="ftp-saved-section" style="display: none;">
+                        <div class="ftp-saved-header">
+                            <span class="ftp-saved-title">
+                                <i class="fa-solid fa-bookmark"></i>Saved Profiles
+                            </span>
+                        </div>
+                        <div class="ftp-saved-list">
+                            <!-- Dynamic content loaded via JS -->
+                        </div>
+                    </div>
+
+                    <dl class="props-card__list">
+                        <!-- Row 1: Name -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-tag"></i>Name</dt>
+                            <dd class="props-card__value">
+                                <input type="text" class="props-card__input ftp-dirname-input ftp-popup-input" placeholder="e.g. My FTP Server" required />
+                            </dd>
+                        </div>
+                        <!-- Row 2: Hostname -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-globe"></i>Host</dt>
+                            <dd class="props-card__value">
+                                <input type="text" class="props-card__input ftp-hostname-input ftp-popup-input" placeholder="e.g. 127.0.0.1" required />
+                            </dd>
+                        </div>
+                        <!-- Row 3: Port -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-plug"></i>Port</dt>
+                            <dd class="props-card__value">
+                                <input type="number" class="props-card__input ftp-port-input ftp-popup-input" value="21" required />
+                            </dd>
+                        </div>
+                        <!-- Row 4: Username -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-user"></i>User</dt>
+                            <dd class="props-card__value">
+                                <input type="text" class="props-card__input ftp-username-input ftp-popup-input" placeholder="user" required />
+                            </dd>
+                        </div>
+                        <!-- Row 5: Password -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-lock"></i>Password</dt>
+                            <dd class="props-card__value">
+                                <input type="password" class="props-card__input ftp-password-input ftp-popup-input" placeholder="***************" required />
+                                <div class="ftp-keychain-hint" style="display: none;">
+                                    <i class="fa-solid fa-key"></i>
+                                    <span>passwords get saved to macOS keychain</span>
+                                </div>
+                            </dd>
+                        </div>
+                        <!-- Row 6: Path -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label"><i class="fa-solid fa-folder"></i>Path</dt>
+                            <dd class="props-card__value">
+                                <input type="text" class="props-card__input ftp-path-input ftp-popup-input" placeholder="/" />
+                            </dd>
+                        </div>
+                    </dl>
                 </div>
-                <div class="popup-body">
-                    <div class="popup-body-col-section">
-                        <h3 class="text-2">This process needs the program to be run as root!</h3>
+
+                <footer class="props-card__footer">
+                    <div class="ftp-save-profile-footer">
+                        <input type="checkbox" id="ftp-save-checkbox" />
+                        <label for="ftp-save-checkbox">
+                            <span>Save Profile</span>
+                        </label>
                     </div>
-                    <div class="popup-body-col-section">
-                        <div class="popup-body-col-section">
-                            <p>Name</p>
-                            <input type="text" class="text-input ftp-dirname-input ftp-popup-input" placeholder="ftp-connection" required />
-                        </div>
-                    </div>
-                    <div class="popup-body-row-section">
-                        <div class="popup-body-col-section">
-                            <p>Hostname</p>
-                            <input type="text" class="text-input ftp-hostname-input ftp-popup-input" placeholder="127.0.0.1" required />
-                        </div>
-                        <div class="popup-body-col-section">
-                            <p>Remote path</p>
-                            <input type="text" class="text-input ftp-path-input ftp-popup-input" placeholder="/" />
-                        </div>
-                    </div>
-                    <div class="popup-body-row-section">
-                        <div class="popup-body-col-section">
-                            <p>Username</p>
-                            <input type="text" class="text-input ftp-username-input ftp-popup-input" placeholder="user" required />
-                        </div>
-                        <div class="popup-body-col-section">
-                            <p>Password</p>
-                            <input type="password" class="text-input ftp-password-input ftp-popup-input" placeholder="***************" required />
-                        </div>
-                    </div>
-                </div>
-                <span class="popup-controls">
-                    <button class="icon-button" onclick="closeFtpConfig()"><span class="button-icon"><i class="fa-solid fa-ban"></i></span>Cancel</button>
-                    <button class="icon-button" onclick="connectToFtp()"><span class="button-icon"><i class="fa-solid fa-forward"></i></span>Connect</button>
-                </span>
+                    <button class="props-card__btn" onclick="closeFtpConfig()">
+                        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+                    </button>
+                    <button class="props-card__btn props-card__btn--primary" onclick="connectToFtp()">
+                        <i class="fa-solid fa-plug"></i><span>Connect</span>
+                    </button>
+                </footer>
+
                 <div class="ftp-loader">
                     <div class="preloader-invert"></div>
                 </div>
+            </div>
+
+            <!-- :sync | Directory Sync UI -->
+            <!-- :sync | Directory Sync UI -->
+            <div class="sync-directory-container props-card props-card--wide" style="display: none;">
+                <section class="props-card__hero">
+                    <div class="props-card__thumb"><i class="fa-solid fa-rotate"></i></div>
+                    <div class="props-card__heading">
+                        <h2 class="props-card__name">Synchronize Directories</h2>
+                        <div class="props-card__meta">
+                            <span>Dual Pane</span>
+                            <span class="props-card__chip">Sync</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="props-card__scroll-wrap">
+                    <dl class="props-card__list">
+                        <!-- Sync Mode Dropdown -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label">
+                                <i class="fa-solid fa-shuffle"></i><span>Sync Mode</span>
+                            </dt>
+                            <dd class="props-card__value">
+                                <select id="sync-direction-select" class="props-card__input">
+                                    <option value="left-to-right">Left ➔ Right (Mirror Left to Right)</option>
+                                    <option value="right-to-left">Right ➔ Left (Mirror Right to Left)</option>
+                                    <option value="two-way">Two-way Sync (Merge & Update Both)</option>
+                                </select>
+                            </dd>
+                        </div>
+
+                        <!-- Left Folder -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label">
+                                <i class="fa-solid fa-folder-open"></i><span>Left Folder</span>
+                            </dt>
+                            <dd class="props-card__value" id="sync-left-path" style="font-family: monospace; font-size: 13px; color: var(--textColor); opacity: 0.85; word-break: break-all; min-height: 24px; display: flex; align-items: center;"></dd>
+                        </div>
+
+                        <!-- Right Folder -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label">
+                                <i class="fa-solid fa-folder-open"></i><span>Right Folder</span>
+                            </dt>
+                            <dd class="props-card__value" id="sync-right-path" style="font-family: monospace; font-size: 13px; color: var(--textColor); opacity: 0.85; word-break: break-all; min-height: 24px; display: flex; align-items: center;"></dd>
+                        </div>
+
+                        <!-- Left-only Items Count -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label" style="color: var(--successColor);">
+                                <i class="fa-solid fa-plus"></i><span>Left Only</span>
+                            </dt>
+                            <dd class="props-card__value" style="font-weight: 500; color: var(--textColor);">
+                                <span id="sync-stat-left-only" style="font-weight: 600;">0</span> items
+                            </dd>
+                        </div>
+
+                        <!-- Right-only Items Count -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label" style="color: var(--successColor);">
+                                <i class="fa-solid fa-plus"></i><span>Right Only</span>
+                            </dt>
+                            <dd class="props-card__value" style="font-weight: 500; color: var(--textColor);">
+                                <span id="sync-stat-right-only" style="font-weight: 600;">0</span> items
+                            </dd>
+                        </div>
+
+                        <!-- Mismatched Items Count -->
+                        <div class="props-card__row">
+                            <dt class="props-card__label" style="color: var(--warningColor);">
+                                <i class="fa-solid fa-triangle-exclamation"></i><span>Mismatched</span>
+                            </dt>
+                            <dd class="props-card__value" style="font-weight: 500; color: var(--textColor);">
+                                <span id="sync-stat-different" style="font-weight: 600;">0</span> items
+                            </dd>
+                        </div>
+
+                        <!-- Delete Extraneous Toggle -->
+                        <div class="props-card__row" style="align-items: center;">
+                            <dt class="props-card__label" style="color: var(--dangerColor);">
+                                <i class="fa-solid fa-trash-can"></i><span>Delete Extra</span>
+                            </dt>
+                            <dd class="props-card__value" style="display: flex; align-items: center; gap: 15px;">
+                                <label class="switch" style="margin: 0;">
+                                    <input id="sync-delete-extraneous" type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                                <span style="font-size: 12px; opacity: 0.7; color: var(--textColor); line-height: 1.3;">Delete files in destination that do not exist in source.</span>
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <footer class="props-card__footer">
+                    <button class="props-card__btn" onclick="closeSyncPopup()">
+                        <i class="fa-solid fa-ban"></i><span>Cancel</span>
+                    </button>
+                    <button class="props-card__btn props-card__btn--primary" onclick="executeSync()">
+                        <i class="fa-solid fa-play"></i><span>Start Sync</span>
+                    </button>
+                </footer>
             </div>
 
             <!-- :progressbar | Progress bar popup -->

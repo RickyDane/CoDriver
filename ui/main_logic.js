@@ -1,16 +1,16 @@
 const TAURI = window.__TAURI__;
-const { invoke } = TAURI.tauri;
+const { invoke } = TAURI.core;
 const { confirm } = TAURI.dialog;
 const { message } = TAURI.dialog;
 const { open } = TAURI.dialog;
-const { appWindow } = TAURI.window;
-const { writeText } = TAURI.clipboard;
+const appWindow = window.__TAURI__.webviewWindow.getCurrentWebviewWindow();
+const { writeText } = TAURI.clipboardManager;
 const { getTauriVersion } = TAURI.app;
 const { getVersion } = TAURI.app;
 const { getMatches } = TAURI.cli;
 const { platform } = TAURI.os;
 const { arch } = TAURI.os;
-const convertFileSrc = TAURI.convertFileSrc;
+const convertFileSrc = TAURI.core.convertFileSrc;
 const { resolveResource } = TAURI.path;
 
 // :entry_point Entry point
@@ -27,12 +27,17 @@ async function startDrag(options, onEvent) {
   if (!dragIcon || dragIcon === "") {
     dragIcon = "resources/file-icon.png";
   }
-  
+
+  const channel = new TAURI.core.Channel();
+  channel.onmessage = (event) => {
+    if (onEvent) onEvent(event);
+  };
+
   try {
     await invoke("plugin:drag|start_drag", {
       item: options.item,
       image: dragIcon,
-      onEventFn: onEvent ? transformCallback(onEvent) : null,
+      onEvent: channel,
     });
   } catch (error) {
     writeLog("Drag and drop error: " + error);
@@ -80,11 +85,14 @@ const cdCtMenu = new CDContextMenu();
 // :drag / Selec items via dragging
 
 ds.subscribe("DS:select", async (payload) => {
+  const isShift = window.event ? window.event.shiftKey : false;
+  const isCtrl = window.event ? window.event.ctrlKey : false;
+  const isMeta = window.event ? window.event.metaKey : false;
   if (
     payload.item == SelectedElement ||
-    IsShiftDown === true ||
-    IsCtrlDown === true ||
-    IsMetaDown === true ||
+    isShift === true ||
+    isCtrl === true ||
+    isMeta === true ||
     ArrSelectedItems.find(
       (itemOfArray) =>
         itemOfArray.getAttribute("itempath") ==
@@ -114,10 +122,8 @@ let CurrentDir = "/";
 let IsShowDisks = false;
 let IsShowHiddenFiles = false;
 
-let IsMetaDown = false;
-let IsCtrlDown = false;
-let IsShiftDown = false;
-let IsAltDown = false;
+
+
 
 let IsQuickSearchOpen = false;
 let ConfiguredPathOne = "";
@@ -155,6 +161,8 @@ let IsSearching = false;
 let FoundItemsCountIndex = 0;
 
 let IsImagePreview = false;
+let IsAiEnabled = false;
+let AiProvider = "gemini";
 let CurrentFtpPath = "";
 let IsCopyToCut = false;
 let Platform = "";
@@ -165,6 +173,8 @@ let ArrFavorites = [];
 let IsFilteredBySize = false;
 let IsFilteredByDate = false;
 let IsFilteredByName = false;
+let CurrentSortMethod = "name";
+let CurrentSortAscending = true;
 let SelectedItemToOpen = null;
 let DefaultFileIcon = "";
 let DefaultFolderIcon = "";
@@ -184,22 +194,44 @@ let SecondaryColor = "rgb(56, 59, 71)";
 let SelectedColor = "rgba(0, 0, 0, 0.5)";
 let TransparentColor = "rgba(0, 0, 0, 0.1)";
 let CurrentTheme = "0";
+let IsEditingTheme = false;
+let ThemeToEditOriginalName = "";
 
 /* endregion Global variables */
 
 /* Upper right search bar logic */
 
+function updateFileSearchbarState(forceCancelVisible = null) {
+  const searchInput = document.querySelector(".search-bar-input");
+  const searchbar = document.querySelector(".file-searchbar");
+  const cancelButton = document.querySelector(".cancel-search-button");
+  if (!searchInput) return;
+
+  if (typeof forceCancelVisible !== "boolean") forceCancelVisible = null;
+
+  const hasValue = searchInput.value.trim().length > 0;
+  searchbar?.classList.toggle("has-value", hasValue);
+  cancelButton?.classList.toggle(
+    "is-visible",
+    forceCancelVisible ?? hasValue,
+  );
+}
+
 document.querySelector(".search-bar-input").addEventListener("focusin", (e) => {
-  $(".file-searchbar").css("width", "300px");
+  $(".file-searchbar").css("width", "clamp(220px, 30vw, 320px)");
   IsInputFocused = true;
 });
 document
   .querySelector(".search-bar-input")
   .addEventListener("focusout", (e) => {
-    $(".file-searchbar").css("width", "200px");
+    $(".file-searchbar").css("width", "clamp(180px, 22vw, 240px)");
     IsInputFocused = false;
   });
+document
+  .querySelector(".search-bar-input")
+  .addEventListener("input", updateFileSearchbarState);
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
+  updateFileSearchbarState();
   if (e.keyCode === 13) {
     let fileName = $(".search-bar-input").val();
     searchFor(fileName);
@@ -213,10 +245,10 @@ document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
 async function startFullSearch() {
   if (IsFullSearching == false) {
     IsFullSearching = true;
-    $(".full-searching-loader").css("display", "block");
+    $(".full-searching-loader").css("display", "inline-flex");
+    $(".fullsearch-progress-row").css("display", "grid");
     $(".fullsearch-search-button").html(`
-      <div class="button-icon"><i class="fa-solid fa-stop"></i></div>
-      Stop
+      <i class="fa-solid fa-stop"></i><span>Stop</span>
       `);
     document
       .querySelector(".fullsearch-search-button")
@@ -248,10 +280,10 @@ async function stopFullSearch() {
     );
   IsFullSearching = false;
   $(".full-searching-loader").css("display", "none");
+  $(".fullsearch-progress-row").css("display", "none");
   $(".fullsearch-current-file").html("");
   $(".fullsearch-search-button").html(`
-    <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-    Search
+    <i class="fa-solid fa-magnifying-glass"></i><span>Search</span>
     `);
   document
     .querySelector(".fullsearch-search-button")
@@ -261,14 +293,17 @@ async function stopFullSearch() {
 }
 
 document.addEventListener("keydown", async (e) => {
-  if (IsAltDown == true) return;
-  if (IsMetaDown == true) return;
-  if (IsCtrlDown == true) return;
+  if (e.altKey) return;
+  if (e.metaKey) return;
+  if (e.ctrlKey) return;
   if (e.key === "Escape") {
+    let wasQuickSearching = CurrentQuickSearch !== "";
     if (IsQuickSearchOpen == true) {
       goUp(false, true);
     }
     await resetEverything();
+    document.querySelector(".search-bar-input").value = "";
+    updateFileSearchbarState();
     $(".search-bar-input").blur();
     // Close all popups etc.
     // ContextMenu.style.display = "none";
@@ -279,15 +314,30 @@ document.addEventListener("keydown", async (e) => {
     document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
       item.style.opacity = "1";
     });
+
+    if (wasQuickSearching) {
+      if (IsDualPaneEnabled === true) {
+        refreshBothViews(SelectedItemPaneSide);
+      } else {
+        refreshView();
+      }
+    }
   }
 
   // :quicksearch :instantsearch
+  const activeEl = document.activeElement;
+  const isFormElementFocused =
+    activeEl &&
+    /^(INPUT|TEXTAREA|SELECT)$/.test(activeEl.tagName) &&
+    !activeEl.disabled &&
+    !activeEl.classList.contains("instant-search-input");
   if (
     IsInputFocused === false &&
     IsPopUpOpen === false &&
-    IsMetaDown === false &&
-    IsCtrlDown === false &&
-    IsShiftDown === false &&
+    isFormElementFocused === false &&
+    !e.metaKey &&
+    !e.ctrlKey &&
+    !e.shiftKey &&
     !isShortcut(e.key) &&
     e.key != " "
   ) {
@@ -310,12 +360,24 @@ document.addEventListener("keydown", async (e) => {
 
 function resetQuickSearch() {
   CurrentQuickSearchTimer = setInterval(() => {
+    if (IsSearching === true) {
+      CurrentQuickSearchTime = TIMETORESET;
+      return;
+    }
     if (CurrentQuickSearchTime <= 0) {
       clearInterval(CurrentQuickSearchTimer);
       CurrentQuickSearchTime = TIMETORESET;
+      let wasQuickSearching = CurrentQuickSearch !== "";
       CurrentQuickSearch = "";
       $(".instant-search-input").val("");
       $(".instant-search-input").css("display", "none");
+      if (wasQuickSearching) {
+        if (IsDualPaneEnabled === true) {
+          refreshBothViews(SelectedItemPaneSide);
+        } else {
+          refreshView();
+        }
+      }
     } else {
       CurrentQuickSearchTime -= 50;
     }
@@ -331,14 +393,14 @@ async function resetEverything() {
   closeItemPreview();
   closeMultiRenamePopup();
   closeCompressPopup();
-  closeYtDownloadPopup();
+  closeUpscalePopup();
   closeInfoProperties();
+  closeActiveActionsPopup();
   finishProgressBar();
   closeInputDialogs();
   unSelectAllItems();
   closeConfirmPopup();
   closeCustomContextMenu();
-  closeFindDuplicatesPopup();
   resetBackButton();
   $(".popup-background").css("display", "none");
   IsPopUpOpen = false;
@@ -365,11 +427,20 @@ async function resetEverything() {
 // Close context menu or new folder input dialog when click elsewhere
 document.addEventListener("mousedown", (e) => {
   if (e.buttons == 8) {
-    goBack();
+    goBack(e);
+  }
+
+  // Right-click is handled by the contextmenu event. Closing here causes the
+  // empty-area menu to flash before item-specific menus are shown.
+  if (e.button === 2) {
+    return;
   }
 
   // Check if your click is outside of important elements
   if (
+    !e.target.closest(".context-menu") &&
+    !e.target.closest(".props-card") &&
+    !e.target.closest(".delete-popup") &&
     !e.target.classList.contains("context-item-icon") &&
     !e.target.classList.contains("context-item") &&
     !e.target.classList.contains("open-with-item") &&
@@ -408,12 +479,6 @@ document.addEventListener("mousedown", (e) => {
     // Reset context menu
     resetContextMenu();
 
-    // document
-    //   .querySelector(".c-item-duplicates")
-    //   .setAttribute("disabled", "true");
-    // document
-    //   .querySelector(".c-item-duplicates")
-    //   .classList.add("c-item-disabled");
     unSelectAllItems();
     if (DraggedOverElement != null) {
       DraggedOverElement.style.filter = "none";
@@ -429,7 +494,7 @@ document.addEventListener("mousedown", (e) => {
   ) {
     closeInputDialogs();
   }
-  if (!e.target.classList.contains("c-item-custom")) {
+  if (!e.target.closest(".custom-context-menu")) {
     closeCustomContextMenu();
   }
   $(".site-nav-bar-button").css("border", "1px solid transparent");
@@ -442,7 +507,17 @@ document.addEventListener("mousedown", (e) => {
 // Open context menu for pasting for example
 // :context open
 document.addEventListener("contextmenu", (e) => {
-  // cdCtMenu.setupItems();
+  if (e.target.closest(".context-menu")) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+
+  if (e.target.closest(".item-link") || e.target.closest(".disk-item")) {
+    return;
+  }
+
+  cdCtMenu.setSelectedItem(null, e);
   cdCtMenu.show(e);
   return;
   e.preventDefault();
@@ -471,16 +546,6 @@ document.addEventListener("contextmenu", (e) => {
         .querySelector(".c-item-paste")
         .classList.remove("c-item-disabled");
     }
-
-    // Currently disabled due to issues with download functionality
-    // document.querySelector(".c-item-ytdownload").replaceWith(document.querySelector(".c-item-ytdownload").cloneNode(true));
-    // document.querySelector(".c-item-ytdownload").addEventListener(
-    // 		"click",
-    // 		async () => {
-    //  			await showYtDownload();
-    // 		},
-    // 		{ once: true },
-    // );
   }
 });
 
@@ -569,397 +634,203 @@ function isShortcut(key) {
 }
 
 document.onkeydown = async (e) => {
-  if (IsDisableShortcuts === false) {
-    // Shortcut for jumping to configured directory
-    if (e.metaKey && Platform == "darwin") IsMetaDown = true;
-    if (e.ctrlKey && Platform != "darwin") IsCtrlDown = true;
-    if (e.key == "Shift") IsShiftDown = true;
-    if (e.key == "Alt") IsAltDown = true;
-    if (e.altKey && e.code == "Digit1") {
-      if (ConfiguredPathOne == "") return;
+  if (IsDisableShortcuts === true) return;
+
+  // 1. Check custom slot paths shortcuts first
+  if (matchShortcut("slot_1", e)) {
+    if (ConfiguredPathOne != "") {
       openItem(null, SelectedItemPaneSide, ConfiguredPathOne);
+      e.preventDefault(); e.stopPropagation();
     }
-    if (e.altKey && e.code == "Digit2") {
-      if (ConfiguredPathTwo == "") return;
+  }
+  else if (matchShortcut("slot_2", e)) {
+    if (ConfiguredPathTwo != "") {
       openItem(null, SelectedItemPaneSide, ConfiguredPathTwo);
+      e.preventDefault(); e.stopPropagation();
     }
-    if (e.altKey && e.code == "Digit3") {
-      if (ConfiguredPathThree == "") return;
+  }
+  else if (matchShortcut("slot_3", e)) {
+    if (ConfiguredPathThree != "") {
       openItem(null, SelectedItemPaneSide, ConfiguredPathThree);
+      e.preventDefault(); e.stopPropagation();
     }
+  }
 
-    // :dual_pane :shortcuts
-    if (
-      IsDualPaneEnabled == true &&
-      IsDisableShortcuts == false &&
-      IsPopUpOpen == false
-    ) {
-      // check if return is pressed
-      if (!e.altKey && e.keyCode == 13) {
-        e.preventDefault();
-        e.stopPropagation();
-        await openSelectedItem();
-      }
-      // check if backspace is pressed
-      if (e.keyCode == 8 && IsPopUpOpen == false) {
-        goBack();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      // check if lshift + f5 is pressed
-      if (e.shiftKey && e.key == "F5") {
-        e.preventDefault();
-        e.stopPropagation();
-        let isToMove = await confirm("Current selection will be moved over");
-        if (isToMove == true) {
-          IsCopyToCut = true;
-          await pasteItem();
-          IsShiftDown = false;
-        }
-      }
-      // check if f5 is pressed
-      else if (e.key == "F5" && IsTabsEnabled == false) {
-        e.preventDefault();
-        e.stopPropagation();
-        let isToCopy = await confirm("Current selection will be copied over");
-        if (isToCopy == true) {
-          pasteItem();
-        }
-      }
-      // check if arrow up is pressed
-      if (e.keyCode == 38) {
-        if (SelectedElement == null) {
-          goUp(false, true);
-        } else {
-          goUp();
-        }
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      // check if arrow down is pressed
-      if (e.keyCode == 40) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (SelectedElement == null) {
-          goUp(false, true);
-        } else {
-          goDown();
-        }
-      }
-      // check if tab is pressed
-      if (e.keyCode == 9) {
-        e.preventDefault();
-        e.stopPropagation();
-        goToOtherPane();
-      }
-      if (e.key == "PageUp") {
-        goUp();
-        goUp();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      if (e.key == "PageDown") {
-        goDown();
-        goDown();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      // Open disk dropdown / :dropdown :disk_dropdown
-      if (e.key == "F1" && (IsMetaDown == true || IsAltDown == true)) {
-        let diskDropdown = document.querySelector(".left-disk-dropdown");
-        let evt = document.createEvent("MouseEvents");
-        evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
-        diskDropdown.dispatchEvent(evt);
-        IsAltDown = false;
-        IsMetaDown = false;
-      } else if (e.key == "F2" && (IsMetaDown == true || IsAltDown == true)) {
-        SelectedItemPaneSide = "right";
-        let diskDropdown = document.querySelector(".right-disk-dropdown");
-        let evt = document.createEvent("MouseEvents");
-        evt.initMouseEvent("mousedown"); // Find alternative to deprecated method
-        diskDropdown.dispatchEvent(evt);
-        IsAltDown = false;
-        IsMetaDown = false;
-      }
-    } else if (IsItemPreviewOpen == true && IsDualPaneEnabled === true) {
-      // check if arrow up is pressed
-      if (e.keyCode == 38) {
-        goUp();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      // check if arrow down is pressed
-      if (e.keyCode == 40) {
-        goDown(e);
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }
-
-    // Check if cmd / ctrl + shift + c is pressed
-    if (
-      ((Platform != "darwin" && IsCtrlDown && e.altKey) ||
-        (Platform == "darwin" && e.shiftKey)) &&
-      e.key == "c"
-    ) {
-      await writeText(CurrentDir);
-      showToast("Current dir path copied", ToastType.SUCCESS);
-      return;
-    }
-
-    // Check if cmd / ctrl + f is pressed
-    if (e.key == "f" && (e.ctrlKey || e.metaKey)) {
-      if (IsDualPaneEnabled == true) return;
-      $(".search-bar-input").focus();
-      IsInputFocused = true;
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    // Check if space is pressed on selected item
-    if (e.key == " " && SelectedElement != null) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (
-        IsPopUpOpen == false &&
-        IsInputFocused == false &&
-        IsItemPreviewOpen == false
-      ) {
-        showItemPreview(SelectedElement);
-      } else {
-        closeItemPreview();
-      }
-    }
-
-    if (IsPopUpOpen == false) {
-      // check if del is pressed
-      if (
-        IsInputFocused == false &&
-        (e.keyCode == 46 || (e.metaKey && e.keyCode == 8))
-      ) {
-        await deleteItems();
-        closeLoadingPopup();
-        await listDirectories();
-        goUp();
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-
-      // Check if cmd / ctrl + a is pressed
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.key == "a" &&
-        IsInputFocused === false &&
-        IsPopUpOpen === false
-      ) {
-        if (IsDualPaneEnabled) {
-          if (SelectedItemPaneSide == "left") {
-            await unSelectAllItems();
-            for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
-              selectItem(LeftPaneItemCollection.children[i]);
-            }
-          } else {
-            await unSelectAllItems();
-            for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
-              selectItem(RightPaneItemCollection.children[i]);
-            }
-          }
-        } else {
-          await unSelectAllItems();
-          for (let i = 0; i < DirectoryList.children.length; i++) {
-            selectItem(DirectoryList.children[i]);
-          }
-        }
-      }
-
-      if (
-        (e.altKey && e.key == "Enter") ||
-        (e.key == "F2" && !e.metaKey && !e.ctrlKey && !e.altKey) ||
-        (Platform == "darwin" &&
-          e.key == "Enter" &&
-          IsDualPaneEnabled == false &&
-          IsInputFocused == false)
-      ) {
-        // check if alt + enter is pressed
-        renameElementInputPrompt(SelectedElement);
-      }
-
-      // check if cmd / ctrl + r is pressed
-      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "r") {
-        e.preventDefault();
-        e.stopPropagation();
-        await unSelectAllItems();
-        if (IsDualPaneEnabled === true) {
-          refreshBothViews(SelectedItemPaneSide);
-        } else {
-          refreshView();
-        }
-      }
-
-      // check if cmd / ctrl + c is pressed
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.key == "c" &&
-        IsInputFocused == false
-      ) {
-        copyItem(SelectedElement);
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      // check if cmd / ctrl + x is pressed
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.key == "x" &&
-        IsInputFocused == false
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        await copyItem(SelectedElement, true);
-      }
-
-      // check if cmd / ctrl + v is pressed
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.key == "v" &&
-        IsInputFocused == false
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
+  // Dual-pane explorer action contexts
+  else if (IsDualPaneEnabled == true && IsPopUpOpen == false) {
+    if (matchShortcut("pane_copy", e) && IsTabsEnabled == false) {
+      e.preventDefault(); e.stopPropagation();
+      let isToCopy = await showCopyMovePopup(false);
+      if (isToCopy == true) {
         pasteItem();
       }
-
-      // check if cmd / ctrl + g is pressed | Path input
-      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key == "g") {
-        e.preventDefault();
-        e.stopPropagation();
-        showInputPopup("Input path to jump to");
-      }
-
-      // New folder input prompt when f7 is pressed
-      if (e.key == "F7") {
-        e.preventDefault();
-        e.stopPropagation();
-        createFolderInputPrompt();
-      }
-
-      // New file input prompt when f6 is pressed
-      if (e.keyCode == 117) {
-        e.preventDefault();
-        e.stopPropagation();
-        createFileInputPrompt();
-      }
-
-      // Open file search container when f8 is pressed
-      if (e.key == "F8" || e.keyCode == 119) {
-        e.preventDefault();
-        e.stopPropagation();
-        openFullSearchContainer();
-      }
-
-      // check if ctrl / cmd + shift + m is pressed
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.shiftKey &&
-        (e.key == "M" || e.key == "m") &&
-        ArrSelectedItems.length >= 1
-      ) {
-        showMultiRenamePopup();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-
-      if (IsDualPaneEnabled === false) {
-        // check if return is pressed
-        if (!e.altKey && e.keyCode == 13 && Platform != "darwin") {
-          await openSelectedItem();
-          e.preventDefault();
-          e.stopPropagation();
-        }
-
-        // check if backspace is pressed
-        if (
-          e.keyCode == 8 &&
-          IsPopUpOpen === false &&
-          IsInputFocused === false &&
-          ArrSelectedItems.length == 0
-        ) {
-          goBack();
-          e.preventDefault();
-          e.stopPropagation();
-        }
+    }
+    else if (matchShortcut("pane_move", e)) {
+      e.preventDefault(); e.stopPropagation();
+      let isToMove = await showCopyMovePopup(true);
+      if (isToMove == true) {
+        IsCopyToCut = true;
+        await pasteItem();
       }
     }
-
-    if (
-      IsDualPaneEnabled === false &&
-      IsItemPreviewOpen === false &&
-      IsInputFocused === false
-    ) {
-      if (
-        (IsMetaDown || IsCtrlDown || e.key == "Super") &&
-        e.key.toLowerCase() == "k"
-      ) {
-        showCompressPopup(ArrSelectedItems[0]);
-      }
-      // :new_shortcut :new :shortcut
+    else if (matchShortcut("pane_switch", e)) {
+      e.preventDefault(); e.stopPropagation();
+      goToOtherPane();
     }
+    else if (matchShortcut("disk_menu_left", e)) {
+      e.preventDefault(); e.stopPropagation();
+      let diskDropdown = document.querySelector(".left-disk-dropdown");
+      let evt = document.createEvent("MouseEvents");
+      evt.initMouseEvent("mousedown");
+      diskDropdown.dispatchEvent(evt);
+    }
+    else if (matchShortcut("disk_menu_right", e)) {
+      e.preventDefault(); e.stopPropagation();
+      SelectedItemPaneSide = "right";
+      let diskDropdown = document.querySelector(".right-disk-dropdown");
+      let evt = document.createEvent("MouseEvents");
+      evt.initMouseEvent("mousedown");
+      diskDropdown.dispatchEvent(evt);
+    }
+  }
 
-    // Item preview :preview
-    if (
-      IsDualPaneEnabled === false &&
-      ((IsItemPreviewOpen === true && IsPopUpOpen === true) ||
-        IsPopUpOpen === false) &&
-      IsInputFocused === false
-    ) {
-      if (ViewMode == "wrap") {
-        // check if arrow up is pressed
-        if (e.keyCode == 38) {
-          e.preventDefault();
-          e.stopPropagation();
-          goGridUp();
+  // Now standard shortcuts
+  if (matchShortcut("copy_dir_path", e)) {
+    e.preventDefault(); e.stopPropagation();
+    await writeText(CurrentDir);
+    showToast("Current dir path copied", ToastType.SUCCESS);
+  }
+  else if (matchShortcut("focus_search", e)) {
+    if (IsDualPaneEnabled != true) {
+      $(".search-bar-input").focus();
+      IsInputFocused = true;
+      e.preventDefault(); e.stopPropagation();
+    }
+  }
+  else if (matchShortcut("quick_preview", e) && SelectedElement != null && IsInputFocused === false && (IsPopUpOpen === false || IsItemPreviewOpen === true)) {
+    e.preventDefault(); e.stopPropagation();
+    if (IsPopUpOpen == false && IsItemPreviewOpen == false) {
+      showItemPreview(SelectedElement);
+    } else {
+      closeItemPreview();
+    }
+  }
+
+  // Actions allowed when popup is closed
+  if (IsPopUpOpen == false) {
+    if (matchShortcut("delete_item", e) && IsInputFocused == false) {
+      e.preventDefault(); e.stopPropagation();
+      await deleteItems();
+      closeLoadingPopup();
+      await listDirectories();
+      goUp();
+    }
+    else if (matchShortcut("select_all", e) && IsInputFocused === false) {
+      e.preventDefault(); e.stopPropagation();
+      await selectAllExplorerItems();
+    }
+    else if (matchShortcut("rename_item", e) && IsInputFocused == false) {
+      e.preventDefault(); e.stopPropagation();
+      if (SelectedElement != null) {
+        renameElementInputPrompt(SelectedElement);
+      }
+    }
+    else if (matchShortcut("refresh_view", e)) {
+      e.preventDefault(); e.stopPropagation();
+      await unSelectAllItems();
+      if (IsDualPaneEnabled === true) {
+        refreshBothViews(SelectedItemPaneSide);
+      } else {
+        refreshView();
+      }
+    }
+    else if (matchShortcut("copy_item", e) && IsInputFocused == false) {
+      e.preventDefault(); e.stopPropagation();
+      copyItem(SelectedElement);
+    }
+    else if (matchShortcut("cut_item", e) && IsInputFocused == false) {
+      e.preventDefault(); e.stopPropagation();
+      await copyItem(SelectedElement, true);
+    }
+    else if (matchShortcut("paste_item", e) && IsInputFocused == false) {
+      e.preventDefault(); e.stopPropagation();
+      pasteItem();
+    }
+    else if (matchShortcut("jump_to_path", e)) {
+      e.preventDefault(); e.stopPropagation();
+      showInputPopup("Input path to jump to");
+    }
+    else if (matchShortcut("new_folder", e)) {
+      e.preventDefault(); e.stopPropagation();
+      createFolderInputPrompt();
+    }
+    else if (matchShortcut("new_file", e)) {
+      e.preventDefault(); e.stopPropagation();
+      createFileInputPrompt();
+    }
+    else if (matchShortcut("search_files", e)) {
+      e.preventDefault(); e.stopPropagation();
+      openFullSearchContainer();
+    }
+    else if (matchShortcut("multi_rename", e) && ArrSelectedItems.length >= 1) {
+      e.preventDefault(); e.stopPropagation();
+      showMultiRenamePopup();
+    }
+    else if (matchShortcut("compress_item", e) && IsInputFocused === false && IsDualPaneEnabled === false && IsItemPreviewOpen === false) {
+      e.preventDefault(); e.stopPropagation();
+      showCompressPopup(ArrSelectedItems[0]);
+    }
+  }
+
+  // Standard list navigations (ArrowUp, ArrowDown, Backspace, Return)
+  if ((IsPopUpOpen == false || IsItemPreviewOpen == true) && IsInputFocused == false) {
+    if (matchShortcut("nav_up", e)) {
+      e.preventDefault(); e.stopPropagation();
+      if (SelectedElement == null) {
+        goUp(false, true);
+      } else if (ViewMode === "wrap") {
+        goGridUp();
+      } else {
+        goUp();
+      }
+    }
+    else if (matchShortcut("nav_down", e)) {
+      e.preventDefault(); e.stopPropagation();
+      if (SelectedElement == null) {
+        goUp(false, true);
+      } else if (ViewMode === "wrap") {
+        goGridDown();
+      } else {
+        goDown();
+      }
+    }
+    else if (matchShortcut("nav_left", e)) {
+      e.preventDefault(); e.stopPropagation();
+      goLeft();
+    }
+    else if (matchShortcut("nav_right", e)) {
+      e.preventDefault(); e.stopPropagation();
+      goRight();
+    }
+    else if (e.keyCode == 13 && !e.altKey) {
+      e.preventDefault(); e.stopPropagation();
+      if (Platform === "darwin" && IsDualPaneEnabled === false) {
+        if (SelectedElement != null) {
+          renameElementInputPrompt(SelectedElement);
         }
-
-        // check if arrow down is pressed
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          e.stopPropagation();
-          goGridDown();
-        }
+      } else {
+        await openSelectedItem();
       }
-
-      // check if arrow left is pressed
-      if (
-        e.keyCode == 37 ||
-        ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 38)
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        goLeft();
-      }
-
-      // check if arrow right is pressed
-      if (
-        e.keyCode == 39 ||
-        ((ViewMode == "column" || ViewMode == "miller") && e.keyCode == 40)
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        goRight();
-      }
+    }
+    else if (e.keyCode == 8 && ArrSelectedItems.length == 0) {
+      e.preventDefault(); e.stopPropagation();
+      goBack(e);
     }
   }
 };
 
-// Reset key toggle
 document.onkeyup = (e) => {
   if (e.key == "G" || e.key == "g") IsGDown = false;
-  if (e.keyCode === 91 && Platform == "darwin") IsMetaDown = false;
-  if (e.key == "Control" && Platform != "darwin") IsCtrlDown = false;
-  if (e.key == "Shift") IsShiftDown = false;
-  if (e.key == "Alt") IsAltDown = false;
 };
 
 /* End of shortcut config */
@@ -991,7 +862,14 @@ document
   });
 
 // Main function to handle directory visualization
-async function showItems(items, dualPaneSide = "", millerCol = 1) {
+async function showItems(items, dualPaneSide = "", millerCol = 1, isFromSort = false) {
+  if (!isFromSort) {
+    CurrentSortMethod = "name";
+    CurrentSortAscending = true;
+    IsFilteredBySize = false;
+    IsFilteredByDate = false;
+    IsFilteredByName = true;
+  }
   unSelectAllItems();
   await cancelSearch(); // Cancel any ongoing search
 
@@ -1036,6 +914,10 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
   } else {
     DirectoryList.className = "directory-list";
   }
+
+  // Unify styles based on the active ViewMode
+  applyDirectoryListStyles(DirectoryList, ViewMode);
+
   if (IsShowHiddenFiles === false) {
     items = items.filter(
       (str) =>
@@ -1050,9 +932,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     let itemLink = document.createElement("button");
     itemLink.setAttribute(
       "onclick",
-      "interactWithItem(this, '" + dualPaneSide + "')",
+      "interactWithItem(this, '" + dualPaneSide + "', null, event)",
     );
-    let itemIconId = crypto.randomUUID();
+    let itemIconId = "icon-" + (dualPaneSide || "single") + "-" + counter;
     itemLink.setAttribute("itemiconid", itemIconId);
     itemLink.setAttribute("itempath", item.path);
     itemLink.setAttribute("itemindex", counter++);
@@ -1083,9 +965,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         `;
       itemButton.className = "item-button directory-entry";
       itemLink.append(itemButton);
-      DirectoryList.style.gridTemplateColumns =
-        "repeat(auto-fill, minmax(80px, 1fr))";
-      DirectoryList.style.rowGap = "15px";
     } else if (ViewMode == "column") {
       var itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
@@ -1097,9 +976,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: fit-content; justify-content: flex-end; padding-right: 5px;">
           <p class="item-button-list-text" style="width: 100%; text-align: right;">${item.last_modified}</p>
           <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
-       			<span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
-       			<i class="fa-solid fa-cube"></i>
-      		</div>
+               <span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
+               <i class="fa-solid fa-cube"></i>
+          </div>
         </span>
         `;
       if (dualPaneSide != null && dualPaneSide != "") {
@@ -1108,8 +987,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         itemButtonList.className = "item-button-list directory-entry";
       }
       itemLink.append(itemButtonList);
-      DirectoryList.style.gridTemplateColumns = "unset";
-      DirectoryList.style.rowGap = "2px";
     } else if (ViewMode == "miller") {
       var itemButtonList = document.createElement("div");
       itemButtonList.innerHTML = `
@@ -1125,8 +1002,6 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
         itemButtonList.className = "item-button-list directory-entry";
       }
       itemLink.append(itemButtonList);
-      DirectoryList.style.gridTemplateColumns = "unset";
-      DirectoryList.style.rowGap = "1px";
     }
     // DirectoryList.append(itemLink);
     docFragment.append(itemLink);
@@ -1145,6 +1020,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     });
     // Accept file drop into folders
     item.addEventListener("dragover", (e) => {
+      e.preventDefault();
       MousePos = [e.clientX, e.clientY];
       if (item.getAttribute("itemisdir") == "1") {
         if (!ArrSelectedItems.includes(item))
@@ -1164,7 +1040,9 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     // :item_right_click :context_menu / showItems()
     // Open context menu when right-clicking on file/folder
     item.addEventListener("contextmenu", (e) => {
-      cdCtMenu.setSelectedItem(item);
+      e.preventDefault();
+      e.stopPropagation();
+      cdCtMenu.setSelectedItem(item, e);
       cdCtMenu.show(e);
     });
 
@@ -1194,9 +1072,11 @@ async function showItems(items, dualPaneSide = "", millerCol = 1) {
     $(".miller-col-" + millerCol).append(DirectoryList);
     $(".miller-col-" + millerCol).attr("miller-col-path", CurrentDir);
     CurrentMillerCol = millerCol;
+    LeftPaneItemCollection = DirectoryList;
   } else {
     document.querySelector(".explorer-container").innerHTML = "";
     document.querySelector(".explorer-container").append(DirectoryList);
+    LeftPaneItemCollection = DirectoryList;
   }
   ds.setSettings({
     selectables: document.querySelectorAll(".item-link"),
@@ -1224,17 +1104,17 @@ function arrLoadItemImage(arrItems, isSingle = false) {
   });
 }
 
-function writeToLocalStorage(key, value) {
+async function writeToLocalStorage(key, value) {
   try {
-    localStorage.setItem(key, value);
+    await cacheImage(key, value);
   } catch (error) {
     console.error("Error writing image to local storage:", error);
   }
 }
 
-function readFromLocalStorage(key) {
+async function readFromLocalStorage(key) {
   try {
-    return localStorage.getItem(key);
+    return await getCachedImage(key);
   } catch (error) {
     console.error("Error reading image from local storage:", error);
   }
@@ -1276,9 +1156,9 @@ async function addSingleItem(
   let itemLink = document.createElement("button");
   itemLink.setAttribute(
     "onclick",
-    "interactWithItem(this, '" + dualPaneSide + "')",
+    "interactWithItem(this, '" + dualPaneSide + "', null, event)",
   );
-  let itemIconId = crypto.randomUUID();
+  let itemIconId = "icon-" + (dualPaneSide || "single") + "-" + FoundItemsCountIndex;
   itemLink.setAttribute("itemiconid", itemIconId);
   itemLink.setAttribute("itempath", item.path);
   itemLink.setAttribute("itemindex", FoundItemsCountIndex++);
@@ -1308,11 +1188,8 @@ async function addSingleItem(
       `;
     itemButton.className = "item-button directory-entry";
     itemLink.append(itemButton);
-    $(".directory-list").css(
-      "gridTemplateColumns",
-      "repeat(auto-fill, minmax(80px, 1fr))",
-    );
-    $(".directory-list").css("rowGap", "15px");
+    const dirList = document.querySelector(".directory-list-dual-pane, .directory-list");
+    if (dirList) applyDirectoryListStyles(dirList, "wrap");
   } else if (ViewMode == "column") {
     var itemButtonList = document.createElement("div");
     itemButtonList.innerHTML = `
@@ -1324,8 +1201,8 @@ async function addSingleItem(
       <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
         <p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
         <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
-     			<span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
-     			<i class="fa-solid fa-cube"></i>
+      			<span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
+      			<i class="fa-solid fa-cube"></i>
     		</div>
       </span>
       `;
@@ -1335,11 +1212,11 @@ async function addSingleItem(
       itemButtonList.className = "item-button-list directory-entry";
     }
     itemLink.append(itemButtonList);
-    $(".directory-list").css("gridTemplateColumns", "unset");
-    $(".directory-list").css("rowGap", "2px");
+    const dirList = document.querySelector(".directory-list-dual-pane, .directory-list");
+    if (dirList) applyDirectoryListStyles(dirList, "column");
   } else if (ViewMode == "miller") {
-    $(".directory-list").style.gridTemplateColumns = "unset";
-    $(".directory-list").style.rowGap = "1px";
+    const dirList = document.querySelector(".directory-list-dual-pane, .directory-list");
+    if (dirList) applyDirectoryListStyles(dirList, "miller");
   }
   // Start dragging item
   itemLink.ondragstart = (e) => {
@@ -1352,6 +1229,7 @@ async function addSingleItem(
   });
   // Accept file drop into folders
   itemLink.addEventListener("dragover", (e) => {
+    e.preventDefault();
     MousePos = [e.clientX, e.clientY];
     if (itemLink.getAttribute("itemisdir") == "1") {
       if (!ArrSelectedItems.includes(itemLink)) {
@@ -1368,18 +1246,40 @@ async function addSingleItem(
   // :item_right_click :context_menu | addSingleItem()
   // Open context menu when right-clicking on file/folder
   itemLink.addEventListener("contextmenu", (e) => {
-    cdCtMenu.setSelectedItem(itemLink);
+    e.preventDefault();
+    e.stopPropagation();
+    cdCtMenu.setSelectedItem(itemLink, e);
     cdCtMenu.show(e);
   });
 
   if (IsDualPaneEnabled === true) {
     if (dualPaneSide === "left") {
-      $(".dual-pane-left").append(itemLink);
-      LeftPaneItemCollection = document.querySelector(".dual-pane-left");
+      let list = document.querySelector(".dual-pane-left .directory-list-dual-pane");
+      if (list) {
+        list.append(itemLink);
+        LeftPaneItemCollection = list;
+      } else {
+        let pane = document.querySelector(".dual-pane-left");
+        let newList = document.createElement("div");
+        newList.className = "directory-list-dual-pane";
+        pane.append(newList);
+        newList.append(itemLink);
+        LeftPaneItemCollection = newList;
+      }
       goUp(false, true);
     } else if (dualPaneSide === "right") {
-      $(".dual-pane-right").append(itemLink);
-      RightPaneItemCollection = document.querySelector(".dual-pane-right");
+      let list = document.querySelector(".dual-pane-right .directory-list-dual-pane");
+      if (list) {
+        list.append(itemLink);
+        RightPaneItemCollection = list;
+      } else {
+        let pane = document.querySelector(".dual-pane-right");
+        let newList = document.createElement("div");
+        newList.className = "directory-list-dual-pane";
+        pane.append(newList);
+        newList.append(itemLink);
+        RightPaneItemCollection = newList;
+      }
       goUp(false, true);
     }
   } else {
@@ -1395,23 +1295,40 @@ async function getCurrentDir() {
   return await invoke("get_current_dir");
 }
 
-async function setCurrentDir(currentDir = "", dualPaneSide = "") {
+async function setCurrentDir(currentDir = "", dualPaneSide = "", syncBackend = true) {
   try {
     if (currentDir == "") return;
+
+    if (IsDualPaneEnabled && typeof comparisonActive !== "undefined" && comparisonActive) {
+      clearComparisonVisuals();
+      comparisonActive = false;
+      comparisonResults = null;
+      const syncBtn = document.getElementById("dual-pane-sync-btn");
+      if (syncBtn) {
+        syncBtn.setAttribute("disabled", "true");
+        syncBtn.classList.add("disabled");
+      }
+      const clearBtn = document.getElementById("dual-pane-clear-btn");
+      if (clearBtn) {
+        clearBtn.style.display = "none";
+      }
+    }
 
     if (dualPaneSide != "") {
       SelectedItemPaneSide = dualPaneSide;
     }
 
-    await invoke("set_dir", { currentDir }).then(async (isSuccess) => {
+    if (syncBackend) {
+      const isSuccess = await invoke("set_dir", { currentDir });
       if (isSuccess === false) {
         alert("Switching directory failed. Probably no permissions.");
         return;
       }
+    }
 
-      // Setting the current path on the bottom
-      updateCurrentPath(currentDir, dualPaneSide);
-    });
+    // Setting the current path on the bottom. Some navigation commands already
+    // changed the backend current dir; avoid invoking set_dir twice in those paths.
+    updateCurrentPath(currentDir, dualPaneSide);
 
     if (dualPaneSide == "left") {
       LeftDualPanePath = currentDir;
@@ -1438,17 +1355,27 @@ function updateCurrentPath(currentDir, dualPaneSide) {
     CurrentDir = currentDir;
     let currentDirContainer = document.querySelector(".current-path");
     currentDirContainer.innerHTML = "";
+
+    let isFtp = currentDir.startsWith("ftp://");
     let currentPathTracker = "/";
     if (Platform != "darwin" && Platform.includes("win")) {
       currentPathTracker = "";
     }
 
-    if (currentDir.endsWith("/")) {
-      currentDir = currentDir.substring(currentDir.length - 1);
+    if (isFtp) {
+      currentPathTracker = "ftp://";
     }
 
-    if (currentDir.startsWith("/")) {
-      currentDir = currentDir.substring(1, currentDir.length);
+    if (currentDir.endsWith("/") && currentDir !== "ftp://") {
+      currentDir = currentDir.substring(0, currentDir.length - 1);
+    }
+
+    if (!isFtp) {
+      if (currentDir.startsWith("/")) {
+        currentDir = currentDir.substring(1);
+      }
+    } else {
+      currentDir = currentDir.substring(6); // remove "ftp://"
     }
 
     let counter = 0;
@@ -1458,12 +1385,16 @@ function updateCurrentPath(currentDir, dualPaneSide) {
       let pathItem = document.createElement("button");
       pathItem.textContent = path;
       pathItem.className = "path-item";
-      currentPathTracker += path + "/";
+
+      if (isFtp && counter == 0) {
+        currentPathTracker += path; // e.g. ftp://connectionName
+      } else {
+        currentPathTracker += (currentPathTracker.endsWith("/") ? "" : "/") + path;
+      }
+
       pathItem.setAttribute(
         "itempath",
-        currentPathTracker.endsWith("/")
-          ? currentPathTracker.substring(0, currentPathTracker.length - 1)
-          : currentPathTracker,
+        currentPathTracker
       );
       pathItem.setAttribute("itempaneside", dualPaneSide);
       pathItem.setAttribute("itemisdir", 1);
@@ -1486,6 +1417,7 @@ function updateCurrentPath(currentDir, dualPaneSide) {
         pathItem.style.backgroundColor = "var(--transparentColor)";
         pathItem.style.scale = "1";
       };
+
       let divider = document.createElement("i");
       divider.className = "fa fa-chevron-right";
       divider.style.color = "var(--textColor)";
@@ -1502,38 +1434,393 @@ function updateCurrentPath(currentDir, dualPaneSide) {
 }
 
 async function deleteItems() {
-  // ContextMenu.style.display = "none";
-  let msg = "Do you really want to delete:<br/><br/>";
-  for (let i = 0; i < ArrSelectedItems.length; i++) {
-    if (i == 0) {
-      msg +=
-        "<span class='confirm-popup-item'>" +
-        ArrSelectedItems[i].getAttribute("itemname") +
-        "</span>";
-    } else {
-      msg +=
-        "<br/><span class='confirm-popup-item'>" +
-        ArrSelectedItems[i].getAttribute("itemname") +
-        "</span>";
-    }
-  }
+  if (!ArrSelectedItems.length) return;
+  // Cache the paths immediately before they could be cleared or modified
   let arr = ArrSelectedItems.map((item) => item.getAttribute("itempath"));
-  let isConfirm = await showPopup(msg, PopupType.DELETE);
-  if (isConfirm == true) {
+  const isConfirm = await showDeletePopup();
+  if (isConfirm === true) {
     let actionId = new Date().getMilliseconds();
     createNewAction(actionId, "Deleting", "Delete Items", "Delete Items");
-    for (let i = 0; i < arr.length; i++) {
-      let actFileName = arr[i];
-      await invoke("delete_item", { actFileName });
+    window.IsDeletingItems = true;
+    try {
+      let failedDeletions = [];
+      for (let i = 0; i < arr.length; i++) {
+        let actFileName = arr[i];
+        try {
+          await invoke("delete_item", { actFileName });
+          handleDynamicRemove(actFileName);
+        } catch (error) {
+          failedDeletions.push({ path: actFileName, error });
+          showToast(`Failed to delete "${actFileName.split("/").pop()}": ${error}`, ToastType.ERROR, 4000);
+        }
+      }
+      IsCopyToCut = false;
+      ArrSelectedItems = [];
+      if (failedDeletions.length === 0) {
+        showToast("Deletion of items is done", ToastType.INFO);
+      } else {
+        showToast(`Completed with ${failedDeletions.length} error(s)`, ToastType.ERROR, 4000);
+      }
+    } finally {
+      window.IsDeletingItems = false;
+      removeAction(actionId);
+      scheduleDiskUsageRefresh();
     }
-    IsCopyToCut = false;
-    if (Platform != "darwin") {
-      await listDirectories();
-    }
-    ArrSelectedItems = [];
-    showToast("Deletion of items is done", ToastType.INFO);
-    removeAction(actionId);
   }
+}
+
+async function showDeletePopup() {
+  if (IsPopUpOpen !== false) return false;
+  if (!ArrSelectedItems.length) return false;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  const items = ArrSelectedItems;
+  const count = items.length;
+  const fileCount = items.filter(i => i.getAttribute("itemisdir") !== "1").length;
+  const folderCount = count - fileCount;
+
+  const heroName = count === 1
+    ? items[0].getAttribute("itemname")
+    : `${count} items`;
+  const heroMeta = count === 1
+    ? (items[0].getAttribute("itemisdir") === "1" ? "Folder" : "File")
+    : [
+        folderCount > 0 ? `${folderCount} folder${folderCount > 1 ? "s" : ""}` : "",
+        fileCount > 0 ? `${fileCount} file${fileCount > 1 ? "s" : ""}` : ""
+      ].filter(Boolean).join(", ");
+
+  const heroIcon = count === 1 && items[0].getAttribute("itemisdir") === "1"
+    ? "fa-solid fa-folder"
+    : "fa-solid fa-trash-can";
+
+  const itemsListHtml = `<ul class="props-card__items-list">
+    ${items.map((item) => {
+      const name = item.getAttribute("itemname");
+      const isDir = item.getAttribute("itemisdir") === "1";
+      const ext = (item.getAttribute("itemext") || "").replace(".", "").toUpperCase();
+      const size = item.getAttribute("itemsize") || "—";
+      const modified = item.getAttribute("itemmodified") || "";
+      const icon = isDir ? "fa-solid fa-folder" : "fa-regular fa-file";
+      return `<li class="props-card__item-li" title="${escHtml(name)}">
+        <div class="props-card__item-row">
+          <i class="${icon} props-card__item-icon"></i>
+          <span class="props-card__item-name">${escHtml(name)}</span>
+          <span class="props-card__item-meta">${isDir ? "Folder" : escHtml(ext)}</span>
+          <span class="props-card__item-size">${escHtml(size)}</span>
+        </div>
+      </li>`;
+    }).join("")}
+  </ul>`;
+
+  const popup = document.createElement("div");
+  popup.className = "delete-popup props-card";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Delete items");
+  popup.innerHTML = `
+    <section class="props-card__hero delete-popup__hero">
+      <div class="props-card__thumb delete-popup__thumb"><i class="${heroIcon}"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(heroName)}">${escHtml(heroName)}</h2>
+        <div class="props-card__meta">
+          <span>${escHtml(heroMeta)}</span>
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-weight-hanging"></i>Total size</dt>
+        <dd class="props-card__value"><span class="props-card__size"><span class="props-card__skeleton"></span></span></dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-regular fa-folder-open"></i>Location</dt>
+        <dd class="props-card__value">
+          <span class="props-card__path">${escHtml(CurrentDir)}</span>
+        </dd>
+      </div>
+      <div class="props-card__row props-card__row--block">
+        <dt class="props-card__label"><i class="fa-regular fa-rectangle-list"></i>Items</dt>
+        <dd class="props-card__value">${itemsListHtml}</dd>
+      </div>
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" data-delete-cancel>
+        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+      </button>
+      <button class="props-card__btn props-card__btn--danger" data-delete-confirm>
+        <i class="fa-solid fa-trash"></i><span>Delete</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  const deleteUpdateId = startDeleteSizeCalculation();
+
+  // Calculate size in the background
+  (async () => {
+    if (count === 1) {
+      const isDir = items[0].getAttribute("itemisdir") === "1";
+      try {
+        await getSimpleDirInfo(
+          items[0].getAttribute("itempath"),
+          ".props-card__size",
+          isDir,
+          deleteUpdateId
+        );
+        finishDeleteSizeCalculation(deleteUpdateId);
+      } catch (error) {
+        if (isDeleteSizeUpdateCurrent(deleteUpdateId)) {
+          finishDeleteSizeCalculation(deleteUpdateId);
+          writeLog(error);
+          $(".props-card__size").html("Unable to calculate size");
+        }
+      }
+    } else {
+      const paths = items.map((i) => i.getAttribute("itempath"));
+      setSizeCalculationLoading(".props-card__size");
+      try {
+        const totalSize = await invoke("get_selection_size", { paths, updateId: deleteUpdateId });
+        if (isDeleteSizeUpdateCurrent(deleteUpdateId)) {
+          finishDeleteSizeCalculation(deleteUpdateId);
+          $(".props-card__size").html(formatBytes(totalSize, 2));
+        }
+      } catch (error) {
+        if (isDeleteSizeUpdateCurrent(deleteUpdateId)) {
+          finishDeleteSizeCalculation(deleteUpdateId);
+          writeLog(error);
+          $(".props-card__size").html("Unable to calculate size");
+        }
+      }
+    }
+  })();
+
+  return new Promise((resolve) => {
+    let isClosed = false;
+    const finish = (ok) => {
+      if (isClosed) return;
+      isClosed = true;
+      finishDeleteSizeCalculation(deleteUpdateId);
+      invoke("cancel_size_calculation");
+      popup.classList.add("popup-exit");
+      popup.addEventListener("animationend", () => {
+        popup.remove();
+        IsPopUpOpen = false;
+        resolve(ok);
+      }, { once: true });
+    };
+    popup.querySelector("[data-delete-cancel]").onclick = () => finish(false);
+    popup.querySelector("[data-delete-confirm]").onclick = () => finish(true);
+    popup.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); finish(false); }
+      if (e.key === "Enter")  { e.preventDefault(); finish(true);  }
+    });
+    popup.querySelector("[data-delete-confirm]").focus();
+  });
+}
+
+let currentCopyMoveSizeRequestId = 0;
+let activeCopyMoveSizeUpdateId = null;
+let isCopyMoveSizeCalculationActive = false;
+
+function startCopyMoveSizeCalculation() {
+  activeCopyMoveSizeUpdateId = `copymove-${++currentCopyMoveSizeRequestId}`;
+  isCopyMoveSizeCalculationActive = true;
+  return activeCopyMoveSizeUpdateId;
+}
+
+function finishCopyMoveSizeCalculation(updateId) {
+  if (activeCopyMoveSizeUpdateId === updateId) {
+    isCopyMoveSizeCalculationActive = false;
+    activeCopyMoveSizeUpdateId = null;
+  }
+}
+
+function isCopyMoveSizeUpdateCurrent(updateId) {
+  return activeCopyMoveSizeUpdateId === updateId && isCopyMoveSizeCalculationActive;
+}
+
+async function showCopyMovePopup(isMove = false) {
+  if (IsPopUpOpen !== false) return false;
+  if (!ArrSelectedItems.length) return false;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  const items = ArrSelectedItems;
+  const count = items.length;
+  const fileCount = items.filter(i => i.getAttribute("itemisdir") !== "1").length;
+  const folderCount = count - fileCount;
+
+  // Determine source and destination paths based on the selected side
+  const sourceDir = CurrentDir;
+  let targetDir = "";
+  if (IsDualPaneEnabled === true) {
+    if (SelectedItemPaneSide === "left") {
+      targetDir = RightDualPanePath;
+    } else if (SelectedItemPaneSide === "right") {
+      targetDir = LeftDualPanePath;
+    }
+  } else {
+    targetDir = CurrentDir;
+  }
+
+  const actionName = isMove ? "Move" : "Copy";
+  const heroName = count === 1
+    ? `${actionName} "${items[0].getAttribute("itemname")}"`
+    : `${actionName} ${count} items`;
+  const heroMeta = count === 1
+    ? (items[0].getAttribute("itemisdir") === "1" ? "Folder" : "File")
+    : [
+        folderCount > 0 ? `${folderCount} folder${folderCount > 1 ? "s" : ""}` : "",
+        fileCount > 0 ? `${fileCount} file${fileCount > 1 ? "s" : ""}` : ""
+      ].filter(Boolean).join(", ");
+
+  const heroIcon = isMove
+    ? "fa-solid fa-arrows-left-right"
+    : "fa-solid fa-copy";
+
+  const itemsListHtml = `<ul class="props-card__items-list">
+    ${items.map((item) => {
+      const name = item.getAttribute("itemname");
+      const isDir = item.getAttribute("itemisdir") === "1";
+      const ext = (item.getAttribute("itemext") || "").replace(".", "").toUpperCase();
+      const size = item.getAttribute("itemsize") || "—";
+      const icon = isDir ? "fa-solid fa-folder" : "fa-regular fa-file";
+      return `<li class="props-card__item-li" title="${escHtml(name)}">
+        <div class="props-card__item-row">
+          <i class="${icon} props-card__item-icon"></i>
+          <span class="props-card__item-name">${escHtml(name)}</span>
+          <span class="props-card__item-meta">${isDir ? "Folder" : escHtml(ext)}</span>
+          <span class="props-card__item-size">${escHtml(size)}</span>
+        </div>
+      </li>`;
+    }).join("")}
+  </ul>`;
+
+  const popup = document.createElement("div");
+  popup.className = "copy-move-popup props-card";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", `${actionName} items`);
+  popup.innerHTML = `
+    <section class="props-card__hero copy-move-popup__hero">
+      <div class="props-card__thumb copy-move-popup__thumb"><i class="${heroIcon}"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(heroName)}">${escHtml(heroName)}</h2>
+        <div class="props-card__meta">
+          <span>${escHtml(heroMeta)}</span>
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-folder-open"></i>From</dt>
+        <dd class="props-card__value">
+          <span class="props-card__path" title="${escHtml(sourceDir)}">${escHtml(sourceDir)}</span>
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-folder-open"></i>To</dt>
+        <dd class="props-card__value">
+          <span class="props-card__path" title="${escHtml(targetDir)}">${escHtml(targetDir)}</span>
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-weight-hanging"></i>Total size</dt>
+        <dd class="props-card__value"><span class="props-card__size"><span class="props-card__skeleton"></span></span></dd>
+      </div>
+      <div class="props-card__row props-card__row--block">
+        <dt class="props-card__label"><i class="fa-regular fa-rectangle-list"></i>Items</dt>
+        <dd class="props-card__value">${itemsListHtml}</dd>
+      </div>
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" data-copy-move-cancel>
+        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary" data-copy-move-confirm>
+        <i class="${heroIcon}"></i><span>${actionName}</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  const copyMoveUpdateId = startCopyMoveSizeCalculation();
+
+  // Calculate size in the background
+  (async () => {
+    if (count === 1) {
+      const isDir = items[0].getAttribute("itemisdir") === "1";
+      try {
+        await getSimpleDirInfo(
+          items[0].getAttribute("itempath"),
+          ".copy-move-popup .props-card__size",
+          isDir,
+          copyMoveUpdateId
+        );
+        finishCopyMoveSizeCalculation(copyMoveUpdateId);
+      } catch (error) {
+        if (isCopyMoveSizeUpdateCurrent(copyMoveUpdateId)) {
+          finishCopyMoveSizeCalculation(copyMoveUpdateId);
+          writeLog(error);
+          $(".copy-move-popup .props-card__size").html("Unable to calculate size");
+        }
+      }
+    } else {
+      const paths = items.map((i) => i.getAttribute("itempath"));
+      setSizeCalculationLoading(".copy-move-popup .props-card__size");
+      try {
+        const totalSize = await invoke("get_selection_size", { paths, updateId: copyMoveUpdateId });
+        if (isCopyMoveSizeUpdateCurrent(copyMoveUpdateId)) {
+          finishCopyMoveSizeCalculation(copyMoveUpdateId);
+          $(".copy-move-popup .props-card__size").html(formatBytes(totalSize, 2));
+        }
+      } catch (error) {
+        if (isCopyMoveSizeUpdateCurrent(copyMoveUpdateId)) {
+          finishCopyMoveSizeCalculation(copyMoveUpdateId);
+          writeLog(error);
+          $(".copy-move-popup .props-card__size").html("Unable to calculate size");
+        }
+      }
+    }
+  })();
+
+  return new Promise((resolve) => {
+    let isClosed = false;
+    const finish = (ok) => {
+      if (isClosed) return;
+      isClosed = true;
+      finishCopyMoveSizeCalculation(copyMoveUpdateId);
+      invoke("cancel_size_calculation");
+      popup.classList.add("popup-exit");
+      popup.addEventListener("animationend", () => {
+        popup.remove();
+        IsPopUpOpen = false;
+        resolve(ok);
+      }, { once: true });
+    };
+    popup.querySelector("[data-copy-move-cancel]").onclick = () => finish(false);
+    popup.querySelector("[data-copy-move-confirm]").onclick = () => finish(true);
+    popup.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); finish(false); }
+      if (e.key === "Enter")  { e.preventDefault(); finish(true);  }
+    });
+    popup.querySelector("[data-copy-move-confirm]").focus();
+  });
 }
 
 async function copyItem(item, toCut = false, fromInternal = false) {
@@ -1563,6 +1850,14 @@ async function copyItem(item, toCut = false, fromInternal = false) {
   }
   // ContextMenu.style.display = "none";
   await writeText(CopyFilePath);
+
+  let paths = ArrCopyItems.map((element) => element.getAttribute("itempath")).filter(Boolean);
+  try {
+    await invoke("write_clipboard_files", { files: paths });
+  } catch (err) {
+    console.error("Failed to write files to system clipboard:", err);
+  }
+
   if (toCut == true) {
     IsCopyToCut = true;
   } else {
@@ -1571,116 +1866,199 @@ async function copyItem(item, toCut = false, fromInternal = false) {
 }
 
 async function extractItem(item) {
-  let compressFilePath = item.getAttribute("itempath");
-  let compressFileName = compressFilePath
-    .split("/")
-    [compressFilePath.split("/").length - 1].replace("'", "");
-  // ContextMenu.style.display = "none";
-  let isExtracting = await showPopup(
-    "Do you want to extract " + compressFileName + "?",
-    PopupType.EXTRACT,
-  );
-  if (isExtracting == true) {
-    // ContextMenu.style.display = "none";
-    let extractFilePath = item.getAttribute("itempath");
-    let extractFileName = item.getAttribute("itemname");
+  const isExtracting = await showExtractPopup(item);
+  if (isExtracting === true) {
+    const extractFilePath = item.getAttribute("itempath");
+    const extractFileName = item.getAttribute("itemname");
     if (extractFileName != "") {
-      let fromPath = extractFilePath.toString();
+      const fromPath = extractFilePath.toString();
       await invoke("extract_item", { fromPath, appWindow });
       showToast("Extraction done", ToastType.SUCCESS);
       await listDirectories();
+      scheduleDiskUsageRefresh();
     }
   }
 }
 
-async function showCompressPopup(item) {
+async function showExtractPopup(item) {
+  if (IsPopUpOpen !== false) return false;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  const name = item.getAttribute("itemname");
+  const ext = (item.getAttribute("itemext") || "").replace(".", "").toUpperCase();
+
+  const popup = document.createElement("div");
+  popup.className = "extract-popup props-card";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Extract archive");
+  popup.innerHTML = `
+    <section class="props-card__hero">
+      <div class="props-card__thumb"><i class="fa-solid fa-file-zipper"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(name)}">${escHtml(name)}</h2>
+        <div class="props-card__meta">
+          <span>Archive</span>
+          ${ext ? `<span class="props-card__chip">${escHtml(ext)}</span>` : ""}
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-regular fa-folder-open"></i>Destination</dt>
+        <dd class="props-card__value">
+          <span class="props-card__path">${escHtml(CurrentDir)}</span>
+        </dd>
+      </div>
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" data-extract-cancel>
+        <i class="fa-solid fa-xmark"></i><span>Close</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary" data-extract-confirm>
+        <i class="fa-solid fa-maximize"></i><span>Extract</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
   IsPopUpOpen = true;
-  let arrCompressItems = ArrSelectedItems;
-  if (ArrSelectedItems.length > 1) {
-    arrCompressItems = ArrSelectedItems;
-  } else {
-    arrCompressItems = [item];
-  }
-  let compressFileNames = "";
-  if (arrCompressItems.length > 1) {
-    for (let i = 0; i < arrCompressItems.length; i++) {
-      compressFileNames +=
-        "<h5 style='max-width: 50vw; overflow-x: hidden; padding-right: 5px; text-overflow: ellipsis'>" +
-        arrCompressItems[i].getAttribute("itemname") +
-        "</h5>";
-    }
-  } else {
-    compressFileNames = item.getAttribute("itemname");
-  }
-  if (compressFileNames != "") {
-    let popup = document.createElement("div");
-    popup.className = "uni-popup compression-popup";
-    popup.innerHTML = `
-      <div class="popup-header">
-        <i class="fa-solid fa-compress"></i>
-        <h3>Compression options</h3>
-      </div>
-      <div style="padding: 10px 5px 0 10px; border-bottom: 1px solid var(--tertiaryColor);">
-        <p class="text-2">Selected item(s)</p>
-        <br/>
-        <div style="max-height: 50vh; max-width: 50vw; overflow-y: auto; overflow-x: hidden; text-overflow: ellipsis; white-space: nowrap">
-          ${compressFileNames}
-        </div>
-        <br/>
-      </div>
-      <div class="popup-body">
-        <div class="popup-body-row-section">
-          <div class="popup-body-col-section" style="width: 50%;">
-            <input class="text-input compression-popup-level-input" type="number" value="1" placeholder="Default: 1" />
-          </div>
-          <div class="popup-body-col-section" style="width: 50%;">
-            <select class="select compression-popup-type-select">
-              <option value="zstd">Zstd (Level -7 - 22)</option>
-              <option value="zip">Zip (Level 1 - 9)</option>
-              <option value="density">Density (Level 1 - 3)</option>
-              <option value="br">Brotli (Level 1)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="popup-controls">
-        <button class="icon-button" onclick="closeCompressPopup()">
-          <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-          Close
-        </button>
-        <button class="icon-button compress-item-button">
-          <div class="button-icon"><i class="fa-solid fa-minimize"></i></div>
-          Compress
-        </button>
-      </div>
-      `;
-    document.querySelector("body").append(popup);
-    document
-      .querySelector(".compress-item-button")
-      .addEventListener("click", async () => {
-        await compressItem(
-          arrCompressItems,
-          $(".compression-popup-level-input").val(),
-          $(".compression-popup-type-select").val(),
-        );
-      });
-    $(".compression-popup-level-input").on(
-      "focus",
-      () => (IsInputFocused = true),
-    );
-    $(".compression-popup-level-input").on(
-      "blur",
-      () => (IsInputFocused = false),
-    );
-    $(".compression-popup-level-input").on("keyup", (e) => {
-      if (
-        ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
-        e.key == "Enter"
-      ) {
-        $(".compress-item-button").click();
-      }
+
+  return new Promise((resolve) => {
+    let isClosed = false;
+    const finish = (ok) => {
+      if (isClosed) return;
+      isClosed = true;
+      popup.classList.add("popup-exit");
+      popup.addEventListener("animationend", () => {
+        popup.remove();
+        IsPopUpOpen = false;
+        resolve(ok);
+      }, { once: true });
+    };
+    popup.querySelector("[data-extract-cancel]").onclick = () => finish(false);
+    popup.querySelector("[data-extract-confirm]").onclick = () => finish(true);
+    popup.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); finish(false); }
+      if (e.key === "Enter")  { e.preventDefault(); finish(true);  }
     });
-  }
+    popup.querySelector("[data-extract-confirm]").focus();
+  });
+}
+
+async function showCompressPopup(item) {
+  if (IsPopUpOpen !== false) return;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  const arrCompressItems = ArrSelectedItems.length > 1 ? ArrSelectedItems : [item];
+  if (!arrCompressItems.length || !arrCompressItems[0]) return;
+
+  const isMulti = arrCompressItems.length > 1;
+  const heroName = isMulti
+    ? `${arrCompressItems.length} items`
+    : arrCompressItems[0].getAttribute("itemname");
+  const heroKind = isMulti ? "Multiple selection" : "Single item";
+
+  const itemsListHtml = isMulti
+    ? `<ul class="props-card__items-list">
+         ${arrCompressItems.map((item) => {
+           const name = item.getAttribute("itemname");
+           const isDir = item.getAttribute("itemisdir") === "1";
+           const ext = (item.getAttribute("itemext") || "").replace(".", "").toUpperCase();
+           const size = item.getAttribute("itemsize") || "—";
+           const icon = isDir ? "fa-solid fa-folder" : "fa-regular fa-file";
+           return `<li class="props-card__item-li" title="${escHtml(name)}">
+             <div class="props-card__item-row">
+               <i class="${icon} props-card__item-icon"></i>
+               <span class="props-card__item-name">${escHtml(name)}</span>
+               <span class="props-card__item-meta">${isDir ? "Folder" : escHtml(ext)}</span>
+               <span class="props-card__item-size">${escHtml(size)}</span>
+             </div>
+           </li>`;
+         }).join("")}
+       </ul>`
+    : "";
+
+  const popup = document.createElement("div");
+  popup.className = "compression-popup props-card props-card--wide";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Compress items");
+  popup.innerHTML = `
+    <section class="props-card__hero">
+      <div class="props-card__thumb"><i class="fa-solid fa-file-zipper"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(heroName)}">${escHtml(heroName)}</h2>
+        <div class="props-card__meta">
+          <span>${escHtml(heroKind)}</span>
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-file-code"></i>Format</dt>
+        <dd class="props-card__value">
+          <select class="props-card__input compression-popup-type-select" style="cursor: pointer;">
+            <option value="zstd">Zstd (Level -7 - 22)</option>
+            <option value="zip">Zip (Level 1 - 9)</option>
+            <option value="density">Density (Level 1 - 3)</option>
+            <option value="br">Brotli (Level 1)</option>
+          </select>
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-gauge-high"></i>Level</dt>
+        <dd class="props-card__value">
+          <input type="number" class="props-card__input compression-popup-level-input" value="1" placeholder="Default: 1" />
+        </dd>
+      </div>
+      ${itemsListHtml ? `
+      <div class="props-card__row props-card__row--block">
+        <dt class="props-card__label"><i class="fa-regular fa-rectangle-list"></i>Items</dt>
+        <dd class="props-card__value">${itemsListHtml}</dd>
+      </div>` : ""}
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" onclick="closeCompressPopup()">
+        <i class="fa-solid fa-xmark"></i><span>Close</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary compress-item-button">
+        <i class="fa-solid fa-minimize"></i><span>Compress</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  popup.querySelector(".compress-item-button").addEventListener("click", async () => {
+    await compressItem(
+      arrCompressItems,
+      $(".compression-popup-level-input").val(),
+      $(".compression-popup-type-select").val(),
+    );
+  });
+
+  const levelInput = popup.querySelector(".compression-popup-level-input");
+  levelInput.addEventListener("focus", () => (IsInputFocused = true));
+  levelInput.addEventListener("blur", () => (IsInputFocused = false));
+  levelInput.addEventListener("keyup", (e) => {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+      popup.querySelector(".compress-item-button").click();
+    }
+  });
 }
 
 async function compressItem(
@@ -1780,12 +2158,620 @@ async function compressItem(
   }
   isCompressingDone = true;
   removeAction(actionId);
+  scheduleDiskUsageRefresh();
 }
 
 async function closeCompressPopup() {
-  $(".compression-popup").remove();
-  IsPopUpOpen = false;
-  IsInputFocused = false;
+  let popup = document.querySelector(".compression-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+      IsInputFocused = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+    IsInputFocused = false;
+  }
+}
+
+async function showImageEditPopup(item) {
+  if (IsPopUpOpen !== false) return;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  const editItem = item || ArrSelectedItems[0];
+  if (!editItem) return;
+
+  const path = editItem.getAttribute("itempath");
+  const filename = editItem.getAttribute("itemname");
+
+  let width = 0;
+  let height = 0;
+
+  const getActiveApiKey = () => {
+    if (AiProvider === "openai") {
+      return document.querySelector(".openai-api-key-input")?.value.trim() || "";
+    } else {
+      return document.querySelector(".gemini-api-key-input")?.value.trim() || "";
+    }
+  };
+
+  const providerName = AiProvider === "openai" ? "OpenAI" : "Gemini";
+
+  const tabsHtml = IsAiEnabled ? `
+    <!-- Navigation Tabs -->
+    <div class="modal-tabs" style="display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--tertiaryColor); margin-bottom: 10px;">
+      <button class="modal-tab-button active" data-tab="upscale" style="background: rgba(255, 255, 255, 0.08); border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor); cursor: pointer; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--selectColor2); margin-bottom: -1px; transition: all 0.15s ease;">
+        <i class="fa-solid fa-expand"></i><span>Image Upscale</span>
+      </button>
+      <button class="modal-tab-button" data-tab="enhance" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Enhancement</span>
+      </button>
+      <button class="modal-tab-button" data-tab="style" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
+        <i class="fa-solid fa-palette"></i><span>Edit Style</span>
+      </button>
+    </div>
+  ` : '';
+
+  const aiMethodOption = IsAiEnabled ? `
+              <option value="ai">AI Super-Resolution</option>
+  ` : '';
+
+  const popup = document.createElement("div");
+  popup.className = "upscale-popup props-card props-card--wide";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Image edit");
+  popup.innerHTML = `
+    <section class="props-card__hero">
+      <div class="props-card__thumb"><i class="fa-solid fa-image-portrait"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(filename)}">${escHtml(filename)}</h2>
+        <div class="props-card__meta">
+          <span>Image Edit & Creative Enhancement</span>
+        </div>
+      </div>
+    </section>
+
+    ${tabsHtml}
+
+    <!-- Image Upscale Tab View -->
+    <div class="upscale-tab-view">
+      <dl class="props-card__list">
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-wand-magic-sparkles"></i>Method</dt>
+          <dd class="props-card__value">
+            <select class="props-card__input upscale-method-select" style="cursor: pointer;">
+              <option value="standard" selected>Standard (Algorithms)</option>
+              ${aiMethodOption}
+            </select>
+          </dd>
+        </div>
+
+        <!-- Standard options -->
+        <div class="props-card__row upscale-standard-row">
+          <dt class="props-card__label"><i class="fa-solid fa-expand"></i>Scale</dt>
+          <dd class="props-card__value">
+            <select class="props-card__input upscale-scale-select" style="cursor: pointer;">
+              <option value="2">2x</option>
+              <option value="4" selected>4x</option>
+              <option value="8">8x</option>
+            </select>
+          </dd>
+        </div>
+        <div class="props-card__row upscale-standard-row">
+          <dt class="props-card__label"><i class="fa-solid fa-sliders"></i>Algorithm</dt>
+          <dd class="props-card__value">
+            <select class="props-card__input upscale-algorithm-select" style="cursor: pointer;">
+              <option value="lanczos3" selected>Lanczos3 (High Quality, Sharp)</option>
+              <option value="catmull_rom">Catmull-Rom (High Quality, Smooth)</option>
+              <option value="nearest">Nearest Neighbor (Pixel Art)</option>
+              <option value="triangle">Bilinear (Fast)</option>
+              <option value="gaussian">Gaussian (Smooth)</option>
+            </select>
+          </dd>
+        </div>
+
+        <!-- AI options (hidden by default) -->
+        <div class="props-card__row upscale-ai-row" style="display: none;">
+          <dt class="props-card__label"><i class="fa-solid fa-vector-square"></i>Aspect Ratio</dt>
+          <dd class="props-card__value">
+            <select class="props-card__input upscale-aspect-select" style="cursor: pointer;">
+              <option value="1:1" selected>1:1 Square (1024x1024)</option>
+              <option value="16:9">16:9 Widescreen (1024x576)</option>
+              <option value="9:16">9:16 Portrait (576x1024)</option>
+              <option value="4:3">4:3 Standard (1024x768)</option>
+              <option value="3:4">3:4 Tall (768x1024)</option>
+            </select>
+          </dd>
+        </div>
+
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-file-signature"></i>Filename</dt>
+          <dd class="props-card__value">
+            <input type="text" class="props-card__input upscale-filename-input" value="" />
+          </dd>
+        </div>
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-arrows-left-right"></i>Size</dt>
+          <dd class="props-card__value upscale-resolution-preview" style="font-family: monospace; font-size: 12px; color: var(--textColor2);">
+            Fetching dimensions...
+          </dd>
+        </div>
+        <div class="upscale-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
+          <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
+            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>${providerName} API Key is not configured.
+          </p>
+          <button class="props-card__btn" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="closeUpscalePopup(); openSettings(); showSettingsTab('ai', document.querySelector('.settings-sidebar button[onclick*=\\'ai\\']'));">
+            <i class="fa-solid fa-key" style="font-size: 10px;"></i>Configure Key
+          </button>
+        </div>
+      </dl>
+    </div>
+
+    <!-- AI Enhancement Tab View -->
+    <div class="enhance-tab-view" style="display: none;">
+      <dl class="props-card__list">
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-vector-square"></i>Aspect Ratio</dt>
+          <dd class="props-card__value">
+            <select class="props-card__input enhance-aspect-select" style="cursor: pointer;">
+              <option value="1:1" selected>1:1 Square (1024x1024)</option>
+              <option value="16:9">16:9 Widescreen (1024x576)</option>
+              <option value="9:16">9:16 Portrait (576x1024)</option>
+              <option value="4:3">4:3 Standard (1024x768)</option>
+              <option value="3:4">3:4 Tall (768x1024)</option>
+            </select>
+          </dd>
+        </div>
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-file-signature"></i>Filename</dt>
+          <dd class="props-card__value">
+            <input type="text" class="props-card__input enhance-filename-input" value="" />
+          </dd>
+        </div>
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-info-circle"></i>Method</dt>
+          <dd class="props-card__value" style="font-size: 12px; color: var(--textColor2); line-height: 1.4;">
+            Analyzes and creatively regenerates a high-fidelity, high-resolution counterpart of your image using ${providerName} AI.
+          </dd>
+        </div>
+        <div class="enhance-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
+          <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
+            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>${providerName} API Key is not configured.
+          </p>
+          <button class="props-card__btn" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="closeUpscalePopup(); openSettings(); showSettingsTab('ai', document.querySelector('.settings-sidebar button[onclick*=\\'ai\\']'));">
+            <i class="fa-solid fa-key" style="font-size: 10px;"></i>Configure Key
+          </button>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Edit Style Tab View -->
+    <div class="style-tab-view" style="display: none;">
+      <dl class="props-card__list">
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-wand-magic-sparkles"></i>Style Instructions</dt>
+          <dd class="props-card__value">
+            <input type="text" class="props-card__input style-prompt-input" placeholder="e.g. Convert to cyberpunk oil painting" value="" />
+          </dd>
+        </div>
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-file-signature"></i>Filename</dt>
+          <dd class="props-card__value">
+            <input type="text" class="props-card__input style-filename-input" value="" />
+          </dd>
+        </div>
+        <div class="style-api-key-warning" style="display: none; padding: 8px 12px; margin: 4px 8px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
+          <p style="font-size: 11px; color: #f87171; margin: 0 0 6px 0; line-height: 1.4;">
+            <i class="fa-solid fa-circle-exclamation" style="margin-right: 4px;"></i>${providerName} API Key is not configured.
+          </p>
+          <button class="props-card__btn" style="padding: 2px 8px; font-size: 11px; height: auto;" onclick="closeUpscalePopup(); openSettings(); showSettingsTab('ai', document.querySelector('.settings-sidebar button[onclick*=\\'ai\\']'));">
+            <i class="fa-solid fa-key" style="font-size: 10px;"></i>Configure Key
+          </button>
+        </div>
+      </dl>
+    </div>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" onclick="closeUpscalePopup()">
+        <i class="fa-solid fa-xmark"></i><span>Close</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary upscale-item-button">
+        <i class="fa-solid fa-arrows-up-to-line"></i><span>Upscale</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary enhance-item-button" style="display: none;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i><span>Enhance</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary style-item-button" style="display: none;">
+        <i class="fa-solid fa-palette"></i><span>Apply Style</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  const scaleSelect = popup.querySelector(".upscale-scale-select");
+  const filenameInput = popup.querySelector(".upscale-filename-input");
+  const enhanceFilenameInput = popup.querySelector(".enhance-filename-input");
+  const styleFilenameInput = popup.querySelector(".style-filename-input");
+  const resPreview = popup.querySelector(".upscale-resolution-preview");
+  const methodSelect = popup.querySelector(".upscale-method-select");
+
+  const dotIndex = filename.lastIndexOf(".");
+  const baseName = dotIndex !== -1 ? filename.substring(0, dotIndex) : filename;
+  const extName = dotIndex !== -1 ? filename.substring(dotIndex) : "";
+  filenameInput.value = `${baseName}_4x${extName}`;
+  enhanceFilenameInput.value = `${baseName}_ai_enhanced${extName}`;
+  styleFilenameInput.value = `${baseName}_styled${extName}`;
+
+  const updateMethodFields = () => {
+    const method = methodSelect.value;
+    const standardRows = popup.querySelectorAll(".upscale-standard-row");
+    const aiRows = popup.querySelectorAll(".upscale-ai-row");
+    const apiKeyWarning = popup.querySelector(".upscale-api-key-warning");
+
+    if (method === "ai") {
+      standardRows.forEach(r => r.style.display = "none");
+      aiRows.forEach(r => r.style.display = "grid");
+
+      const apiKey = getActiveApiKey();
+      if (!apiKey) {
+        apiKeyWarning.style.display = "block";
+        popup.querySelector(".upscale-item-button").disabled = true;
+      } else {
+        apiKeyWarning.style.display = "none";
+        popup.querySelector(".upscale-item-button").disabled = false;
+      }
+
+      resPreview.innerHTML = `<span style="color: var(--textColor); font-weight: bold;"><i class="fa-solid fa-expand" style="margin-right: 6px; color: var(--selectColor2);"></i>AI Super-Resolution (Fidelity-preserving)</span>`;
+      filenameInput.value = `${baseName}_ai_upscaled${extName}`;
+    } else {
+      standardRows.forEach(r => r.style.display = "grid");
+      aiRows.forEach(r => r.style.display = "none");
+      apiKeyWarning.style.display = "none";
+      popup.querySelector(".upscale-item-button").disabled = false;
+      updateResolutionPreview();
+    }
+  };
+
+  methodSelect.addEventListener("change", updateMethodFields);
+
+  // Tabs switching logic
+  popup.querySelectorAll(".modal-tab-button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tabName = btn.getAttribute("data-tab");
+
+      popup.querySelectorAll(".modal-tab-button").forEach(b => {
+        b.classList.remove("active");
+        b.style.color = "var(--textColor2)";
+        b.style.fontWeight = "normal";
+        b.style.backgroundColor = "transparent";
+        b.style.borderBottom = "2px solid transparent";
+      });
+
+      btn.classList.add("active");
+      btn.style.color = "var(--textColor)";
+      btn.style.fontWeight = "bold";
+      btn.style.backgroundColor = "rgba(255, 255, 255, 0.08)";
+      btn.style.borderBottom = "2px solid var(--selectColor2)";
+
+      if (tabName === "upscale") {
+        popup.querySelector(".upscale-tab-view").style.display = "block";
+        popup.querySelector(".enhance-tab-view").style.display = "none";
+        popup.querySelector(".style-tab-view").style.display = "none";
+
+        popup.querySelector(".upscale-item-button").style.display = "inline-flex";
+        popup.querySelector(".enhance-item-button").style.display = "none";
+        popup.querySelector(".style-item-button").style.display = "none";
+        updateMethodFields();
+      } else if (tabName === "enhance") {
+        popup.querySelector(".upscale-tab-view").style.display = "none";
+        popup.querySelector(".enhance-tab-view").style.display = "block";
+        popup.querySelector(".style-tab-view").style.display = "none";
+
+        popup.querySelector(".upscale-item-button").style.display = "none";
+        popup.querySelector(".enhance-item-button").style.display = "inline-flex";
+        popup.querySelector(".style-item-button").style.display = "none";
+
+        // Validate API key for Enhance tab
+        const apiKey = getActiveApiKey();
+        const enhanceWarning = popup.querySelector(".enhance-api-key-warning");
+        if (!apiKey) {
+          enhanceWarning.style.display = "block";
+          popup.querySelector(".enhance-item-button").disabled = true;
+        } else {
+          enhanceWarning.style.display = "none";
+          popup.querySelector(".enhance-item-button").disabled = false;
+        }
+      } else if (tabName === "style") {
+        popup.querySelector(".upscale-tab-view").style.display = "none";
+        popup.querySelector(".enhance-tab-view").style.display = "none";
+        popup.querySelector(".style-tab-view").style.display = "block";
+
+        popup.querySelector(".upscale-item-button").style.display = "none";
+        popup.querySelector(".enhance-item-button").style.display = "none";
+        popup.querySelector(".style-item-button").style.display = "inline-flex";
+
+        // Check API key for Style tab
+        const apiKey = getActiveApiKey();
+        const styleWarning = popup.querySelector(".style-api-key-warning");
+        if (!apiKey) {
+          styleWarning.style.display = "block";
+          popup.querySelector(".style-item-button").disabled = true;
+        } else {
+          styleWarning.style.display = "none";
+          popup.querySelector(".style-item-button").disabled = false;
+        }
+      }
+    });
+  });
+
+  const updateResolutionPreview = () => {
+    const scale = parseFloat(scaleSelect.value);
+    filenameInput.value = `${baseName}_${scale}x${extName}`;
+
+    if (width && height) {
+      const newWidth = Math.round(width * scale);
+      const newHeight = Math.round(height * scale);
+      resPreview.innerHTML = `${width}x${height} &rarr; <span style="color: var(--textColor); font-weight: bold;">${newWidth}x${newHeight}</span>`;
+    } else {
+      resPreview.textContent = "Fetching dimensions...";
+    }
+  };
+
+  scaleSelect.addEventListener("change", updateResolutionPreview);
+
+  filenameInput.addEventListener("focus", () => (IsInputFocused = true));
+  filenameInput.addEventListener("blur", () => (IsInputFocused = false));
+
+  if (IsAiEnabled) {
+    enhanceFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
+    enhanceFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
+    styleFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
+    styleFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
+
+    const promptInput = popup.querySelector(".style-prompt-input");
+    promptInput.addEventListener("focus", () => (IsInputFocused = true));
+    promptInput.addEventListener("blur", () => (IsInputFocused = false));
+    promptInput.addEventListener("keyup", (e) => {
+      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+        popup.querySelector(".style-item-button").click();
+      }
+    });
+
+    enhanceFilenameInput.addEventListener("keyup", (e) => {
+      if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+        popup.querySelector(".enhance-item-button").click();
+      }
+    });
+  }
+
+  filenameInput.addEventListener("keyup", (e) => {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+      popup.querySelector(".upscale-item-button").click();
+    }
+  });
+
+
+
+  popup.querySelector(".upscale-item-button").addEventListener("click", async () => {
+    const method = methodSelect.value;
+    const outName = filenameInput.value.trim();
+    if (!outName) {
+      alert("Please enter an output filename");
+      return;
+    }
+
+    const dir = path.substring(0, path.lastIndexOf('/'));
+    const outputPath = dir + "/" + outName;
+
+    closeUpscalePopup();
+
+    let actionId = crypto.randomUUID();
+
+    if (method === "ai") {
+      const apiKey = getActiveApiKey();
+      const aspectRatio = popup.querySelector(".upscale-aspect-select").value;
+
+      createNewAction(
+        actionId,
+        "AI Upscaling",
+        `${filename} via ${providerName} AI (as-is)`,
+        path
+      );
+
+      try {
+        await invoke("ai_upscale_image", {
+          aiProvider: AiProvider,
+          apiKey,
+          fromPath: path,
+          aspectRatio,
+          outputPath,
+          creative: false,
+        });
+        showToast("AI Upscaling completed successfully", ToastType.SUCCESS);
+        const existing = document.querySelector(`[itempath="${outputPath}"]`);
+        if (existing) {
+          await handleDynamicUpdate(outputPath);
+        } else {
+          await handleDynamicCreate(outputPath);
+        }
+      } catch (error) {
+        showToast(`AI Upscaling failed: ${error}`, ToastType.ERROR);
+      } finally {
+        removeAction(actionId);
+        scheduleDiskUsageRefresh();
+      }
+    } else {
+      const scaleFactor = parseFloat(scaleSelect.value);
+      const filterType = popup.querySelector(".upscale-algorithm-select").value;
+
+      createNewAction(
+        actionId,
+        "Upscaling",
+        `${filename} to ${scaleFactor}x`,
+        path
+      );
+
+      try {
+        await invoke("upscale_image", {
+          fromPath: path,
+          scaleFactor: scaleFactor,
+          filterType: filterType,
+          outputPath: outputPath,
+        });
+        showToast("Upscaling completed", ToastType.SUCCESS);
+        const existing = document.querySelector(`[itempath="${outputPath}"]`);
+        if (existing) {
+          await handleDynamicUpdate(outputPath);
+        } else {
+          await handleDynamicCreate(outputPath);
+        }
+      } catch (error) {
+        showToast(`Upscaling failed: ${error}`, ToastType.ERROR);
+      } finally {
+        removeAction(actionId);
+        scheduleDiskUsageRefresh();
+      }
+    }
+  });
+
+  if (IsAiEnabled) {
+    popup.querySelector(".enhance-item-button").addEventListener("click", async () => {
+      const outName = enhanceFilenameInput.value.trim();
+      if (!outName) {
+        alert("Please enter an output filename");
+        return;
+      }
+
+      const dir = path.substring(0, path.lastIndexOf('/'));
+      const outputPath = dir + "/" + outName;
+
+      closeUpscalePopup();
+
+      let actionId = crypto.randomUUID();
+      const apiKey = getActiveApiKey();
+      const aspectRatio = popup.querySelector(".enhance-aspect-select").value;
+
+      createNewAction(
+        actionId,
+        "AI Enhancing",
+        `${filename} via ${providerName} AI (creative)`,
+        path
+      );
+
+      try {
+        await invoke("ai_upscale_image", {
+          aiProvider: AiProvider,
+          apiKey,
+          fromPath: path,
+          aspectRatio,
+          outputPath,
+          creative: true,
+        });
+        showToast("AI Enhancement completed successfully", ToastType.SUCCESS);
+        const existing = document.querySelector(`[itempath="${outputPath}"]`);
+        if (existing) {
+          await handleDynamicUpdate(outputPath);
+        } else {
+          await handleDynamicCreate(outputPath);
+        }
+      } catch (error) {
+        showToast(`AI Enhancement failed: ${error}`, ToastType.ERROR);
+      } finally {
+        removeAction(actionId);
+        scheduleDiskUsageRefresh();
+      }
+    });
+
+    popup.querySelector(".style-item-button").addEventListener("click", async () => {
+      const prompt = popup.querySelector(".style-prompt-input").value.trim();
+      if (!prompt) {
+        alert("Please enter a style prompt");
+        return;
+      }
+      const outName = styleFilenameInput.value.trim();
+      if (!outName) {
+        alert("Please enter an output filename");
+        return;
+      }
+
+      const dir = path.substring(0, path.lastIndexOf('/'));
+      const outputPath = dir + "/" + outName;
+
+      closeUpscalePopup();
+
+      let actionId = crypto.randomUUID();
+      const apiKey = getActiveApiKey();
+
+      createNewAction(
+        actionId,
+        "Styling Image",
+        `${filename} to ${prompt}`,
+        path
+      );
+
+      try {
+        await invoke("ai_style_image", {
+          aiProvider: AiProvider,
+          apiKey,
+          fromPath: path,
+          prompt,
+          outputPath,
+        });
+        showToast("Image styling completed successfully", ToastType.SUCCESS);
+        const existing = document.querySelector(`[itempath="${outputPath}"]`);
+        if (existing) {
+          await handleDynamicUpdate(outputPath);
+        } else {
+          await handleDynamicCreate(outputPath);
+        }
+      } catch (error) {
+        showToast("Image styling failed: " + error, ToastType.ERROR);
+      } finally {
+        removeAction(actionId);
+        scheduleDiskUsageRefresh();
+      }
+    });
+  }
+
+
+
+  try {
+    const dims = await invoke("get_image_dimensions", { path });
+    width = dims[0];
+    height = dims[1];
+    updateResolutionPreview();
+  } catch (err) {
+    resPreview.textContent = "Unable to read image dimensions";
+    console.error("Failed to load image dimensions", err);
+  }
+}
+
+async function showUpscalePopup(item) {
+  await showImageEditPopup(item);
+}
+
+async function closeUpscalePopup() {
+  let popup = document.querySelector(".upscale-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+      IsInputFocused = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+    IsInputFocused = false;
+  }
 }
 
 function showLoadingPopup(msg) {
@@ -1797,11 +2783,20 @@ function showLoadingPopup(msg) {
     `;
   popup.className = "uni-popup loading-popup";
   body.append(popup);
+  popup.classList.add("popup-enter");
   IsPopUpOpen = true;
 }
 function closeLoadingPopup() {
-  $(".loading-popup").remove();
-  IsPopUpOpen = false;
+  let popup = document.querySelector(".loading-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+  }
 }
 
 function showInputPopup(msg) {
@@ -1820,6 +2815,7 @@ function showInputPopup(msg) {
     }
   });
   body.append(popup);
+  popup.classList.add("popup-enter");
   IsPopUpOpen = true;
   popup.children[1].focus();
   IsInputFocused = true;
@@ -1830,9 +2826,16 @@ function showInputPopup(msg) {
 }
 
 function closeInputPopup() {
-  $(".input-popup").remove();
-  IsPopUpOpen = false;
-  IsInputFocused = false;
+  let popup = document.querySelector(".input-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+  }
 }
 
 function normalizePath(path = "") {
@@ -1851,6 +2854,11 @@ function joinPath(base = "", name = "") {
   if (normalizedBase === "") return name;
   if (normalizedBase === "/") return `/${name}`;
   return `${normalizedBase}/${name}`;
+}
+
+function comparablePath(path = "") {
+  let normalized = normalizePath(path);
+  return ["darwin", "windows"].includes(Platform) ? normalized.toLowerCase() : normalized;
 }
 
 function escapeHtml(value = "") {
@@ -1893,12 +2901,17 @@ function isConflictActionValid(action, conflict) {
   return conflict.item.is_dir == 1 && conflict.existing.is_dir == 1;
 }
 
-async function resolveCopyMoveConflicts(items, targetPath) {
+async function resolveCopyMoveConflicts(items, targetPath, shouldMove = false) {
   let resolvedItems = [];
   let conflicts = [];
 
   for (let item of items) {
     let destinationPath = joinPath(targetPath, item.name);
+    if (shouldMove && comparablePath(item.path) === comparablePath(destinationPath)) {
+      showToast("Cannot move item onto itself", ToastType.ERROR);
+      writeLog(`Move skipped: source and destination are the same path (${item.path})`);
+      continue;
+    }
     let conflict = await getDestinationConflict(item, destinationPath);
     if (conflict) {
       conflicts.push(conflict);
@@ -1945,7 +2958,7 @@ async function resolveCopyMoveConflicts(items, targetPath) {
 async function runResolvedCopyMove(items, targetPath, shouldMove = false) {
   if (!targetPath || items.length === 0) return [];
 
-  let resolvedItems = await resolveCopyMoveConflicts(items, targetPath);
+  let resolvedItems = await resolveCopyMoveConflicts(items, targetPath, shouldMove);
   if (resolvedItems === null) {
     showToast("Operation cancelled", ToastType.INFO);
     return [];
@@ -1966,6 +2979,9 @@ async function runResolvedCopyMove(items, targetPath, shouldMove = false) {
   }
   if (shouldMove && copiedSources.length > 0) {
     await invoke("arr_delete_items", { arrItems: copiedSources });
+  }
+  if (copiedSources.length > 0) {
+    scheduleDiskUsageRefresh();
   }
   return copiedSources;
 }
@@ -1992,14 +3008,14 @@ async function showDestinationConflictPopup(conflict, index, total) {
         <section class="destination-conflict-card">
           <h4>Incoming item</h4>
           <p class="destination-conflict-name" title="${escapeHtml(conflict.item.path)}">${escapeHtml(conflict.item.name)}</p>
-          <p class="text-2">${escapeHtml(formatConflictMeta(conflict.item))}</p>
-          <p class="text-2" title="${escapeHtml(conflict.item.path)}">From: ${escapeHtml(normalizePath(conflict.item.path).split("/").slice(0, -1).join("/") || "/")}</p>
+          <p class="text-2"><i class="fa-regular fa-clock" style="font-size: 11px;"></i> ${escapeHtml(formatConflictMeta(conflict.item))}</p>
+          <p class="text-2" title="${escapeHtml(conflict.item.path)}"><i class="fa-solid fa-folder-open" style="font-size: 11px;"></i> From: ${escapeHtml(normalizePath(conflict.item.path).split("/").slice(0, -1).join("/") || "/")}</p>
         </section>
         <section class="destination-conflict-card">
           <h4>Existing item</h4>
           <p class="destination-conflict-name" title="${escapeHtml(conflict.existing.path)}">${escapeHtml(conflict.existing.name)}</p>
-          <p class="text-2">${escapeHtml(formatConflictMeta(conflict.existing))}</p>
-          <p class="text-2" title="${escapeHtml(conflict.destinationPath)}">In: ${escapeHtml(normalizePath(conflict.destinationPath).split("/").slice(0, -1).join("/") || "/")}</p>
+          <p class="text-2"><i class="fa-regular fa-clock" style="font-size: 11px;"></i> ${escapeHtml(formatConflictMeta(conflict.existing))}</p>
+          <p class="text-2" title="${escapeHtml(conflict.destinationPath)}"><i class="fa-solid fa-location-dot" style="font-size: 11px;"></i> In: ${escapeHtml(normalizePath(conflict.destinationPath).split("/").slice(0, -1).join("/") || "/")}</p>
         </section>
       </div>
       <fieldset class="destination-conflict-options">
@@ -2015,8 +3031,9 @@ async function showDestinationConflictPopup(conflict, index, total) {
       <button class="icon-button destination-conflict-skip"><div class="button-icon"><i class="fa-solid fa-forward-step"></i></div>Skip</button>
       <button class="icon-button destination-conflict-confirm"><div class="button-icon"><i class="fa-solid fa-check"></i></div>Continue</button>
     </div>`;
-
   document.querySelector(".main-container").appendChild(popup);
+  popup.classList.add("popup-enter");
+
   let previouslyFocused = document.activeElement;
   IsPopUpOpen = true;
   IsDisableShortcuts = true;
@@ -2032,15 +3049,18 @@ async function showDestinationConflictPopup(conflict, index, total) {
       isClosed = true;
       let selected = popup.querySelector("input[name='conflict-action']:checked")?.value ?? "duplicate";
       let applyToAll = popup.querySelector(".destination-conflict-apply-all-input")?.checked ?? false;
-      popup.remove();
-      $(".popup-background").css("display", "none");
-      $(".popup-background").css("opacity", "0");
-      IsPopUpOpen = false;
-      IsDisableShortcuts = false;
-      if (previouslyFocused && typeof previouslyFocused.focus === "function") {
-        previouslyFocused.focus();
-      }
-      resolve({ action: action ?? selected, applyToAll });
+      popup.classList.add("popup-exit");
+      popup.addEventListener("animationend", () => {
+        popup?.remove();
+        $(".popup-background").css("display", "none");
+        $(".popup-background").css("opacity", "0");
+        IsPopUpOpen = false;
+        IsDisableShortcuts = false;
+        if (previouslyFocused && typeof previouslyFocused.focus === "function") {
+          previouslyFocused.focus();
+        }
+        resolve({ action: action ?? selected, applyToAll });
+      }, { once: true });
     };
 
     popup.querySelector(".destination-conflict-cancel").onclick = () => close("cancel");
@@ -2106,13 +3126,19 @@ async function itemMoveTo(isForDualPane = false) {
 
 async function pasteItem(copyToPath = "", isCopyToCut = false) {
   let arr = [];
-  if (IsDualPaneEnabled == true) {
-    arr = ArrSelectedItems;
-  } else {
-    arr = ArrCopyItems;
-  }
+  let isSystemClipboard = false;
+  let isMove = false;
 
-  arr = arr.map(toCopyModel);
+  // Try to retrieve files from the system clipboard
+  try {
+    let sysFiles = await invoke("get_clipboard_files");
+    if (sysFiles && sysFiles.length > 0) {
+      arr = sysFiles;
+      isSystemClipboard = true;
+    }
+  } catch (err) {
+    console.error("Failed to read system clipboard:", err);
+  }
 
   let targetPath = copyToPath;
 
@@ -2128,7 +3154,47 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
     targetPath = copyToPath || CurrentDir;
   }
 
-  if (isCopyToCut == true || IsCopyToCut == true) {
+  if (!isSystemClipboard) {
+    // If no system files, try to save an image from the system clipboard!
+    try {
+      let savedImage = await invoke("save_clipboard_image", { targetDir: targetPath });
+      if (savedImage) {
+        showToast("Pasted screenshot from clipboard", ToastType.SUCCESS);
+        if (IsDualPaneEnabled === true) {
+          refreshBothViews(SelectedItemPaneSide);
+        } else {
+          await listDirectories();
+        }
+        scheduleDiskUsageRefresh();
+        return;
+      }
+    } catch (err) {
+      console.log("No image in system clipboard:", err);
+    }
+
+    if (IsDualPaneEnabled == true) {
+      arr = ArrSelectedItems;
+    } else {
+      arr = ArrCopyItems;
+    }
+    arr = arr.map(toCopyModel);
+    isMove = (isCopyToCut == true || IsCopyToCut == true);
+  } else {
+    // If it's from the system clipboard, determine if it was a cut operation
+    if (IsCopyToCut && ArrCopyItems.length > 0) {
+      let internalPaths = ArrCopyItems.map((item) => item.getAttribute("itempath"));
+      let sysPaths = arr.map((item) => item.path);
+      if (internalPaths.length === sysPaths.length && internalPaths.every((val, i) => val === sysPaths[i])) {
+        isMove = true;
+      }
+    }
+  }
+
+  if (arr.length === 0) {
+    return;
+  }
+
+  if (isMove) {
     let targetDirectory = normalizePath(targetPath);
     let sourceParents = arr.map((element) => parentPath(element.path));
     if (sourceParents.includes(targetDirectory)) {
@@ -2266,17 +3332,19 @@ async function createFolder(folderName) {
   let isDualPaneEnabled = IsDualPaneEnabled;
   await invoke("create_folder", { folderName, isDualPaneEnabled });
   listDirectories();
+  scheduleDiskUsageRefresh();
 }
 
 async function createFile(fileName) {
   await invoke("create_file", { fileName });
   listDirectories();
+  scheduleDiskUsageRefresh();
 }
 
 async function renameElement(path, newName) {
   await invoke("rename_element", { path, newName, appWindow });
   IsInputFocused = false;
-  await listDirectories();
+  scheduleDiskUsageRefresh();
 }
 
 async function showAppInfo() {
@@ -2351,42 +3419,62 @@ async function checkAppConfig() {
     }
 
     // Theme options
-    CurrentTheme = appConfig.current_theme;
+    CurrentTheme = appConfig.current_theme || "Default Dark";
     ArrFavorites = appConfig.arr_favorites || [];
-    appConfig.themes = await invoke("get_themes");
-    // Fallback when there's no theme installed
-    if (appConfig.themes.length == 0) {
-      appConfig.themes = [
-        {
-          name: "Default",
-          primary_color: "#3f4352",
-          secondary_color: "rgba(56, 59, 71, 1)",
-          tertiary_color: "#474b5c",
-          text_color: "rgba(255, 255, 255, 0.8)",
-          text_color2: "rgba(255, 255, 255, 0.6)",
-          text_color3: "rgb(255, 255, 255)",
-          transparent_color: "rgba(0, 0, 0, 0.15)",
-          transparent_color_active: "rgba(0, 0, 0, 0.25)",
-          site_bar_color: "rgb(45, 47, 57)",
-          nav_bar_color: "rgba(30, 30, 40, 0.5)",
-        },
-      ];
+
+    // Load custom user themes from the backend
+    try {
+      LoadedUserThemes = await invoke("get_themes");
+    } catch (err) {
+      console.error("Failed to load user themes:", err);
+      LoadedUserThemes = [];
     }
+
+    // Rework themeSelect population to be name-based
     let themeSelect = document.querySelector(".theme-select");
     themeSelect.innerHTML = "";
-    let themeCounter = 0;
-    appConfig.themes.forEach((theme) => {
+
+    // 1. Add built-in themes
+    Object.keys(BuiltInThemes).forEach(themeName => {
       let themeOption = document.createElement("option");
-      themeOption.value = themeCounter;
-      themeOption.textContent = theme.name;
+      themeOption.value = themeName;
+      themeOption.textContent = themeName;
       themeSelect.appendChild(themeOption);
-      themeCounter++;
     });
 
-    // Set current theme
-    themeSelect.value = CurrentTheme;
+    // 2. Add custom loaded themes
+    LoadedUserThemes.forEach(theme => {
+      // Avoid duplicating built-in names
+      if (!BuiltInThemes[theme.name]) {
+        let themeOption = document.createElement("option");
+        themeOption.value = theme.name;
+        themeOption.textContent = theme.name;
+        themeSelect.appendChild(themeOption);
+      }
+    });
+
+    // Set current theme in select dropdown
+    if (themeSelect.querySelector(`option[value="${CurrentTheme}"]`)) {
+      themeSelect.value = CurrentTheme;
+    } else {
+      CurrentTheme = "Default Dark";
+      themeSelect.value = CurrentTheme;
+    }
+
+    // Toggle delete/edit button visibility based on whether the theme is built-in
+    if (BuiltInThemes[CurrentTheme]) {
+      $(".delete-theme-btn").css("display", "none");
+      $(".edit-theme-btn").css("display", "none");
+    } else {
+      $(".delete-theme-btn").css("display", "block");
+      $(".edit-theme-btn").css("display", "block");
+    }
 
     checkColorMode(appConfig);
+
+    // Keyboard Shortcuts Initialization
+    ConfiguredShortcuts = { ...DefaultShortcuts, ...(appConfig.shortcuts || {}) };
+    populateShortcutsUI();
 
     // General configurations
     document.querySelector(".configured-path-one-input").value =
@@ -2401,13 +3489,98 @@ async function checkAppConfig() {
     document.querySelector(".max-items-input").value = SettingsMaxItems =
       parseInt(appConfig.max_items);
 
+    // New settings
+    let fontSize = parseInt(appConfig.font_size) || 12;
+    document.querySelector(".font-size-slider").value = fontSize;
+    document.getElementById("font-size-value").textContent = fontSize + "px";
+    document.documentElement.style.setProperty("--fontSize", fontSize + "px");
+
+    document.querySelector(".gemini-api-key-input").value = appConfig.gemini_api_key || "";
+    document.querySelector(".openai-api-key-input").value = appConfig.openai_api_key || "";
+
+    const geminiTextVal = appConfig.gemini_text_model || "gemini-3.1-flash-lite-preview";
+    const geminiTextInput = document.querySelector(".gemini-text-model-input");
+    if (geminiTextInput) {
+      geminiTextInput.value = geminiTextVal;
+    }
+
+    const geminiImageVal = appConfig.gemini_image_model || "gemini-3.1-flash-image-preview";
+    const geminiImageSelect = document.querySelector(".gemini-image-model-select");
+    const geminiImageCustom = document.querySelector(".gemini-image-model-custom-input");
+    if (geminiImageSelect) {
+      const isKnownModel = ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview"].includes(geminiImageVal);
+      if (isKnownModel) {
+        geminiImageSelect.value = geminiImageVal;
+        if (geminiImageCustom) {
+          geminiImageCustom.value = "";
+          geminiImageCustom.style.display = "none";
+        }
+      } else {
+        geminiImageSelect.value = "custom";
+        if (geminiImageCustom) {
+          geminiImageCustom.value = geminiImageVal;
+          geminiImageCustom.style.display = "block";
+        }
+      }
+    }
+
+    const openaiTextVal = appConfig.openai_text_model || "gpt-4o";
+    const openaiTextInput = document.querySelector(".openai-text-model-input");
+    if (openaiTextInput) {
+      openaiTextInput.value = openaiTextVal;
+    }
+
+    const openaiImageVal = appConfig.openai_image_model || "gpt-image-2";
+    const openaiImageSelect = document.querySelector(".openai-image-model-select");
+    const openaiImageCustom = document.querySelector(".openai-image-model-custom-input");
+    if (openaiImageSelect) {
+      const isKnownModel = ["gpt-image-2"].includes(openaiImageVal);
+      if (isKnownModel) {
+        openaiImageSelect.value = openaiImageVal;
+        if (openaiImageCustom) {
+          openaiImageCustom.value = "";
+          openaiImageCustom.style.display = "none";
+        }
+      } else {
+        openaiImageSelect.value = "custom";
+        if (openaiImageCustom) {
+          openaiImageCustom.value = openaiImageVal;
+          openaiImageCustom.style.display = "block";
+        }
+      }
+    }
+
+    AiProvider = appConfig.ai_provider || "gemini";
+    const providerSelect = document.querySelector(".ai-provider-select");
+    if (providerSelect) {
+      providerSelect.value = AiProvider;
+    }
+
+    if (appConfig.is_ai_enabled && appConfig.is_ai_enabled.includes("1")) {
+      document.querySelector(".ai-enabled-checkbox").checked = true;
+      IsAiEnabled = true;
+    } else {
+      document.querySelector(".ai-enabled-checkbox").checked = false;
+      IsAiEnabled = false;
+    }
+
+    toggleAiProviderRows();
+
+    if (appConfig.is_window_transparency && appConfig.is_window_transparency.includes("1")) {
+      document.querySelector(".window-transparency-checkbox").checked = true;
+      document.body.style.opacity = "0.78";
+    } else {
+      document.querySelector(".window-transparency-checkbox").checked = false;
+      document.body.style.opacity = "1.0";
+    }
+
     if (appConfig.is_dual_pane_active.includes("1")) {
       await switchToDualPane();
       if (appConfig.launch_path.length >= 1) {
         let path = appConfig.launch_path;
         let isSwitched = await invoke("open_dir", { path });
         if (isSwitched === true) {
-          await setCurrentDir(path, "left");
+          await setCurrentDir(path, "left", false);
           await listDirectories();
         }
       } else {
@@ -2418,7 +3591,7 @@ async function checkAppConfig() {
       let path = appConfig.launch_path;
       let isSwitched = await invoke("open_dir", { path });
       if (isSwitched === true) {
-        await setCurrentDir(path, "left");
+        await setCurrentDir(path, "left", false);
         await listDirectories();
       } else {
         alert(
@@ -2437,22 +3610,27 @@ async function checkAppConfig() {
 
 async function applyPlatformFeatures() {
   Platform = await platform();
+  if (Platform === "macos") {
+    Platform = "darwin";
+  } else if (Platform === "windows") {
+    Platform = "win32";
+  }
   // Check for macOS and position titlebar buttons on the left
   if (Platform == "darwin") {
+    document.body.classList.add("darwin");
     let headerNav = document.querySelector(".header-nav");
     // headerNav.style.borderBottom = "none";
     headerNav.style.boxShadow = "none";
     $(".site-nav-bar").css("padding-top", "50px");
-    $(".search-bar-input").attr("placeholder", "Cmd + F");
-    $(".settings-ui-header").css("padding", "5px 5px 5px 100px");
+    $(".file-searchbar-shortcut").text("⌘F");
+    $(".ftp-keychain-hint").css("display", "flex");
   } else {
-    appWindow.transparent = true;
     appWindow.setDecorations(false);
     $(".windows-linux-titlebar-buttons").css("display", "flex");
     $(".minimize-button").on("click", () => appWindow.minimize());
     $(".maximize-button").on("click", () => appWindow.toggleMaximize());
     $(".close-button").on("click", () => appWindow.close());
-    $(".search-bar-input").attr("placeholder", "Ctrl + F");
+    $(".file-searchbar-shortcut").text("Ctrl+F");
   }
   DefaultFileIcon = await resolveResource("resources/file-icon.png");
   DefaultFolderIcon = await resolveResource("resources/folder-icon.png");
@@ -2497,7 +3675,7 @@ async function listDisks() {
         $(".miller-container")?.css("display", "none");
         $(".non-dual-pane-container")?.css("display", "flex");
         $(".explorer-container")?.css("display", "block");
-        $(".explorer-container")?.css("padding", "85px 20px 20px 20px");
+        $(".explorer-container")?.css("padding", "30px 20px 20px 20px");
       }
 
       let usedPercentage = 100 - evalCurrentLoad(item.avail, item.capacity);
@@ -2533,7 +3711,7 @@ async function listDisks() {
       itemButton.style.width = "100%";
       itemLink.addEventListener("click", async (e) => {
         e.preventDefault();
-        await interactWithItem(itemLink, "");
+        await interactWithItem(itemLink, "", null, e);
       });
       itemLink.addEventListener("dblclick", async (e) => {
         e.preventDefault();
@@ -2541,7 +3719,8 @@ async function listDisks() {
       });
       itemLink.addEventListener("contextmenu", (e) => {
         e.preventDefault();
-        cdCtMenu.setSelectedItem(itemLink);
+        e.stopPropagation();
+        cdCtMenu.setSelectedItem(itemLink, e);
         cdCtMenu.show(e);
       });
       itemLink.append(itemButton);
@@ -2559,6 +3738,7 @@ async function listDisks() {
 function isEjectableDisk(item) {
   const path = item.path?.replace(/"/g, "") ?? "";
   if (!path || path === "/") return false;
+  if (path.startsWith("ftp://") || path.includes("sshfs") || path.startsWith("/tmp/codriver-sshfs-mount")) return true;
   if (Platform === "darwin") {
     return item.is_removable === true && path.startsWith("/Volumes/");
   }
@@ -2566,27 +3746,50 @@ function isEjectableDisk(item) {
 }
 
 async function listDirectories(fromDualPaneCopy = false) {
-  let lsItems = await invoke("list_dirs");
-  if (IsDualPaneEnabled == true) {
-    ViewMode = "column";
-    if (fromDualPaneCopy == true) {
-      switch (SelectedItemPaneSide) {
-        case "left":
-          CurrentDir = RightDualPanePath;
-          await showItems(lsItems, "right");
-          break;
-        case "right":
-          CurrentDir = LeftDualPanePath;
-          await showItems(lsItems, "left");
-          break;
-      }
-    } else {
-      await showItems(lsItems, SelectedItemPaneSide);
-    }
-    goUp(false, true);
-  } else {
-    await showItems(lsItems, "", CurrentMillerCol);
+  const backendDir = await getCurrentDir();
+  const isFtp = backendDir && backendDir.startsWith("ftp://");
+  let side = SelectedItemPaneSide;
+  if (IsDualPaneEnabled && fromDualPaneCopy) {
+    side = (SelectedItemPaneSide === "left") ? "right" : "left";
   }
+
+  if (isFtp) {
+    showFtpLoader(side);
+  }
+
+  try {
+    let lsItems = await invoke("list_dirs");
+    if (IsDualPaneEnabled == true) {
+      ViewMode = "column";
+      if (fromDualPaneCopy == true) {
+        switch (SelectedItemPaneSide) {
+          case "left":
+            CurrentDir = RightDualPanePath;
+            await showItems(lsItems, "right");
+            break;
+          case "right":
+            CurrentDir = LeftDualPanePath;
+            await showItems(lsItems, "left");
+            break;
+        }
+      } else {
+        await showItems(lsItems, SelectedItemPaneSide);
+      }
+      goUp(false, true);
+    } else {
+      // Sync current directory state from the backend before showing items
+      const backendDir = await getCurrentDir();
+      await setCurrentDir(backendDir, "", false);
+      await showItems(lsItems, "", CurrentMillerCol);
+    }
+  } catch (error) {
+    console.error("Failed to list directories:", error);
+    if (isFtp) {
+      hideFtpLoader(side);
+    }
+    showToast("Failed to list directory: " + error, ToastType.ERROR);
+  }
+
   setTimeout(() => {
     ds.setSettings({
       selectables: document.querySelectorAll(".item-link"),
@@ -2599,21 +3802,23 @@ async function refreshView() {
 }
 
 async function refreshBothViews(dualPaneSide = "") {
-  switch (dualPaneSide) {
-    case "left":
-      await setCurrentDir(RightDualPanePath, "right");
-      await listDirectories();
-      await setCurrentDir(LeftDualPanePath, "left");
-      await listDirectories();
-      goUp(false, true);
-      break;
-    case "right":
-      await setCurrentDir(LeftDualPanePath, "left");
-      await listDirectories();
-      await setCurrentDir(RightDualPanePath, "right");
-      await listDirectories();
-      goUp(false, true);
-      break;
+  if (IsDualPaneEnabled == true) {
+    const origSide = dualPaneSide || SelectedItemPaneSide || "left";
+    const otherSide = origSide === "left" ? "right" : "left";
+    const origPath = origSide === "left" ? LeftDualPanePath : RightDualPanePath;
+    const otherPath = origSide === "left" ? RightDualPanePath : LeftDualPanePath;
+
+    // Refresh the inactive pane first
+    await setCurrentDir(otherPath, otherSide);
+    await listDirectories();
+
+    // Refresh the active pane second, ensuring focus and state remain on the correct side
+    await setCurrentDir(origPath, origSide);
+    await listDirectories();
+
+    goUp(false, true);
+  } else {
+    await listDirectories();
   }
 }
 
@@ -2621,6 +3826,7 @@ async function interactWithItem(
   element = null,
   dualPaneSide = "",
   shortcutPath = null,
+  e = null,
 ) {
   let isDir = element?.getAttribute("itemisdir");
   if (dualPaneSide == "left") {
@@ -2633,25 +3839,28 @@ async function interactWithItem(
     document.querySelector(".dual-pane-left").style.boxShadow = "none";
   }
 
+  const isMeta = e ? e.metaKey : (window.event ? window.event.metaKey : false);
+  const isShift = e ? e.shiftKey : (window.event ? window.event.shiftKey : false);
+
   // Interaction mode: Select
   if (
     element != null &&
     element != SelectedItemToOpen &&
     IsSelectMode == true &&
-    (isDir == 0 || ViewMode != "miller" || IsMetaDown == true)
+    (isDir == 0 || ViewMode != "miller" || isMeta == true)
   ) {
-    if (IsShiftDown === true) {
+    if (isShift === true) {
       if (IsDualPaneEnabled === false) {
         let firstIndex = parseInt(SelectedElement.getAttribute("itemindex"));
         let lastIndex = parseInt(element.getAttribute("itemindex"));
         unSelectAllItems();
         if (firstIndex < lastIndex) {
           for (let i = firstIndex; i <= lastIndex; i++) {
-            selectItem(DirectoryList.children[i]);
+            selectItem(DirectoryList.children[i], "", false, true, e);
           }
         } else {
           for (let i = firstIndex; i >= lastIndex; i--) {
-            selectItem(DirectoryList.children[i]);
+            selectItem(DirectoryList.children[i], "", false, true, e);
           }
         }
       } else {
@@ -2663,39 +3872,39 @@ async function interactWithItem(
           unSelectAllItems();
           if (firstIndex < lastIndex) {
             for (let i = firstIndex; i <= lastIndex; i++) {
-              selectItem(LeftPaneItemCollection.children[i]);
+              selectItem(LeftPaneItemCollection.children[i], "", false, true, e);
             }
           } else {
             for (let i = firstIndex; i >= lastIndex; i--) {
-              selectItem(LeftPaneItemCollection.children[i]);
+              selectItem(LeftPaneItemCollection.children[i], "", false, true, e);
             }
           }
         } else {
           let firstIndex = parseInt(
-            SelectedElement?.getAttribute("itemindex") ?? ß,
+            SelectedElement?.getAttribute("itemindex") ?? 0,
           );
           let lastIndex = parseInt(element.getAttribute("itemindex"));
           unSelectAllItems();
           if (firstIndex < lastIndex) {
             for (let i = firstIndex; i <= lastIndex; i++) {
-              selectItem(RightPaneItemCollection.children[i]);
+              selectItem(RightPaneItemCollection.children[i], "", false, true, e);
             }
           } else {
             for (let i = firstIndex; i >= lastIndex; i--) {
-              selectItem(RightPaneItemCollection.children[i]);
+              selectItem(RightPaneItemCollection.children[i], "", false, true, e);
             }
           }
         }
       }
     } else {
-      await selectItem(element);
+      await selectItem(element, "", false, true, e);
     }
   }
   // Interaction mode: Open item
   else if (
     (element != null &&
       (element == SelectedItemToOpen || IsSelectMode == false)) ||
-    (isDir == 1 && ViewMode == "miller" && IsMetaDown == false)
+    (isDir == 1 && ViewMode == "miller" && isMeta == false)
   ) {
     await openItem(element, dualPaneSide, shortcutPath);
   }
@@ -2720,35 +3929,49 @@ async function openItem(element, dualPaneSide, shortcutDirPath = null) {
   if (IsPopUpOpen == false || IsQuickSearchOpen === true) {
     if (IsItemPreviewOpen == false && isDir == 1 && ext != ".app") {
       // Open directory
-      let isSwitched = await invoke("open_dir", { path });
-      if (isSwitched == true) {
-        await configBackButton(CurrentDir);
-        if (IsDualPaneEnabled === false) {
-          if (ViewMode == "miller") {
-            $(".selected-item").removeClass("selected-item");
-            element.classList.add("selected-item");
-            await removeExcessMillerCols(parseInt(millerCol));
-            await addMillerCol(millerCol);
-            await setMillerColActive(null, millerCol);
-            await listDirectories();
+      let isFtp = path && path.startsWith("ftp://");
+      if (isFtp) {
+        showFtpLoader(dualPaneSide);
+      }
+      try {
+        let isSwitched = await invoke("open_dir", { path });
+        if (isSwitched == true) {
+          await configBackButton(CurrentDir);
+          if (IsDualPaneEnabled === false) {
+            if (ViewMode == "miller") {
+              $(".selected-item").removeClass("selected-item");
+              element.classList.add("selected-item");
+              await removeExcessMillerCols(parseInt(millerCol));
+              await addMillerCol(millerCol);
+              await setMillerColActive(null, millerCol);
+              await listDirectories();
+            } else {
+              await listDirectories();
+            }
+            await setCurrentDir(path, "", false);
           } else {
+            if (dualPaneSide == "left") {
+              LeftDualPanePath = path;
+            } else {
+              RightDualPanePath = path;
+            }
+            SelectedItemPaneSide = dualPaneSide;
+            await setCurrentDir(path, SelectedItemPaneSide, false);
             await listDirectories();
           }
-          await setCurrentDir(path);
+          await unSelectAllItems();
         } else {
-          if (dualPaneSide == "left") {
-            LeftDualPanePath = path;
-          } else {
-            RightDualPanePath = path;
+          alert("Could not open directory");
+          if (isFtp) {
+            hideFtpLoader(dualPaneSide);
           }
-          SelectedItemPaneSide = dualPaneSide;
-          await setCurrentDir(path, SelectedItemPaneSide);
-          await listDirectories();
+          return;
         }
-        await unSelectAllItems();
-      } else {
-        alert("Could not open directory");
-        return;
+      } catch (error) {
+        console.error("openItem failed:", error);
+        if (isFtp) {
+          hideFtpLoader(dualPaneSide);
+        }
       }
     } else if (IsItemPreviewOpen == false) {
       await invoke("open_item", { path });
@@ -2761,6 +3984,7 @@ async function selectItem(
   dualPaneSide = "",
   isNotReset = false,
   triggerCalculation = true,
+  e = null,
 ) {
   if (element == null || element == undefined) {
     return;
@@ -2770,12 +3994,16 @@ async function selectItem(
   let path = element?.getAttribute("itempath");
   let index = element?.getAttribute("itemindex");
 
+  const isMeta = e ? e.metaKey : (window.event ? window.event.metaKey : false);
+  const isCtrl = e ? e.ctrlKey : (window.event ? window.event.ctrlKey : false);
+  const isShift = e ? e.shiftKey : (window.event ? window.event.shiftKey : false);
+
   // Reset colored selection
   if (
     SelectedElement != null &&
-    IsMetaDown == false &&
-    IsCtrlDown == false &&
-    IsShiftDown == false &&
+    isMeta == false &&
+    isCtrl == false &&
+    isShift == false &&
     isNotReset === false
   ) {
     ArrSelectedItems.forEach((item) => {
@@ -2846,18 +4074,62 @@ listen("size-update", (event) => {
     let selectionInfo = document.querySelector(".selection-info");
     if (selectionInfo) {
       if (ArrSelectedItems.length === 1) {
-        selectionInfo.textContent = ArrSelectedItems[0].getAttribute("itemname") + " (" + formatBytes(size, 2) + ")";
+        selectionInfo.textContent = ArrSelectedItems[0].getAttribute("itemname") + " (" + formatSizeWithLimit(size, 2) + ")";
       } else {
-        selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatBytes(size, 2) + ")";
+        selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatSizeWithLimit(size, 2) + ")";
       }
     }
-  } else if (id === "properties") {
-    $(".properties-item-size").html(formatBytes(size, 2));
+  } else if (id === activePropertiesSizeUpdateId && isPropertiesSizeCalculationActive) {
+    setSizeCalculationLoading(".properties-item-size", formatBytes(size, 2));
+  } else if (id === activeDeleteSizeUpdateId && isDeleteSizeCalculationActive) {
+    setSizeCalculationLoading(".props-card__size", formatBytes(size, 2));
   }
 });
 
+let currentPropertiesSizeRequestId = 0;
+let activePropertiesSizeUpdateId = null;
+let isPropertiesSizeCalculationActive = false;
+
+function startPropertiesSizeCalculation() {
+  activePropertiesSizeUpdateId = `properties-${++currentPropertiesSizeRequestId}`;
+  isPropertiesSizeCalculationActive = true;
+  return activePropertiesSizeUpdateId;
+}
+
+function finishPropertiesSizeCalculation(updateId) {
+  if (activePropertiesSizeUpdateId === updateId) {
+    isPropertiesSizeCalculationActive = false;
+    activePropertiesSizeUpdateId = null;
+  }
+}
+
+function isPropertiesSizeUpdateCurrent(updateId) {
+  return activePropertiesSizeUpdateId === updateId && isPropertiesSizeCalculationActive;
+}
+
+let currentDeleteSizeRequestId = 0;
+let activeDeleteSizeUpdateId = null;
+let isDeleteSizeCalculationActive = false;
+
+function startDeleteSizeCalculation() {
+  activeDeleteSizeUpdateId = `delete-${++currentDeleteSizeRequestId}`;
+  isDeleteSizeCalculationActive = true;
+  return activeDeleteSizeUpdateId;
+}
+
+function finishDeleteSizeCalculation(updateId) {
+  if (activeDeleteSizeUpdateId === updateId) {
+    isDeleteSizeCalculationActive = false;
+    activeDeleteSizeUpdateId = null;
+  }
+}
+
+function isDeleteSizeUpdateCurrent(updateId) {
+  return activeDeleteSizeUpdateId === updateId && isDeleteSizeCalculationActive;
+}
+
 let currentSelectionRequestId = 0;
-async function updateSelectionInfo(shouldCalculate = true) {
+async function updateSelectionInfo() {
   let selectionInfo = document.querySelector(".selection-info");
   if (!selectionInfo) return;
   if (ArrSelectedItems.length == 0) {
@@ -2865,38 +4137,22 @@ async function updateSelectionInfo(shouldCalculate = true) {
     return;
   }
 
-  if (!shouldCalculate) {
-    if (ArrSelectedItems.length == 1) {
-      let item = ArrSelectedItems[0];
-      let size = item.getAttribute("itemsize");
-      selectionInfo.textContent =
-        item.getAttribute("itemname") + (size ? " (" + size + ")" : "");
-    } else {
-      selectionInfo.textContent = ArrSelectedItems.length + " items selected";
-    }
-    return;
-  }
-
-  let requestId = ++currentSelectionRequestId;
-  await invoke("cancel_size_calculation");
-  selectionInfo.innerHTML = '<div class="preloader-small-invert"></div>';
+  // Cancel any existing background selection size calculation
+  await invoke("cancel_selection_size_calculation");
 
   if (ArrSelectedItems.length == 1) {
     let item = ArrSelectedItems[0];
-    let size = item.getAttribute("itemsize");
     if (item.getAttribute("itemisdir") == "1") {
-      let paths = [item.getAttribute("itempath")];
-      let totalSize = await invoke("get_selection_size", { paths, updateId: "selection" });
-      if (requestId !== currentSelectionRequestId) return;
-      selectionInfo.textContent = item.getAttribute("itemname") + " (" + formatBytes(totalSize, 2) + ")";
+      selectionInfo.textContent = item.getAttribute("itemname");
     } else {
-      selectionInfo.textContent = item.getAttribute("itemname") + (size ? " (" + size + ")" : "");
+      let size = item.getAttribute("itemsize");
+      let rawSize = item.getAttribute("itemrawsize");
+      let displaySize = rawSize ? formatSizeWithLimit(rawSize, 2) : size;
+      selectionInfo.textContent =
+        item.getAttribute("itemname") + (displaySize ? " (" + displaySize + ")" : "");
     }
   } else {
-    let paths = ArrSelectedItems.map(item => item.getAttribute("itempath"));
-    let totalSize = await invoke("get_selection_size", { paths, updateId: "selection" });
-    if (requestId !== currentSelectionRequestId) return;
-    selectionInfo.textContent = ArrSelectedItems.length + " items selected (Sum: " + formatBytes(totalSize, 2) + ")";
+    selectionInfo.textContent = ArrSelectedItems.length + " items selected";
   }
 }
 
@@ -2960,14 +4216,17 @@ async function goHome() {
   try {
     await invoke("go_home");
     await listDirectories();
-    await setCurrentDir(await getCurrentDir());
+    await setCurrentDir(await getCurrentDir(), "", false);
   } catch (error) {
     console.error(error);
   }
 }
 
-async function goBack() {
-  console.log("Going back", IsMetaDown, IsAltDown, IsCtrlDown);
+async function goBack(e = null) {
+  const isMeta = e ? e.metaKey : (window.event ? window.event.metaKey : false);
+  const isAlt = e ? e.altKey : (window.event ? window.event.altKey : false);
+  const isCtrl = e ? e.ctrlKey : (window.event ? window.event.ctrlKey : false);
+  console.log("Going back", isMeta, isAlt, isCtrl);
   if (IsDualPaneEnabled === true) {
     if (SelectedItemPaneSide == "left") {
       LeftPaneItemIndex = LastLeftPaneIndex ?? 0;
@@ -2975,100 +4234,59 @@ async function goBack() {
       RightPaneItemIndex = LastRightPaneIndex ?? 0;
     }
   }
-  if (IsMetaDown == false) {
+  if (isMeta == false) {
     await invoke("go_back", { isDualPane: IsDualPaneEnabled });
     await listDirectories();
   }
-  await setCurrentDir(await getCurrentDir(), SelectedItemPaneSide);
+  await setCurrentDir(await getCurrentDir(), SelectedItemPaneSide, false);
 }
 
 function goUp(isSwitched = false, toFirst = false) {
-  if (IsDualPaneEnabled === true) {
-    let element = null;
-    let selectedItemIndex = 0;
-    if (toFirst == false) {
-      if (SelectedElement != null) {
-        if (SelectedItemPaneSide == "left") {
+  let element = null;
+  let selectedItemIndex = 0;
+  if (toFirst == false) {
+    if (SelectedElement != null) {
+      if (SelectedItemPaneSide == "left") {
+        selectedItemIndex = LeftPaneItemIndex;
+        if (LeftPaneItemIndex > 0 && isSwitched == true) {
           selectedItemIndex = LeftPaneItemIndex;
-          if (LeftPaneItemIndex > 0 && isSwitched == true) {
-            selectedItemIndex = LeftPaneItemIndex;
-            element =
-              LeftPaneItemCollection.querySelectorAll(".item-link")[
-                selectedItemIndex
-              ];
-          } else if (parseInt(selectedItemIndex) < 1) {
-            selectedItemIndex = 0;
-            element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
-          } else {
-            selectedItemIndex = parseInt(selectedItemIndex) - 1;
-            element =
-              LeftPaneItemCollection.querySelectorAll(".item-link")[
-                selectedItemIndex
-              ];
-          }
-          LeftPaneItemIndex = selectedItemIndex;
-        } else if (SelectedItemPaneSide == "right") {
-          selectedItemIndex = RightPaneItemIndex;
-          if (RightPaneItemIndex > 0 && isSwitched == true) {
-            selectedItemIndex = RightPaneItemIndex;
-            element =
-              RightPaneItemCollection.querySelectorAll(".item-link")[
-                selectedItemIndex
-              ];
-          } else if (parseInt(selectedItemIndex) - 1 < 1) {
-            selectedItemIndex = 0;
-            element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
-          } else {
-            selectedItemIndex = parseInt(selectedItemIndex) - 1;
-            element =
-              RightPaneItemCollection.querySelectorAll(".item-link")[
-                selectedItemIndex
-              ];
-          }
-          RightPaneItemIndex = selectedItemIndex;
+          element =
+            LeftPaneItemCollection.querySelectorAll(".item-link")[
+              selectedItemIndex
+            ];
+        } else if (parseInt(selectedItemIndex) < 1) {
+          selectedItemIndex = 0;
+          element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+        } else {
+          selectedItemIndex = parseInt(selectedItemIndex) - 1;
+          element =
+            LeftPaneItemCollection.querySelectorAll(".item-link")[
+              selectedItemIndex
+            ];
         }
-        SelectedElement.style.backgroundColor = "transparent";
-      } else {
-        SelectedItemPaneSide = "left";
-        if (SelectedItemPaneSide == "right") {
-          RightPaneItemIndex = 0;
+        LeftPaneItemIndex = selectedItemIndex;
+      } else if (SelectedItemPaneSide == "right") {
+        selectedItemIndex = RightPaneItemIndex;
+        if (RightPaneItemIndex > 0 && isSwitched == true) {
+          selectedItemIndex = RightPaneItemIndex;
+          element =
+            RightPaneItemCollection.querySelectorAll(".item-link")[
+              selectedItemIndex
+            ];
+        } else if (parseInt(selectedItemIndex) - 1 < 1) {
+          selectedItemIndex = 0;
           element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
         } else {
-          LeftPaneItemIndex = 0;
-          element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+          selectedItemIndex = parseInt(selectedItemIndex) - 1;
+          element =
+            RightPaneItemCollection.querySelectorAll(".item-link")[
+              selectedItemIndex
+            ];
         }
-        if (element != null && element != SelectedElement) {
-          element.onclick();
-        }
-      }
-      if (
-        element != SelectedElement &&
-        SelectedElement != null &&
-        element != null
-      ) {
-        SelectedElement.style.backgroundColor = "transparent";
-        element.onclick();
-      }
-
-      /* Scroll logic */
-      if (SelectedItemPaneSide == "left") {
-        if (
-          parseInt(selectedItemIndex) * 38 -
-            document.querySelector(".dual-pane-left").scrollTop <
-          10
-        ) {
-          document.querySelector(".dual-pane-left").scrollTop -= 38;
-        }
-      } else if (SelectedItemPaneSide == "right") {
-        if (
-          parseInt(selectedItemIndex) * 38 -
-            document.querySelector(".dual-pane-right").scrollTop <
-          10
-        ) {
-          document.querySelector(".dual-pane-right").scrollTop -= 38;
-        }
+        RightPaneItemIndex = selectedItemIndex;
       }
     } else {
+      SelectedItemPaneSide = "left";
       if (SelectedItemPaneSide == "right") {
         RightPaneItemIndex = 0;
         element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
@@ -3076,10 +4294,26 @@ function goUp(isSwitched = false, toFirst = false) {
         LeftPaneItemIndex = 0;
         element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
       }
-      if (element != null && element != SelectedElement) {
-        element.onclick();
+    }
+  } else {
+    if (SelectedItemPaneSide == "right") {
+      RightPaneItemIndex = 0;
+      element = RightPaneItemCollection.querySelectorAll(".item-link")[0];
+    } else {
+      LeftPaneItemIndex = 0;
+      element = LeftPaneItemCollection.querySelectorAll(".item-link")[0];
+    }
+  }
+
+  if (element != null && element != SelectedElement) {
+    if (SelectedElement != null) {
+      SelectedElement.style.backgroundColor = "transparent";
+      if (SelectedElement.children[0]) {
+        SelectedElement.children[0].style.backgroundColor = "transparent";
       }
     }
+    element.onclick();
+    element.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 }
 
@@ -3138,32 +4372,16 @@ function goDown() {
       RightPaneItemIndex = selectedItemIndex;
     }
   }
-  if (
-    element != null &&
-    element != SelectedElement &&
-    SelectedElement != null
-  ) {
-    SelectedElement.children[0].style.backgroundColor = "transparent";
-    element.onclick();
-  }
 
-  /* Scroll logic */
-  if (SelectedItemPaneSide == "left") {
-    if (
-      parseInt(selectedItemIndex) * 38 -
-        document.querySelector(".dual-pane-left").scrollTop >
-      window.innerHeight - 150
-    ) {
-      document.querySelector(".dual-pane-left").scrollTop += 38;
+  if (element != null && element != SelectedElement) {
+    if (SelectedElement != null) {
+      SelectedElement.style.backgroundColor = "transparent";
+      if (SelectedElement.children[0]) {
+        SelectedElement.children[0].style.backgroundColor = "transparent";
+      }
     }
-  } else if (SelectedItemPaneSide == "right") {
-    if (
-      parseInt(selectedItemIndex) * 38 -
-        document.querySelector(".dual-pane-right").scrollTop >
-      window.innerHeight - 150
-    ) {
-      document.querySelector(".dual-pane-right").scrollTop += 38;
-    }
+    element.onclick();
+    element.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 }
 
@@ -3205,14 +4423,23 @@ async function setDiskDropdowns() {
   rightDiskDropdown.innerHTML = "";
 
   for (let i = 0; i < disks.length; i++) {
-    leftDiskDropdown.innerHTML += `<option value="${disks[i].path}">${disks[i].name != "" ? disks[i].name : "/"}</option>`;
-    rightDiskDropdown.innerHTML += `<option value="${disks[i].path}">${disks[i].name != "" ? disks[i].name : "/"}</option>`;
+    let leftOption = document.createElement("option");
+    let rightOption = document.createElement("option");
+    leftOption.value = disks[i].path;
+    rightOption.value = disks[i].path;
+    leftOption.textContent = displayDiskName(disks[i].name);
+    rightOption.textContent = displayDiskName(disks[i].name);
+    leftDiskDropdown.append(leftOption);
+    rightDiskDropdown.append(rightOption);
   }
 }
 
 async function navigateToDisk(path, paneSide = SelectedItemPaneSide) {
   await setCurrentDir(path, paneSide);
   await listDirectories();
+  // Release focus from the select dropdown so quick search works instantly
+  document.querySelector(".left-disk-dropdown")?.blur();
+  document.querySelector(".right-disk-dropdown")?.blur();
 }
 
 function goLeft(isToFirst = false, index = null) {
@@ -3318,7 +4545,7 @@ async function goToDir(directory) {
     } else {
       await showItems(items);
     }
-    await setCurrentDir(await getCurrentDir());
+    await setCurrentDir(await getCurrentDir(), "", false);
   });
 }
 
@@ -3350,10 +4577,39 @@ async function ejectDisk(item) {
     return;
   }
 
+  const format = item?.getAttribute("itemformat") || "";
+  if (format.includes("FTP") || path.startsWith("ftp://")) {
+    await ejectFTP({ path });
+    return;
+  } else if (format.includes("SSHFS") || path.includes("sshfs") || path.startsWith("/tmp/codriver-sshfs-mount")) {
+    await unmountNetworkDrive({ path });
+    return;
+  }
+
   try {
+    if (format) {
+      await invoke("unmount_drive", { path });
+      await insertSiteNavButtons();
+      if (IsShowDisks) {
+        await listDisks();
+      }
+      const currentDir = await invoke("get_current_dir");
+      if (currentDir.startsWith(path)) {
+        await goHome();
+      }
+      return;
+    }
+
     const message = await invoke("eject_disk", { path });
     showToast(message || "Disk ejected", ToastType.SUCCESS);
-    await listDisks();
+    await insertSiteNavButtons();
+    if (IsShowDisks) {
+      await listDisks();
+    }
+    const currentDir = await invoke("get_current_dir");
+    if (currentDir.startsWith(path)) {
+      await goHome();
+    }
   } catch (error) {
     showToast(`Failed to eject disk: ${error}`, ToastType.ERROR, 5000);
   }
@@ -3366,28 +4622,60 @@ async function searchFor(
   isQuickSearch = false,
   fileContent = "",
 ) {
-  if (IsSearching === true) return;
+  if (IsSearching === true) {
+    if (isQuickSearch === true) {
+      await stopSearching();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      IsSearching = false;
+    } else {
+      return;
+    }
+  }
   if (fileName.length > 1 || isQuickSearch == true) {
     $(".is-file-searching").css("display", "block");
-    document.querySelector(".cancel-search-button").style.display = "block";
+    updateFileSearchbarState(true);
     if (IsDualPaneEnabled === true) {
       if (SelectedItemPaneSide === "left") {
-        $(".dual-pane-left").html("");
+        let list = document.querySelector(".dual-pane-left .directory-list-dual-pane");
+        if (list) {
+          list.innerHTML = "";
+        } else {
+          $(".dual-pane-left").html("");
+          let newList = document.createElement("div");
+          newList.className = "directory-list-dual-pane";
+          document.querySelector(".dual-pane-left").append(newList);
+        }
       } else {
-        $(".dual-pane-right").html("");
+        let list = document.querySelector(".dual-pane-right .directory-list-dual-pane");
+        if (list) {
+          list.innerHTML = "";
+        } else {
+          $(".dual-pane-right").html("");
+          let newList = document.createElement("div");
+          newList.className = "directory-list-dual-pane";
+          document.querySelector(".dual-pane-right").append(newList);
+        }
       }
     } else {
       $(".directory-list").html("");
     }
     IsSearching = true;
     FoundItemsCountIndex = 0;
-    await invoke("search_for", {
-      fileName,
-      maxItems,
-      searchDepth,
-      fileContent,
-      isQuickSearch,
-    });
+    try {
+      await invoke("search_for", {
+        fileName,
+        maxItems,
+        searchDepth,
+        fileContent,
+        isQuickSearch,
+      });
+    } catch (error) {
+      console.error("Search invocation failed:", error);
+      showToast("Search failed: " + error, ToastType.ERROR);
+    } finally {
+      IsSearching = false;
+      IsFullSearching = false;
+    }
     setTimeout(() => {
       ds.setSettings({
         selectables: ArrDirectoryItems,
@@ -3397,8 +4685,6 @@ async function searchFor(
     stopFullSearch();
     alert("Type in a minimum of 2 characters");
   }
-  IsSearching = false;
-  IsFullSearching = false;
 }
 
 function openFullSearchContainer() {
@@ -3469,9 +4755,14 @@ function closeSearchBar() {
 }
 
 async function cancelSearch() {
-  document.querySelector(".cancel-search-button").style.display = "none";
+  document.querySelector(".cancel-search-button").classList.remove("is-visible");
   document.querySelector(".search-bar-input").value = "";
-  await invoke("stop_searching");
+  updateFileSearchbarState();
+  if (IsSearching || IsFullSearching) {
+    await invoke("stop_searching");
+    IsSearching = false;
+    IsFullSearching = false;
+  }
   // await listDirectories();
 }
 
@@ -3485,24 +4776,16 @@ async function switchView(newMode = null) {
       else ViewMode = "wrap";
     }
 
-    // Update dropdown if it exists
-    const select = document.querySelector(".view-mode-select");
-    const iconSpan = document.querySelector(".view-mode-icon-span");
-    if (select) select.value = ViewMode;
-    if (iconSpan) {
-      if (ViewMode === "wrap") {
-        iconSpan.innerHTML = '<i class="fa-solid fa-grip" style="font-size: 12px; color: var(--textColor2);"></i>';
-      } else if (ViewMode === "column") {
-        iconSpan.innerHTML = '<i class="fa-solid fa-list" style="font-size: 12px; color: var(--textColor2);"></i>';
-      } else if (ViewMode === "miller") {
-        iconSpan.innerHTML = '<i class="fa-solid fa-table-columns" style="font-size: 12px; color: var(--textColor2);"></i>';
-      }
-    }
+    // Update segmented control active state
+    document.querySelectorAll(".view-mode-btn").forEach((btn) => {
+      const isActive = btn.dataset.view === ViewMode;
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
 
     if (ViewMode == "column") {
       document.querySelectorAll(".directory-list").forEach((list) => {
-        list.style.gridTemplateColumns = "unset";
-        list.style.rowGap = "2px";
+        applyDirectoryListStyles(list, "column");
       });
       document
         .querySelectorAll(".item-button")
@@ -3511,12 +4794,15 @@ async function switchView(newMode = null) {
         .querySelectorAll(".item-button-list")
         .forEach((item) => (item.style.display = "flex"));
       document.querySelector(".list-column-header").style.display = "flex";
-      $(".explorer-container")?.css("padding", "100px 10px 10px 10px");
+      $(".explorer-container")?.css("padding", "45px 10px 10px 10px");
       document.querySelector(".miller-container").style.display = "none";
       document.querySelector(".non-dual-pane-container").style.display = "block";
       $(".file-searchbar").css("opacity", "1");
       $(".file-searchbar").css("pointer-events", "all");
     } else if (ViewMode == "miller") {
+      document.querySelectorAll(".directory-list").forEach((list) => {
+        applyDirectoryListStyles(list, "miller");
+      });
       document.querySelector(".list-column-header").style.display = "none";
       document.querySelector(".miller-container").style.display = "flex";
       document.querySelector(".miller-column").style.display = "inline";
@@ -3528,13 +4814,7 @@ async function switchView(newMode = null) {
       // wrap (Grid)
       document.querySelector(".explorer-container").style.width = "100%";
       document.querySelectorAll(".directory-list").forEach((list) => {
-        if (IsShowDisks == false) {
-          list.style.gridTemplateColumns =
-            "repeat(auto-fill, minmax(80px, 1fr))";
-          list.style.rowGap = "15px";
-        } else {
-          list.style.rowGap = "15px";
-        }
+        applyDirectoryListStyles(list, "wrap");
       });
       document.querySelector(".miller-container").style.display = "none";
       document.querySelector(".explorer-container").style.display = "block";
@@ -3546,7 +4826,7 @@ async function switchView(newMode = null) {
         .querySelectorAll(".item-button-list")
         .forEach((item) => (item.style.display = "none"));
       document.querySelector(".list-column-header").style.display = "none";
-      $(".explorer-container")?.css("padding", "85px 20px 20px 20px");
+      $(".explorer-container")?.css("padding", "30px 20px 20px 20px");
       $(".file-searchbar").css("opacity", "1");
       $(".file-searchbar").css("pointer-events", "all");
     }
@@ -3557,13 +4837,31 @@ async function switchView(newMode = null) {
   }
 }
 
+// Roving tabindex for view mode group
+document.querySelector(".view-mode-group").addEventListener("keydown", (e) => {
+  const buttons = [...document.querySelectorAll(".view-mode-btn")];
+  const current = document.activeElement;
+  const index = buttons.indexOf(current);
+  if (index === -1) return;
+
+  let next;
+  if (e.key === "ArrowRight") next = buttons[(index + 1) % buttons.length];
+  else if (e.key === "ArrowLeft") next = buttons[(index - 1 + buttons.length) % buttons.length];
+  else if (e.key === "Home") next = buttons[0];
+  else if (e.key === "End") next = buttons[buttons.length - 1];
+  else return;
+
+  e.preventDefault();
+  next.focus();
+});
+
 async function switchToDualPane() {
   if (IsDualPaneEnabled == false) {
     OrgViewMode = ViewMode;
     IsDualPaneEnabled = true;
+    document.body.classList.add("dual-pane-mode");
     ViewMode = "column";
-    document.querySelector(".view-mode-select").disabled = true;
-    document.querySelector(".view-mode-container").style.opacity = "0.5";
+    document.querySelector(".view-mode-group").classList.add("disabled");
     document.querySelector(".miller-container").style.display = "none";
     if (Platform == "darwin") {
       $(".header-nav").css("padding-left", "85px");
@@ -3576,7 +4874,7 @@ async function switchToDualPane() {
       .forEach((item) => (item.style.display = "flex"));
     document.querySelector(".switch-dualpane-view-button").innerHTML =
       `<i class="fa-regular fa-rectangle-xmark"></i>`;
-    await setCurrentDir(await getCurrentDir());
+    await setCurrentDir(await getCurrentDir(), "", false);
     await invoke("list_dirs").then(async (items) => {
       await showItems(items, "left");
       await showItems(items, "right");
@@ -3594,7 +4892,7 @@ async function switchToDualPane() {
     $(".list-column-header").css("border", "none");
     $(".dual-pane-container").css("opacity", "1");
     $(".dual-pane-container").css("height", "100%");
-    $(".dual-pane-container").css("padding-top", "90px"); // --> 55px from nav bar and 15px from toolbar
+    $(".dual-pane-container").css("padding-top", "35px"); // --> 35px from toolbar (height 35px, top 0px absolute inside main-container which starts at top 55px)
     $(".non-dual-pane-container").css("width", "0");
     $(".non-dual-pane-container").css("opacity", "0");
     $(".non-dual-pane-container").css("height", "0px");
@@ -3609,8 +4907,8 @@ async function switchToDualPane() {
     });
   } else {
     IsDualPaneEnabled = false;
-    document.querySelector(".view-mode-select").disabled = false;
-    document.querySelector(".view-mode-container").style.opacity = "1";
+    document.body.classList.remove("dual-pane-mode");
+    document.querySelector(".view-mode-group").classList.remove("disabled");
     $(".non-dual-pane-container")?.css("width", "calc(100vw - 150px)");
     $(".non-dual-pane-container")?.css("opacity", "1");
     $(".non-dual-pane-container")?.css("height", "100%");
@@ -3646,8 +4944,14 @@ async function switchToDualPane() {
     document.querySelector(".switch-dualpane-view-button").innerHTML =
       `<i class="fa-solid fa-table-columns"></i>`;
     await switchView(OrgViewMode);
+    if (typeof clearComparison === "function") {
+      clearComparison();
+    }
   }
   await saveConfig(false, false);
+  if (typeof renderActiveActionsPill === "function") {
+    renderActiveActionsPill();
+  }
 }
 
 function switchHiddenFiles() {
@@ -3690,7 +4994,7 @@ function showSettingsTab(tabName, btn) {
   // Update sidebar buttons
   document.querySelectorAll('.settings-sidebar-button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  
+
   // Update content tabs
   document.querySelectorAll('.settings-tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('settings-tab-' + tabName).classList.add('active');
@@ -3714,8 +5018,8 @@ async function saveConfig(isToReload = true, isVerbose = true) {
   let isDualPaneActive = IsDualPaneEnabled;
   let searchDepth = parseInt(
     document.querySelector(".search-depth-input").value,
-  );
-  let maxItems = parseInt(document.querySelector(".max-items-input").value);
+  ) || 10;
+  let maxItems = parseInt(document.querySelector(".max-items-input").value) || 1000;
   let isImagePreview = (IsImagePreview = document.querySelector(
     ".image-preview-checkbox",
   ).checked);
@@ -3723,6 +5027,26 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     ":checked",
   ));
   let currentTheme = $(".theme-select").val();
+  let fontSize = parseInt(document.querySelector(".font-size-slider").value) || 12;
+  let isWindowTransparency = document.querySelector(
+    ".window-transparency-checkbox",
+  ).checked;
+  let geminiApiKey = document.querySelector(".gemini-api-key-input").value.trim();
+  let openaiApiKey = document.querySelector(".openai-api-key-input").value.trim();
+  let aiProvider = document.querySelector(".ai-provider-select")?.value || "gemini";
+  let isAiEnabled = document.querySelector(".ai-enabled-checkbox").checked;
+
+  let geminiTextModel = document.querySelector(".gemini-text-model-input")?.value?.trim() || "gemini-3.1-flash-lite-preview";
+  let geminiImageSelect = document.querySelector(".gemini-image-model-select");
+  let geminiImageModel = (geminiImageSelect?.value === "custom"
+    ? document.querySelector(".gemini-image-model-custom-input")?.value?.trim()
+    : geminiImageSelect?.value) || "gemini-3.1-flash-image-preview";
+
+  let openaiTextModel = document.querySelector(".openai-text-model-input")?.value?.trim() || "gpt-4o";
+  let openaiImageSelect = document.querySelector(".openai-image-model-select");
+  let openaiImageModel = (openaiImageSelect?.value === "custom"
+    ? document.querySelector(".openai-image-model-custom-input")?.value?.trim()
+    : openaiImageSelect?.value) || "gpt-image-2";
 
   if (isOpenInTerminal == true) {
     isOpenInTerminal = "1";
@@ -3749,6 +5073,28 @@ async function saveConfig(isToReload = true, isVerbose = true) {
   } else {
     isSelectMode = "0";
   }
+  if (isWindowTransparency == true) {
+    isWindowTransparency = "1";
+  } else {
+    isWindowTransparency = "0";
+  }
+  if (isAiEnabled == true) {
+    isAiEnabled = "1";
+    IsAiEnabled = true;
+  } else {
+    isAiEnabled = "0";
+    IsAiEnabled = false;
+  }
+
+  // Apply font size immediately
+  document.documentElement.style.setProperty("--fontSize", fontSize + "px");
+
+  // Apply window transparency
+  if (isWindowTransparency == "1") {
+    document.body.style.opacity = "0.78";
+  } else {
+    document.body.style.opacity = "1.0";
+  }
 
   await invoke("save_config", {
     configuredPathOne,
@@ -3764,6 +5110,17 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     isSelectMode,
     currentTheme,
     arrFavorites: ArrFavorites,
+    fontSize,
+    isWindowTransparency,
+    geminiApiKey,
+    openaiApiKey,
+    isAiEnabled,
+    aiProvider,
+    geminiTextModel,
+    geminiImageModel,
+    openaiTextModel,
+    openaiImageModel,
+    shortcuts: ConfiguredShortcuts,
   });
   if (isVerbose === true) {
     showToast("Settings have been saved", ToastType.INFO);
@@ -3771,6 +5128,61 @@ async function saveConfig(isToReload = true, isVerbose = true) {
   if (isToReload == true) {
     await checkAppConfig();
   }
+}
+
+async function resetSettingsToDefaults() {
+  const confirmed = await confirm("Reset all settings to their default values?");
+  if (!confirmed) return;
+
+  document.querySelector(".theme-select").value = "0";
+  document.querySelector("#choose-interaction-mode").checked = true;
+  document.querySelector(".image-preview-checkbox").checked = true;
+  document.querySelector(".configured-path-one-input").value = "";
+  document.querySelector(".configured-path-two-input").value = "";
+  document.querySelector(".configured-path-three-input").value = "";
+  document.querySelector(".search-depth-input").value = "10";
+  document.querySelector(".max-items-input").value = "1000";
+  document.querySelector(".launch-path-input").value = "";
+  document.querySelector(".show-dual-pane-checkbox").checked = false;
+  document.querySelector(".font-size-slider").value = 12;
+  document.getElementById("font-size-value").textContent = "12px";
+  document.querySelector(".window-transparency-checkbox").checked = false;
+  document.querySelector(".gemini-api-key-input").value = "";
+  document.querySelector(".openai-api-key-input").value = "";
+
+  const geminiTxtInput = document.querySelector(".gemini-text-model-input");
+  if (geminiTxtInput) geminiTxtInput.value = "gemini-3.1-flash-lite-preview";
+  const geminiImgSelect = document.querySelector(".gemini-image-model-select");
+  if (geminiImgSelect) geminiImgSelect.value = "gemini-3.1-flash-image-preview";
+  const geminiImgCustom = document.querySelector(".gemini-image-model-custom-input");
+  if (geminiImgCustom) {
+    geminiImgCustom.value = "";
+    geminiImgCustom.style.display = "none";
+  }
+
+  const openaiTxtInput = document.querySelector(".openai-text-model-input");
+  if (openaiTxtInput) openaiTxtInput.value = "gpt-4o";
+  const openaiImgSelect = document.querySelector(".openai-image-model-select");
+  if (openaiImgSelect) openaiImgSelect.value = "gpt-image-2";
+  const openaiImgCustom = document.querySelector(".openai-image-model-custom-input");
+  if (openaiImgCustom) {
+    openaiImgCustom.value = "";
+    openaiImgCustom.style.display = "none";
+  }
+
+  const advancedContainer = document.querySelector(".advanced-ai-settings-container");
+  if (advancedContainer) advancedContainer.style.display = "none";
+  const chevron = document.querySelector(".advanced-ai-chevron");
+  if (chevron) chevron.style.transform = "rotate(0deg)";
+
+  const providerSelect = document.querySelector(".ai-provider-select");
+  if (providerSelect) {
+    providerSelect.value = "gemini";
+  }
+  document.querySelector(".ai-enabled-checkbox").checked = false;
+
+  await saveConfig(true, true);
+  showToast("Settings reset to defaults", ToastType.INFO);
 }
 
 async function addFavorite(path) {
@@ -3798,7 +5210,6 @@ async function showProperties(item) {
   } else if (item != null) {
     itemsToProcess = [item];
   } else {
-    // Current directory properties
     let dummyItem = document.createElement("div");
     dummyItem.setAttribute("itemname", CurrentDir);
     dummyItem.setAttribute("itempath", CurrentDir);
@@ -3807,66 +5218,157 @@ async function showProperties(item) {
     itemsToProcess = [dummyItem];
   }
 
-  if (IsPopUpOpen === false) {
-    let name = itemsToProcess.length > 1 ? itemsToProcess.length + " items selected" : itemsToProcess[0].getAttribute("itemname");
-    let path = itemsToProcess.length > 1 ? "Multiple paths" : itemsToProcess[0].getAttribute("itempath");
-    let ext = itemsToProcess.length > 1 ? "" : itemsToProcess[0].getAttribute("itemext");
-    let extension_description = ext ? getExtDescription(ext) : undefined;
-    let modifiedAt = itemsToProcess.length > 1 ? null : itemsToProcess[0].getAttribute("itemmodified");
+  if (IsPopUpOpen !== false) return;
 
-    let popup = document.createElement("div");
-    popup.className = "uni-popup item-properties-popup";
-    popup.innerHTML = `
-      <div class="popup-header">
-      <h3>${name}</h3>
-      </div>
-      <div class="popup-body">
-      ${itemsToProcess.length === 1 ? `
-      <span style="display: flex; gap: 10px; align-items: center;">
-      Path:
-      <button class="icon-button" onclick="writeText('${path}'); showToast('Copied path to clipboard', ToastType.INFO);">
-  				<div class="button-icon">
-  				<i class="fa-regular fa-copy"></i></div>
-  				<p style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${path}</p>
-      </button>
-      </span>
-      ` : ""}
-      ${extension_description ? `<br/><p>Type: ${extension_description}</p>` : ""}
-      ${modifiedAt != null ? `<br/><p>Modified: ${modifiedAt}</p>` : ""}
-      </div>
-      <div class="popup-controls" style="display: flex; justify-content: space-between;">
-    		<div style="display: flex; gap: 5px;">
-   			<div>Total Size:</div><div class="properties-item-size"><div class="preloader-small-invert"></div></div>
-    		</div>
-      <button class="icon-button" onclick="closeInfoProperties()">
-      <span class="button-icon"><i class="fa-solid fa-ban"></i></span>
-      Close
-      </button>
-      </div>
-      `;
-    document.querySelector("body").append(popup);
-    IsPopUpOpen = true;
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+  const escJs = (s) => String(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
-    if (itemsToProcess.length === 1) {
+  const isMulti = itemsToProcess.length > 1;
+  const first = itemsToProcess[0];
+  const name = isMulti
+    ? `${itemsToProcess.length} items selected`
+    : first.getAttribute("itemname");
+  const path = isMulti ? null : first.getAttribute("itempath");
+  const ext = isMulti ? "" : (first.getAttribute("itemext") || "");
+  const isDir = !isMulti && first.getAttribute("itemisdir") === "1";
+  const modifiedAt = isMulti ? null : first.getAttribute("itemmodified");
+  const extDesc = ext ? getExtDescription(ext) : undefined;
+
+  let kindLabel;
+  let iconHtml;
+  let chipHtml = "";
+  if (isMulti) {
+    kindLabel = "Mixed selection";
+    iconHtml = `<i class="fa-solid fa-layer-group"></i>`;
+  } else if (isDir) {
+    kindLabel = "Folder";
+    iconHtml = `<i class="fa-solid fa-folder"></i>`;
+  } else {
+    const extUpper = ext ? ext.replace(".", "").toUpperCase() : "";
+    kindLabel = extDesc || (extUpper ? `${extUpper} file` : "File");
+    iconHtml = `<i class="fa-regular fa-file-lines"></i>`;
+    if (extUpper) chipHtml = `<span class="props-card__chip">${escHtml(extUpper)}</span>`;
+  }
+
+  const popup = document.createElement("div");
+  popup.className = "item-properties-popup props-card";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Item properties");
+
+  const locationRow = path
+    ? `
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-regular fa-folder-open"></i>Location</dt>
+        <dd class="props-card__value">
+          <button class="props-card__copy" title="Copy path to clipboard"
+            onclick="writeText('${escJs(path)}'); showToast('Copied path to clipboard', ToastType.INFO);">
+            <span class="props-card__path">${escHtml(path)}</span>
+            <i class="fa-regular fa-copy props-card__copy-icon"></i>
+          </button>
+        </dd>
+      </div>`
+    : `
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-regular fa-folder-open"></i>Location</dt>
+        <dd class="props-card__value props-card__value--muted">Multiple paths</dd>
+      </div>`;
+
+  const modifiedRow = modifiedAt
+    ? `
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-regular fa-clock"></i>Modified</dt>
+        <dd class="props-card__value">${escHtml(modifiedAt)}</dd>
+      </div>`
+    : "";
+
+  popup.innerHTML = `
+    <section class="props-card__hero">
+      <div class="props-card__thumb">${iconHtml}</div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(name)}">${escHtml(name)}</h2>
+        <div class="props-card__meta">
+          <span class="props-card__kind">${escHtml(kindLabel)}</span>
+          ${chipHtml}
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      ${locationRow}
+      ${modifiedRow}
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-database"></i>Size</dt>
+        <dd class="props-card__value">
+          <span class="properties-item-size props-card__size">
+            <span class="props-card__skeleton"></span>
+          </span>
+        </dd>
+      </div>
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" onclick="closeInfoProperties()">
+        <i class="fa-solid fa-xmark"></i>
+        <span>Close</span>
+      </button>
+    </footer>
+  `;
+
+  document.querySelector("body").append(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+  const propertiesUpdateId = startPropertiesSizeCalculation();
+
+  if (!isMulti) {
+    try {
       await getSimpleDirInfo(
-        itemsToProcess[0].getAttribute("itempath"),
+        first.getAttribute("itempath"),
         ".properties-item-size",
-        itemsToProcess[0].getAttribute("itemisdir") == "1",
-        "properties"
+        isDir,
+        propertiesUpdateId
       );
-    } else {
-      let paths = itemsToProcess.map(i => i.getAttribute("itempath"));
-      let totalSize = await invoke("get_selection_size", { paths, updateId: "properties" });
+      finishPropertiesSizeCalculation(propertiesUpdateId);
+    } catch (error) {
+      if (!isPropertiesSizeUpdateCurrent(propertiesUpdateId)) return;
+      finishPropertiesSizeCalculation(propertiesUpdateId);
+      writeLog(error);
+      $(".properties-item-size").html("Unable to calculate size");
+    }
+  } else {
+    const paths = itemsToProcess.map((i) => i.getAttribute("itempath"));
+    setSizeCalculationLoading(".properties-item-size");
+    try {
+      const totalSize = await invoke("get_selection_size", { paths, updateId: propertiesUpdateId });
+      if (!isPropertiesSizeUpdateCurrent(propertiesUpdateId)) return;
+      finishPropertiesSizeCalculation(propertiesUpdateId);
       $(".properties-item-size").html(formatBytes(totalSize, 2));
+    } catch (error) {
+      if (!isPropertiesSizeUpdateCurrent(propertiesUpdateId)) return;
+      finishPropertiesSizeCalculation(propertiesUpdateId);
+      writeLog(error);
+      $(".properties-item-size").html("Unable to calculate size");
     }
   }
 }
 
 function closeInfoProperties() {
+  finishPropertiesSizeCalculation(activePropertiesSizeUpdateId);
   invoke("cancel_size_calculation");
-  $(".item-properties-popup")?.remove();
-  IsPopUpOpen = false;
-  IsItemPreviewOpen = false;
+  let popup = document.querySelector(".item-properties-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+      IsItemPreviewOpen = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+    IsItemPreviewOpen = false;
+  }
 }
 
 async function showItemPreview(item, isOverride = false) {
@@ -3884,6 +5386,7 @@ async function showItemPreview(item, isOverride = false) {
   IsItemPreviewOpen = true;
   let module = "";
   let moduleImgId = crypto.randomUUID();
+  let isFtp = path.startsWith("ftp://");
   switch (ext.toLowerCase()) {
     case ".png":
     case ".icns":
@@ -3894,19 +5397,50 @@ async function showItemPreview(item, isOverride = false) {
     case ".webp":
     case ".ico":
     case ".jfif":
+    case ".tiff":
     case ".avif":
-      module = `
-      <div class="module-container">
-      <img class="${moduleImgId}" decoding="async" src="resources/preloader_big.gif" width="100%" height="100%" />
-      </div>
-      `;
+      if (isFtp) {
+        module = `
+        <div class="image-loader-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 300px; min-height: 300px; gap: 15px; color: var(--textColor);">
+          <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px;"></div>
+          <span style="font-size: var(--fontSize); opacity: 0.8;">Loading image...</span>
+        </div>
+        <div class="module-container" style="display: none;">
+          <img class="${moduleImgId}" decoding="async" width="100%" height="100%" />
+        </div>
+        `;
+      } else {
+        module = `
+        <div class="module-container">
+        <img class="${moduleImgId}" decoding="async" src="resources/preloader_big.gif" width="100%" height="100%" />
+        </div>
+        `;
+      }
       break;
     case ".pdf":
+      module = `
+      <div class="pdf-loader-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; width: 40vw; height: 60vh; gap: 15px; color: var(--textColor);">
+        <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px;"></div>
+        <span style="font-size: var(--fontSize); opacity: 0.8;">Loading ...</span>
+      </div>
+      <iframe class="pdf-preview-iframe" decoding="async" style="display: none; width: 40vw; height: 60vh; border: none;"></iframe>
+      `;
+      break;
     case ".html":
     case ".xhtml":
     case ".htm":
-      popup.style.backgroundColor = "white";
-      module = `<iframe decoding="async" src="${convertFileSrc(path)}" />>`;
+      if (isFtp) {
+        module = `
+        <div class="html-loader-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; width: 40vw; height: 60vh; gap: 15px; color: var(--textColor);">
+          <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px;"></div>
+          <span style="font-size: var(--fontSize); opacity: 0.8;">Loading HTML...</span>
+        </div>
+        <iframe class="html-preview-iframe" decoding="async" style="display: none; width: 40vw; height: 60vh; border: none;"></iframe>
+        `;
+      } else {
+        popup.style.backgroundColor = "white";
+        module = `<iframe decoding="async" src="${convertFileSrc(path)}"></iframe>`;
+      }
       break;
     case ".mp4":
     case ".mkv":
@@ -3923,11 +5457,23 @@ async function showItemPreview(item, isOverride = false) {
     case ".ape":
     case ".flv":
     case ".wmv":
-      module = `
-      <div class="module-container">
-      <video decoding="async" src="${convertFileSrc(path)}" autoplay controls></video>
-      </div>
-      `;
+      if (isFtp) {
+        module = `
+        <div class="media-loader-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 400px; min-height: 300px; gap: 15px; color: var(--textColor);">
+          <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px;"></div>
+          <span style="font-size: var(--fontSize); opacity: 0.8;">Loading media...</span>
+        </div>
+        <div class="module-container" style="display: none;">
+          <video decoding="async" autoplay controls style="max-width: 80vw; max-height: 80vh;"></video>
+        </div>
+        `;
+      } else {
+        module = `
+        <div class="module-container">
+        <video decoding="async" src="${convertFileSrc(path)}" autoplay controls></video>
+        </div>
+        `;
+      }
       break;
     case ".txt":
     case ".json":
@@ -3959,7 +5505,13 @@ async function showItemPreview(item, isOverride = false) {
     case ".gitignore":
       popup.style.maxWidth = "50%";
       module = `
-      <div class="module-container"><pre class="item-preview-file-content" style="padding: 20px; font-size: 12px;">${await invoke("get_file_content", { path })}</pre></div>
+      <div class="text-loader-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; width: 40vw; height: 50vh; gap: 15px; color: var(--textColor);">
+        <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px;"></div>
+        <span style="font-size: var(--fontSize); opacity: 0.8;">Loading text content...</span>
+      </div>
+      <div class="module-container" style="display: none;">
+        <pre class="item-preview-file-content" style="padding: 20px; font-size: 12px;"></pre>
+      </div>
       `;
       break;
     default:
@@ -3967,17 +5519,115 @@ async function showItemPreview(item, isOverride = false) {
       return;
   }
   popup.innerHTML = `
-    <div class="popup-header">
-    <h3>Name: ${name}</h3>
-    </div>
     ${module}
     `;
   IsPopUpOpen = true;
   document.querySelector("body").append(popup);
   $(popup).fadeIn(fadeTime);
-  let img = popup.querySelector("img");
-  if (img) {
-    img.src = convertFileSrc(item.getAttribute("itempath"));
+
+  if (isFtp) {
+    if ([".png", ".icns", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".jfif", ".avif"].includes(ext.toLowerCase())) {
+      const img = popup.querySelector("img");
+      const loader = popup.querySelector(".image-loader-container");
+      const container = popup.querySelector(".module-container");
+      if (img && loader && container) {
+        invoke("get_ftp_temp_file", { path })
+          .then((tempPath) => {
+            img.src = convertFileSrc(tempPath);
+            img.onload = () => {
+              loader.style.display = "none";
+              container.style.display = "block";
+            };
+          })
+          .catch((error) => {
+            writeLog("Failed to load FTP image: " + error);
+            loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load image</span>`;
+          });
+      }
+    } else if ([".html", ".xhtml", ".htm"].includes(ext.toLowerCase())) {
+      const iframe = popup.querySelector(".html-preview-iframe");
+      const loader = popup.querySelector(".html-loader-container");
+      if (iframe && loader) {
+        invoke("get_ftp_temp_file", { path })
+          .then((tempPath) => {
+            popup.style.backgroundColor = "white";
+            iframe.src = convertFileSrc(tempPath);
+            iframe.onload = () => {
+              loader.style.display = "none";
+              iframe.style.display = "block";
+            };
+          })
+          .catch((error) => {
+            writeLog("Failed to load FTP HTML: " + error);
+            loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load HTML</span>`;
+          });
+      }
+    } else if ([".mp4", ".mkv", ".mov", ".avi", ".webm", ".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".wma", ".ape", ".flv", ".wmv"].includes(ext.toLowerCase())) {
+      const video = popup.querySelector("video");
+      const loader = popup.querySelector(".media-loader-container");
+      const container = popup.querySelector(".module-container");
+      if (video && loader && container) {
+        invoke("get_ftp_temp_file", { path })
+          .then((tempPath) => {
+            video.src = convertFileSrc(tempPath);
+            video.onloadeddata = () => {
+              loader.style.display = "none";
+              container.style.display = "block";
+            };
+          })
+          .catch((error) => {
+            writeLog("Failed to load FTP media: " + error);
+            loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load media</span>`;
+          });
+      }
+    }
+  } else {
+    let img = popup.querySelector("img");
+    if (img) {
+      img.src = convertFileSrc(item.getAttribute("itempath"));
+    }
+  }
+
+  if (ext.toLowerCase() === ".pdf") {
+    const iframe = popup.querySelector(".pdf-preview-iframe");
+    const loader = popup.querySelector(".pdf-loader-container");
+    if (iframe && loader) {
+      invoke("get_file_base64", { path })
+        .then((base64Data) => {
+          iframe.src = "data:application/pdf;base64," + base64Data;
+          loader.style.display = "none";
+          iframe.style.display = "block";
+          popup.style.backgroundColor = "white";
+        })
+        .catch((error) => {
+          writeLog("Failed to load PDF preview: " + error);
+          loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load PDF preview</span>`;
+        });
+    }
+  }
+
+  const textExtensions = [
+    ".txt", ".json", ".sh", ".py", ".css", ".js", ".ts", ".sql", ".mts",
+    ".jsx", ".tsx", ".mjs", ".php", ".c", ".cpp", ".cs", ".java", ".md",
+    ".xml", ".yaml", ".yml", ".toml", ".lock", ".ini", ".cfg", ".log",
+    ".env", ".gitignore"
+  ];
+  if (textExtensions.includes(ext.toLowerCase())) {
+    const textContainer = popup.querySelector(".module-container");
+    const loader = popup.querySelector(".text-loader-container");
+    const pre = popup.querySelector(".item-preview-file-content");
+    if (textContainer && loader && pre) {
+      invoke("get_file_content", { path })
+        .then((content) => {
+          pre.textContent = content;
+          loader.style.display = "none";
+          textContainer.style.display = "flex";
+        })
+        .catch((error) => {
+          writeLog("Failed to load text preview: " + error);
+          loader.innerHTML = `<span style="font-size: var(--fontSize); color: red; text-align: center;">Failed to load text preview</span>`;
+        });
+    }
   }
   popup.children[0].addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
@@ -3988,72 +5638,114 @@ async function showItemPreview(item, isOverride = false) {
 
 function showMultiRenamePopup() {
   IsPopUpOpen = true;
-  let popup = document.createElement("div");
-  popup.className = "uni-popup multi-rename-popup";
-  popup.innerHTML = `
-    <h3 class="multi-rename-popup-header">
-  		<div style="display: flex; gap: 10px; align-items: center;">
-  		<i class="fa-solid fa-pen-to-square text" style="padding-right: 5px;"></i>
-  		<h4 class="text">Multi-Rename</h4>
-  		</div>
-    </h3>
-    <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor); display: flex; flex-flow: column; gap: 5px;">
-  		<h4 class="text">Options</h4>
-  		<p class="text-small">If no extension is supplied the extension won't be changed</p>
-    </div>
-    <div style="padding: 10px; border-bottom: 1px solid var(--tertiaryColor);">
-    <div style="display: flex; flex-flow: row; gap: 10px;">
-  		<div style="display: flex; flex-flow: column; gap: 5px; width: 55%;">
-  		<p class="text-small">New name</p>
-  		<input class="text-input multi-rename-input multi-rename-newname" placeholder="Name" />
-  		</div>
-  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-small">Start at</p>
-  		<input class="text-input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
-  		</div>
-  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-small">Step by</p>
-  		<input class="text-input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
-  		</div>
-  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-small">Digits</p>
-  		<input class="text-input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
-  		</div>
-  		<div style="display: flex; flex-flow: column; gap: 5px; width: 15%;">
-  		<p class="text-small">Extension</p>
-		  <input class="text-input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
-  		</div>
-  		</div>
-    </div>
-    <h4 class="text" style="padding: 10px; background-color: var(--secondaryColor);">Selected items to rename</h4>
-    `;
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
   let arrItemsToRename = ArrSelectedItems;
-  let list = document.createElement("div");
-  list.className = "list";
-  for (let i = 0; i < arrItemsToRename.length; i++) {
-    let item = document.createElement("div");
-    item.className = "list-item";
-    item.innerHTML = `${arrItemsToRename[i].getAttribute("itemname")}`;
-    list.append(item);
-  }
-  popup.append(list);
-  let popupControls = document.createElement("div");
-  popupControls.className = "popup-controls";
-  popupControls.innerHTML = `
-    <button class="icon-button" onclick="closeMultiRenamePopup()">
-  		<div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-  		Cancel
-    </button>
-    <button class="icon-button multi-rename-button-run">
-  		<div class="button-icon"><i class="fa-solid fa-pencil"></i></div>
-  		Rename
-    </button>
-    `;
-  popup.append(popupControls);
+  const itemsListHtml = `<ul class="props-card__items-list">
+    ${arrItemsToRename.map((item) => {
+      const name = item.getAttribute("itemname");
+      const isDir = item.getAttribute("itemisdir") === "1";
+      const ext = (item.getAttribute("itemext") || "").replace(".", "").toUpperCase();
+      const size = item.getAttribute("itemsize") || "—";
+      const icon = isDir ? "fa-solid fa-folder" : "fa-regular fa-file";
+      return `<li class="props-card__item-li" title="${escHtml(name)}">
+        <div class="props-card__item-row">
+          <i class="${icon} props-card__item-icon"></i>
+          <span class="props-card__item-name">${escHtml(name)}</span>
+          <span class="props-card__item-meta">${isDir ? "Folder" : escHtml(ext)}</span>
+          <span class="props-card__item-size">${escHtml(size)}</span>
+        </div>
+      </li>`;
+    }).join("")}
+  </ul>`;
+
+  let popup = document.createElement("div");
+  popup.className = "props-card multi-rename-popup props-card--wide";
+  popup.style.display = "flex";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Multi-Rename");
+
+  popup.innerHTML = `
+    <section class="props-card__hero">
+      <div class="props-card__thumb"><i class="fa-solid fa-pen-to-square"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name">Multi-Rename</h2>
+        <div class="props-card__meta">
+          <span class="props-card__chip">Batch Operation</span>
+        </div>
+      </div>
+    </section>
+
+    <dl class="props-card__list">
+      <div class="props-card__row props-card__row--full">
+        <dt class="props-card__label"><i class="fa-solid fa-signature"></i>New name</dt>
+        <dd class="props-card__value">
+          <input class="props-card__input multi-rename-input multi-rename-newname" placeholder="Name" />
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-arrow-down-1-9"></i>Start at</dt>
+        <dd class="props-card__value">
+          <input class="props-card__input multi-rename-input multi-rename-startat" placeholder="0" value="0" type="number" />
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-stairs"></i>Step by</dt>
+        <dd class="props-card__value">
+          <input class="props-card__input multi-rename-input multi-rename-stepby" placeholder="1" value="1" type="number" />
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-hashtag"></i>Digits</dt>
+        <dd class="props-card__value">
+          <input class="props-card__input multi-rename-input multi-rename-ndigits" placeholder="1" value="1" type="number" />
+        </dd>
+      </div>
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-file-code"></i>Extension</dt>
+        <dd class="props-card__value">
+          <input class="props-card__input multi-rename-input multi-rename-ext" placeholder=".txt" type="text" />
+        </dd>
+      </div>
+      <div class="props-card__row props-card__row--block" style="margin-top: -2px; margin-bottom: 2px;">
+        <div style="font-size: 11px; color: var(--textColor2); display: flex; align-items: center; gap: 6px; opacity: 0.85;">
+          <i class="fa-solid fa-circle-info" style="font-size: 10px;"></i>
+          <span>If no extension is supplied the extension won't be changed</span>
+        </div>
+      </div>
+      <div class="props-card__row props-card__row--block" style="margin-top: 4px;">
+        <dt class="props-card__label"><i class="fa-regular fa-rectangle-list"></i>Selected items to rename</dt>
+        <dd class="props-card__value">${itemsListHtml}</dd>
+      </div>
+    </dl>
+
+    <footer class="props-card__footer">
+      <button class="props-card__btn" onclick="closeMultiRenamePopup()">
+        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary multi-rename-button-run">
+        <i class="fa-solid fa-pencil"></i><span>Rename</span>
+      </button>
+    </footer>
+  `;
+
   document.querySelector("body").append(popup);
+  popup.classList.add("popup-enter");
   $(".multi-rename-newname").focus();
-  document.querySelectorAll(".multi-rename-input").forEach((input) =>
+
+  document.querySelectorAll(".multi-rename-input").forEach((input) => {
+    input.addEventListener("focus", () => {
+      IsInputFocused = true;
+    });
+    input.addEventListener("blur", () => {
+      IsInputFocused = false;
+    });
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+    });
     input.addEventListener("keyup", async (e) => {
+      e.stopPropagation();
       if (
         ((e.ctrlKey && Platform != "darwin") || e.metaKey) &&
         e.key === "Enter"
@@ -4067,8 +5759,9 @@ function showMultiRenamePopup() {
           $(".multi-rename-ext").val(),
         );
       }
-    }),
-  );
+    });
+  });
+
   document
     .querySelector(".multi-rename-button-run")
     .addEventListener("click", async () => {
@@ -4103,19 +5796,33 @@ async function renameItemsWithFormat(
     nDigits,
     ext,
   });
-  await listDirectories();
+  scheduleDiskUsageRefresh();
 }
 
 function closeMultiRenamePopup() {
-  IsPopUpOpen = false;
-  $(".multi-rename-popup").remove();
+  let popup = document.querySelector(".multi-rename-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      IsPopUpOpen = false;
+      IsInputFocused = false;
+    }, { once: true });
+  } else {
+    IsPopUpOpen = false;
+    IsInputFocused = false;
+  }
 }
 
 async function closeItemPreview() {
   $(".item-preview-popup").fadeOut(200, () => {
     $(".item-preview-popup")?.remove();
   });
-  $(".item-properties-popup")?.remove();
+  let propsPopup = document.querySelector(".item-properties-popup");
+  if (propsPopup) {
+    propsPopup.classList.add("popup-exit");
+    propsPopup.addEventListener("animationend", () => propsPopup?.remove(), { once: true });
+  }
   IsPopUpOpen = false;
   IsItemPreviewOpen = false;
 }
@@ -4143,40 +5850,333 @@ function evalCurrentLoad(available, total) {
   return result.toFixed(0);
 }
 
+let activeFtpTab = "discovered";
+
+function switchFtpTab(tabName) {
+  activeFtpTab = tabName;
+  $(".ftp-tab-btn").removeClass("active");
+  $(`.ftp-tab-btn[data-target="${tabName}"]`).addClass("active");
+
+  if (tabName === "discovered") {
+    $(".ftp-discovery-section").css("display", "flex");
+    $(".ftp-saved-section").css("display", "none");
+  } else {
+    $(".ftp-discovery-section").css("display", "none");
+    $(".ftp-saved-section").css("display", "flex");
+  }
+}
+
 async function showFtpConfig() {
   if (IsPopUpOpen == false) {
-    document.querySelector(".ftp-connect-container").style.display = "block";
+    let popup = document.querySelector(".ftp-connect-container");
+    popup.style.display = "flex";
+    popup.classList.add("popup-enter");
     IsPopUpOpen = true;
-    document.querySelectorAll(".ftp-popup-input").forEach(
-      (input) =>
-        (input.onkeyup = (e) => {
-          if (e.key === "Enter") {
-            connectToFtp();
-          }
-        }),
-    );
+    IsDisableShortcuts = true;
+    IsInputFocused = true;
+
+    // Reset Save Profile checkbox when opening the modal
+    $("#ftp-save-checkbox").prop("checked", false);
+
+    document.querySelectorAll(".ftp-popup-input").forEach((input) => {
+      input.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+      });
+      input.addEventListener("keyup", (e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") {
+          connectToFtp();
+        }
+      });
+      input.addEventListener("focus", () => {
+        IsInputFocused = true;
+      });
+      input.addEventListener("blur", () => {
+        IsInputFocused = false;
+      });
+    });
+
+    // Reset FTP Tabs on open
+    switchFtpTab("discovered");
+
+    // Automatically trigger FTP Discovery and load Saved Profiles when opening the modal
+    startFtpDiscovery();
+    loadSavedFtpConnections();
+  }
+}
+
+let isFtpScanning = false;
+
+async function startFtpDiscovery(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  if (isFtpScanning) return;
+  isFtpScanning = true;
+
+  const refreshBtn = $(".ftp-discovery-refresh-btn");
+  const listContainer = $(".ftp-discovery-list");
+
+  refreshBtn.addClass("scanning");
+  $(".ftp-discovery-section").removeClass("is-empty");
+
+  // Show premium glassmorphic loader
+  listContainer.html(`
+    <div class="ftp-discovery-loader">
+      <i class="fa-solid fa-circle-notch fa-spin"></i>
+      <span>Scanning local network for active FTP hosts...</span>
+    </div>
+  `);
+
+  try {
+    const servers = await invoke("discover_ftp_servers");
+    if (!servers || servers.length === 0) {
+      $(".ftp-discovery-section").addClass("is-empty");
+      listContainer.html(`
+        <div class="ftp-discovery-empty">
+          <i class="fa-solid fa-satellite-dish"></i>
+          <span>No active FTP servers detected on local subnet</span>
+        </div>
+      `);
+    } else {
+      $(".ftp-discovery-section").removeClass("is-empty");
+      let listHtml = "";
+      servers.forEach((server) => {
+        const name = escapeHtml(server.name || "");
+        const host = escapeHtml(server.hostname || "");
+        const port = parseInt(server.port) || 21;
+        const nameEscaped = name.replace(/'/g, "\\'");
+        listHtml += `
+          <div class="ftp-discovery-item" onclick="selectDiscoveredServer(event, '${nameEscaped}', '${host}', ${port})">
+            <div class="ftp-discovery-item-info">
+              <span class="ftp-discovery-item-name">${name}</span>
+              <span class="ftp-discovery-item-host">
+                <i class="fa-solid fa-network-wired"></i> ${host}:${port}
+              </span>
+            </div>
+            <div class="ftp-discovery-item-action">
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+          </div>
+        `;
+      });
+      listContainer.html(listHtml);
+    }
+  } catch (error) {
+    console.error("FTP Discovery failed:", error);
+    $(".ftp-discovery-section").addClass("is-empty");
+    listContainer.html(`
+      <div class="ftp-discovery-empty">
+        <i class="fa-solid fa-triangle-exclamation" style="color: var(--errorColor);"></i>
+        <span>Scan failed: ${escapeHtml(error.toString())}</span>
+      </div>
+    `);
+  } finally {
+    isFtpScanning = false;
+    refreshBtn.removeClass("scanning");
+  }
+}
+
+function selectDiscoveredServer(event, name, host, port) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  $(".ftp-dirname-input").val(name);
+  $(".ftp-hostname-input").val(host);
+  $(".ftp-port-input").val(port);
+
+  // Cursor-focus the Username input field as specified
+  const userField = $(".ftp-username-input");
+  userField.focus();
+  IsInputFocused = true;
+}
+
+async function loadSavedFtpConnections() {
+  const savedSection = $(".ftp-saved-section");
+  const listContainer = $(".ftp-saved-list");
+
+  try {
+    const connections = await invoke("get_saved_ftp_connections");
+    if (!connections || connections.length === 0) {
+      listContainer.html(`
+        <div class="ftp-discovery-empty">
+          <i class="fa-solid fa-bookmark"></i>
+          <span>No saved FTP profiles yet</span>
+        </div>
+      `);
+    } else {
+      let listHtml = "";
+      connections.forEach((conn) => {
+        const name = escapeHtml(conn.name || "");
+        const host = escapeHtml(conn.hostname || "");
+        const port = parseInt(conn.port) || 21;
+        const user = escapeHtml(conn.username || "");
+        const path = escapeHtml(conn.remote_path || "/");
+
+        const nameEscaped = name.replace(/'/g, "\\'");
+        const hostEscaped = host.replace(/'/g, "\\'");
+        const userEscaped = user.replace(/'/g, "\\'");
+        const passwordEscaped = (conn.password || "").replace(/'/g, "\\'");
+        const pathEscaped = path.replace(/'/g, "\\'");
+
+        listHtml += `
+          <div class="ftp-saved-item" onclick="selectSavedConnection(event, '${nameEscaped}', '${hostEscaped}', ${port}, '${userEscaped}', '${passwordEscaped}', '${pathEscaped}')">
+            <div class="ftp-saved-item-info">
+              <span class="ftp-saved-item-name">${name}</span>
+              <span class="ftp-saved-item-host">
+                <i class="fa-solid fa-network-wired"></i> ${host}:${port} (${user})
+              </span>
+            </div>
+            <div class="ftp-saved-item-actions">
+              <button class="ftp-delete-saved-btn" title="Delete Saved Profile" onclick="deleteSavedConnection(event, '${nameEscaped}')">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
+          </div>
+        `;
+      });
+      listContainer.html(listHtml);
+    }
+  } catch (error) {
+    console.error("Failed to load saved FTP connections:", error);
+    listContainer.html(`
+      <div class="ftp-discovery-empty">
+        <i class="fa-solid fa-triangle-exclamation" style="color: var(--errorColor);"></i>
+        <span>Failed to load: ${escapeHtml(error.toString())}</span>
+      </div>
+    `);
+  } finally {
+    // Ensure display states are in-sync with current tab choice
+    if (activeFtpTab === "saved") {
+      savedSection.css("display", "flex");
+      $(".ftp-discovery-section").css("display", "none");
+    } else {
+      savedSection.css("display", "none");
+      $(".ftp-discovery-section").css("display", "flex");
+    }
+  }
+}
+
+function selectSavedConnection(event, name, host, port, username, password, remotePath) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  $(".ftp-dirname-input").val(name);
+  $(".ftp-hostname-input").val(host);
+  $(".ftp-port-input").val(port);
+  $(".ftp-username-input").val(username);
+  $(".ftp-password-input").val(password);
+  $(".ftp-path-input").val(remotePath);
+
+  // Check the Save Profile checkbox to maintain/overwrite credentials easily
+  $("#ftp-save-checkbox").prop("checked", true);
+
+  // Focus the Password input field as specified
+  const passwordField = $(".ftp-password-input");
+  passwordField.focus();
+  IsInputFocused = true;
+}
+
+async function deleteSavedConnection(event, name) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  try {
+    await invoke("delete_saved_ftp_connection", { name: name });
+    showToast(`Deleted profile "${name}"`, ToastType.SUCCESS);
+    await loadSavedFtpConnections();
+    await insertSiteNavButtons();
+  } catch (error) {
+    console.error("Failed to delete saved connection:", error);
+    showToast("Failed to delete profile: " + error, ToastType.ERROR);
+  }
+}
+
+function showFtpLoader(paneSide) {
+  const loaderHtml = `
+    <div class="dir-preloader-container">
+      <div class="preloader-invert"></div>
+      <div style="margin-top: 15px; font-size: 13px; color: var(--textColor2); font-weight: 500; letter-spacing: 0.3px;">
+        Loading FTP directory...
+      </div>
+    </div>
+  `;
+  if (IsDualPaneEnabled) {
+    if (paneSide === "left") {
+      $(".dual-pane-left").html(loaderHtml);
+    } else if (paneSide === "right") {
+      $(".dual-pane-right").html(loaderHtml);
+    } else {
+      $(".dual-pane-left").html(loaderHtml);
+      $(".dual-pane-right").html(loaderHtml);
+    }
+  } else {
+    if (ViewMode === "miller") {
+      if (typeof CurrentMillerCol !== "undefined" && CurrentMillerCol) {
+        $(".miller-col-" + CurrentMillerCol).html(loaderHtml);
+      } else {
+        $(".miller-container").html(loaderHtml);
+      }
+    } else {
+      $(".non-dual-pane-container").html(loaderHtml);
+    }
+  }
+}
+
+function hideFtpLoader(paneSide) {
+  if (IsDualPaneEnabled) {
+    if (paneSide === "left") {
+      $(".dual-pane-left").find(".dir-preloader-container").remove();
+    } else if (paneSide === "right") {
+      $(".dual-pane-right").find(".dir-preloader-container").remove();
+    } else {
+      $(".dual-pane-left").find(".dir-preloader-container").remove();
+      $(".dual-pane-right").find(".dir-preloader-container").remove();
+    }
+  } else {
+    if (ViewMode === "miller") {
+      if (typeof CurrentMillerCol !== "undefined" && CurrentMillerCol) {
+        $(".miller-col-" + CurrentMillerCol).find(".dir-preloader-container").remove();
+      }
+      $(".miller-container").find(".dir-preloader-container").remove();
+    } else {
+      $(".non-dual-pane-container").find(".dir-preloader-container").remove();
+    }
   }
 }
 
 function closeFtpConfig() {
-  $(".ftp-connect-container").css("display", "none");
+  let popup = document.querySelector(".ftp-connect-container");
+  popup.classList.add("popup-exit");
+  popup.addEventListener("animationend", () => {
+    popup.style.display = "none";
+    popup.classList.remove("popup-exit");
+  }, { once: true });
   $(".ftp-loader").css("display", "none");
   IsPopUpOpen = false;
+  IsDisableShortcuts = false;
+  IsInputFocused = false;
 }
 
 async function connectToFtp() {
-  let hostname = $(".ftp-hostname-input").val();
-  let username = $(".ftp-username-input").val();
-  let password = $(".ftp-password-input").val();
-  let remotePath = $(".ftp-path-input").val();
-  let name = $(".ftp-dirname-input").val();
-  // let sudoPassword = await showPopup(
-  //   "Enter sudo password",
-  //   PopupType.PROMPT,
-  //   "The sshfs process to mount the network drive requires your users admin password.",
-  // );
+  let hostname = ($(".ftp-hostname-input").val() || "").trim();
+  let username = ($(".ftp-username-input").val() || "").trim();
+  let password = $(".ftp-password-input").val(); // Keep spaces in password
+  let remotePath = ($(".ftp-path-input").val() || "").trim();
+  let name = ($(".ftp-dirname-input").val() || "").trim();
+  let port = ($(".ftp-port-input").val() || "").trim() || "21";
+
   $(".ftp-loader").css("display", "flex");
-  await openFTP(hostname, username, password, remotePath, name);
+  await openFTP(hostname, username, password, remotePath, name, port);
 }
 
 async function openFTP(
@@ -4185,19 +6185,50 @@ async function openFTP(
   password,
   remotePath = "/",
   name = "",
+  port = 21
 ) {
   try {
-    await invoke("mount_sshfs", {
-      hostname,
-      username,
-      password,
-      remotePath,
-      name,
-    }).then(async (mountedPath) => {
-      // await openDirAndSwitch(mountedPath);
+    const trimmedHostname = (hostname || "").trim();
+    const trimmedUsername = (username || "").trim();
+    const trimmedRemotePath = (remotePath || "").trim();
+    const trimmedName = (name || "").trim();
+    const parsedPort = parseInt(port) || 21;
+
+    const result = await invoke("connect_ftp", {
+      config: {
+        name: trimmedName,
+        hostname: trimmedHostname,
+        port: parsedPort,
+        username: trimmedUsername,
+        password: password,
+        remote_path: trimmedRemotePath || "/"
+      }
     });
+    showToast(result, ToastType.SUCCESS);
+
+    // Save profile if the checkbox is checked and connection succeeded
+    if ($("#ftp-save-checkbox").is(":checked")) {
+      try {
+        await invoke("save_ftp_connection", {
+          config: {
+            name: trimmedName,
+            hostname: trimmedHostname,
+            port: parsedPort,
+            username: trimmedUsername,
+            password: password,
+            remote_path: trimmedRemotePath || "/"
+          }
+        });
+      } catch (err) {
+        console.error("Failed to save FTP profile:", err);
+      }
+    }
+
+    await insertSiteNavButtons();
+    await openDirAndSwitch(`ftp://${trimmedName}${trimmedRemotePath || "/"}`);
   } catch (error) {
     console.error(error);
+    showToast("Failed to connect to FTP: " + error, ToastType.ERROR);
   }
   closeFtpConfig();
 }
@@ -4214,11 +6245,15 @@ async function sortItems(sortMethod) {
           return parseInt(a.size) - parseInt(b.size);
         });
         IsFilteredBySize = false;
+        CurrentSortMethod = "size";
+        CurrentSortAscending = true;
       } else {
         arr.sort((a, b) => {
           return parseInt(b.size) - parseInt(a.size);
         });
         IsFilteredBySize = true;
+        CurrentSortMethod = "size";
+        CurrentSortAscending = false;
       }
     }
     if (sortMethod == "name") {
@@ -4229,11 +6264,15 @@ async function sortItems(sortMethod) {
           return b.name.localeCompare(a.name);
         });
         IsFilteredByName = false;
+        CurrentSortMethod = "name";
+        CurrentSortAscending = false;
       } else {
         arr.sort((a, b) => {
           return a.name.localeCompare(b.name);
         });
         IsFilteredByName = true;
+        CurrentSortMethod = "name";
+        CurrentSortAscending = true;
       }
     }
     if (sortMethod == "date") {
@@ -4244,14 +6283,18 @@ async function sortItems(sortMethod) {
           return new Date(a.last_modified) - new Date(b.last_modified);
         });
         IsFilteredByDate = false;
+        CurrentSortMethod = "date";
+        CurrentSortAscending = true;
       } else {
         arr.sort((a, b) => {
           return new Date(b.last_modified) - new Date(a.last_modified);
         });
         IsFilteredByDate = true;
+        CurrentSortMethod = "date";
+        CurrentSortAscending = false;
       }
     }
-    await showItems(arr);
+    await showItems(arr, SelectedItemPaneSide || "", CurrentMillerCol || 1, true);
   }
 }
 
@@ -4268,40 +6311,376 @@ function getFDirObjectListFromDirectoryList(arrElements) {
   });
 }
 
+const BuiltInThemes = {
+  "Default Dark": {
+    name: "Default Dark",
+    primary_color: "#3f4352",
+    secondary_color: "rgba(56, 59, 71, 1)",
+    tertiary_color: "#474b5c",
+    text_color: "rgba(255, 255, 255, 0.8)",
+    text_color2: "rgba(255, 255, 255, 0.6)",
+    text_color3: "rgb(255, 255, 255)",
+    transparent_color: "rgba(0, 0, 0, 0.15)",
+    transparent_color_active: "rgba(0, 0, 0, 0.25)",
+    site_bar_color: "rgb(45, 47, 57)",
+    nav_bar_color: "rgba(30, 30, 40, 0.5)",
+    sidebar_top_blur_overlay_color: "rgb(45, 47, 57)",
+    select_color2: "rgba(11, 100, 253, 0.75)",
+    select_color3: "rgba(11, 100, 253, 0.25)"
+  },
+  "Default Light": {
+    name: "Default Light",
+    primary_color: "#cbd0df",
+    secondary_color: "rgba(244, 245, 248, 1)",
+    tertiary_color: "#d0d4e3",
+    text_color: "rgba(30, 30, 35, 0.9)",
+    text_color2: "rgba(30, 30, 35, 0.6)",
+    text_color3: "rgb(20, 20, 25)",
+    transparent_color: "rgba(0, 0, 0, 0.05)",
+    transparent_color_active: "rgba(0, 0, 0, 0.12)",
+    site_bar_color: "rgb(230, 232, 238)",
+    nav_bar_color: "rgba(220, 222, 228, 0.5)",
+    sidebar_top_blur_overlay_color: "rgb(230, 232, 238)",
+    select_color2: "rgba(11, 100, 253, 0.75)",
+    select_color3: "rgba(11, 100, 253, 0.25)"
+  }
+};
+
+let LoadedUserThemes = [];
+let OriginalThemeBackup = null;
+
+function hexToRgba(hex, alpha) {
+  hex = hex.replace("#", "");
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+  let r = parseInt(hex.substring(0, 2), 16);
+  let g = parseInt(hex.substring(2, 4), 16);
+  let b = parseInt(hex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getRgbComponents(colorStr) {
+  let tempEl = document.createElement("div");
+  tempEl.style.color = colorStr;
+  document.body.appendChild(tempEl);
+  let computedColor = window.getComputedStyle(tempEl).color;
+  document.body.removeChild(tempEl);
+
+  let match = computedColor.match(/\d+(\.\d+)?/g);
+  if (match && match.length >= 3) {
+    return {
+      r: parseInt(match[0]),
+      g: parseInt(match[1]),
+      b: parseInt(match[2]),
+      a: match[3] !== undefined ? parseFloat(match[3]) : 1.0
+    };
+  }
+  return { r: 0, g: 0, b: 0, a: 1.0 };
+}
+
+function parseCssColor(colorStr) {
+  let comps = getRgbComponents(colorStr);
+  let r = comps.r.toString(16).padStart(2, "0");
+  let g = comps.g.toString(16).padStart(2, "0");
+  let b = comps.b.toString(16).padStart(2, "0");
+  return {
+    hex: `#${r}${g}${b}`,
+    alpha: comps.a
+  };
+}
+
 function checkColorMode(appConfig) {
   var r = document.querySelector(":root");
-  let themeId = parseInt(CurrentTheme);
-  r.style.setProperty(
-    "--primaryColor",
-    appConfig.themes[themeId].primary_color,
-  );
-  r.style.setProperty(
-    "--secondaryColor",
-    appConfig.themes[themeId].secondary_color,
-  );
-  r.style.setProperty(
-    "--tertiaryColor",
-    appConfig.themes[themeId].tertiary_color,
-  );
-  r.style.setProperty(
-    "--transparentColor",
-    appConfig.themes[themeId].transparent_color,
-  );
-  r.style.setProperty(
-    "--transparentColorActive",
-    appConfig.themes[themeId].transparent_color_active,
-  );
-  r.style.setProperty("--textColor", appConfig.themes[themeId].text_color);
-  r.style.setProperty("--textColor2", appConfig.themes[themeId].text_color2);
-  r.style.setProperty(
-    "--textColor3",
-    appConfig.themes[themeId].text_color3.replace('"', "").replace('"', ""),
-  );
-  r.style.setProperty(
-    "--siteBarColor",
-    appConfig.themes[themeId].site_bar_color,
-  );
-  r.style.setProperty("--navBarColor", appConfig.themes[themeId].nav_bar_color);
+  let activeThemeName = CurrentTheme || "Default Dark";
+
+  // Find theme by name (either built-in or user-created loaded from backend)
+  let activeTheme = BuiltInThemes[activeThemeName];
+  if (!activeTheme && LoadedUserThemes) {
+    activeTheme = LoadedUserThemes.find(t => t.name === activeThemeName);
+  }
+
+  // Fallback to Default Dark
+  if (!activeTheme) {
+    activeTheme = BuiltInThemes["Default Dark"];
+  }
+
+  r.style.setProperty("--primaryColor", activeTheme.primary_color);
+  r.style.setProperty("--secondaryColor", activeTheme.secondary_color);
+  r.style.setProperty("--tertiaryColor", activeTheme.tertiary_color);
+  r.style.setProperty("--transparentColor", activeTheme.transparent_color);
+  r.style.setProperty("--transparentColorActive", activeTheme.transparent_color_active);
+  r.style.setProperty("--textColor", activeTheme.text_color);
+  r.style.setProperty("--textColor2", activeTheme.text_color2);
+  r.style.setProperty("--textColor3", activeTheme.text_color3.replace(/"/g, ""));
+  r.style.setProperty("--siteBarColor", activeTheme.site_bar_color);
+  r.style.setProperty("--sidebarTopBlurOverlayColor", activeTheme.sidebar_top_blur_overlay_color || activeTheme.site_bar_color);
+  r.style.setProperty("--navBarColor", activeTheme.nav_bar_color);
+
+  // Set custom selection accent colors
+  r.style.setProperty("--selectColor2", activeTheme.select_color2 || "rgba(11, 100, 253, 0.75)");
+  r.style.setProperty("--selectColor3", activeTheme.select_color3 || "rgba(11, 100, 253, 0.25)");
+
+  // Update styling variables for glassmorphism popups to adapt perfectly to dark vs light mode!
+  let isLight = !activeThemeName.toLowerCase().includes("dark") &&
+                 (activeTheme.text_color.includes("rgba(30") ||
+                  activeTheme.text_color.includes("#1e") ||
+                  activeTheme.text_color.includes("rgba(0") ||
+                  activeTheme.text_color.includes("#32") ||
+                  activeTheme.text_color.startsWith("#0") ||
+                  activeTheme.text_color.startsWith("#1") ||
+                  activeTheme.text_color.startsWith("#2"));
+  if (isLight) {
+    r.style.setProperty("--glass-bg", "rgba(255, 255, 255, 0.7)");
+    r.style.setProperty("--glass-header-bg", "rgba(240, 240, 245, 0.85)");
+    r.style.setProperty("--glass-shadow", "0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.06)");
+    r.style.setProperty("--glass-border", "1px solid rgba(0, 0, 0, 0.08)");
+    r.style.setProperty("--glass-border-subtle", "1px solid rgba(0, 0, 0, 0.05)");
+  } else {
+    r.style.setProperty("--glass-bg", "color-mix(in srgb, var(--primaryColor) 85%, transparent)");
+    r.style.setProperty("--glass-header-bg", "color-mix(in srgb, var(--secondaryColor) 80%, transparent)");
+    r.style.setProperty("--glass-shadow", "0 8px 32px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.06)");
+    r.style.setProperty("--glass-border", "1px solid color-mix(in srgb, var(--tertiaryColor) 50%, transparent)");
+    r.style.setProperty("--glass-border-subtle", "1px solid color-mix(in srgb, var(--tertiaryColor) 35%, transparent)");
+  }
+}
+
+async function applyTheme(themeName) {
+  CurrentTheme = themeName;
+  checkColorMode();
+}
+
+async function applyThemeFromSelect() {
+  let themeName = $(".theme-select").val();
+  CurrentTheme = themeName;
+  checkColorMode();
+
+  // Toggle delete/edit button visibility based on whether the theme is built-in
+  if (BuiltInThemes[CurrentTheme]) {
+    $(".delete-theme-btn").css("display", "none");
+    $(".edit-theme-btn").css("display", "none");
+  } else {
+    $(".delete-theme-btn").css("display", "block");
+    $(".edit-theme-btn").css("display", "block");
+  }
+
+  await saveConfig(false, false);
+}
+
+function openThemeCreator() {
+  $("#theme-creator-popup").css("display", "flex");
+  IsPopUpOpen = true;
+  IsDisableShortcuts = true;
+
+  // Backup currently active theme in case they click cancel
+  OriginalThemeBackup = CurrentTheme;
+  IsEditingTheme = false;
+
+  $("#theme-creator-title").text("Create Theme");
+  $(".theme-name-input").val("");
+
+  // Initialize pickers and inputs with the currently active theme's colors
+  let activeThemeName = CurrentTheme || "Default Dark";
+  let activeTheme = BuiltInThemes[activeThemeName] || LoadedUserThemes.find(t => t.name === activeThemeName) || BuiltInThemes["Default Dark"];
+
+  setThemeCreatorColorRow("primary-color", activeTheme.primary_color, "--primaryColor");
+  setThemeCreatorColorRow("secondary-color", activeTheme.secondary_color, "--secondaryColor");
+  setThemeCreatorColorRow("tertiary-color", activeTheme.tertiary_color, "--tertiaryColor");
+  setThemeCreatorColorRow("accent-color", activeTheme.select_color2 || "rgba(11, 100, 253, 0.75)", "--selectColor2");
+  setThemeCreatorColorRow("text-color", activeTheme.text_color, "--textColor");
+  setThemeCreatorColorRow("text-color2", activeTheme.text_color2, "--textColor2");
+  setThemeCreatorColorRow("text-color3", activeTheme.text_color3, "--textColor3");
+  setThemeCreatorColorRow("sitebar-color", activeTheme.site_bar_color, "--siteBarColor");
+  setThemeCreatorColorRow("navbar-color", activeTheme.nav_bar_color, "--navBarColor");
+}
+
+function editActiveTheme() {
+  let activeThemeName = $(".theme-select").val();
+  if (BuiltInThemes[activeThemeName]) {
+    return; // Built-in themes are read-only
+  }
+
+  let activeTheme = LoadedUserThemes.find(t => t.name === activeThemeName);
+  if (!activeTheme) return;
+
+  $("#theme-creator-popup").css("display", "flex");
+  IsPopUpOpen = true;
+  IsDisableShortcuts = true;
+
+  OriginalThemeBackup = CurrentTheme;
+  IsEditingTheme = true;
+  ThemeToEditOriginalName = activeThemeName;
+
+  $("#theme-creator-title").text("Edit Theme");
+  $(".theme-name-input").val(activeTheme.name);
+
+  setThemeCreatorColorRow("primary-color", activeTheme.primary_color, "--primaryColor");
+  setThemeCreatorColorRow("secondary-color", activeTheme.secondary_color, "--secondaryColor");
+  setThemeCreatorColorRow("tertiary-color", activeTheme.tertiary_color, "--tertiaryColor");
+  setThemeCreatorColorRow("accent-color", activeTheme.select_color2 || "rgba(11, 100, 253, 0.75)", "--selectColor2");
+  setThemeCreatorColorRow("text-color", activeTheme.text_color, "--textColor");
+  setThemeCreatorColorRow("text-color2", activeTheme.text_color2, "--textColor2");
+  setThemeCreatorColorRow("text-color3", activeTheme.text_color3, "--textColor3");
+  setThemeCreatorColorRow("sitebar-color", activeTheme.site_bar_color, "--siteBarColor");
+  setThemeCreatorColorRow("navbar-color", activeTheme.nav_bar_color, "--navBarColor");
+}
+
+function setThemeCreatorColorRow(cssClass, colorVal, varName) {
+  let parsed = parseCssColor(colorVal);
+
+  $(`.theme-${cssClass}`).val(parsed.hex);
+  $(`.theme-${cssClass}-text`).val(colorVal);
+  $(`.theme-${cssClass}-opacity`).val(parsed.alpha);
+  $(`.theme-${cssClass}-opacity-val`).text(parsed.alpha.toFixed(2));
+
+  const updateFromControls = () => {
+    let hex = $(`.theme-${cssClass}`).val();
+    let alpha = parseFloat($(`.theme-${cssClass}-opacity`).val());
+    $(`.theme-${cssClass}-opacity-val`).text(alpha.toFixed(2));
+
+    let combinedColor = hex;
+    if (alpha < 1) {
+      combinedColor = hexToRgba(hex, alpha);
+    }
+
+    $(`.theme-${cssClass}-text`).val(combinedColor);
+    previewThemeColor(varName, combinedColor);
+  };
+
+  $(`.theme-${cssClass}`).off("input").on("input", updateFromControls);
+  $(`.theme-${cssClass}-opacity`).off("input").on("input", updateFromControls);
+
+  $(`.theme-${cssClass}-text`).off("input").on("input", function() {
+    let newVal = this.value.trim();
+    if (!newVal) return;
+
+    let parsed = parseCssColor(newVal);
+    $(`.theme-${cssClass}`).val(parsed.hex);
+    $(`.theme-${cssClass}-opacity`).val(parsed.alpha);
+    $(`.theme-${cssClass}-opacity-val`).text(parsed.alpha.toFixed(2));
+
+    previewThemeColor(varName, newVal);
+  });
+}
+
+function convertToHex(colorStr) {
+  if (colorStr.startsWith("#")) return colorStr;
+  if (colorStr.startsWith("rgb")) {
+    let parts = colorStr.match(/\d+/g);
+    if (parts && parts.length >= 3) {
+      let r = parseInt(parts[0]).toString(16).padStart(2, "0");
+      let g = parseInt(parts[1]).toString(16).padStart(2, "0");
+      let b = parseInt(parts[2]).toString(16).padStart(2, "0");
+      return `#${r}${g}${b}`;
+    }
+  }
+  return "#000000";
+}
+
+function previewThemeColor(varName, val) {
+  document.documentElement.style.setProperty(varName, val);
+  if (varName === "--primaryColor") {
+    document.documentElement.style.setProperty("--glass-bg", `color-mix(in srgb, ${val} 85%, transparent)`);
+  }
+  if (varName === "--selectColor2") {
+    let comps = getRgbComponents(val);
+    let val3 = `rgba(${comps.r}, ${comps.g}, ${comps.b}, 0.25)`;
+    document.documentElement.style.setProperty("--selectColor3", val3);
+  }
+}
+
+function previewThemeColorText(varName, val) {
+  previewThemeColor(varName, val);
+}
+
+function closeThemeCreator() {
+  $("#theme-creator-popup").css("display", "none");
+  IsPopUpOpen = false;
+  IsDisableShortcuts = false;
+
+  // Restore original theme since they canceled
+  if (OriginalThemeBackup) {
+    CurrentTheme = OriginalThemeBackup;
+    checkColorMode();
+  }
+}
+
+async function saveCustomTheme() {
+  let name = $(".theme-name-input").val().trim();
+  if (!name) {
+    alert("Please enter a theme name");
+    return;
+  }
+
+  // Only check conflicts if not editing the original theme name
+  if ((!IsEditingTheme || name !== ThemeToEditOriginalName) && BuiltInThemes[name]) {
+    alert("Theme name conflicts with a built-in theme. Please choose a different name.");
+    return;
+  }
+
+  let selectColor2Val = $(".theme-accent-color-text").val().trim();
+  let comps = getRgbComponents(selectColor2Val);
+  let selectColor3Val = `rgba(${comps.r}, ${comps.g}, ${comps.b}, 0.25)`;
+
+  let newTheme = {
+    name: name,
+    primary_color: $(".theme-primary-color-text").val().trim(),
+    secondary_color: $(".theme-secondary-color-text").val().trim(),
+    tertiary_color: $(".theme-tertiary-color-text").val().trim(),
+    text_color: $(".theme-text-color-text").val().trim(),
+    text_color2: $(".theme-text-color2-text").val().trim(),
+    text_color3: $(".theme-text-color3-text").val().trim(),
+    transparent_color: "rgba(0, 0, 0, 0.15)",
+    transparent_color_active: "rgba(0, 0, 0, 0.25)",
+    site_bar_color: $(".theme-sitebar-color-text").val().trim(),
+    nav_bar_color: $(".theme-navbar-color-text").val().trim(),
+    sidebar_top_blur_overlay_color: $(".theme-sitebar-color-text").val().trim(),
+    select_color2: selectColor2Val,
+    select_color3: selectColor3Val
+  };
+
+  try {
+    // If editing and renamed, delete the old file
+    if (IsEditingTheme && name !== ThemeToEditOriginalName) {
+      await invoke("delete_theme", { themeName: ThemeToEditOriginalName });
+    }
+
+    await invoke("save_theme", { theme: newTheme });
+    showToast("Theme saved successfully!", ToastType.SUCCESS);
+
+    CurrentTheme = name;
+    $("#theme-creator-popup").css("display", "none");
+    IsPopUpOpen = false;
+    IsDisableShortcuts = false;
+
+    await checkAppConfig();
+    await saveConfig(false, false);
+  } catch (err) {
+    alert("Failed to save custom theme: " + err);
+  }
+}
+
+async function deleteActiveTheme() {
+  let activeThemeName = $(".theme-select").val();
+  if (BuiltInThemes[activeThemeName]) {
+    alert("Cannot delete built-in default themes.");
+    return;
+  }
+  const confirmed = await confirm(`Are you sure you want to delete the custom theme "${activeThemeName}"?`);
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    await invoke("delete_theme", { themeName: activeThemeName });
+    showToast("Theme deleted successfully!", ToastType.SUCCESS);
+
+    CurrentTheme = "Default Dark";
+    await checkAppConfig();
+    await saveConfig(true, false);
+  } catch (err) {
+    alert("Failed to delete theme: " + err);
+  }
 }
 
 async function open_with(filePath, appPath) {
@@ -4315,182 +6694,12 @@ async function getSetInstalledApplications(ext = "") {
   );
 }
 
-function showFindDuplicates(item) {
-  cdCtMenu.hide();
-  let popup = document.createElement("div");
-  popup.className = "uni-popup find-duplicates-popup";
-  popup.innerHTML = `
-    <div class="popup-header">
-    <h3>Duplicates</h3>
-    </div>
-    <div class="popup-body" style="display: flex; justify-content: space-between; align-items: center;">
-    <div>
-    <p>Selected folder:</p>
-    <p class="text-2">${item.getAttribute("itempath")}</p>
-    </div>
-    <div>
-    <p class="text-2" style="margin-bottom: 5px;">Search depth</p>
-    <input style="width: 100px;" type="number" class="text-input duplicates-search-depth-input" value="1">
-    </div>
-    </div>
-    <div class="popup-header">
-    <h4>Found duplicates</h4>
-    </div>
-    `;
-  let list = document.createElement("div");
-  list.className = "list duplicates-list";
-  popup.append(list);
-  let popupControls = document.createElement("div");
-  popupControls.className = "popup-controls";
-  popupControls.innerHTML = `
-    <button class="icon-button" onclick="closeFindDuplicatesPopup()">
-    <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-    Cancel
-    </button>
-    <button class="icon-button duplicate-button-run">
-    <div class="button-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-    Search
-    </button>
-    `;
-  popup.append(popupControls);
-  document.querySelector("body").append(popup);
-  document
-    .querySelector(".duplicates-search-depth-input")
-    .addEventListener("focus", () => (IsInputFocused = true));
-  document
-    .querySelector(".duplicates-search-depth-input")
-    .addEventListener("blur", () => (IsInputFocused = false));
-  document
-    .querySelector(".duplicate-button-run")
-    .addEventListener("click", async () => {
-      await findDuplicates(
-        item,
-        document.querySelector(".duplicates-search-depth-input").value,
-      );
-    });
-  IsPopUpOpen = true;
-}
 
-function closeFindDuplicatesPopup() {
-  IsPopUpOpen = false;
-  cancelOperation();
-  document.querySelector(".find-duplicates-popup")?.remove();
-}
-
-async function findDuplicates(item, depth) {
-  showLoadingPopup("Searching for duplicates ...");
-  document.querySelector(".list").innerHTML = "";
-  IsPopUpOpen = true;
-  await invoke("find_duplicates", {
-    appWindow: appWindow,
-    path: item.getAttribute("itempath"),
-    depth: parseInt(depth),
-  });
-  closeLoadingPopup();
-}
-
-async function showYtDownload(url = "https://youtube.com/watch?v=dQw4w9WgXcQ") {
-  IsPopUpOpen = true;
-  let popup = document.createElement("div");
-  popup.className = "uni-popup yt-download-popup";
-  popup.innerHTML = `
-    <div class="popup-header">
-    <h3>Download</h3>
-    </div>
-    <div class="popup-body">
-    <div class="popup-body-row-section">
-    <div class="popup-body-col-section" style="width: 100%;">
-    <p>URL</p>
-    <input type="text" class="text-input yt-url-input" style='width: 100%;' placeholder="https://youtube.com/watch?v=dQw4w9WgXcQ" value="${url}" />
-    </div>
-    </div>
-    <div class="popup-body-row-section">
-    <div class="popup-body-col-section">
-    <p>Type</p>
-    <select class="text-input select yt-quality-input" style="width: 100%;">
-    <option value="highestvideo">Highest video</option>
-    <option value="highestaudio">Highest audio</option>
-    <option value="lowestvideo">Lowest video</option>
-    <option value="lowestaudio">Lowest audio</option>
-    </select>
-    </div>
-    </div>
-    </div>
-    <div class="popup-controls">
-    <button class="icon-button" onclick="closeYtDownloadPopup()">
-    <div class="button-icon"><i class="fa-solid fa-xmark"></i></div>
-    Cancel
-    </button>
-    <button class="icon-button yt-download-button-run">
-    <div class="button-icon"><i class="fa-solid fa-download"></i></div>
-    Download
-    </button>
-    </div>
-    `;
-  document.querySelector("body").append(popup);
-  document
-    .querySelector(".yt-url-input")
-    .addEventListener("focus", () => (IsInputFocused = true));
-  document
-    .querySelector(".yt-url-input")
-    .addEventListener("blur", () => (IsInputFocused = false));
-  document
-    .querySelector(".yt-download-button-run")
-    .addEventListener("click", async () => {
-      await startYtDownload(
-        document.querySelector(".yt-url-input").value,
-        document.querySelector(".yt-quality-input").value,
-      );
-    });
-}
-
-async function startYtDownload(
-  url = "https://youtube.com/watch?v=dQw4w9WgXcQ",
-  quality = "highvideo",
-) {
-  closeYtDownloadPopup();
-  await invoke("download_yt_video", { appWindow, url, quality });
-  finishProgressBar();
-  await listDirectories();
-}
-
-async function closeYtDownloadPopup() {
-  IsPopUpOpen = false;
-  cancelOperation();
-  document.querySelector(".yt-download-popup")?.remove();
-}
 
 async function cancelOperation() {
   await invoke("cancel_operation");
 }
 
-async function showExtraContextMenu(e, item) {
-  $(".extra-c-menu")?.remove();
-  let contextMenu = document.createElement("div");
-  contextMenu.className = "extra-c-menu context-menu";
-
-  for (let i = 1; i <= item.children.length; i++) {
-    let cButton = document.createElement("button");
-    cButton.className = "context-item";
-    cButton.innerHTML = `Keep ${i}.`;
-    cButton.onclick = async () => {
-      let excessItems = [];
-      for (let j = 0; j < item.children.length; j++) {
-        if (j != i - 1) {
-          excessItems.push(item.getAttribute("itempath-" + j));
-        }
-      }
-      item.remove();
-      contextMenu.remove();
-      await invoke("arr_delete_items", { arrItems: excessItems });
-    };
-    contextMenu.append(cButton);
-  }
-
-  contextMenu.style.left = e.clientX + "px";
-  contextMenu.style.top = e.clientY + "px";
-  document.querySelector("body").append(contextMenu);
-}
 
 async function addMillerCol(millerCol) {
   CurrentMillerCol = millerCol;
@@ -4541,11 +6750,247 @@ async function getDir(number) {
   return dirPath;
 }
 
+function toggleCollapseSection(sectionEl) {
+  const sectionKey = sectionEl.dataset.section;
+  const content = sectionEl.querySelector(".collapse-content");
+  const header = sectionEl.querySelector(".collapse-header");
+  const isCollapsed = sectionEl.classList.contains("collapsed");
+
+  if (isCollapsed) {
+    sectionEl.classList.remove("collapsed");
+    content.style.maxHeight = content.scrollHeight + "px";
+    header.setAttribute("aria-expanded", "true");
+    content.addEventListener("transitionend", function handler() {
+      if (!sectionEl.classList.contains("collapsed")) {
+        content.style.maxHeight = "none";
+      }
+      content.removeEventListener("transitionend", handler);
+    });
+  } else {
+    content.style.maxHeight = content.scrollHeight + "px";
+    content.offsetHeight;
+    sectionEl.classList.add("collapsed");
+    header.setAttribute("aria-expanded", "false");
+  }
+
+  localStorage.setItem(
+    "sidebar-section-" + sectionKey,
+    isCollapsed ? "expanded" : "collapsed",
+  );
+}
+
+function restoreCollapseState(sectionEl) {
+  const sectionKey = sectionEl.dataset.section;
+  const saved = localStorage.getItem("sidebar-section-" + sectionKey);
+  if (saved === "collapsed") {
+    const content = sectionEl.querySelector(".collapse-content");
+    const header = sectionEl.querySelector(".collapse-header");
+    sectionEl.classList.add("collapsed");
+    content.style.maxHeight = "0";
+    header.setAttribute("aria-expanded", "false");
+  }
+}
+
+function markSelectedDisk(path) {
+  document.querySelectorAll(".disk-site-nav-button").forEach((button) => {
+    button.classList.remove("active");
+  });
+}
+
+function displayDiskName(rawName = "") {
+  let name = rawName != null && rawName !== "" ? String(rawName) : "/";
+  if (name.length >= 2) {
+    let first = name[0];
+    let last = name[name.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      return name.slice(1, -1) || "/";
+    }
+  }
+  return name;
+}
+
+function getDiskUsedPercentage(mount) {
+  let capacity = parseFloat(mount?.capacity);
+  let avail = parseFloat(mount?.avail);
+  let rawUsedPercentage = 100 - (100 / capacity) * avail;
+  return Number.isFinite(rawUsedPercentage)
+    ? Math.min(100, Math.max(0, rawUsedPercentage))
+    : 0;
+}
+
+function updateSidebarDiskButtonUsage(button, mount) {
+  const path = button.dataset.itempath || button.getAttribute("itempath") || "";
+  const format = mount?.format || button.getAttribute("itemformat") || "";
+  const isFtp = (format && format.includes("FTP")) || path.startsWith("ftp://");
+
+  let displayName = displayDiskName(mount?.name);
+  let nameLabel = button.querySelector(".disk-nav-name");
+  if (nameLabel) nameLabel.textContent = displayName;
+
+  if (isFtp) {
+    button.title = `${displayName} • FTP`;
+    let usageLabel = button.querySelector(".disk-nav-usage");
+    let progressTrack = button.querySelector(".disk-nav-progress-track");
+    let usageRow = button.querySelector(".disk-nav-usage-row");
+    if (progressTrack) {
+      progressTrack.remove();
+    }
+    if (!usageRow) {
+      usageRow = document.createElement("span");
+      usageRow.className = "disk-nav-usage-row";
+      button.querySelector(".disk-nav-copy")?.append(usageRow);
+    }
+    if (!usageLabel) {
+      usageLabel = document.createElement("span");
+      usageLabel.className = "disk-nav-usage";
+      usageRow.append(usageLabel);
+    }
+    usageLabel.textContent = "(FTP)";
+  } else {
+    let usedPercentage = getDiskUsedPercentage(mount).toFixed(2);
+    let usageLabel = button.querySelector(".disk-nav-usage");
+    let progressTrack = button.querySelector(".disk-nav-progress-track");
+    let progressFill = button.querySelector(".disk-nav-progress-fill");
+    let usageRow = button.querySelector(".disk-nav-usage-row");
+
+    if (!usageRow) {
+      usageRow = document.createElement("span");
+      usageRow.className = "disk-nav-usage-row";
+      button.querySelector(".disk-nav-copy")?.append(usageRow);
+    }
+    if (!usageLabel) {
+      usageLabel = document.createElement("span");
+      usageLabel.className = "disk-nav-usage";
+      usageRow.append(usageLabel);
+    }
+    if (!progressTrack) {
+      progressTrack = document.createElement("span");
+      progressTrack.className = "disk-nav-progress-track";
+      progressTrack.setAttribute("aria-hidden", "true");
+      progressFill = document.createElement("span");
+      progressFill.className = "disk-nav-progress-fill";
+      progressTrack.append(progressFill);
+      usageRow.append(progressTrack);
+    }
+
+    usageLabel.textContent = `${usedPercentage}%`;
+    if (progressFill) progressFill.style.width = `${usedPercentage}%`;
+    button.title = `${displayName} • ${usedPercentage}% used`;
+  }
+}
+
+let DiskUsageRefreshTimer = null;
+
+function scheduleDiskUsageRefresh(delay = 250) {
+  clearTimeout(DiskUsageRefreshTimer);
+  DiskUsageRefreshTimer = setTimeout(() => {
+    refreshDiskSidebarUsage();
+  }, delay);
+}
+
+async function refreshDiskSidebarUsage() {
+  try {
+    let disks = await invoke("list_disks");
+    let disksByPath = new Map(disks.map((disk) => [disk.path, disk]));
+    document.querySelectorAll(".disk-site-nav-button").forEach((button) => {
+      let path = button.dataset.itempath || button.getAttribute("itempath") || "";
+      let mount = disksByPath.get(path);
+      if (mount) updateSidebarDiskButtonUsage(button, mount);
+    });
+  } catch (error) {
+    writeLog(`Failed to refresh disk usage: ${error}`);
+  }
+}
+
+window.scheduleDiskUsageRefresh = scheduleDiskUsageRefresh;
+
+function createSidebarDiskButton(mount, pathOverride = "") {
+  const path = pathOverride || mount.path || "";
+  const name = displayDiskName(mount.name);
+  const usedPercentage = getDiskUsedPercentage(mount).toFixed(2);
+  const diskButton = document.createElement("button");
+
+  diskButton.dataset.itempath = path;
+  diskButton.setAttribute("itempath", path);
+  diskButton.setAttribute("itemisdir", "1");
+  diskButton.setAttribute("itemisdisk", "1");
+  diskButton.setAttribute("itemname", name);
+  const isRemovable = mount.is_removable == true || (mount.format && mount.format.includes("SSHFS")) || (mount.format && mount.format.includes("FTP")) ? "1" : "0";
+  diskButton.setAttribute("itemisremovable", isRemovable);
+  diskButton.setAttribute("itemformat", mount.format || "");
+  diskButton.className = "site-nav-bar-button disk-site-nav-button";
+
+  const isFtp = (mount.format && mount.format.includes("FTP")) || path.startsWith("ftp://");
+
+  const treeElbow = document.createElement("span");
+  treeElbow.className = "disk-tree-elbow";
+  treeElbow.setAttribute("aria-hidden", "true");
+
+  const icon = document.createElement("i");
+  icon.className = "fa-solid fa-hard-drive disk-nav-icon";
+  icon.setAttribute("aria-hidden", "true");
+
+  const copy = document.createElement("span");
+  copy.className = "disk-nav-copy";
+
+  const nameLabel = document.createElement("span");
+  nameLabel.className = "disk-nav-name";
+  nameLabel.textContent = name;
+  copy.append(nameLabel);
+
+  const usageLabel = document.createElement("span");
+  usageLabel.className = "disk-nav-usage";
+
+  const usageRow = document.createElement("span");
+  usageRow.className = "disk-nav-usage-row";
+
+  if (isFtp) {
+    diskButton.title = `${name} • FTP`;
+    usageLabel.textContent = "(FTP)";
+    usageRow.append(usageLabel);
+    copy.append(usageRow);
+  } else {
+    diskButton.title = `${name} • ${usedPercentage}% used`;
+    usageLabel.textContent = `${usedPercentage}%`;
+
+    const progressTrack = document.createElement("span");
+    progressTrack.className = "disk-nav-progress-track";
+    progressTrack.setAttribute("aria-hidden", "true");
+
+    const progressFill = document.createElement("span");
+    progressFill.className = "disk-nav-progress-fill";
+    progressFill.style.width = `${usedPercentage}%`;
+
+    progressTrack.append(progressFill);
+    usageRow.append(usageLabel, progressTrack);
+    copy.append(usageRow);
+  }
+
+  diskButton.append(treeElbow, icon, copy);
+
+  diskButton.onclick = async () => {
+    await openDirAndSwitch(path);
+    await listDirectories();
+    markSelectedDisk(path);
+  };
+
+  diskButton.oncontextmenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cdCtMenu.setSelectedItem(diskButton, e);
+    cdCtMenu.show(e);
+  };
+
+  return diskButton;
+}
+
 async function insertSiteNavButtons() {
   // Clear current stack of dynamic elements in sidebar
   $(".site-nav-bar-button").remove();
+  $(".site-nav-bar-button-fav").remove();
   $(".site-nav-bar-title").remove();
   $(".site-nav-bar > .horizontal-seperator").remove();
+  $(".collapse-section").remove();
   $(".site-nav-bar > .disk-container").remove();
 
   let disks = await invoke("list_disks");
@@ -4594,10 +7039,12 @@ async function insertSiteNavButtons() {
       "fa-solid fa-music",
       async () => await goToDir(5),
     ],
-    // No sshfs implemenation for windows *yet*
-    Platform.includes("win") && Platform != "darwin"
-      ? []
-      : ["SSHFS", "", "fa-solid fa-globe", showFtpConfig],
+    [
+      "FTP",
+      "",
+      "fa-solid fa-server",
+      showFtpConfig,
+    ],
   ];
 
   for (let i = 0; i < siteNavButtons.length; i++) {
@@ -4606,10 +7053,19 @@ async function insertSiteNavButtons() {
     button.className = "site-nav-bar-button";
     button.innerHTML = `<i class="${siteNavButtons[i][2]}"></i> ${siteNavButtons[i][0]}`;
     button.setAttribute("itempath", siteNavButtons[i][1]);
-    button.onclick = siteNavButtons[i][3]; // Support for dragging files to the directory
+    button.setAttribute("itemisdir", "1");
+    button.setAttribute("itemname", siteNavButtons[i][0]);
+    button.onclick = siteNavButtons[i][3];
+    button.oncontextmenu = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      cdCtMenu.setSelectedItem(button, e);
+      cdCtMenu.show(e);
+    };
     button.ondragover = (e) => {
-      button.style.border = "1px solid var(--selectColor2)";
-      button.style.backgroundColor = "var(--selectColor3)";
+      e.preventDefault();
+      button.style.border = "1px solid var(--tertiaryColor)";
+      button.style.backgroundColor = "var(--sidebarHover)";
       button.style.scale = "1.05";
       DraggedOverElement = button;
       MousePos = [e.clientX, e.clientY];
@@ -4622,24 +7078,60 @@ async function insertSiteNavButtons() {
     document.querySelector(".site-nav-bar").append(button);
   }
 
-  // Favorites
+  // Favorites collapsible section
   if (ArrFavorites.length > 0) {
-    let seperator = document.createElement("div");
-    seperator.className = "horizontal-seperator";
-    document.querySelector(".site-nav-bar").append(seperator);
+    const favSection = document.createElement("div");
+    favSection.className = "collapse-section";
+    favSection.dataset.section = "favorites";
 
-    let favTitle = document.createElement("p");
-    favTitle.className = "site-nav-bar-title";
-    favTitle.innerHTML = "FAVORITES";
-    document.querySelector(".site-nav-bar").append(favTitle);
+    const favHeader = document.createElement("button");
+    favHeader.className = "collapse-header";
+    favHeader.innerHTML = `
+        <div class="collapse-header-left">
+            <i class="fa-solid fa-thumbtack" style="color: var(--textColor2); font-size: 9px;" aria-hidden="true"></i>
+            <span>FAVORITES</span>
+        </div>
+        <i class="fa-solid fa-chevron-up collapse-chevron" aria-hidden="true"></i>
+    `;
+    favHeader.setAttribute("aria-expanded", "true");
+    favHeader.setAttribute("aria-controls", "favorites-content");
+    favHeader.onclick = () => toggleCollapseSection(favSection);
+
+    const favContent = document.createElement("div");
+    favContent.className = "collapse-content";
+    favContent.id = "favorites-content";
+    favContent.setAttribute("role", "region");
+
+    let favContainer = document.createElement("div");
+    favContainer.className = "favorites-container";
 
     ArrFavorites.forEach((path) => {
       let button = document.createElement("button");
-      button.className = "site-nav-bar-button";
+      button.className = "site-nav-bar-button-fav";
       let name = path.split(/[\\\/]/).pop() || path;
-      button.innerHTML = `<i class="fa-solid fa-star" style="color: #ffca28; font-size: 10px;"></i> <p>${name}</p>`;
       button.setAttribute("itempath", path);
+      button.setAttribute("itemisdir", "1");
+      button.setAttribute("itemname", name);
       button.title = path;
+
+      const treeElbow = document.createElement("span");
+      treeElbow.className = "disk-tree-elbow";
+      treeElbow.setAttribute("aria-hidden", "true");
+
+      const icon = document.createElement("i");
+      icon.className = "fa-solid fa-folder disk-nav-icon";
+      icon.setAttribute("aria-hidden", "true");
+
+      const copy = document.createElement("span");
+      copy.className = "disk-nav-copy";
+
+      const nameLabel = document.createElement("span");
+      nameLabel.className = "disk-nav-name";
+      nameLabel.textContent = name;
+      copy.append(nameLabel);
+
+      button.append(treeElbow, icon, copy);
+
       button.onclick = async () => {
         await openDirAndSwitch(path);
         await listDirectories();
@@ -4647,85 +7139,68 @@ async function insertSiteNavButtons() {
       button.oncontextmenu = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        showCustomContextMenu(e, [
-          {
-            name: "Remove from Favorites",
-            onclick: () => removeFavorite(path),
-          },
-        ]);
+        cdCtMenu.setSelectedItem(button, e);
+        cdCtMenu.show(e);
       };
       button.ondragover = (e) => {
-        button.style.border = "1px solid var(--selectColor2)";
-        button.style.backgroundColor = "var(--selectColor3)";
-        button.style.scale = "1.05";
+        e.preventDefault();
+        button.style.border = "1px solid var(--tertiaryColor)";
+        button.style.backgroundColor = "var(--sidebarHover)";
         DraggedOverElement = button;
         MousePos = [e.clientX, e.clientY];
       };
       button.ondragleave = () => {
         button.style.border = "1px solid transparent";
         button.style.backgroundColor = "transparent";
-        button.style.scale = "1";
       };
-      document.querySelector(".site-nav-bar").append(button);
+      favContainer.append(button);
     });
+
+    favContent.append(favContainer);
+
+    favSection.append(favHeader);
+    favSection.append(favContent);
+    document.querySelector(".site-nav-bar").append(favSection);
+    restoreCollapseState(favSection);
   }
 
-  let seperator = document.createElement("div");
-  seperator.className = "horizontal-seperator";
-  document.querySelector(".site-nav-bar").append(seperator);
+  // Disks collapsible section
+  const diskSection = document.createElement("div");
+  diskSection.className = "collapse-section disk-collapse-section";
+  diskSection.dataset.section = "disks";
+
+  const diskHeader = document.createElement("button");
+  diskHeader.className = "collapse-header";
+  diskHeader.innerHTML = `
+      <div class="collapse-header-left">
+          <i class="fa-solid fa-hard-drive" aria-hidden="true"></i>
+          <span>DISKS</span>
+      </div>
+      <i class="fa-solid fa-chevron-up collapse-chevron" aria-hidden="true"></i>
+  `;
+  diskHeader.setAttribute("aria-expanded", "true");
+  diskHeader.setAttribute("aria-controls", "disks-content");
+  diskHeader.onclick = () => toggleCollapseSection(diskSection);
+
+  const diskContent = document.createElement("div");
+  diskContent.className = "collapse-content";
+  diskContent.id = "disks-content";
+  diskContent.setAttribute("role", "region");
 
   let diskContainer = document.createElement("div");
   diskContainer.className = "disk-container";
 
-  // Available disks as site nav buttons
-  let diskButton = document.createElement("button");
-  diskButton.className = "site-nav-bar-button";
-  diskButton.onclick = () => listDisks();
-  diskButton.innerHTML = `<i class="fa-solid fa-hard-drive"></i> Disks`;
-  document.querySelector(".site-nav-bar").append(diskButton);
-
   if (disks.length > 0) {
-    let seperator2 = document.createElement("div");
-    seperator2.className = "horizontal-seperator";
-    document.querySelector(".site-nav-bar").append(seperator2);
-
     disks.forEach((mount) => {
-      let diskButton = document.createElement("button");
-      diskButton.dataset.itempath = mount.path;
-      diskButton.className = "site-nav-bar-button disk-site-nav-button";
-      diskButton.innerHTML = `
-          <i class="fa-solid fa-hard-drive"></i>
-          <div style="width: 100%; display: flex; flex-flow: column;">
-            <p style="width: 90%; font-size: x-small; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mount.name != "" ? mount.name : "/"}</p>
-            <div style="font-size: x-small; color: var(--textColor2)">${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%</div>
-          </div>`;
-      diskButton.onclick = async () => {
-        await openDirAndSwitch(mount.path);
-        await listDirectories();
-      };
-      // Show space left with gradient
-      diskButton.style.background = `linear-gradient(to right, var(--selectColor3) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
-      diskButton.style.backgroundRepeat = "no-repeat";
-      if (mount.format.includes("SSHFS") || mount.is_removable == true) {
-        diskButton.oncontextmenu = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          showCustomContextMenu(e, [
-            {
-              name: "Unmount",
-              onclick: () =>
-                mount.format.includes("SSHFS")
-                  ? unmountNetworkDrive(mount)
-                  : unmountDrive(mount),
-            },
-          ]);
-        };
-      }
-      diskContainer.append(diskButton);
+      diskContainer.append(createSidebarDiskButton(mount));
     });
   }
 
-  document.querySelector(".site-nav-bar").append(diskContainer);
+  diskContent.append(diskContainer);
+  diskSection.append(diskHeader);
+  diskSection.append(diskContent);
+  document.querySelector(".site-nav-bar").append(diskSection);
+  restoreCollapseState(diskSection);
 }
 
 /* File operation context menu */
@@ -4767,11 +7242,30 @@ async function fileOperationContextMenu() {
 }
 
 async function openDirAndSwitch(path) {
-  await configBackButton(CurrentDir);
-  await invoke("open_dir", { path });
-  await setCurrentDir(path);
-  await listDirectories();
-  await unSelectAllItems();
+  let isFtp = path && path.startsWith("ftp://");
+  if (isFtp) {
+    showFtpLoader(SelectedItemPaneSide);
+  }
+  try {
+    const isSwitched = await invoke("open_dir", { path });
+    if (isSwitched !== true) {
+      alert("Could not open directory");
+      if (isFtp) {
+        hideFtpLoader(SelectedItemPaneSide);
+      }
+      return;
+    }
+
+    await configBackButton(CurrentDir);
+    await setCurrentDir(path, "", false);
+    await listDirectories();
+    await unSelectAllItems();
+  } catch (error) {
+    console.error("openDirAndSwitch failed:", error);
+    if (isFtp) {
+      hideFtpLoader(SelectedItemPaneSide);
+    }
+  }
 }
 
 async function openConfigLocation() {
@@ -4844,6 +7338,7 @@ async function showPopup(
     </div>
     `;
   document.querySelector(".main-container").appendChild(popup);
+  popup.classList.add("popup-enter");
   if (type === PopupType.PROMPT) {
     document.querySelector(".confirm-popup input").focus();
   } else {
@@ -4887,10 +7382,20 @@ async function showPopup(
 }
 
 function closeConfirmPopup() {
-  document.querySelector(".confirm-popup")?.remove();
-  $(".popup-background").css("display", "none");
-  $(".popup-background").css("opacity", "0");
-  IsPopUpOpen = false;
+  let popup = document.querySelector(".confirm-popup");
+  if (popup) {
+    popup.classList.add("popup-exit");
+    popup.addEventListener("animationend", () => {
+      popup?.remove();
+      $(".popup-background").css("display", "none");
+      $(".popup-background").css("opacity", "0");
+      IsPopUpOpen = false;
+    }, { once: true });
+  } else {
+    $(".popup-background").css("display", "none");
+    $(".popup-background").css("opacity", "0");
+    IsPopUpOpen = false;
+  }
 }
 
 function resetContextMenu() {
@@ -4904,8 +7409,19 @@ function showCustomContextMenu(e, contextMenuItems = [{}]) {
   customContextMenu.className = "custom-context-menu";
   contextMenuItems.map((item) => {
     let newButton = document.createElement("button");
-    newButton.innerHTML = item.name;
     newButton.className = "c-item-custom";
+    if (item.icon) {
+      let icon = document.createElement("i");
+      icon.className = `c-item-custom-icon ${item.icon}`;
+      icon.setAttribute("aria-hidden", "true");
+
+      let label = document.createElement("span");
+      label.textContent = item.name;
+
+      newButton.append(icon, label);
+    } else {
+      newButton.textContent = item.name;
+    }
     newButton.onclick = () => {
       item.onclick();
       closeCustomContextMenu();
@@ -4934,10 +7450,28 @@ function unmountDrive(disk) {
   invoke("unmount_drive", { path: disk.path });
 }
 
+async function ejectFTP(disk) {
+  try {
+    const result = await invoke("eject_disk", { path: disk.path });
+    showToast(result, ToastType.SUCCESS);
+    await insertSiteNavButtons();
+    if (IsShowDisks) {
+      await listDisks();
+    }
+    const currentDir = await invoke("get_current_dir");
+    if (currentDir.startsWith(disk.path)) {
+      await goHome();
+    }
+  } catch (error) {
+    showToast("Failed to disconnect FTP: " + error, ToastType.ERROR);
+  }
+}
+
 async function configBackButton(path = "") {
   let button = document.querySelector(".go-back-button");
   button.setAttribute("itempath", path);
   button.ondragover = (e) => {
+    e.preventDefault();
     button.style.border = "1px solid var(--selectColor2)";
     button.style.backgroundColor = "var(--transparentColor)";
     button.style.scale = "1.05";
@@ -4963,55 +7497,2164 @@ async function handleMountChanges() {
 
 async function addNewMount(payload) {
   let path = payload.paths[0];
-  let name = path.split("/")[path.split("/").length - 1];
-  let diskButton = document.createElement("button");
-
   let mount = await invoke("get_disk_info", { path });
-
-  diskButton.dataset.itempath = path.replaceAll('"', "");
-  diskButton.className = "site-nav-bar-button disk-site-nav-button";
-  diskButton.innerHTML = `
-      <i class="fa-solid fa-hard-drive"></i>
-      <div style="width: 100%; display: flex; flex-flow: column;">
-      <p style="width: 90%; font-size: x-small; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mount.name != "" ? mount.name.replaceAll('"', "") : "/"}</p>
-        <div style="float: right; font-size: x-small; color: var(--textColor2)">${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%</div>
-      </div>`;
-  diskButton.onclick = async () => {
-    await openDirAndSwitch(path);
-    await listDirectories();
-  };
-  // Show space left with gradient
-  diskButton.style.background = `linear-gradient(to right, var(--selectColor3) ${(100 - (100 / mount.capacity) * mount.avail).toFixed(2)}%, var(--transparentColor), transparent)`;
-  diskButton.style.backgroundRepeat = "no-repeat";
-  console.log(mount);
-  diskButton.oncontextmenu = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    showCustomContextMenu(e, [
-      {
-        name: "Unmount",
-        onclick: () =>
-          mount.format.includes("SSHFS")
-            ? unmountNetworkDrive(mount)
-            : unmountDrive(mount),
-      },
-    ]);
-  };
-  document.querySelector(".disk-container").append(diskButton);
+  document.querySelector(".disk-container")?.append(createSidebarDiskButton(mount, path));
 }
 
 async function removeMount(mount) {
   let path = mount.paths[0];
-  let diskButton = document.querySelector(
-    `.disk-site-nav-button[data-itempath="${path}"]`,
+  let diskButton = Array.from(document.querySelectorAll(".disk-site-nav-button")).find(
+    (button) => button.dataset.itempath === path,
   );
   if (!diskButton) return;
   diskButton.remove();
 }
 
+// --- Dual Pane Directory Comparison & Sync Features ---
+var comparisonActive = false;
+var comparisonResults = null;
+
+function compareDualPanes() {
+  if (!IsDualPaneEnabled) return;
+
+  // Get all items in left and right panes
+  const leftItems = Array.from(document.querySelectorAll(".dual-pane-left .item-link"));
+  const rightItems = Array.from(document.querySelectorAll(".dual-pane-right .item-link"));
+
+  // Clear any previous badges / classes
+  clearComparisonVisuals();
+
+  if (leftItems.length === 0 && rightItems.length === 0) {
+    showToast("No items to compare.", ToastType.INFO);
+    return;
+  }
+
+  // Store results for sync operation
+  comparisonResults = {
+    leftOnly: [],     // Paths of items only in left pane
+    rightOnly: [],    // Paths of items only in right pane
+    different: [],    // Paths of items in left pane that are different from right pane
+    identical: []     // Paths of identical items
+  };
+
+  // Map right items by name for quick lookup
+  const rightMap = new Map();
+  rightItems.forEach(item => {
+    const name = item.getAttribute("itemname");
+    const isDir = item.getAttribute("itemisdir");
+    const rawSize = parseInt(item.getAttribute("itemrawsize")) || 0;
+    const modified = item.getAttribute("itemmodified");
+    const path = item.getAttribute("itempath");
+    if (name && name !== "..") {
+      rightMap.set(name + "|" + isDir, { item, rawSize, modified, path });
+    }
+  });
+
+  // Map left items by name for quick lookup
+  const leftMap = new Map();
+  leftItems.forEach(item => {
+    const name = item.getAttribute("itemname");
+    const isDir = item.getAttribute("itemisdir");
+    const rawSize = parseInt(item.getAttribute("itemrawsize")) || 0;
+    const modified = item.getAttribute("itemmodified");
+    const path = item.getAttribute("itempath");
+    if (name && name !== "..") {
+      leftMap.set(name + "|" + isDir, { item, rawSize, modified, path });
+    }
+  });
+
+  // 1. Process Left Items
+  leftItems.forEach(item => {
+    const name = item.getAttribute("itemname");
+    const isDir = item.getAttribute("itemisdir");
+    const leftRawSize = parseInt(item.getAttribute("itemrawsize")) || 0;
+    const leftModified = item.getAttribute("itemmodified");
+    const leftPath = item.getAttribute("itempath");
+
+    if (!name || name === "..") return;
+
+    const key = name + "|" + isDir;
+    if (rightMap.has(key)) {
+      const rightItem = rightMap.get(key);
+      const isSizeDiff = leftRawSize !== rightItem.rawSize;
+      const isModifiedDiff = leftModified !== rightItem.modified;
+
+      if (isSizeDiff || isModifiedDiff) {
+        // Different / Mismatched
+        markItem(item, "different", "Mismatch");
+        markItem(rightItem.item, "different", "Mismatch");
+        comparisonResults.different.push({
+          leftPath: leftPath,
+          rightPath: rightItem.path,
+          name: name,
+          isDir: isDir === "1",
+          leftSize: leftRawSize,
+          rightSize: rightItem.rawSize,
+          leftModified: leftModified,
+          rightModified: rightItem.modified
+        });
+      } else {
+        // Identical
+        markItem(item, "identical");
+        markItem(rightItem.item, "identical");
+        comparisonResults.identical.push({ leftPath, rightPath: rightItem.path });
+      }
+    } else {
+      // Left only
+      markItem(item, "left-only", "New");
+      comparisonResults.leftOnly.push({
+        path: leftPath,
+        name: name,
+        isDir: isDir === "1"
+      });
+    }
+  });
+
+  // 2. Process Right Items for Right-Only
+  rightItems.forEach(item => {
+    const name = item.getAttribute("itemname");
+    const isDir = item.getAttribute("itemisdir");
+    const rightPath = item.getAttribute("itempath");
+
+    if (!name || name === "..") return;
+
+    const key = name + "|" + isDir;
+    if (!leftMap.has(key)) {
+      // Right only
+      markItem(item, "right-only", "New");
+      comparisonResults.rightOnly.push({
+        path: rightPath,
+        name: name,
+        isDir: isDir === "1"
+      });
+    }
+  });
+
+  comparisonActive = true;
+  document.getElementById("dual-pane-clear-btn").style.display = "inline-flex";
+
+  // Enable/disable sync button depending on results
+  const hasDiffs = comparisonResults.leftOnly.length > 0 ||
+                   comparisonResults.rightOnly.length > 0 ||
+                   comparisonResults.different.length > 0;
+
+  const syncBtn = document.getElementById("dual-pane-sync-btn");
+  if (syncBtn) {
+    if (hasDiffs) {
+      syncBtn.removeAttribute("disabled");
+      syncBtn.classList.remove("disabled");
+      showToast(`Comparison complete. Found differences to sync.`, ToastType.SUCCESS);
+    } else {
+      syncBtn.setAttribute("disabled", "true");
+      syncBtn.classList.add("disabled");
+      showToast(`Comparison complete. Directories are identical!`, ToastType.SUCCESS);
+    }
+  }
+}
+
+function markItem(itemEl, type, label = "") {
+  const rowEl = itemEl.querySelector(".dual-pane-list-item");
+  if (!rowEl) return;
+
+  rowEl.classList.add(`compare-${type}`);
+
+  if (label) {
+    if (rowEl.querySelector(".compare-badge")) return;
+
+    // Find the first span (where name is located)
+    const nameSpan = rowEl.querySelector(".item-button-list-info-span");
+    if (nameSpan) {
+      const badge = document.createElement("span");
+      badge.className = `compare-badge badge-${type}`;
+      badge.innerHTML = label;
+      nameSpan.appendChild(badge);
+    }
+  }
+}
+
+function clearComparisonVisuals() {
+  const items = document.querySelectorAll(".dual-pane-container .dual-pane-list-item");
+  items.forEach(item => {
+    item.classList.remove("compare-left-only", "compare-right-only", "compare-different", "compare-identical");
+    const badge = item.querySelector(".compare-badge");
+    if (badge) badge.remove();
+  });
+}
+
+function clearComparison() {
+  clearComparisonVisuals();
+  comparisonActive = false;
+  comparisonResults = null;
+
+  const syncBtn = document.getElementById("dual-pane-sync-btn");
+  if (syncBtn) {
+    syncBtn.setAttribute("disabled", "true");
+    syncBtn.classList.add("disabled");
+  }
+
+  const clearBtn = document.getElementById("dual-pane-clear-btn");
+  if (clearBtn) {
+    clearBtn.style.display = "none";
+  }
+  showToast("Comparison highlights cleared.", ToastType.INFO);
+}
+
+function showSyncPopup() {
+  if (!comparisonResults) return;
+
+  // Set paths
+  document.getElementById("sync-left-path").innerText = LeftDualPanePath;
+  document.getElementById("sync-left-path").setAttribute("title", LeftDualPanePath);
+  document.getElementById("sync-right-path").innerText = RightDualPanePath;
+  document.getElementById("sync-right-path").setAttribute("title", RightDualPanePath);
+
+  // Set stats
+  document.getElementById("sync-stat-left-only").innerText = comparisonResults.leftOnly.length;
+  document.getElementById("sync-stat-right-only").innerText = comparisonResults.rightOnly.length;
+  document.getElementById("sync-stat-different").innerText = comparisonResults.different.length;
+
+  // Set default checkbox state
+  document.getElementById("sync-delete-extraneous").checked = false;
+
+  // Handle select changed
+  const modeSelect = document.getElementById("sync-direction-select");
+  const deleteCheckbox = document.getElementById("sync-delete-extraneous");
+
+  const handleModeChange = () => {
+    if (modeSelect.value === "two-way") {
+      deleteCheckbox.checked = false;
+      deleteCheckbox.setAttribute("disabled", "true");
+    } else {
+      deleteCheckbox.removeAttribute("disabled");
+    }
+  };
+
+  modeSelect.addEventListener("change", handleModeChange);
+  handleModeChange();
+
+  // Open dialog with smooth transitions
+  $(".popup-background").css("display", "block");
+  setTimeout(() => $(".popup-background").css("opacity", "1"));
+
+  document.querySelector(".sync-directory-container").style.display = "flex";
+  IsPopUpOpen = true;
+  IsDisableShortcuts = true;
+}
+
+function closeSyncPopup() {
+  document.querySelector(".sync-directory-container").style.display = "none";
+  $(".popup-background").css("display", "none");
+  $(".popup-background").css("opacity", "0");
+  IsPopUpOpen = false;
+  IsDisableShortcuts = false;
+}
+
+async function executeSync() {
+  if (!comparisonResults) {
+    showToast("Please run comparison first.", ToastType.ERROR);
+    return;
+  }
+
+  const mode = document.getElementById("sync-direction-select").value;
+  const deleteExtraneous = document.getElementById("sync-delete-extraneous").checked;
+
+  const itemsToCopy = [];
+  const itemsToDelete = [];
+
+  if (mode === "left-to-right") {
+    // 1. Copy leftOnly items to right
+    comparisonResults.leftOnly.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.path,
+        destination_path: RightDualPanePath + "/" + item.name,
+        policy: "replace"
+      });
+    });
+
+    // 2. Copy different items from left to right
+    comparisonResults.different.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.leftPath,
+        destination_path: item.rightPath,
+        policy: "replace"
+      });
+    });
+
+    // 3. Delete rightOnly items if deleteExtraneous
+    if (deleteExtraneous) {
+      comparisonResults.rightOnly.forEach(item => {
+        itemsToDelete.push(item.path);
+      });
+    }
+  } else if (mode === "right-to-left") {
+    // 1. Copy rightOnly items to left
+    comparisonResults.rightOnly.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.path,
+        destination_path: LeftDualPanePath + "/" + item.name,
+        policy: "replace"
+      });
+    });
+
+    // 2. Copy different items from right to left
+    comparisonResults.different.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.rightPath,
+        destination_path: item.leftPath,
+        policy: "replace"
+      });
+    });
+
+    // 3. Delete leftOnly items if deleteExtraneous
+    if (deleteExtraneous) {
+      comparisonResults.leftOnly.forEach(item => {
+        itemsToDelete.push(item.path);
+      });
+    }
+  } else if (mode === "two-way") {
+    // 1. Copy leftOnly items to right
+    comparisonResults.leftOnly.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.path,
+        destination_path: RightDualPanePath + "/" + item.name,
+        policy: "replace"
+      });
+    });
+
+    // 2. Copy rightOnly items to left
+    comparisonResults.rightOnly.forEach(item => {
+      itemsToCopy.push({
+        source_path: item.path,
+        destination_path: LeftDualPanePath + "/" + item.name,
+        policy: "replace"
+      });
+    });
+
+    // 3. Compare modification date of different items, and copy the newer one
+    comparisonResults.different.forEach(item => {
+      let leftTime = Date.parse(item.leftModified) || 0;
+      let rightTime = Date.parse(item.rightModified) || 0;
+
+      if (leftTime >= rightTime) {
+        itemsToCopy.push({
+          source_path: item.leftPath,
+          destination_path: item.rightPath,
+          policy: "replace"
+        });
+      } else {
+        itemsToCopy.push({
+          source_path: item.rightPath,
+          destination_path: item.leftPath,
+          policy: "replace"
+        });
+      }
+    });
+  }
+
+  closeSyncPopup();
+
+  // Perform deletions first
+  if (itemsToDelete.length > 0) {
+    try {
+      window.IsDeletingItems = true;
+      await invoke("arr_delete_items", { arrItems: itemsToDelete });
+      showToast(`Successfully deleted ${itemsToDelete.length} extraneous items.`, ToastType.SUCCESS);
+    } catch (err) {
+      showToast(`Failed to delete extraneous items: ${err}`, ToastType.ERROR);
+      window.IsDeletingItems = false;
+      return;
+    } finally {
+      window.IsDeletingItems = false;
+    }
+  }
+
+  // Perform copies
+  if (itemsToCopy.length > 0) {
+    try {
+      const result = await invoke("arr_copy_paste_resolved", { items: itemsToCopy });
+      let copiedSources = Array.isArray(result) ? result : (result?.copied_sources ?? []);
+      let errors = Array.isArray(result) ? [] : (result?.errors ?? []);
+
+      if (errors.length > 0) {
+        showToast(`${errors.length} item(s) failed to sync.`, ToastType.ERROR);
+      } else {
+        showToast(`Synchronization complete! Synced ${copiedSources.length} item(s).`, ToastType.SUCCESS);
+      }
+    } catch (err) {
+      showToast(`Synchronization failed: ${err}`, ToastType.ERROR);
+    }
+  } else {
+    showToast("Nothing to sync.", ToastType.INFO);
+  }
+
+  // Clear state and refresh
+  clearComparisonVisuals();
+  comparisonActive = false;
+  comparisonResults = null;
+
+  const syncBtn = document.getElementById("dual-pane-sync-btn");
+  if (syncBtn) {
+    syncBtn.setAttribute("disabled", "true");
+    syncBtn.classList.add("disabled");
+  }
+  document.getElementById("dual-pane-clear-btn").style.display = "none";
+
+  await refreshBothViews("left");
+}
+
+async function showDuplicateFinderPopup(path) {
+  if (IsPopUpOpen !== false) return;
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  let fileName = path.split('/').pop() || path.split('\\').pop() || "Directory";
+
+  const popup = document.createElement("div");
+  popup.className = "duplicate-finder-popup props-card props-card--wide";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Duplicate Finder");
+  popup.innerHTML = `
+    <section class="props-card__hero" style="border-radius: var(--glass-radius) var(--glass-radius) 0 0;">
+      <div class="props-card__thumb"><i class="fa-solid fa-copy"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(fileName)}">${escHtml(fileName)}</h2>
+        <div class="props-card__meta">
+          <span>Folder: ${escHtml(path)}</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="duplicate-finder-actions-bar" style="display: none; padding: 10px 14px; gap: 8px; border-bottom: var(--glass-border-subtle); background: var(--glass-header-bg); align-items: center; flex-wrap: wrap;">
+      <button class="props-card__btn props-card__btn--sm" id="btn-dup-select-newest" style="padding: 4px 10px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-clock-rotate-left"></i><span>Keep Newest</span>
+      </button>
+      <button class="props-card__btn props-card__btn--sm" id="btn-dup-select-oldest" style="padding: 4px 10px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px; background: none; border: 1px solid var(--tertiaryColor);">
+        <i class="fa-solid fa-hourglass-start"></i><span>Keep Oldest</span>
+      </button>
+      <button class="props-card__btn props-card__btn--sm" id="btn-dup-deselect-all" style="padding: 4px 10px; font-size: 11px; background: none; border: 1px solid var(--tertiaryColor); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-square-minus"></i><span>Deselect All</span>
+      </button>
+      <button class="props-card__btn props-card__btn--sm" id="btn-dup-rescan" style="padding: 4px 10px; font-size: 11px; background: none; border: 1px solid var(--tertiaryColor); cursor: pointer; margin-left: auto; display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-arrows-rotate"></i><span>Rescan</span>
+      </button>
+    </div>
+
+    <div class="duplicate-finder-body" style="flex: 1 1 auto; overflow-y: auto; max-height: 520px; padding: 14px; display: flex; flex-direction: column; gap: 14px; border-bottom: var(--glass-border-subtle);">
+      <!-- Rendered dynamically -->
+    </div>
+
+    <footer class="props-card__footer" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--glass-header-bg);">
+      <div class="duplicate-reclaim-info" style="display: flex; flex-direction: column; gap: 2px;">
+        <span id="dup-selected-count" style="font-size: 11px; opacity: 0.7;">Selected: 0 files</span>
+        <span id="dup-reclaim-size" style="font-weight: 700; color: rgb(46, 204, 113); font-size: 13px;">Reclaimable: 0 Bytes</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="props-card__btn" data-dup-close style="cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+        </button>
+        <button class="props-card__btn props-card__btn--primary" id="btn-dup-delete" disabled style="opacity: 0.5; cursor: not-allowed;">
+          <i class="fa-solid fa-trash"></i><span>Delete Selected</span>
+        </button>
+      </div>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  $(".popup-background").css("display", "block");
+  setTimeout(() => $(".popup-background").css("opacity", "1"));
+
+  let selectedFilePaths = new Set();
+  let filePathToSize = new Map();
+  let currentDepthValue = 5;
+  let currentUnlimitedChecked = false;
+  let isSearching = false;
+
+  const formatBytes = (bytes, decimals = 2) => {
+    if (!+bytes) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+  };
+
+  const formatDate = (secs) => {
+    if (!secs) return '';
+    const d = new Date(secs * 1000);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const updateFooter = () => {
+    let totalSize = 0;
+    selectedFilePaths.forEach(file => {
+      totalSize += filePathToSize.get(file) || 0;
+    });
+
+    popup.querySelector("#dup-selected-count").innerText = `Selected: ${selectedFilePaths.size} files`;
+    popup.querySelector("#dup-reclaim-size").innerText = `Reclaimable: ${formatBytes(totalSize)}`;
+
+    const deleteBtn = popup.querySelector("#btn-dup-delete");
+    if (selectedFilePaths.size > 0) {
+      deleteBtn.removeAttribute("disabled");
+      deleteBtn.style.opacity = "1";
+      deleteBtn.style.cursor = "pointer";
+    } else {
+      deleteBtn.setAttribute("disabled", "true");
+      deleteBtn.style.opacity = "0.5";
+      deleteBtn.style.cursor = "not-allowed";
+    }
+  };
+
+  const closePopup = () => {
+    IsPopUpOpen = false;
+    if (isSearching) {
+      invoke("cancel_duplicate_finder").catch(() => {});
+    }
+    popup.classList.add("popup-exit");
+    $(".popup-background").css("opacity", "0");
+    setTimeout(() => {
+      $(".popup-background").css("display", "none");
+    }, 150);
+    popup.addEventListener("animationend", () => {
+      popup.remove();
+    }, { once: true });
+  };
+
+  popup.querySelectorAll("[data-dup-close]").forEach(el => {
+    el.onclick = () => closePopup();
+  });
+
+  popup.querySelector("#btn-dup-rescan").onclick = () => {
+    renderSetupScreen();
+  };
+
+  const renderSetupScreen = () => {
+    popup.querySelector(".duplicate-finder-actions-bar").style.display = "none";
+    selectedFilePaths.clear();
+    filePathToSize.clear();
+    popup.querySelector("#dup-selected-count").innerText = "Selected: 0 files";
+    popup.querySelector("#dup-reclaim-size").innerText = "Reclaimable: 0 Bytes";
+    const deleteBtn = popup.querySelector("#btn-dup-delete");
+    deleteBtn.setAttribute("disabled", "true");
+    deleteBtn.style.opacity = "0.5";
+    deleteBtn.style.cursor = "not-allowed";
+
+    const body = popup.querySelector(".duplicate-finder-body");
+    body.style.height = "";
+    body.style.padding = "14px";
+    body.style.position = "";
+    body.innerHTML = `
+      <div class="duplicate-finder-setup" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 24px; align-items: center; justify-content: center; max-width: 440px; margin: 0 auto; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; margin-bottom: 0px;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--selectColor2) 15%, transparent); display: flex; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--selectColor2) 30%, transparent); margin-bottom: 2px; filter: drop-shadow(0 0 8px rgba(11, 100, 253, 0.25));">
+            <i class="fa-solid fa-sliders" style="font-size: 18px; color: #4da3ff;"></i>
+          </div>
+          <h3 style="font-size: 14px; font-weight: 700; color: var(--textColor); letter-spacing: 0.5px;">Scan Configuration</h3>
+          <p style="font-size: 11px; color: var(--textColor2); line-height: 1.4; max-width: 320px;">Configure directory recursion depth before starting search.</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label for="dup-depth-input" style="font-size: 11px; font-weight: 600; color: var(--textColor3);">Search Depth Limit</label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; user-select: none; color: var(--textColor2);">
+              <input type="checkbox" id="dup-depth-unlimited" ${currentUnlimitedChecked ? "checked" : ""} style="accent-color: var(--selectColor2); width: 14px; height: 14px; cursor: pointer;" />
+              <span>Unlimited</span>
+            </label>
+          </div>
+
+          <input type="number" id="dup-depth-input" min="1" value="${currentDepthValue}" class="props-card__input" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--tertiaryColor); border-radius: 8px; color: var(--textColor); font-size: 13px; font-family: monospace; transition: all 0.2s;" />
+          <span style="font-size: 10.5px; opacity: 0.5; line-height: 1.4; text-align: left;">Sets directory recursion depth. E.g., depth 1 scans only the root folder.</span>
+        </div>
+
+        <button class="props-card__btn props-card__btn--primary" id="btn-dup-start-scan" style="width: 100%; padding: 11px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border-radius: 8px; margin-top: 2px; box-shadow: 0 4px 12px rgba(11, 100, 253, 0.25);">
+          <i class="fa-solid fa-play"></i><span>Start Scanning</span>
+        </button>
+      </div>
+    `;
+
+    const depthInput = body.querySelector("#dup-depth-input");
+    const unlimitedCb = body.querySelector("#dup-depth-unlimited");
+    const startBtn = body.querySelector("#btn-dup-start-scan");
+
+    const updateInputState = () => {
+      if (unlimitedCb.checked) {
+        depthInput.setAttribute("disabled", "true");
+        depthInput.style.opacity = "0.4";
+        depthInput.style.cursor = "not-allowed";
+      } else {
+        depthInput.removeAttribute("disabled");
+        depthInput.style.opacity = "1";
+        depthInput.style.cursor = "text";
+      }
+      currentUnlimitedChecked = unlimitedCb.checked;
+    };
+
+    unlimitedCb.onchange = updateInputState;
+    depthInput.oninput = () => {
+      currentDepthValue = parseInt(depthInput.value) || 5;
+    };
+
+    updateInputState(); // initialize
+
+    startBtn.onclick = async () => {
+      await startScan();
+    };
+  };
+
+  const startScan = async () => {
+    isSearching = true;
+    let maxDepth = null;
+    if (!currentUnlimitedChecked) {
+      maxDepth = currentDepthValue;
+    }
+
+    const body = popup.querySelector(".duplicate-finder-body");
+
+    // Transition body to scanning state with Stop button
+    body.innerHTML = `
+      <div class="duplicate-finder-scanning" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 30px 0;">
+        <div class="preloader-small-invert" style="width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; border-width: 3px; margin-bottom: 8px;"></div>
+        <span style="font-size: var(--fontSize); opacity: 0.85;">Scanning directory structure recursively...</span>
+        <span style="font-size: 11px; opacity: 0.6; text-align: center; max-width: 80%; margin-bottom: 12px;">Evaluating files for duplicate content. Please wait.</span>
+        <button class="props-card__btn props-card__btn--primary" id="btn-dup-stop-scan" style="background: var(--errorColor); border-color: var(--errorColor); cursor: pointer; padding: 6px 16px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-stop"></i><span>Stop Search</span>
+        </button>
+      </div>
+    `;
+
+    body.querySelector("#btn-dup-stop-scan").onclick = async () => {
+      try {
+        await invoke("cancel_duplicate_finder");
+      } catch (err) {
+        showToast(`Failed to stop search: ${err}`, ToastType.ERROR);
+      }
+    };
+
+    try {
+      const results = await invoke("find_duplicates", { path, maxDepth });
+      isSearching = false;
+
+      if (!results || results.length === 0) {
+        body.style.height = "";
+        body.style.padding = "14px";
+        body.style.position = "";
+        body.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+            <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(46, 204, 113, 0.15); border: 1px solid rgb(46, 204, 113); display: flex; align-items: center; justify-content: center;">
+              <i class="fa-solid fa-check" style="font-size: 20px; color: rgb(46, 204, 113);"></i>
+            </div>
+            <div>
+              <h3 style="font-weight: 700; margin-bottom: 4px; color: var(--textColor);">0 Duplicates Found</h3>
+              <p style="font-size: var(--fontSize); opacity: 0.7; margin: 0; max-width: 80%; margin: auto; margin-bottom: 16px;">This directory is perfectly clean! No identical file contents were discovered.</p>
+              <button class="props-card__btn props-card__btn--primary" id="btn-dup-rescan-empty" style="margin: auto; padding: 6px 14px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; justify-content: center;">
+                <i class="fa-solid fa-arrows-rotate"></i><span>Configure & Rescan</span>
+              </button>
+            </div>
+          </div>
+        `;
+        body.querySelector("#btn-dup-rescan-empty").onclick = () => {
+          renderSetupScreen();
+        };
+      } else {
+        popup.querySelector(".duplicate-finder-actions-bar").style.display = "flex";
+
+        // Populate path to size map
+        filePathToSize.clear();
+        results.forEach(group => {
+          group.files.forEach(f => {
+            filePathToSize.set(f.path, group.size);
+          });
+        });
+
+        // 1. Precalculate layout positions for virtual scrolling
+        // Card height: 52px (header) + (num_files * 36px)
+        // Margin-bottom: 14px
+        let currentTop = 14; // start at 14px to act as padding-top
+        const layouts = results.map(group => {
+          const height = 52 + (group.files.length * 36);
+          const layout = {
+            top: currentTop,
+            height: height,
+            margin: 14
+          };
+          currentTop += height + 14;
+          return layout;
+        });
+        const totalHeight = currentTop;
+
+        // 2. Setup the DOM structure for virtual scroll inside 'body'
+        body.style.position = "relative";
+        body.style.padding = "0px";
+        body.style.height = `${Math.min(520, totalHeight)}px`;
+        body.innerHTML = `
+          <div class="duplicate-scroll-spacer" style="height: ${totalHeight}px; width: 100%; pointer-events: none; position: absolute; top: 0; left: 0;"></div>
+          <div class="duplicate-virtual-container" style="position: absolute; top: 0; left: 14px; right: 14px; width: calc(100% - 28px); pointer-events: none;"></div>
+        `;
+
+        const virtualContainer = body.querySelector(".duplicate-virtual-container");
+
+        let lastStartIndex = -1;
+        let lastEndIndex = -1;
+
+        const renderVirtualWindow = () => {
+          const scrollTop = body.scrollTop;
+          const viewportHeight = body.clientHeight;
+
+          // Expand range by 200px buffer top/bottom to prevent blinking
+          const minVal = scrollTop - 200;
+          const maxVal = scrollTop + viewportHeight + 200;
+
+          let startIndex = 0;
+          let endIndex = results.length - 1;
+
+          for (let i = 0; i < results.length; i++) {
+            const layout = layouts[i];
+            if (layout.top + layout.height + layout.margin >= minVal) {
+              startIndex = i;
+              break;
+            }
+          }
+          for (let i = startIndex; i < results.length; i++) {
+            const layout = layouts[i];
+            if (layout.top > maxVal) {
+              endIndex = i;
+              break;
+            }
+          }
+
+          // Only re-render if visible window indices changed
+          if (startIndex === lastStartIndex && endIndex === lastEndIndex) {
+            return;
+          }
+
+          lastStartIndex = startIndex;
+          lastEndIndex = endIndex;
+
+          let html = "";
+          for (let i = startIndex; i <= endIndex; i++) {
+            const group = results[i];
+            const layout = layouts[i];
+            const firstPath = group.files[0].path;
+            const baseName = firstPath.split('/').pop().split('\\').pop();
+
+            let filesHtml = group.files.map((fileObj) => {
+              const file = fileObj.path;
+              const modified = fileObj.modified;
+              const isChecked = selectedFilePaths.has(file);
+
+              // Compute relative path from the scanned root folder
+              let displayPath = file;
+              if (file.toLowerCase().startsWith(path.toLowerCase())) {
+                displayPath = file.substring(path.length);
+                if (displayPath.startsWith("/") || displayPath.startsWith("\\")) {
+                  displayPath = displayPath.substring(1);
+                }
+              }
+
+              let folderPart = "";
+              let filePart = displayPath;
+              const lastSep = Math.max(displayPath.lastIndexOf("/"), displayPath.lastIndexOf("\\"));
+              if (lastSep !== -1) {
+                folderPart = displayPath.substring(0, lastSep + 1);
+                filePart = displayPath.substring(lastSep + 1);
+              }
+
+              return `
+                <div class="duplicate-file-row" style="height: 36px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); gap: 10px;">
+                  <label style="display: flex; align-items: center; min-width: 0; flex: 1; cursor: pointer; margin: 0; gap: 10px;">
+                    <input type="checkbox" class="dup-file-checkbox" data-path="${escHtml(file)}" data-group-index="${i}" style="cursor: pointer; flex-shrink: 0;" ${isChecked ? "checked" : ""} />
+                    <span style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; flex: 1; min-width: 0;" title="${escHtml(file)}">
+                      <span style="color: var(--textColor2); font-weight: normal;">${escHtml(folderPart)}</span><span style="color: var(--textColor); font-weight: 600;">${escHtml(filePart)}</span>
+                    </span>
+                  </label>
+                  <span class="dup-file-date" title="Last Modified">${escHtml(formatDate(modified))}</span>
+                  <button class="props-card__btn btn-dup-reveal" data-path="${escHtml(file)}" style="padding: 4px 8px; font-size: 11px; background: none; border: none; opacity: 0.7; cursor: pointer;" title="Reveal in CoDriver">
+                    <i class="fa-solid fa-folder-open"></i>
+                  </button>
+                </div>
+              `;
+            }).join('');
+
+            html += `
+              <div class="duplicate-group-card" data-group-index="${i}" style="position: absolute; top: ${layout.top}px; left: 0; right: 0; height: ${layout.height}px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; pointer-events: auto;">
+                <div class="duplicate-group-header" style="height: 52px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--tertiaryColor);">
+                  <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
+                    <span style="font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--textColor);" title="${escHtml(baseName)}">${escHtml(baseName)}</span>
+                    <span style="font-size: 10.5px; opacity: 0.6; color: var(--textColor2); margin-top: 2px;">${formatBytes(group.size)} &bull; ${group.files.length} copies</span>
+                  </div>
+                  <button class="props-card__btn props-card__btn--sm btn-select-group-but-one" data-group-index="${i}" style="padding: 2px 8px; font-size: 11px; background: none; border: 1px solid var(--tertiaryColor); flex-shrink: 0; margin-left: 10px; cursor: pointer;">
+                    Keep One
+                  </button>
+                </div>
+                <div class="duplicate-group-files" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                  ${filesHtml}
+                </div>
+              </div>
+            `;
+          }
+
+          virtualContainer.innerHTML = html;
+        };
+
+        // Render initial view
+        renderVirtualWindow();
+
+        // Attach scroll listener
+        body.onscroll = () => {
+          renderVirtualWindow();
+        };
+
+        // 3. Set up Event Delegation on the popup once
+        // Handle clicks: "Keep One" and "Reveal"
+        popup.addEventListener("click", async (e) => {
+          // Check for Keep One button
+          const keepOneBtn = e.target.closest(".btn-select-group-but-one");
+          if (keepOneBtn) {
+            const groupIdx = parseInt(keepOneBtn.getAttribute("data-group-index"));
+            const group = results[groupIdx];
+            group.files.forEach((fileObj, idx) => {
+              const file = fileObj.path;
+              if (idx > 0) {
+                selectedFilePaths.add(file);
+              } else {
+                selectedFilePaths.delete(file);
+              }
+            });
+            // Update checkbox state in active DOM elements
+            popup.querySelectorAll(`.dup-file-checkbox[data-group-index="${groupIdx}"]`).forEach((cb, idx) => {
+              cb.checked = (idx > 0);
+            });
+            updateFooter();
+            return;
+          }
+
+          // Check for Reveal button
+          const revealBtn = e.target.closest(".btn-dup-reveal");
+          if (revealBtn) {
+            const filePath = revealBtn.getAttribute("data-path");
+            let parentPath = filePath.substring(0, filePath.lastIndexOf("/"));
+            if (!parentPath && filePath.indexOf("\\") !== -1) {
+              parentPath = filePath.substring(0, filePath.lastIndexOf("\\"));
+            }
+            if (parentPath) {
+              closePopup();
+              await openItem(null, SelectedItemPaneSide, parentPath);
+            }
+            return;
+          }
+        });
+
+        // Handle Change: Checkboxes
+        popup.addEventListener("change", (e) => {
+          const checkbox = e.target.closest(".dup-file-checkbox");
+          if (checkbox) {
+            const file = checkbox.getAttribute("data-path");
+            if (checkbox.checked) {
+              selectedFilePaths.add(file);
+            } else {
+              selectedFilePaths.delete(file);
+            }
+            updateFooter();
+          }
+        });
+
+        // Fast global selections: Keep Newest and Keep Oldest
+        popup.querySelector("#btn-dup-select-newest").onclick = () => {
+          results.forEach(group => {
+            let newestFileObj = group.files[0];
+            for (let i = 1; i < group.files.length; i++) {
+              if (group.files[i].modified > newestFileObj.modified) {
+                newestFileObj = group.files[i];
+              }
+            }
+            group.files.forEach((fileObj) => {
+              const file = fileObj.path;
+              if (file === newestFileObj.path) {
+                selectedFilePaths.delete(file);
+              } else {
+                selectedFilePaths.add(file);
+              }
+            });
+          });
+          // Sync only currently visible checkboxes in the DOM
+          popup.querySelectorAll(".dup-file-checkbox").forEach(cb => {
+            const file = cb.getAttribute("data-path");
+            cb.checked = selectedFilePaths.has(file);
+          });
+          updateFooter();
+        };
+
+        popup.querySelector("#btn-dup-select-oldest").onclick = () => {
+          results.forEach(group => {
+            let oldestFileObj = group.files[0];
+            for (let i = 1; i < group.files.length; i++) {
+              if (group.files[i].modified < oldestFileObj.modified) {
+                oldestFileObj = group.files[i];
+              }
+            }
+            group.files.forEach((fileObj) => {
+              const file = fileObj.path;
+              if (file === oldestFileObj.path) {
+                selectedFilePaths.delete(file);
+              } else {
+                selectedFilePaths.add(file);
+              }
+            });
+          });
+          // Sync only currently visible checkboxes in the DOM
+          popup.querySelectorAll(".dup-file-checkbox").forEach(cb => {
+            const file = cb.getAttribute("data-path");
+            cb.checked = selectedFilePaths.has(file);
+          });
+          updateFooter();
+        };
+
+        popup.querySelector("#btn-dup-deselect-all").onclick = () => {
+          selectedFilePaths.clear();
+          // Sync only currently visible checkboxes in the DOM
+          popup.querySelectorAll(".dup-file-checkbox").forEach(cb => {
+            cb.checked = false;
+          });
+          updateFooter();
+        };
+
+        popup.querySelector("#btn-dup-delete").onclick = () => {
+          const pathsToDelete = Array.from(selectedFilePaths);
+          if (pathsToDelete.length === 0) return;
+
+          const confirmOverlay = document.createElement("div");
+          confirmOverlay.className = "dup-confirm-overlay";
+          confirmOverlay.style.position = "absolute";
+          confirmOverlay.style.inset = "0";
+          confirmOverlay.style.background = "rgba(0,0,0,0.65)";
+          confirmOverlay.style.backdropFilter = "blur(12px)";
+          confirmOverlay.style.display = "flex";
+          confirmOverlay.style.flexDirection = "column";
+          confirmOverlay.style.alignItems = "center";
+          confirmOverlay.style.justifyContent = "center";
+          confirmOverlay.style.zIndex = "1000";
+          confirmOverlay.style.padding = "20px";
+          confirmOverlay.style.textAlign = "center";
+          confirmOverlay.style.animation = "propsCardIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)";
+
+          confirmOverlay.innerHTML = `
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 38px; color: var(--errorColor); margin-bottom: 14px;"></i>
+            <h3 style="font-weight: 700; margin-bottom: 8px; font-size: 16px;">Delete Duplicate Files?</h3>
+            <p style="font-size: 13px; opacity: 0.9; max-width: 85%; margin-bottom: 22px; line-height: 1.4;">
+              Are you sure you want to permanently delete the <strong>${pathsToDelete.length}</strong> selected duplicate files? This action is irreversible.
+            </p>
+            <div style="display: flex; gap: 12px;">
+              <button class="props-card__btn" id="btn-dup-confirm-cancel" style="cursor: pointer;">
+                <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+              </button>
+              <button class="props-card__btn props-card__btn--primary" id="btn-dup-confirm-delete" style="background: var(--errorColor); border-color: var(--errorColor); cursor: pointer;">
+                <i class="fa-solid fa-trash"></i><span>Delete Permanently</span>
+              </button>
+            </div>
+          `;
+
+          popup.appendChild(confirmOverlay);
+
+          confirmOverlay.querySelector("#btn-dup-confirm-cancel").onclick = () => {
+            confirmOverlay.remove();
+          };
+
+          confirmOverlay.querySelector("#btn-dup-confirm-delete").onclick = async () => {
+            confirmOverlay.innerHTML = `
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 320px; gap: 14px; padding: 20px 10px;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 32px; color: #4da3ff; filter: drop-shadow(0 0 12px rgba(77, 163, 255, 0.8)); margin-bottom: 4px;"></i>
+                <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">Deleting duplicates...</span>
+
+                <div style="width: 100%; background: rgba(255, 255, 255, 0.08); height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                  <div id="dup-delete-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--selectColor2), #4da3ff); box-shadow: 0 0 8px rgba(77, 163, 255, 0.6); transition: width 0.15s ease-out; border-radius: 3px;"></div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; width: 100%; font-size: 11px; color: var(--textColor2); margin-top: -4px;">
+                  <span id="dup-delete-progress-text">0% completed</span>
+                  <span id="dup-delete-progress-count">0 / 0 files</span>
+                </div>
+
+                <div id="dup-delete-current-file" style="font-size: 10.5px; color: var(--textColor2); opacity: 0.6; max-width: 100%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; text-align: center; margin-top: 2px;">
+                  Starting deletion...
+                </div>
+              </div>
+            `;
+
+            const total = pathsToDelete.length;
+            const progressBar = confirmOverlay.querySelector("#dup-delete-progress-bar");
+            const progressText = confirmOverlay.querySelector("#dup-delete-progress-text");
+            const progressCount = confirmOverlay.querySelector("#dup-delete-progress-count");
+            const currentFileEl = confirmOverlay.querySelector("#dup-delete-current-file");
+
+            let successCount = 0;
+            let failCount = 0;
+            let completedCount = 0;
+            let spaceReclaimed = 0;
+
+            const concurrency = total > 50 ? 8 : 1; // Batch deletes concurrently for larger selections
+            const delayMs = total > 50 ? 0 : Math.max(5, Math.min(60, 300 / total)); // Smooth dynamic animation delay for small deletions
+
+            let lastUpdate = 0;
+            const updateUI = (currentFile, force = false) => {
+              const now = Date.now();
+              if (force || now - lastUpdate >= 80 || completedCount === total) {
+                lastUpdate = now;
+                const percent = Math.round((completedCount / total) * 100);
+                if (progressBar) progressBar.style.width = `${percent}%`;
+                if (progressText) progressText.innerText = `${percent}% completed`;
+                if (progressCount) progressCount.innerText = `${completedCount} / ${total} files`;
+                if (currentFileEl && currentFile) {
+                  const parts = currentFile.split(/[/\\]/);
+                  const filename = parts[parts.length - 1] || currentFile;
+                  currentFileEl.innerText = `Deleting: ${filename}`;
+                  currentFileEl.title = currentFile;
+                }
+              }
+            };
+
+            // Initial paint
+            updateUI("", true);
+
+            let nextIndex = 0;
+            const worker = async () => {
+              while (nextIndex < total) {
+                const i = nextIndex++;
+                if (i >= total) break;
+                const file = pathsToDelete[i];
+
+                try {
+                  await invoke("delete_item", { actFileName: file });
+                  successCount++;
+                  spaceReclaimed += filePathToSize.get(file) || 0;
+                } catch (err) {
+                  console.error(`Failed to delete ${file}:`, err);
+                  failCount++;
+                }
+
+                completedCount++;
+                updateUI(file);
+
+                if (delayMs > 0) {
+                  await new Promise(r => setTimeout(r, delayMs));
+                }
+              }
+            };
+
+            // Spawn concurrent deletion workers
+            const workers = [];
+            const activeWorkers = Math.min(concurrency, total);
+            for (let w = 0; w < activeWorkers; w++) {
+              workers.push(worker());
+            }
+            await Promise.all(workers);
+
+            // Final paint to guarantee 100% completion state
+            updateUI("", true);
+
+            if (failCount === 0) {
+              showToast(`Deleted ${successCount} duplicate file(s)`, ToastType.SUCCESS);
+            } else {
+              showToast(`Deleted ${successCount} duplicate file(s) (${failCount} failed)`, ToastType.WARNING);
+            }
+
+            // Trigger list view refresh behind the popup immediately
+            await listDirectories();
+
+            // Transition the overlay to show stats and done button
+            confirmOverlay.innerHTML = `
+              <div class="dup-overview-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; max-width: 360px; width: 100%; padding: 10px; animation: propsCardIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+                <div style="width: 52px; height: 52px; border-radius: 50%; background: ${failCount === 0 ? 'rgba(46, 204, 113, 0.15)' : 'rgba(230, 126, 34, 0.15)'}; border: 1px solid ${failCount === 0 ? 'rgb(46, 204, 113)' : 'rgb(230, 126, 34)'}; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; filter: drop-shadow(0 0 10px ${failCount === 0 ? 'rgba(46, 204, 113, 0.25)' : 'rgba(230, 126, 34, 0.25)'});">
+                  <i class="${failCount === 0 ? 'fa-solid fa-circle-check' : 'fa-solid fa-triangle-exclamation'}" style="font-size: 24px; color: ${failCount === 0 ? 'rgb(46, 204, 113)' : 'rgb(230, 126, 34)'};"></i>
+                </div>
+
+                <div style="text-align: center;">
+                  <h3 style="font-size: 15px; font-weight: 700; color: var(--textColor); margin-bottom: 4px; letter-spacing: 0.5px;">
+                    ${failCount === 0 ? 'Cleanup Completed' : 'Cleanup Finished'}
+                  </h3>
+                  <p style="font-size: 11.5px; color: var(--textColor2); line-height: 1.4;">
+                    ${failCount === 0
+                      ? 'All selected duplicate files have been successfully deleted.'
+                      : 'The duplicate cleanup process finished with some errors.'
+                    }
+                  </p>
+                </div>
+
+                <div style="width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0;">
+                  <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <i class="fa-solid fa-check" style="color: rgb(46, 204, 113); font-size: 11px;"></i>
+                    <span style="font-size: 9px; color: var(--textColor2); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Deleted</span>
+                    <span style="font-size: 14px; font-weight: 700; color: var(--textColor); font-family: monospace;">${successCount}</span>
+                  </div>
+
+                  <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <i class="fa-solid fa-xmark" style="color: ${failCount > 0 ? 'var(--errorColor)' : 'var(--textColor3)'}; font-size: 11px; opacity: ${failCount > 0 ? '1' : '0.4'};"></i>
+                    <span style="font-size: 9px; color: var(--textColor2); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Failed</span>
+                    <span style="font-size: 14px; font-weight: 700; color: ${failCount > 0 ? 'var(--errorColor)' : 'var(--textColor)'}; font-family: monospace;">${failCount}</span>
+                  </div>
+
+                  <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <i class="fa-solid fa-chart-pie" style="color: #4da3ff; font-size: 11px;"></i>
+                    <span style="font-size: 9px; color: var(--textColor2); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Reclaimed</span>
+                    <span style="font-size: 12px; font-weight: 700; color: rgb(46, 204, 113); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="${formatBytes(spaceReclaimed)}">${formatBytes(spaceReclaimed)}</span>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; width: 100%; justify-content: center; margin-top: 4px;">
+                  <button class="props-card__btn props-card__btn--primary" id="btn-dup-overview-close" style="width: 120px; padding: 8px; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; border-radius: 6px;">
+                    <i class="fa-solid fa-check"></i><span>Done</span>
+                  </button>
+                </div>
+              </div>
+            `;
+
+            confirmOverlay.querySelector("#btn-dup-overview-close").onclick = () => {
+              confirmOverlay.remove();
+              closePopup();
+            };
+          };
+        };
+      }
+    } catch (err) {
+      isSearching = false;
+      if (err === "Search cancelled" || (err && typeof err === "string" && err.includes("cancelled"))) {
+        showToast("Search was stopped", ToastType.INFO);
+        renderSetupScreen();
+      } else {
+        body.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+            <i class="fa-solid fa-circle-xmark" style="font-size: 32px; color: var(--errorColor);"></i>
+            <span style="font-size: var(--fontSize); color: var(--errorColor); font-weight: 700;">Scanning Failed</span>
+            <span style="font-size: 11px; opacity: 0.7; max-width: 80%;">${escHtml(err)}</span>
+          </div>
+        `;
+      }
+    }
+  };
+
+  renderSetupScreen();
+}
+
+function closeSmartOrganizerPopup() {
+  const popup = document.querySelector(".smart-organizer-popup");
+  if (popup) {
+    IsPopUpOpen = false;
+    popup.classList.add("popup-exit");
+    $(".popup-background").css("opacity", "0");
+    setTimeout(() => {
+      $(".popup-background").css("display", "none");
+    }, 150);
+    popup.addEventListener("animationend", () => {
+      popup.remove();
+    }, { once: true });
+  }
+}
+
+async function showSmartOrganizerPopup(path) {
+  if (IsPopUpOpen !== false) return;
+  if (!IsAiEnabled) {
+    showToast("AI features are disabled in Settings", ToastType.ERROR);
+    return;
+  }
+
+  const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[c]);
+
+  let fileName = path.split('/').pop() || path.split('\\').pop() || "Directory";
+
+  const popup = document.createElement("div");
+  popup.className = "smart-organizer-popup props-card props-card--wide";
+  popup.style.width = "min(480px, 95vw)";
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-modal", "true");
+  popup.setAttribute("aria-label", "Smart Folder Organizer");
+  popup.innerHTML = `
+    <section class="props-card__hero" style="border-radius: var(--glass-radius) var(--glass-radius) 0 0; padding: 12px 16px;">
+      <div class="props-card__thumb"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" title="${escHtml(fileName)}">Smart Organizer</h2>
+        <div class="props-card__meta">
+          <span>Folder: ${escHtml(path)}</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="smart-organizer-body" style="flex: 1 1 auto; overflow-y: auto; max-height: 480px; padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 8px; border-bottom: var(--glass-border-subtle);">
+      <div class="organizer-setup" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 24px; align-items: center; justify-content: center; max-width: 440px; margin: 0 auto; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; margin-bottom: 0px;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--selectColor2) 15%, transparent); display: flex; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--selectColor2) 30%, transparent); margin-bottom: 2px; filter: drop-shadow(0 0 8px rgba(11, 100, 253, 0.25));">
+            <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 18px; color: #4da3ff;"></i>
+          </div>
+          <h3 style="font-size: 14px; font-weight: 700; color: var(--textColor); letter-spacing: 0.5px;">AI Folder Organizer</h3>
+          <p style="font-size: 11px; color: var(--textColor2); line-height: 1.4; max-width: 320px;">
+            This tool uses AI to scan the files in this folder and automatically group them into logical, structured categories (like Documents, Images, Code, etc.).
+          </p>
+        </div>
+
+        <button class="props-card__btn props-card__btn--primary" id="btn-org-start-scan" style="width: 100%; padding: 11px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border-radius: 8px; margin-top: 2px; box-shadow: 0 4px 12px rgba(11, 100, 253, 0.25);">
+          <i class="fa-solid fa-play"></i><span>Start</span>
+        </button>
+      </div>
+    </div>
+
+    <footer class="props-card__footer" style="padding: 10px 14px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; background: var(--glass-header-bg);">
+      <button class="props-card__btn" id="btn-org-cancel" style="cursor: pointer;">
+        <i class="fa-solid fa-xmark"></i><span>Cancel</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary" id="btn-org-apply" disabled style="opacity: 0.5; cursor: not-allowed;">
+        <i class="fa-solid fa-folder-tree"></i><span>Organize Files</span>
+      </button>
+    </footer>
+  `;
+
+  document.body.appendChild(popup);
+  popup.classList.add("popup-enter");
+  IsPopUpOpen = true;
+
+  $(".popup-background").css("display", "block");
+  setTimeout(() => $(".popup-background").css("opacity", "1"));
+
+  popup.querySelector("#btn-org-cancel").onclick = () => closeSmartOrganizerPopup();
+
+  const body = popup.querySelector(".smart-organizer-body");
+
+  popup.querySelector("#btn-org-start-scan").onclick = async () => {
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+        <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));"></div>
+        <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">Consulting AI Organizer...</span>
+        <span style="font-size: 11px; opacity: 0.6; max-width: 80%;">Analyzing files inside the directory and computing semantic folder layout...</span>
+      </div>
+    `;
+
+    try {
+      const suggestions = await invoke("ai_get_organizer_suggestions", { path });
+      const directories = suggestions.directories || [];
+      const mappings = suggestions.mappings || [];
+
+      if (mappings.length === 0) {
+        body.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+            <i class="fa-solid fa-folder-open" style="font-size: 32px; color: var(--textColor3);"></i>
+            <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">No organization needed</span>
+            <span style="font-size: 11px; opacity: 0.6; max-width: 80%;">All files in this directory seem perfectly organized or there are no files to sort.</span>
+          </div>
+        `;
+        return;
+      }
+
+      popup.style.width = "min(740px, 95vw)";
+
+      const grouped = {};
+      directories.forEach(dir => {
+        grouped[dir] = [];
+      });
+
+      mappings.forEach(map => {
+        let targetDir = "";
+        const lastSep = map.to.lastIndexOf("/");
+        if (lastSep !== -1) {
+          targetDir = map.to.substring(0, lastSep);
+        }
+        if (!grouped[targetDir]) {
+          grouped[targetDir] = [];
+        }
+        grouped[targetDir].push(map);
+      });
+
+      let html = `
+        <div style="font-size: 11.5px; opacity: 0.8; margin-top: 4px; margin-bottom: 6px; line-height: 1.4; color: var(--textColor2);">
+          AI analyzed this folder and recommends creating <strong>${directories.length}</strong> new categories to organize <strong>${mappings.length}</strong> files. Uncheck any files you do not wish to move.
+        </div>
+        <div class="organizer-groups-list" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+      `;
+
+      Object.keys(grouped).forEach((dir, dirIdx) => {
+        const groupFiles = grouped[dir];
+        if (groupFiles.length === 0) return;
+
+        const groupHtml = groupFiles.map((fileMap, fileIdx) => {
+          return `
+            <div class="organizer-file-row" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.02); gap: 12px; font-size: 12px;">
+              <label style="display: flex; align-items: center; min-width: 0; flex: 1 1 45%; cursor: pointer; margin: 0; gap: 8px; user-select: none;">
+                <input type="checkbox" class="org-file-checkbox" data-from="${escHtml(fileMap.from)}" data-to="${escHtml(fileMap.to)}" data-dir-index="${dirIdx}" style="cursor: pointer; accent-color: var(--selectColor2);" checked />
+                <span style="color: var(--textColor); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escHtml(fileMap.from)}">${escHtml(fileMap.from)}</span>
+              </label>
+              <i class="fa-solid fa-arrow-right-long" style="opacity: 0.4; font-size: 11px; flex-shrink: 0;"></i>
+              <span style="color: var(--textColor2); font-family: monospace; font-size: 11px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 45%; min-width: 0;" title="${escHtml(fileMap.to)}">${escHtml(fileMap.to)}</span>
+            </div>
+          `;
+        }).join('');
+
+        html += `
+          <div class="organizer-group-card" style="border: 1px solid var(--tertiaryColor); border-radius: 8px; background: rgba(255, 255, 255, 0.015); overflow: hidden; display: flex; flex-direction: column;">
+            <div class="organizer-group-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.05);">
+              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                <i class="fa-solid fa-folder-open" style="color: #4da3ff; font-size: 14px;"></i>
+                <span style="font-weight: 700; font-size: 13px; color: var(--textColor); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="New directory: ${escHtml(dir)}">${escHtml(dir)}</span>
+                <span style="font-size: 10px; background: rgba(77, 163, 255, 0.15); border: 1px solid rgba(77, 163, 255, 0.3); border-radius: 12px; padding: 1px 6px; color: #4da3ff; font-weight: 600; flex-shrink: 0;">${groupFiles.length} files</span>
+              </div>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; user-select: none; color: var(--textColor3); margin: 0;">
+                <input type="checkbox" class="org-group-select-all" data-dir-index="${dirIdx}" style="cursor: pointer; accent-color: var(--selectColor2);" checked />
+                <span>Select All</span>
+              </label>
+            </div>
+            <div class="organizer-group-files-list" id="org-group-list-${dirIdx}" style="display: flex; flex-direction: column; padding: 4px 0;">
+              ${groupHtml}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      body.innerHTML = html;
+
+      const applyBtn = popup.querySelector("#btn-org-apply");
+
+      const updateApplyState = () => {
+        const checkedCount = popup.querySelectorAll(".org-file-checkbox:checked").length;
+        if (checkedCount > 0) {
+          applyBtn.removeAttribute("disabled");
+          applyBtn.style.opacity = "1";
+          applyBtn.style.cursor = "pointer";
+        } else {
+          applyBtn.setAttribute("disabled", "true");
+          applyBtn.style.opacity = "0.5";
+          applyBtn.style.cursor = "not-allowed";
+        }
+      };
+
+      updateApplyState();
+
+      popup.querySelectorAll(".org-group-select-all").forEach(groupSelectAll => {
+        groupSelectAll.onchange = (e) => {
+          const dirIdx = groupSelectAll.getAttribute("data-dir-index");
+          const list = popup.querySelector(`#org-group-list-${dirIdx}`);
+          if (list) {
+            list.querySelectorAll(".org-file-checkbox").forEach(cb => {
+              cb.checked = groupSelectAll.checked;
+            });
+          }
+          updateApplyState();
+        };
+      });
+
+      popup.querySelectorAll(".org-file-checkbox").forEach(fileCb => {
+        fileCb.onchange = () => {
+          const dirIdx = fileCb.getAttribute("data-dir-index");
+          const list = popup.querySelector(`#org-group-list-${dirIdx}`);
+          const groupSelectAll = popup.querySelector(`.org-group-select-all[data-dir-index="${dirIdx}"]`);
+          if (list && groupSelectAll) {
+            const totalInGroup = list.querySelectorAll(".org-file-checkbox").length;
+            const checkedInGroup = list.querySelectorAll(".org-file-checkbox:checked").length;
+            groupSelectAll.checked = (totalInGroup === checkedInGroup);
+          }
+          updateApplyState();
+        };
+      });
+
+      applyBtn.onclick = async () => {
+        applyBtn.setAttribute("disabled", "true");
+        applyBtn.style.opacity = "0.5";
+        applyBtn.style.cursor = "not-allowed";
+
+        const selectedMappings = [];
+        popup.querySelectorAll(".org-file-checkbox:checked").forEach(cb => {
+          selectedMappings.push({
+            from: cb.getAttribute("data-from"),
+            to: cb.getAttribute("data-to")
+          });
+        });
+
+        const activeDirectories = new Set();
+        selectedMappings.forEach(map => {
+          let dir = "";
+          const lastSep = map.to.lastIndexOf("/");
+          if (lastSep !== -1) {
+            dir = map.to.substring(0, lastSep);
+          }
+          if (dir) {
+            let currentDir = "";
+            const segments = dir.split("/");
+            segments.forEach(seg => {
+              if (currentDir) {
+                currentDir += "/" + seg;
+              } else {
+                currentDir = seg;
+              }
+              activeDirectories.add(currentDir);
+            });
+          }
+        });
+        const directoriesToCreate = Array.from(activeDirectories);
+
+        body.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+            <div class="preloader-invert" style="width: 32px !important; height: 32px !important; border-width: 3px; border-top-width: 3px; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));"></div>
+            <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">Organizing and moving files...</span>
+            <span style="font-size: 11px; opacity: 0.6; max-width: 80%;">Creating subdirectories and moving selected files safely...</span>
+          </div>
+        `;
+
+        try {
+          await invoke("ai_execute_organize", {
+            parentPath: path,
+            directories: directoriesToCreate,
+            mappings: selectedMappings
+          });
+
+          showToast(`Successfully organized files!`, ToastType.SUCCESS);
+
+          if (IsDualPaneEnabled === true) {
+            refreshBothViews(SelectedItemPaneSide);
+          } else {
+            await listDirectories();
+          }
+
+          scheduleDiskUsageRefresh();
+          closeSmartOrganizerPopup();
+        } catch (err) {
+          showToast(`Organization failed: ${err}`, ToastType.ERROR);
+          closeSmartOrganizerPopup();
+        }
+      };
+
+    } catch (err) {
+      body.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; text-align: center;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; color: var(--errorColor);"></i>
+          <span style="font-weight: 700; font-size: 14px; color: var(--textColor);">AI Consultation Failed</span>
+          <span style="font-size: 11px; opacity: 0.6; max-width: 80%;">${escHtml(err)}</span>
+        </div>
+      `;
+    }
+  };
+}
+
+
 (async () => {
+
   await getSetInstalledApplications();
   await checkAppConfig();
   await insertSiteNavButtons();
   cdCtMenu.setupItems();
+
+  // Handle AI toggle visibility of API key row dynamically
+  document.querySelector(".ai-enabled-checkbox")?.addEventListener("change", (e) => {
+    toggleAiProviderRows();
+  });
 })();
+
+// Helper functions for dynamic refreshing
+function applyDirectoryListStyles(element, mode) {
+  if (!element) return;
+  if (mode === "wrap") {
+    element.style.display = "grid";
+    element.style.gridTemplateColumns = "repeat(auto-fill, minmax(90px, 1fr))";
+    element.style.columnGap = "15px";
+    element.style.rowGap = "15px";
+  } else if (mode === "column") {
+    element.style.display = "grid";
+    element.style.gridTemplateColumns = "unset";
+    element.style.columnGap = "unset";
+    element.style.rowGap = "2px";
+  } else if (mode === "miller") {
+    element.style.display = "grid";
+    element.style.gridTemplateColumns = "unset";
+    element.style.columnGap = "unset";
+    element.style.rowGap = "1px";
+  }
+}
+
+function getParentPath(path) {
+  const normalized = path.replace(/\\/g, '/');
+  const parts = normalized.split('/');
+  if (parts.length <= 1) return normalized;
+  parts.pop();
+  return parts.join('/') || '/';
+}
+
+function getTargetContainers(parentPath) {
+  const normParent = parentPath.replace(/\\/g, '/').replace(/\/$/, '') || '/';
+  let containers = [];
+
+  if (IsDualPaneEnabled) {
+    const normLeft = (LeftDualPanePath || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
+    const normRight = (RightDualPanePath || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
+
+    if (normLeft === normParent && LeftPaneItemCollection) {
+      containers.push({ element: LeftPaneItemCollection, side: 'left', mode: 'column' });
+    }
+    if (normRight === normParent && RightPaneItemCollection) {
+      containers.push({ element: RightPaneItemCollection, side: 'right', mode: 'column' });
+    }
+  } else if (ViewMode === 'miller') {
+    document.querySelectorAll('.miller-column').forEach(col => {
+      const colPath = (col.getAttribute('miller-col-path') || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
+      if (colPath === normParent) {
+        const dirList = col.querySelector('.directory-list, .directory-list-dual-pane') || col;
+        const colClass = col.className.split(' ').find(c => c.startsWith('miller-col-'));
+        const colNum = colClass ? parseInt(colClass.replace('miller-col-', '')) : 1;
+        containers.push({ element: dirList, side: '', mode: 'miller', colNum: colNum });
+      }
+    });
+  } else {
+    const normCurrent = (CurrentDir || "").replace(/\\/g, '/').replace(/\/$/, '') || '/';
+    if (normCurrent === normParent) {
+      const dirList = document.querySelector('.explorer-container:not(.miller-column) > .directory-list') ||
+                      document.querySelector('.explorer-container:not(.miller-column) > .directory-list-dual-pane') ||
+                      document.querySelector('.directory-list');
+      if (dirList) {
+        containers.push({ element: dirList, side: '', mode: ViewMode });
+      }
+    }
+  }
+  return containers;
+}
+
+function createItemInnerHtml(item, itemIconId, viewMode, dualPaneSide) {
+  let fileIcon = "resources/file-icon.png";
+  let iconSize = "56px";
+  fileIcon = getIconForFile(item, 1);
+
+  if (viewMode === "wrap") {
+    return `
+      <div class="item-button directory-entry">
+        <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+        <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="${iconSize}" height="${iconSize}" loading="lazy" />
+        <p class="item-button-text" style="text-align: left;">${item.name}</p>
+      </div>
+    `;
+  } else if (viewMode === "column") {
+    const className = (dualPaneSide != null && dualPaneSide !== "") ? "directory-entry dual-pane-list-item" : "item-button-list directory-entry";
+    return `
+      <div class="${className}">
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; min-width: 0; width: fit-content; max-width: 500px; overflow: hidden;">
+          <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+          <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
+          <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+        </span>
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: fit-content; justify-content: flex-end; padding-right: 5px;">
+          <p class="item-button-list-text" style="width: 100%; text-align: right;">${item.last_modified}</p>
+          <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
+               <span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
+               <i class="fa-solid fa-cube"></i>
+          </div>
+        </span>
+      </div>
+    `;
+  } else if (viewMode === "miller") {
+    const className = (dualPaneSide != null && dualPaneSide !== "") ? "directory-entry dual-pane-list-item" : "item-button-list directory-entry";
+    return `
+      <div class="${className}">
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
+          <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+          <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="24px" height="24px" loading="lazy"/>
+          <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
+        </span>
+      </div>
+    `;
+  }
+  return "";
+}
+
+function getFDirFromElement(el) {
+  return {
+    name: el.getAttribute("itemname") || "",
+    size: el.getAttribute("itemrawsize") || "0",
+    last_modified: el.getAttribute("itemmodified") || "",
+    path: el.getAttribute("itempath") || "",
+    extension: el.getAttribute("itemext") || "",
+    is_dir: el.getAttribute("itemisdir") === "1"
+  };
+}
+
+function compareItems(itemA, itemB, sortBy, ascending) {
+  if (sortBy === 'size') {
+    const sizeA = parseInt(itemA.size) || 0;
+    const sizeB = parseInt(itemB.size) || 0;
+    return ascending ? (sizeA - sizeB) : (sizeB - sizeA);
+  } else if (sortBy === 'date') {
+    const dateA = new Date(itemA.last_modified);
+    const dateB = new Date(itemB.last_modified);
+    return ascending ? (dateA - dateB) : (dateB - dateA);
+  } else {
+    return ascending ? itemA.name.localeCompare(itemB.name) : itemB.name.localeCompare(itemA.name);
+  }
+}
+
+function findInsertionIndex(container, fileInfo) {
+  const children = Array.from(container.children);
+  if (children.length === 0) return 0;
+
+  let low = 0;
+  let high = children.length;
+
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    const midInfo = getFDirFromElement(children[mid]);
+    const cmp = compareItems(fileInfo, midInfo, CurrentSortMethod, CurrentSortAscending);
+
+    if (cmp < 0) {
+      high = mid;
+    } else {
+      low = mid + 1;
+    }
+  }
+  return low;
+}
+
+async function handleDynamicCreate(path) {
+  try {
+    const parentPath = getParentPath(path);
+    const targets = getTargetContainers(parentPath);
+    if (targets.length === 0) return;
+
+    let fileInfo;
+    try {
+      fileInfo = await invoke("get_single_item_info", { path });
+    } catch (e) {
+      const errStr = String(e);
+      if (errStr.includes("No such file") || errStr.includes("os error 2")) {
+        return; // Silent ignore, file was deleted before we could read its metadata
+      }
+      throw e;
+    }
+    if (!fileInfo) return;
+
+    // Normalize extension to have a leading dot if it doesn't
+    let ext = fileInfo.extension;
+    if (ext && !ext.startsWith('.')) {
+      ext = '.' + ext;
+    }
+    fileInfo.extension = ext;
+
+    if (IsShowHiddenFiles === false) {
+      if (fileInfo.name.startsWith(".") || fileInfo.name.toLowerCase().includes("desktop.ini")) {
+        return;
+      }
+    }
+    if (fileInfo.name.toLowerCase().includes("ntuser")) {
+      return;
+    }
+
+    for (const target of targets) {
+      const existing = target.element.querySelector(`[itempath="${path}"]`);
+      if (existing) continue;
+
+      applyDirectoryListStyles(target.element, target.mode);
+
+      const itemLink = document.createElement("button");
+      const itemIconId = crypto.randomUUID();
+      itemLink.setAttribute("onclick", "interactWithItem(this, '" + target.side + "', null, event)");
+      itemLink.setAttribute("itemiconid", itemIconId);
+      itemLink.setAttribute("itempath", fileInfo.path);
+      itemLink.setAttribute("itempaneside", target.side);
+      itemLink.setAttribute("itemisdir", fileInfo.is_dir ? 1 : 0);
+      itemLink.setAttribute("itemext", fileInfo.extension);
+      itemLink.setAttribute("itemicon", getIconForFile(fileInfo, 1));
+      itemLink.setAttribute("itemname", fileInfo.name);
+      itemLink.setAttribute("itemsize", formatBytes(fileInfo.size));
+      itemLink.setAttribute("itemrawsize", fileInfo.size);
+      itemLink.setAttribute("itemmodified", fileInfo.last_modified);
+      itemLink.setAttribute("draggable", true);
+      itemLink.setAttribute("itemformillercol", target.colNum ? (parseInt(target.colNum) + 1) : 2);
+      itemLink.setAttribute("itemisselected", false);
+      itemLink.className = "item-link directory-entry";
+
+      itemLink.innerHTML = createItemInnerHtml(fileInfo, itemIconId, target.mode, target.side);
+
+      itemLink.ondragstart = (e) => {
+        handleDragStart(e, itemLink);
+      };
+      itemLink.addEventListener("mousedown", (e) => {
+        if (e.button === 0 && ds) {
+          ds.break();
+        }
+      });
+      itemLink.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        MousePos = [e.clientX, e.clientY];
+        if (itemLink.getAttribute("itemisdir") == "1") {
+          if (!ArrSelectedItems.includes(itemLink)) {
+            itemLink.style.border = "1px solid var(--selectColor2)";
+            itemLink.style.backgroundColor = "var(--selectColor3)";
+            itemLink.style.scale = "1";
+            DraggedOverElement = itemLink;
+          }
+        }
+      });
+      itemLink.addEventListener("dragleave", () => {
+        itemLink.style.border = "1px solid transparent";
+        itemLink.style.backgroundColor = "1px solid var(--transparentColor)";
+        itemLink.style.scale = "1";
+      });
+      itemLink.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        cdCtMenu.setSelectedItem(itemLink, e);
+        cdCtMenu.show(e);
+      });
+
+      const insertionIndex = findInsertionIndex(target.element, fileInfo);
+      if (insertionIndex >= target.element.children.length) {
+        target.element.appendChild(itemLink);
+      } else {
+        target.element.insertBefore(itemLink, target.element.children[insertionIndex]);
+      }
+
+      let idx = 0;
+      Array.from(target.element.children).forEach(child => {
+        child.setAttribute("itemindex", idx++);
+      });
+
+      if (ArrDirectoryItems.indexOf(itemLink) === -1) {
+        ArrDirectoryItems.push(itemLink);
+      }
+
+      arrLoadItemImage([itemLink], true);
+    }
+
+    ds.setSettings({
+      selectables: document.querySelectorAll(".item-link"),
+    });
+  } catch (error) {
+    console.error("Error handling dynamic create:", error);
+  }
+}
+
+function handleDynamicRemove(path) {
+  try {
+    const parentPath = getParentPath(path);
+    const targets = getTargetContainers(parentPath);
+    if (targets.length === 0) return;
+
+    for (const target of targets) {
+      const existing = target.element.querySelector(`[itempath="${path}"]`);
+      if (existing) {
+        existing.remove();
+
+        let idx = 0;
+        Array.from(target.element.children).forEach(child => {
+          child.setAttribute("itemindex", idx++);
+        });
+
+        ArrDirectoryItems = ArrDirectoryItems.filter(item => item !== existing);
+      }
+    }
+
+    ds.setSettings({
+      selectables: document.querySelectorAll(".item-link"),
+    });
+  } catch (error) {
+    console.error("Error handling dynamic remove:", error);
+  }
+}
+
+async function handleDynamicUpdate(path) {
+  try {
+    const parentPath = getParentPath(path);
+    const targets = getTargetContainers(parentPath);
+    if (targets.length === 0) return;
+
+    let fileInfo;
+    try {
+      fileInfo = await invoke("get_single_item_info", { path });
+    } catch (e) {
+      const errStr = String(e);
+      if (errStr.includes("No such file") || errStr.includes("os error 2")) {
+        return; // Silent ignore, file was deleted before we could read its metadata
+      }
+      throw e;
+    }
+    if (!fileInfo) return;
+
+    // Normalize extension to have a leading dot if it doesn't
+    let ext = fileInfo.extension;
+    if (ext && !ext.startsWith('.')) {
+      ext = '.' + ext;
+    }
+    fileInfo.extension = ext;
+
+    for (const target of targets) {
+      const existing = target.element.querySelector(`[itempath="${path}"]`);
+      if (existing) {
+        existing.setAttribute("itemsize", formatBytes(fileInfo.size));
+        existing.setAttribute("itemrawsize", fileInfo.size);
+        existing.setAttribute("itemmodified", fileInfo.last_modified);
+        existing.setAttribute("itemext", fileInfo.extension);
+        existing.setAttribute("itemicon", getIconForFile(fileInfo, 1));
+        existing.setAttribute("itemisdir", fileInfo.is_dir ? 1 : 0);
+
+        const itemIconId = existing.getAttribute("itemiconid") || crypto.randomUUID();
+        existing.setAttribute("itemiconid", itemIconId);
+        existing.innerHTML = createItemInnerHtml(fileInfo, itemIconId, target.mode, target.side);
+
+        arrLoadItemImage([existing], true);
+      }
+    }
+  } catch (error) {
+    console.error("Error handling dynamic update:", error);
+  }
+}
+
+/* Custom Keyboard Shortcuts Customization Engine */
+const DefaultShortcuts = {
+  "copy_item": "CmdOrCtrl+c",
+  "cut_item": "CmdOrCtrl+x",
+  "paste_item": "CmdOrCtrl+v",
+  "delete_item": "Delete",
+  "rename_item": "F2",
+  "select_all": "CmdOrCtrl+a",
+  "quick_preview": "Space",
+  "new_folder": "F7",
+  "new_file": "F6",
+  "search_files": "F8",
+  "refresh_view": "CmdOrCtrl+r",
+  "jump_to_path": "CmdOrCtrl+g",
+  "multi_rename": "CmdOrCtrl+Shift+m",
+  "compress_item": "CmdOrCtrl+k",
+  "focus_search": "CmdOrCtrl+f",
+  "copy_dir_path": "CmdOrCtrl+Shift+c",
+  "pane_copy": "F5",
+  "pane_move": "Shift+F5",
+  "pane_switch": "Tab",
+  "disk_menu_left": "Alt+F1",
+  "disk_menu_right": "Alt+F2",
+  "slot_1": "Alt+1",
+  "slot_2": "Alt+2",
+  "slot_3": "Alt+3",
+  "nav_up": "ArrowUp",
+  "nav_down": "ArrowDown",
+  "nav_left": "ArrowLeft",
+  "nav_right": "ArrowRight"
+};
+
+const ShortcutLabels = {
+  "copy_item": { name: "Copy Item", desc: "Copy the currently selected item(s)" },
+  "cut_item": { name: "Cut Item", desc: "Cut the currently selected item(s)" },
+  "paste_item": { name: "Paste Item", desc: "Paste the copied or cut item(s) here" },
+  "delete_item": { name: "Delete Item", desc: "Delete the currently selected item(s)" },
+  "rename_item": { name: "Rename Item", desc: "Rename the currently selected item" },
+  "select_all": { name: "Select All", desc: "Select all items in the current directory" },
+  "quick_preview": { name: "Quick Preview", desc: "Open or close a quick visual preview of the selected file" },
+  "new_folder": { name: "New Folder", desc: "Create a new directory" },
+  "new_file": { name: "New File", desc: "Create a new empty file" },
+  "search_files": { name: "Search Files", desc: "Open the search modal to look for files recursively" },
+  "refresh_view": { name: "Refresh View", desc: "Refresh the current folder listing" },
+  "jump_to_path": { name: "Jump to Path", desc: "Open the path input popup to jump to any local path" },
+  "multi_rename": { name: "Multi-Rename", desc: "Perform batch rename on all selected items" },
+  "compress_item": { name: "Compress Item", desc: "Compress the selected item(s) into an archive" },
+  "focus_search": { name: "Focus Search Input", desc: "Place the cursor in the file name filter bar" },
+  "copy_dir_path": { name: "Copy Folder Path", desc: "Copy the current directory's absolute path to the clipboard" },
+  "pane_copy": { name: "Pane Copy (Dual)", desc: "Copy selected items to the other side folder in dual-pane" },
+  "pane_move": { name: "Pane Move (Dual)", desc: "Move selected items to the other side folder in dual-pane" },
+  "pane_switch": { name: "Pane Focus Switch (Dual)", desc: "Toggle keyboard focus between the left and right dual panes" },
+  "disk_menu_left": { name: "Left Disk Dropdown (Dual)", desc: "Open the disk selection list for the left pane" },
+  "disk_menu_right": { name: "Right Disk Dropdown (Dual)", desc: "Open the disk selection list for the right pane" },
+  "slot_1": { name: "Quick Access Slot 1", desc: "Quickly navigate to path configured in settings Slot 1" },
+  "slot_2": { name: "Quick Access Slot 2", desc: "Quickly navigate to path configured in settings Slot 2" },
+  "slot_3": { name: "Quick Access Slot 3", desc: "Quickly navigate to path configured in settings Slot 3" },
+  "nav_up": { name: "Navigate Up", desc: "Move selection up in active file list" },
+  "nav_down": { name: "Navigate Down", desc: "Move selection down in active file list" },
+  "nav_left": { name: "Navigate Left", desc: "Navigate to parent directory or left column" },
+  "nav_right": { name: "Navigate Right", desc: "Open directory or navigate to right column" }
+};
+
+let ConfiguredShortcuts = {};
+let RecordingAction = null;
+
+function matchShortcut(actionName, e) {
+  let binding = ConfiguredShortcuts[actionName];
+  if (!binding) return false;
+
+  let resolvedBinding = binding;
+  if (binding.includes("CmdOrCtrl")) {
+    if (Platform === "darwin") {
+      resolvedBinding = binding.replace("CmdOrCtrl", "Cmd");
+    } else {
+      resolvedBinding = binding.replace("CmdOrCtrl", "Ctrl");
+    }
+  }
+
+  let bindingParts = resolvedBinding.split("+");
+  let hasCmd = bindingParts.includes("Cmd");
+  let hasMeta = bindingParts.includes("Meta");
+  let hasCtrl = bindingParts.includes("Ctrl");
+  let hasAlt = bindingParts.includes("Alt");
+  let hasShift = bindingParts.includes("Shift");
+
+  if (hasCmd || hasMeta) {
+    if (!e.metaKey) return false;
+  } else {
+    if (e.metaKey) return false;
+  }
+
+  if (hasCtrl) {
+    if (!e.ctrlKey) return false;
+  } else {
+    if (e.ctrlKey) return false;
+  }
+
+  if (hasAlt) {
+    if (!e.altKey) return false;
+  } else {
+    if (e.altKey) return false;
+  }
+
+  if (hasShift) {
+    if (!e.shiftKey) return false;
+  } else {
+    if (e.shiftKey) return false;
+  }
+
+  let keyVal = e.key;
+  if (keyVal === " ") {
+    keyVal = "Space";
+  } else if (keyVal.length === 1) {
+    keyVal = keyVal.toLowerCase();
+  }
+
+  let bindKey = bindingParts[bindingParts.length - 1];
+  if (bindKey.length === 1) {
+    bindKey = bindKey.toLowerCase();
+  }
+
+  if (bindKey.startsWith("digit") || /^\d$/.test(bindKey)) {
+    let digitStr = bindKey.replace("digit", "");
+    return keyVal === digitStr || e.code === bindKey || e.code === "Digit" + digitStr;
+  }
+
+  return keyVal === bindKey;
+}
+
+function formatShortcutForDisplay(binding) {
+  if (!binding) return "None";
+  let parts = binding.split("+");
+  let resolvedParts = parts.map(part => {
+    if (part === "CmdOrCtrl") {
+      return Platform === "darwin" ? "⌘" : "Ctrl";
+    }
+    if (part === "Cmd") return "⌘";
+    if (part === "Shift") return Platform === "darwin" ? "⇧" : "Shift";
+    if (part === "Alt") return Platform === "darwin" ? "⌥" : "Alt";
+    if (part === "Ctrl") return "Ctrl";
+    if (part === "Space") return "Space";
+    if (part.startsWith("Digit")) return part.replace("Digit", "");
+    if (part.length === 1) return part.toUpperCase();
+    return part;
+  });
+  return resolvedParts.join(" + ");
+}
+
+function startRecordingShortcut(actionName, element) {
+  RecordingAction = actionName;
+
+  let btn = $(element);
+  btn.addClass("recording").text("Press keys...");
+
+  IsDisableShortcuts = true;
+  IsInputFocused = true;
+
+  let recordKeyDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    let parts = [];
+    if (e.metaKey) parts.push(Platform === "darwin" ? "Cmd" : "Meta");
+    if (e.ctrlKey) parts.push("Ctrl");
+    if (e.altKey) parts.push("Alt");
+    if (e.shiftKey) parts.push("Shift");
+
+    let keyVal = e.key;
+    if (keyVal === " ") {
+      keyVal = "Space";
+    } else if (keyVal.length === 1) {
+      keyVal = keyVal.toLowerCase();
+    }
+
+    if (!["control", "shift", "alt", "meta"].includes(e.key.toLowerCase())) {
+      parts.push(keyVal);
+    }
+
+    let combo = parts.join("+");
+    btn.text(formatShortcutForDisplay(combo));
+
+    if (!["control", "shift", "alt", "meta"].includes(e.key.toLowerCase())) {
+      ConfiguredShortcuts[actionName] = combo;
+      stopRecording(combo);
+    }
+  };
+
+  let stopRecording = (finalCombo) => {
+    window.removeEventListener("keydown", recordKeyDown, true);
+    RecordingAction = null;
+    IsDisableShortcuts = false;
+    IsInputFocused = false;
+    btn.removeClass("recording").text(formatShortcutForDisplay(finalCombo));
+  };
+
+  window.addEventListener("keydown", recordKeyDown, true);
+}
+
+function populateShortcutsUI() {
+  let container = $(".shortcuts-list-container");
+  container.html("");
+
+  Object.keys(DefaultShortcuts).forEach(actionName => {
+    let currentShortcut = ConfiguredShortcuts[actionName] || DefaultShortcuts[actionName];
+    let label = ShortcutLabels[actionName] || { name: actionName, desc: "" };
+
+    let row = document.createElement("div");
+    row.className = "shortcut-row";
+    row.style.display = "flex";
+    row.style.justifyContent = "space-between";
+    row.style.alignItems = "center";
+    row.style.padding = "6px 8px";
+    row.style.borderBottom = "1px solid var(--tertiaryColor)";
+    row.style.gap = "10px";
+    row.setAttribute("data-action", actionName);
+
+    row.innerHTML = `
+      <div class="shortcut-info" style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1;">
+        <span class="shortcut-name" style="font-size: 12px; font-weight: 600; color: var(--textColor);">${label.name}</span>
+        <span class="shortcut-desc" style="font-size: 10px; color: var(--textColor2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${label.desc}</span>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="settings-action-btn secondary shortcut-record-btn" onclick="startRecordingShortcut('${actionName}', this)" style="min-width: 90px; height: 26px; padding: 0 10px; font-size: 10px; border-radius: 6px; font-family: monospace;">
+          ${formatShortcutForDisplay(currentShortcut)}
+        </button>
+        <button class="settings-action-btn secondary shortcut-row-reset-btn" onclick="resetSingleShortcut('${actionName}', this)" title="Reset to default" style="width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px;">
+          <i class="fa-solid fa-rotate-left" style="font-size: 10px;"></i>
+        </button>
+      </div>
+    `;
+
+    container.append(row);
+  });
+}
+
+function filterShortcuts(query) {
+  let q = query.toLowerCase().trim();
+  $(".shortcut-row").each(function() {
+    let actionName = $(this).attr("data-action");
+    let label = ShortcutLabels[actionName] || { name: "", desc: "" };
+    if (label.name.toLowerCase().includes(q) || label.desc.toLowerCase().includes(q)) {
+      $(this).css("display", "flex");
+    } else {
+      $(this).css("display", "none");
+    }
+  });
+}
+
+function resetSingleShortcut(actionName, btn) {
+  ConfiguredShortcuts[actionName] = DefaultShortcuts[actionName];
+  let recordBtn = $(btn).siblings(".shortcut-record-btn");
+  recordBtn.text(formatShortcutForDisplay(ConfiguredShortcuts[actionName]));
+}
+
+async function resetAllShortcuts() {
+  const confirmed = await confirm("Are you sure you want to reset all keyboard shortcuts to their defaults?");
+  if (confirmed) {
+    ConfiguredShortcuts = { ...DefaultShortcuts };
+    populateShortcutsUI();
+  }
+}
+
+async function selectAllExplorerItems() {
+  if (IsDualPaneEnabled) {
+    if (SelectedItemPaneSide == "left") {
+      await unSelectAllItems();
+      for (let i = 0; i < LeftPaneItemCollection.children.length; i++) {
+        selectItem(LeftPaneItemCollection.children[i]);
+      }
+    } else {
+      await unSelectAllItems();
+      for (let i = 0; i < RightPaneItemCollection.children.length; i++) {
+        selectItem(RightPaneItemCollection.children[i]);
+      }
+    }
+  } else {
+    await unSelectAllItems();
+    for (let i = 0; i < DirectoryList.children.length; i++) {
+      selectItem(DirectoryList.children[i]);
+    }
+  }
+}
+
+function toggleAiProviderRows() {
+  const isEnabled = document.querySelector(".ai-enabled-checkbox")?.checked;
+  const provider = document.querySelector(".ai-provider-select")?.value;
+
+  const providerRow = document.querySelector(".ai-provider-row");
+  const geminiRow = document.querySelector(".gemini-api-key-row");
+  const openaiRow = document.querySelector(".openai-api-key-row");
+
+  const advancedToggle = document.querySelector(".settings-advanced-ai-toggle-container");
+  const advancedContainer = document.querySelector(".advanced-ai-settings-container");
+
+  if (providerRow) {
+    providerRow.style.display = isEnabled ? "flex" : "none";
+  }
+  if (geminiRow) {
+    geminiRow.style.display = (isEnabled && provider === "gemini") ? "flex" : "none";
+  }
+  if (openaiRow) {
+    openaiRow.style.display = (isEnabled && provider === "openai") ? "flex" : "none";
+  }
+
+  if (advancedToggle) {
+    advancedToggle.style.display = isEnabled ? "block" : "none";
+  }
+
+  if (advancedContainer) {
+    if (!isEnabled) {
+      advancedContainer.style.display = "none";
+      const chevron = document.querySelector(".advanced-ai-chevron");
+      if (chevron) chevron.style.transform = "rotate(0deg)";
+    } else {
+      // Toggle individual model group visibility based on provider
+      const geminiModels = document.querySelectorAll(".gemini-models-row");
+      const openaiModels = document.querySelectorAll(".openai-models-row");
+      geminiModels.forEach(row => row.style.display = provider === "gemini" ? "flex" : "none");
+      openaiModels.forEach(row => row.style.display = provider === "openai" ? "flex" : "none");
+    }
+  }
+}
+
+function toggleAdvancedAiSettings() {
+  const container = document.querySelector(".advanced-ai-settings-container");
+  const chevron = document.querySelector(".advanced-ai-chevron");
+  if (container) {
+    if (container.style.display === "none") {
+      container.style.display = "flex";
+      if (chevron) chevron.style.transform = "rotate(90deg)";
+    } else {
+      container.style.display = "none";
+      if (chevron) chevron.style.transform = "rotate(0deg)";
+    }
+  }
+}
+
+function onGeminiImageModelChange() {
+  const select = document.querySelector(".gemini-image-model-select");
+  const customInput = document.querySelector(".gemini-image-model-custom-input");
+  if (select && customInput) {
+    customInput.style.display = select.value === "custom" ? "block" : "none";
+  }
+}
+
+function onOpenAiImageModelChange() {
+  const select = document.querySelector(".openai-image-model-select");
+  const customInput = document.querySelector(".openai-image-model-custom-input");
+  if (select && customInput) {
+    customInput.style.display = select.value === "custom" ? "block" : "none";
+  }
+}
