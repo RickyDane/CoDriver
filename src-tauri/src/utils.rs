@@ -798,6 +798,11 @@ fn dir_info_with_state(
 ) -> SimpleDirInfo {
     if Path::new(&path).is_file() {
         let size = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+        state.total_size += size;
+        state.total_count += 1;
+        if state.limit_bytes.is_some() && state.total_size >= SIZE_CALC_LIMIT_BYTES {
+            state.limit_reached = true;
+        }
         if let Some(id) = update_id {
             accumulate_and_emit(size, 1, id, state);
         }
@@ -832,6 +837,11 @@ fn dir_info_with_state(
                 let file_size = entry.metadata().map(|m| m.len()).unwrap_or(0);
                 size += file_size;
                 count_elements += 1;
+                state.total_size += file_size;
+                state.total_count += 1;
+                if state.limit_bytes.is_some() && state.total_size >= SIZE_CALC_LIMIT_BYTES {
+                    state.limit_reached = true;
+                }
                 if let Some(id) = update_id {
                     accumulate_and_emit(file_size, 1, id, state);
                 }
@@ -860,16 +870,9 @@ fn dir_info_with_state(
     }
 }
 
-fn accumulate_and_emit(size: u64, count: u64, id: &str, state: &mut SizeCalcState) {
-    state.total_size += size;
-    state.total_count += count;
-
-    if let Some(limit_bytes) = state.limit_bytes {
-        if state.total_size > limit_bytes {
-            state.limit_reached = true;
-        }
-    }
-
+fn accumulate_and_emit(_size: u64, _count: u64, id: &str, state: &mut SizeCalcState) {
+    // Note: size and count accounting is now handled in the caller to ensure limits and counts
+    // are correctly updated and checked regardless of whether update_id is Some or None.
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()

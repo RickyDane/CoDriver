@@ -268,7 +268,7 @@ async function getThumbnail(imagePath) {
 async function getSimpleDirInfo(path = "", classToFill = "", isDir = false, updateId = null) {
   setSizeCalculationLoading(classToFill);
   try {
-    const simpleDirInfo = await invoke("get_simple_dir_info", { path, appWindow, classToFill, updateId });
+    const simpleDirInfo = await invoke("get_simple_dir_info", { path, appWindow, classToFill, updateId, isDir });
     if (!shouldApplySizeCalculationUpdate(updateId)) return simpleDirInfo;
     $(classToFill).html(
       formatBytes(simpleDirInfo.size) +

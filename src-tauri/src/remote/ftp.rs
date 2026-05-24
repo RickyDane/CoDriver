@@ -7,6 +7,7 @@ use std::io::Cursor;
 use std::path::Path;
 use std::sync::Mutex;
 use suppaftp::FtpStream;
+use tauri::Emitter;
 
 pub type FtpProgressCallback = dyn Fn(usize, &str) + Send + Sync;
 
@@ -581,18 +582,11 @@ pub fn delete_ftp_item_recursive(connection_name: &str, remote_path: &str) -> Re
 }
 
 pub fn download_ftp_file(
-    connection_name: &str,
+    client: &mut FtpStream,
     remote_path: &str,
     local_dest: &str,
     progress_callback: Option<&FtpProgressCallback>,
 ) -> Result<(), String> {
-    let config = {
-        let conns = FTP_CONNECTIONS.lock().unwrap();
-        conns.get(connection_name).cloned()
-    }
-    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
-
-    let mut client = get_ftp_client(&config)?;
     let raw_path = to_raw_ftp_path(remote_path);
     let reader = client
         .retr_as_stream(raw_path)
@@ -629,7 +623,7 @@ pub fn download_ftp_file(
 
 pub fn upload_ftp_file(
     connection_name: &str,
-    local_src: &str,
+    local_src: &Path,
     remote_dest: &str,
     progress_callback: Option<&FtpProgressCallback>,
 ) -> Result<(), String> {
@@ -646,9 +640,10 @@ pub fn upload_ftp_file(
     let raw_dest = to_raw_ftp_path(remote_dest);
 
     if let Some(cb) = progress_callback {
+        let local_src_str = local_src.to_string_lossy().into_owned();
         let mut wrapped_reader = CallbackReader {
             inner: local_file,
-            callback: |len| cb(len, local_src),
+            callback: |len| cb(len, &local_src_str),
         };
         client
             .put_file(raw_dest, &mut wrapped_reader)
@@ -663,6 +658,7 @@ pub fn upload_ftp_file(
 }
 
 pub fn download_ftp_dir_recursive(
+    client: &mut FtpStream,
     connection_name: &str,
     remote_dir: &str,
     local_dest_dir: &str,
@@ -671,15 +667,8 @@ pub fn download_ftp_dir_recursive(
     std::fs::create_dir_all(local_dest_dir)
         .map_err(|e| format!("Failed to create local directory: {}", e))?;
 
-    let config = {
-        let conns = FTP_CONNECTIONS.lock().unwrap();
-        conns.get(connection_name).cloned()
-    }
-    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
-
-    let mut client = get_ftp_client(&config)?;
     let raw_dir = to_raw_ftp_path(remote_dir);
-    let entries = list_ftp_dir_internal(&mut client, raw_dir, connection_name)?;
+    let entries = list_ftp_dir_internal(client, raw_dir, connection_name)?;
 
     for entry in entries {
         let entry_name = entry.name;
@@ -687,6 +676,7 @@ pub fn download_ftp_dir_recursive(
         let local_item_path = format!("{}/{}", local_dest_dir, entry_name);
         if entry.is_dir == 1 {
             download_ftp_dir_recursive(
+                client,
                 connection_name,
                 &remote_item_path,
                 &local_item_path,
@@ -694,7 +684,7 @@ pub fn download_ftp_dir_recursive(
             )?;
         } else {
             download_ftp_file(
-                connection_name,
+                client,
                 &remote_item_path,
                 &local_item_path,
                 progress_callback,
@@ -706,7 +696,7 @@ pub fn download_ftp_dir_recursive(
 
 pub fn upload_ftp_dir_recursive(
     connection_name: &str,
-    local_dir: &str,
+    local_dir: &Path,
     remote_dest_dir: &str,
     progress_callback: Option<&FtpProgressCallback>,
 ) -> Result<(), String> {
@@ -726,19 +716,22 @@ pub fn upload_ftp_dir_recursive(
     for entry in local_entries {
         let entry = entry.map_err(|e| format!("Failed to read local entry: {}", e))?;
         let path = entry.path();
-        let entry_name = path.file_name().unwrap().to_string_lossy().to_string();
+        let entry_name = path
+            .file_name()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_default();
         let remote_item_path = format!("{}/{}", raw_dest_dir, entry_name);
         if path.is_dir() {
             upload_ftp_dir_recursive(
                 connection_name,
-                path.to_str().unwrap(),
+                &path,
                 &remote_item_path,
                 progress_callback,
             )?;
         } else {
             upload_ftp_file(
                 connection_name,
-                path.to_str().unwrap(),
+                &path,
                 &remote_item_path,
                 progress_callback,
             )?;
@@ -753,23 +746,31 @@ pub fn copy_ftp_to_ftp(
     remote_dest: &str,
     progress_callback: Option<&FtpProgressCallback>,
 ) -> Result<(), String> {
+    let config = {
+        let conns = FTP_CONNECTIONS.lock().unwrap();
+        conns.get(connection_name).cloned()
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
+
+    let mut client = get_ftp_client(&config)?;
+
     let temp_dir = std::env::temp_dir();
     let temp_file_path = temp_dir.join(format!("ftp-transfer-{}", uuid::Uuid::new_v4()));
-    let temp_file_str = temp_file_path.to_str().unwrap();
+    let temp_file_str = temp_file_path.to_string_lossy().to_string();
 
     download_ftp_file(
-        connection_name,
+        &mut client,
         remote_src,
-        temp_file_str,
+        &temp_file_str,
         progress_callback,
     )?;
     let res = upload_ftp_file(
         connection_name,
-        temp_file_str,
+        &temp_file_path,
         remote_dest,
         progress_callback,
     );
-    let _ = std::fs::remove_file(temp_file_str);
+    let _ = std::fs::remove_file(&temp_file_str);
     res
 }
 
@@ -814,9 +815,46 @@ pub fn copy_ftp_dir_to_ftp_recursive(
     Ok(())
 }
 
+pub fn get_ftp_file_size(connection_name: &str, remote_path: &str) -> Result<u64, String> {
+    let config = {
+        let conns = FTP_CONNECTIONS.lock().unwrap();
+        conns.get(connection_name).cloned()
+    }
+    .ok_or_else(|| format!("Connection {} not found", connection_name))?;
+
+    let mut client = get_ftp_client(&config)?;
+    let raw_path = to_raw_ftp_path(remote_path);
+    
+    // Try SIZE command first
+    if let Ok(size) = client.size(raw_path) {
+        return Ok(size as u64);
+    }
+    
+    // Fallback: list parent directory
+    let path = Path::new(remote_path);
+    let parent = path.parent().ok_or_else(|| "No parent directory".to_string())?;
+    let parent_str = parent.to_string_lossy().to_string();
+    let filename = path.file_name().ok_or_else(|| "No filename".to_string())?.to_string_lossy().to_string();
+    
+    let entries = list_ftp_dir_internal(&mut client, &parent_str, connection_name)?;
+    for entry in entries {
+        if entry.name == filename {
+            if entry.is_dir == 1 {
+                return Err("Path is a directory".to_string());
+            }
+            if let Ok(sz) = entry.size.parse::<u64>() {
+                return Ok(sz);
+            }
+        }
+    }
+    
+    Err("File not found in parent directory listing".to_string())
+}
+
 pub fn get_ftp_dir_size_and_count(
     connection_name: &str,
     remote_dir: &str,
+    update_id: Option<&str>,
 ) -> Result<(f32, f32), String> {
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
@@ -827,12 +865,15 @@ pub fn get_ftp_dir_size_and_count(
     let mut client = get_ftp_client(&config)?;
     let mut total_size = 0.0;
     let mut total_count = 0.0;
+    let mut last_emit = std::time::Instant::now();
     get_ftp_dir_size_and_count_helper(
         &mut client,
         remote_dir,
         connection_name,
         &mut total_size,
         &mut total_count,
+        update_id,
+        &mut last_emit,
     )?;
     Ok((total_size, total_count))
 }
@@ -843,10 +884,15 @@ fn get_ftp_dir_size_and_count_helper(
     connection_name: &str,
     total_size: &mut f32,
     total_count: &mut f32,
+    update_id: Option<&str>,
+    last_emit: &mut std::time::Instant,
 ) -> Result<(), String> {
     let raw_dir = to_raw_ftp_path(remote_dir);
     let entries = list_ftp_dir_internal(client, raw_dir, connection_name)?;
     for entry in entries {
+        if crate::IS_SIZE_CALC_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
         if entry.is_dir == 1 {
             get_ftp_dir_size_and_count_helper(
                 client,
@@ -854,11 +900,22 @@ fn get_ftp_dir_size_and_count_helper(
                 connection_name,
                 total_size,
                 total_count,
+                update_id,
+                last_emit,
             )?;
         } else {
             *total_count += 1.0;
             if let Ok(sz) = entry.size.parse::<f32>() {
                 *total_size += sz;
+            }
+            if let Some(id) = update_id {
+                let now = std::time::Instant::now();
+                if now.duration_since(*last_emit).as_millis() > 100 {
+                    *last_emit = now;
+                    if let Some(window) = crate::WINDOW.get() {
+                        let _ = window.emit("size-update", (id, *total_size as u64, *total_count as u64));
+                    }
+                }
             }
         }
     }

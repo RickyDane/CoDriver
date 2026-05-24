@@ -167,4 +167,25 @@ listen("finish-progress-bar", (event) => {
   if (typeof window.scheduleDiskUsageRefresh === "function") {
     window.scheduleDiskUsageRefresh();
   }
+
+  // Auto-reload remote directories (FTP/SSHFS) if copy/move finishes and either pane/current folder is remote
+  setTimeout(async () => {
+    const isRemote = (p) => p && (p.startsWith("ftp://") || p.includes("sshfs") || p.startsWith("/tmp/codriver-sshfs-mount"));
+    if (typeof IsDualPaneEnabled !== "undefined" && IsDualPaneEnabled) {
+      const leftIsRemote = typeof LeftDualPanePath !== "undefined" && isRemote(LeftDualPanePath);
+      const rightIsRemote = typeof RightDualPanePath !== "undefined" && isRemote(RightDualPanePath);
+      if (leftIsRemote || rightIsRemote) {
+        if (typeof refreshBothViews === "function") {
+          await refreshBothViews(typeof SelectedItemPaneSide !== "undefined" ? SelectedItemPaneSide : "");
+        }
+      }
+    } else {
+      const currentIsRemote = typeof CurrentDir !== "undefined" && isRemote(CurrentDir);
+      if (currentIsRemote) {
+        if (typeof refreshView === "function") {
+          await refreshView();
+        }
+      }
+    }
+  }, 100);
 });

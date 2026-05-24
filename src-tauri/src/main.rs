@@ -1408,6 +1408,7 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
                             match crate::remote::ftp::get_ftp_dir_size_and_count(
                                 &conn_name,
                                 &remote_path,
+                                None,
                             ) {
                                 Ok((sz, cnt)) => {
                                     total_size += sz;
@@ -1523,7 +1524,7 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
                     if is_dir {
                         if let Err(err) = crate::remote::ftp::upload_ftp_dir_recursive(
                             &conn_name,
-                            &item_path,
+                            Path::new(&item_path),
                             &remote_dest,
                             cb_ref,
                         ) {
@@ -1532,7 +1533,7 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
                     } else {
                         if let Err(err) = crate::remote::ftp::upload_ftp_file(
                             &conn_name,
-                            &item_path,
+                            Path::new(&item_path),
                             &remote_dest,
                             cb_ref,
                         ) {
@@ -1544,24 +1545,40 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
                 // FTP to Local (Download)
                 if let Some((conn_name, remote_path)) = parse_ftp_url(&item_path) {
                     let local_dest = format!("{}/{}", copy_to_path.trim_end_matches('/'), filename);
-                    if item.is_dir == 1 {
-                        if let Err(err) = crate::remote::ftp::download_ftp_dir_recursive(
-                            &conn_name,
-                            &remote_path,
-                            &local_dest,
-                            cb_ref,
-                        ) {
-                            err_log(format!("FTP Download directory failed: {}", err));
+                    let config = {
+                        let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                        conns.get(&conn_name).cloned()
+                    };
+                    if let Some(config) = config {
+                        match crate::remote::ftp::get_ftp_client(&config) {
+                            Ok(mut client) => {
+                                if item.is_dir == 1 {
+                                    if let Err(err) = crate::remote::ftp::download_ftp_dir_recursive(
+                                        &mut client,
+                                        &conn_name,
+                                        &remote_path,
+                                        &local_dest,
+                                        cb_ref,
+                                    ) {
+                                        err_log(format!("FTP Download directory failed: {}", err));
+                                    }
+                                } else {
+                                    if let Err(err) = crate::remote::ftp::download_ftp_file(
+                                        &mut client,
+                                        &remote_path,
+                                        &local_dest,
+                                        cb_ref,
+                                    ) {
+                                        err_log(format!("FTP Download file failed: {}", err));
+                                    }
+                                }
+                            }
+                            Err(err) => {
+                                err_log(format!("FTP connection failed: {}", err));
+                            }
                         }
                     } else {
-                        if let Err(err) = crate::remote::ftp::download_ftp_file(
-                            &conn_name,
-                            &remote_path,
-                            &local_dest,
-                            cb_ref,
-                        ) {
-                            err_log(format!("FTP Download file failed: {}", err));
-                        }
+                        err_log(format!("Connection {} not found", conn_name));
                     }
                 }
             } else {
@@ -1598,21 +1615,36 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
                                     std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
                                 let temp_local_dir_str =
                                     temp_local_dir.to_string_lossy().to_string();
-                                if crate::remote::ftp::download_ftp_dir_recursive(
-                                    &src_conn,
-                                    &src_remote,
-                                    &temp_local_dir_str,
-                                    cb_ref,
-                                )
-                                .is_ok()
-                                {
-                                    let _ = crate::remote::ftp::upload_ftp_dir_recursive(
-                                        &dest_conn,
+
+                                let src_config = {
+                                    let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                                    conns.get(&src_conn).cloned()
+                                };
+                                let mut src_client_opt = None;
+                                if let Some(ref cfg) = src_config {
+                                    src_client_opt = crate::remote::ftp::get_ftp_client(cfg).ok();
+                                }
+
+                                if let Some(mut src_client) = src_client_opt {
+                                    if crate::remote::ftp::download_ftp_dir_recursive(
+                                        &mut src_client,
+                                        &src_conn,
+                                        &src_remote,
                                         &temp_local_dir_str,
-                                        &final_dest,
                                         cb_ref,
-                                    );
-                                    let _ = std::fs::remove_dir_all(&temp_local_dir);
+                                    )
+                                    .is_ok()
+                                    {
+                                        let _ = crate::remote::ftp::upload_ftp_dir_recursive(
+                                            &dest_conn,
+                                            Path::new(&temp_local_dir_str),
+                                            &final_dest,
+                                            cb_ref,
+                                        );
+                                        let _ = std::fs::remove_dir_all(&temp_local_dir);
+                                    }
+                                } else {
+                                    err_log(format!("Failed to connect to source FTP server: {}", src_conn));
                                 }
                             } else {
                                 let uuid_str = uuid::Uuid::new_v4().to_string();
@@ -1620,21 +1652,35 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
                                     std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
                                 let temp_local_file_str =
                                     temp_local_file.to_string_lossy().to_string();
-                                if crate::remote::ftp::download_ftp_file(
-                                    &src_conn,
-                                    &src_remote,
-                                    &temp_local_file_str,
-                                    cb_ref,
-                                )
-                                .is_ok()
-                                {
-                                    let _ = crate::remote::ftp::upload_ftp_file(
-                                        &dest_conn,
+
+                                let src_config = {
+                                    let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                                    conns.get(&src_conn).cloned()
+                                };
+                                let mut src_client_opt = None;
+                                if let Some(ref cfg) = src_config {
+                                    src_client_opt = crate::remote::ftp::get_ftp_client(cfg).ok();
+                                }
+
+                                if let Some(mut src_client) = src_client_opt {
+                                    if crate::remote::ftp::download_ftp_file(
+                                        &mut src_client,
+                                        &src_remote,
                                         &temp_local_file_str,
-                                        &final_dest,
                                         cb_ref,
-                                    );
-                                    let _ = std::fs::remove_file(&temp_local_file);
+                                    )
+                                    .is_ok()
+                                    {
+                                        let _ = crate::remote::ftp::upload_ftp_file(
+                                            &dest_conn,
+                                            Path::new(&temp_local_file_str),
+                                            &final_dest,
+                                            cb_ref,
+                                        );
+                                        let _ = std::fs::remove_file(&temp_local_file);
+                                    }
+                                } else {
+                                    err_log(format!("Failed to connect to source FTP server: {}", src_conn));
                                 }
                             }
                         }
@@ -1914,14 +1960,14 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
                     if is_dir {
                         crate::remote::ftp::upload_ftp_dir_recursive(
                             &conn_name,
-                            &source,
+                            Path::new(&source),
                             &remote_dir,
                             cb_ref,
                         )
                     } else {
                         crate::remote::ftp::upload_ftp_file(
                             &conn_name,
-                            &source,
+                            Path::new(&source),
                             &remote_dir,
                             cb_ref,
                         )
@@ -1951,20 +1997,34 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
                         }
                     }
 
-                    if is_dir {
-                        crate::remote::ftp::download_ftp_dir_recursive(
-                            &conn_name,
-                            &remote_path,
-                            &destination,
-                            cb_ref,
-                        )
+                    let config = {
+                        let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                        conns.get(&conn_name).cloned()
+                    };
+                    if let Some(config) = config {
+                        match crate::remote::ftp::get_ftp_client(&config) {
+                            Ok(mut client) => {
+                                if is_dir {
+                                    crate::remote::ftp::download_ftp_dir_recursive(
+                                        &mut client,
+                                        &conn_name,
+                                        &remote_path,
+                                        &destination,
+                                        cb_ref,
+                                    )
+                                } else {
+                                    crate::remote::ftp::download_ftp_file(
+                                        &mut client,
+                                        &remote_path,
+                                        &destination,
+                                        cb_ref,
+                                    )
+                                }
+                            }
+                            Err(err) => Err(format!("Failed to connect: {}", err)),
+                        }
                     } else {
-                        crate::remote::ftp::download_ftp_file(
-                            &conn_name,
-                            &remote_path,
-                            &destination,
-                            cb_ref,
-                        )
+                        Err(format!("Connection {} not found", conn_name))
                     }
                 } else {
                     Err("Failed to parse FTP source URL".to_string())
@@ -2035,44 +2095,73 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
                                     std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
                                 let temp_local_dir_str =
                                     temp_local_dir.to_string_lossy().to_string();
-                                let res = crate::remote::ftp::download_ftp_dir_recursive(
-                                    &src_conn,
-                                    &src_remote,
-                                    &temp_local_dir_str,
-                                    cb_ref,
-                                )
-                                .and_then(|_| {
-                                    crate::remote::ftp::upload_ftp_dir_recursive(
-                                        &dest_conn,
+
+                                let src_config = {
+                                    let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                                    conns.get(&src_conn).cloned()
+                                };
+                                let mut src_client_opt = None;
+                                if let Some(ref cfg) = src_config {
+                                    src_client_opt = crate::remote::ftp::get_ftp_client(cfg).ok();
+                                }
+
+                                if let Some(mut src_client) = src_client_opt {
+                                    let res = crate::remote::ftp::download_ftp_dir_recursive(
+                                        &mut src_client,
+                                        &src_conn,
+                                        &src_remote,
                                         &temp_local_dir_str,
-                                        &dest_remote,
                                         cb_ref,
                                     )
-                                });
-                                let _ = std::fs::remove_dir_all(&temp_local_dir);
-                                res
+                                    .and_then(|_| {
+                                        crate::remote::ftp::upload_ftp_dir_recursive(
+                                            &dest_conn,
+                                            Path::new(&temp_local_dir_str),
+                                            &dest_remote,
+                                            cb_ref,
+                                        )
+                                    });
+                                    let _ = std::fs::remove_dir_all(&temp_local_dir);
+                                    res
+                                } else {
+                                    Err(format!("Failed to connect to source FTP server: {}", src_conn))
+                                }
                             } else {
                                 let uuid_str = uuid::Uuid::new_v4().to_string();
                                 let temp_local_file =
                                     std::env::temp_dir().join(format!("ftp-cross-{}", uuid_str));
                                 let temp_local_file_str =
                                     temp_local_file.to_string_lossy().to_string();
-                                let res = crate::remote::ftp::download_ftp_file(
-                                    &src_conn,
-                                    &src_remote,
-                                    &temp_local_file_str,
-                                    cb_ref,
-                                )
-                                .and_then(|_| {
-                                    crate::remote::ftp::upload_ftp_file(
-                                        &dest_conn,
+
+                                let src_config = {
+                                    let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                                    conns.get(&src_conn).cloned()
+                                };
+                                let mut src_client_opt = None;
+                                if let Some(ref cfg) = src_config {
+                                    src_client_opt = crate::remote::ftp::get_ftp_client(cfg).ok();
+                                }
+
+                                if let Some(mut src_client) = src_client_opt {
+                                    let res = crate::remote::ftp::download_ftp_file(
+                                        &mut src_client,
+                                        &src_remote,
                                         &temp_local_file_str,
-                                        &dest_remote,
                                         cb_ref,
                                     )
-                                });
-                                let _ = std::fs::remove_file(&temp_local_file);
-                                res
+                                    .and_then(|_| {
+                                        crate::remote::ftp::upload_ftp_file(
+                                            &dest_conn,
+                                            Path::new(&temp_local_file_str),
+                                            &dest_remote,
+                                            cb_ref,
+                                        )
+                                    });
+                                    let _ = std::fs::remove_file(&temp_local_file);
+                                    res
+                                } else {
+                                    Err(format!("Failed to connect to source FTP server: {}", src_conn))
+                                }
                             }
                         }
                     } else {
@@ -2936,14 +3025,26 @@ async fn open_item(path: String) {
             let _ = std::fs::create_dir_all(&temp_dir);
             let local_dest = temp_dir.join(&filename);
             let local_dest_str = local_dest.to_string_lossy().to_string();
-            if crate::remote::ftp::download_ftp_file(
-                &conn_name,
-                &remote_path,
-                &local_dest_str,
-                None,
-            )
-            .is_ok()
-            {
+            let config = {
+                let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                conns.get(&conn_name).cloned()
+            };
+            let mut downloaded = false;
+            if let Some(config) = config {
+                if let Ok(mut client) = crate::remote::ftp::get_ftp_client(&config) {
+                    if crate::remote::ftp::download_ftp_file(
+                        &mut client,
+                        &remote_path,
+                        &local_dest_str,
+                        None,
+                    )
+                    .is_ok()
+                    {
+                        downloaded = true;
+                    }
+                }
+            }
+            if downloaded {
                 let _ = open::that_detached(local_dest_str);
             }
         }
@@ -4311,7 +4412,17 @@ async fn get_selection_size(paths: Vec<String>, update_id: String) -> u64 {
 
     let mut total_size = 0;
     for path in paths {
-        total_size += crate::utils::dir_info_incremental(path, Some(&update_id)).size;
+        if path.starts_with("ftp://") {
+            if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+                if let Ok(size) = crate::remote::ftp::get_ftp_file_size(&conn_name, &remote_path) {
+                    total_size += size;
+                } else if let Ok((size, _)) = crate::remote::ftp::get_ftp_dir_size_and_count(&conn_name, &remote_path, Some(&update_id)) {
+                    total_size += size as u64;
+                }
+            }
+        } else {
+            total_size += crate::utils::dir_info_incremental(path, Some(&update_id)).size;
+        }
         if IS_SIZE_CALC_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
             break;
         }
@@ -4326,8 +4437,18 @@ async fn get_capped_selection_size(paths: Vec<String>, update_id: String) -> u64
     let mut total_size = 0;
     let mut state = crate::utils::SizeCalcState::new_selection_capped();
     for path in paths {
-        total_size +=
-            crate::utils::dir_info_incremental_capped(path, Some(&update_id), &mut state).size;
+        if path.starts_with("ftp://") {
+            if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+                if let Ok(size) = crate::remote::ftp::get_ftp_file_size(&conn_name, &remote_path) {
+                    total_size += size;
+                } else if let Ok((size, _)) = crate::remote::ftp::get_ftp_dir_size_and_count(&conn_name, &remote_path, Some(&update_id)) {
+                    total_size += size as u64;
+                }
+            }
+        } else {
+            total_size +=
+                crate::utils::dir_info_incremental_capped(path, Some(&update_id), &mut state).size;
+        }
         if state.should_stop() {
             break;
         }
@@ -4341,8 +4462,44 @@ async fn get_simple_dir_info(
     _app_window: WebviewWindow,
     _class_to_fill: String,
     update_id: Option<String>,
+    is_dir: Option<bool>,
 ) -> crate::utils::SimpleDirInfo {
     IS_SIZE_CALC_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
+
+    if path.starts_with("ftp://") {
+        if let Some((conn_name, remote_path)) = parse_ftp_url(&path) {
+            let is_directory = is_dir.unwrap_or(true);
+            if is_directory {
+                match crate::remote::ftp::get_ftp_dir_size_and_count(&conn_name, &remote_path, update_id.as_deref()) {
+                    Ok((sz, cnt)) => {
+                        return crate::utils::SimpleDirInfo {
+                            size: sz as u64,
+                            count_elements: cnt as u64,
+                        };
+                    }
+                    Err(e) => {
+                        utils::log(format!("Failed to calculate FTP directory size: {}", e));
+                    }
+                }
+            } else {
+                match crate::remote::ftp::get_ftp_file_size(&conn_name, &remote_path) {
+                    Ok(sz) => {
+                        return crate::utils::SimpleDirInfo {
+                            size: sz,
+                            count_elements: 1,
+                        };
+                    }
+                    Err(e) => {
+                        utils::log(format!("Failed to get FTP file size: {}", e));
+                    }
+                }
+            }
+        }
+        return crate::utils::SimpleDirInfo {
+            size: 0,
+            count_elements: 0,
+        };
+    }
 
     crate::utils::dir_info_incremental(path, update_id.as_deref())
 }
@@ -4360,14 +4517,26 @@ async fn get_file_content(path: String) -> String {
             let _ = std::fs::create_dir_all(&temp_dir);
             let local_dest = temp_dir.join(&filename);
             let local_dest_str = local_dest.to_string_lossy().to_string();
-            if crate::remote::ftp::download_ftp_file(
-                &conn_name,
-                &remote_path,
-                &local_dest_str,
-                None,
-            )
-            .is_ok()
-            {
+            let config = {
+                let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                conns.get(&conn_name).cloned()
+            };
+            let mut downloaded = false;
+            if let Some(config) = config {
+                if let Ok(mut client) = crate::remote::ftp::get_ftp_client(&config) {
+                    if crate::remote::ftp::download_ftp_file(
+                        &mut client,
+                        &remote_path,
+                        &local_dest_str,
+                        None,
+                    )
+                    .is_ok()
+                    {
+                        downloaded = true;
+                    }
+                }
+            }
+            if downloaded {
                 local_dest_str
             } else {
                 path.clone()
@@ -4406,14 +4575,26 @@ async fn get_file_base64(path: String) -> Result<String, String> {
             let _ = std::fs::create_dir_all(&temp_dir);
             let local_dest = temp_dir.join(&filename);
             let local_dest_str = local_dest.to_string_lossy().to_string();
-            if crate::remote::ftp::download_ftp_file(
-                &conn_name,
-                &remote_path,
-                &local_dest_str,
-                None,
-            )
-            .is_ok()
-            {
+            let config = {
+                let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+                conns.get(&conn_name).cloned()
+            };
+            let mut downloaded = false;
+            if let Some(config) = config {
+                if let Ok(mut client) = crate::remote::ftp::get_ftp_client(&config) {
+                    if crate::remote::ftp::download_ftp_file(
+                        &mut client,
+                        &remote_path,
+                        &local_dest_str,
+                        None,
+                    )
+                    .is_ok()
+                    {
+                        downloaded = true;
+                    }
+                }
+            }
+            if downloaded {
                 local_dest_str
             } else {
                 return Err("Failed to download remote file".to_string());
@@ -4528,7 +4709,14 @@ async fn get_ftp_temp_file(path: String) -> Result<String, String> {
         let _ = std::fs::create_dir_all(&temp_dir);
         let local_dest = temp_dir.join(&filename);
         let local_dest_str = local_dest.to_string_lossy().to_string();
-        crate::remote::ftp::download_ftp_file(&conn_name, &remote_path, &local_dest_str, None)?;
+        let config = {
+            let conns = crate::remote::ftp::FTP_CONNECTIONS.lock().unwrap();
+            conns.get(&conn_name).cloned()
+        }
+        .ok_or_else(|| "Connection not found".to_string())?;
+
+        let mut client = crate::remote::ftp::get_ftp_client(&config)?;
+        crate::remote::ftp::download_ftp_file(&mut client, &remote_path, &local_dest_str, None)?;
         Ok(local_dest_str)
     } else {
         Err("Invalid FTP URL".to_string())
