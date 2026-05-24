@@ -5048,7 +5048,7 @@ async fn get_clipboard_files() -> Result<Vec<FDir>, String> {
 
     #[cfg(target_os = "windows")]
     {
-        use clipboard_win::{formats, Clipboard};
+        use clipboard_win::{formats, Clipboard, Getter};
         
         let _clip = match Clipboard::new() {
             Ok(c) => c,
@@ -5251,7 +5251,7 @@ async fn save_clipboard_image(target_dir: String) -> Result<String, String> {
                 let h_mem = GetClipboardData(8); // CF_DIB
                 if h_mem.is_ok() {
                     let h_mem = h_mem.unwrap();
-                    let h_global = HGLOBAL(h_mem.0);
+                    let h_global = HGLOBAL(h_mem.0 as *mut std::ffi::c_void);
                     let size = GlobalSize(h_global);
                     if size > 0 {
                         let ptr = GlobalLock(h_global);
