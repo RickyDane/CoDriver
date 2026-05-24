@@ -6,7 +6,7 @@ Welcome, agent! This document serves as your technical manual and architectural 
 
 ## 🚀 Repository Identity & Mission
 
-**CoDriver** is a high-performance, cross-platform desktop file explorer built with **Tauri v1** and **Rust**.
+**CoDriver** is a high-performance, cross-platform desktop file explorer built with **Tauri v2** and **Rust**.
 - **No path caching**: Directory exploration is done in real-time, relying on the raw speed of Rust, concurrent disk access (`rayon` & `jwalk`), and CPU power.
 - **Cross-platform**: Native feel on Windows, macOS, and Linux.
 - **Rich features**: Includes dual-pane layout, miller columns, quick file preview (images, PDFs, video, code), drag-and-drop, multi-format archive compression/extraction, SSHFS mount integration, and Gemini AI-powered features (like image background removal).
@@ -60,7 +60,7 @@ CoDriver/
   - `Font Awesome` (`font-awesome/`) for clean iconography.
 
 ### 2. The Backend (src-tauri/)
-- **Core**: **Tauri v1** (Tauri v2 is *not* currently adopted).
+- **Core**: **Tauri v2** (Tauri v2 has been adopted for the codebase).
 - **Disk Walking**: **jwalk** and **walkdir** for highly parallel directory traversals.
 - **Concurrency**: **rayon** for multi-threaded operation mapping.
 - **FS Watching**: **notify** crate registers platform-specific filesystem watchers to push live updates to the UI.
