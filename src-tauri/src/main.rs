@@ -151,10 +151,10 @@ fn main() {
 
             Ok(())
         })
-        .on_window_event(|win, event| match event {
+        .on_window_event(|_win, event| match event {
             #[cfg(target_os = "macos")]
             WindowEvent::Resized { .. } => {
-                win.position_traffic_lights(25.0, 32.0);
+                _win.position_traffic_lights(25.0, 32.0);
                 std::thread::sleep(std::time::Duration::from_millis(1));
             }
             // Fixes sluggish window resizing on Windows
@@ -4595,14 +4595,14 @@ async fn unmount_network_drive(path: String, sudo_password: String) -> Result<()
 }
 
 #[tauri::command]
-async fn unmount_drive(path: String) {
+async fn unmount_drive(_path: String) {
     #[cfg(target_os = "macos")]
     let _ = Command::new("diskutil")
         .arg("unmountDisk")
-        .arg(path)
+        .arg(_path)
         .spawn();
     #[cfg(target_os = "linux")]
-    let _ = Command::new("umount").arg(path).spawn();
+    let _ = Command::new("umount").arg(_path).spawn();
 }
 
 #[tauri::command]
@@ -5242,8 +5242,7 @@ async fn save_clipboard_image(target_dir: String) -> Result<String, String> {
     {
         use windows::Win32::System::DataExchange::{OpenClipboard, GetClipboardData, CloseClipboard};
         use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock, GlobalSize};
-        use windows::Win32::Foundation::HWND;
-        use std::fs::File;
+        use windows::Win32::Foundation::{HWND, HGLOBAL};
         use std::io::Write;
         use chrono::Local;
 
@@ -5252,9 +5251,10 @@ async fn save_clipboard_image(target_dir: String) -> Result<String, String> {
                 let h_mem = GetClipboardData(8); // CF_DIB
                 if h_mem.is_ok() {
                     let h_mem = h_mem.unwrap();
-                    let size = GlobalSize(h_mem.0 as _);
+                    let h_global = HGLOBAL(h_mem.0);
+                    let size = GlobalSize(h_global);
                     if size > 0 {
-                        let ptr = GlobalLock(h_mem.0 as _);
+                        let ptr = GlobalLock(h_global);
                         if !ptr.is_null() {
                             let bytes = std::slice::from_raw_parts(ptr as *const u8, size);
                             
@@ -5292,7 +5292,7 @@ async fn save_clipboard_image(target_dir: String) -> Result<String, String> {
                             img.save(&file_path)
                                 .map_err(|e| format!("Failed to save image as PNG: {}", e))?;
                             
-                            let _ = GlobalUnlock(h_mem.0 as _);
+                            let _ = GlobalUnlock(h_global);
                             let _ = CloseClipboard();
                             return Ok(file_path.to_string_lossy().to_string());
                         }

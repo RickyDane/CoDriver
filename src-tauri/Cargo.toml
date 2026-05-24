@@ -90,6 +90,7 @@ windows = { version = "0.56.0", features = [
     "Win32_Foundation",
 ] }
 winreg = "0.52"
+clipboard-win = "5.0.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

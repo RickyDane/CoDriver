@@ -9,6 +9,7 @@ use density_rs::codec::codec::Codec;
 use jwalk::WalkDir;
 use notify::event::{CreateKind, ModifyKind, RemoveKind};
 use notify::EventKind::{Create, Modify, Remove};
+#[allow(unused_imports)]
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::env::current_dir;
@@ -1364,6 +1365,7 @@ fn watch<P: AsRef<Path>>(_path: P) -> notify::Result<()> {
 
     // Automatically select the best implementation for your platform.
     // You can also access each implementation directly e.g. INotifyWatcher.
+    #[allow(unused_mut, unused_variables)]
     let mut watcher = RecommendedWatcher::new(tx, notify::Config::default())?;
 
     // Add a path to be watched. All files and directories at that path and

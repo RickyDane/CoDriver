@@ -12,6 +12,7 @@ dependencies = [
  "brotlic",
  "bzip2 0.6.1",
  "chrono",
+ "clipboard-win",
  "cocoa",
  "color-print",
  "copy_dir",
