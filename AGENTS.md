@@ -179,4 +179,5 @@ When developing or debugging this repository, you should prioritize:
    showToast("Action failed: " + error, ToastType.ERROR);
    ```
 4. **Respect AI Provider Selection**: Do not hardcode a specific AI provider (such as Gemini or OpenAI). Always check the active `ai_provider` configuration (e.g. the global `AiProvider` on the frontend, and the settings map in `app_config.json` on the backend). AI commands must query the selected provider and model to ensure user settings and keychain API keys are fully respected.
+5. **Codebase Exploration & Knowledge Graph**: Prefer using **graphify** (via the CLI or MCP tools) to navigate, query, or understand codebase architecture and relationships (using graphify-out/graph.json or the graphify wiki). It is highly efficient and provides scoped subgraphs instead of broad grep queries. Always run `graphify update .` after modifying source code files in a session to keep the graph current.
 

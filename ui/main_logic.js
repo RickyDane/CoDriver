@@ -1630,11 +1630,11 @@ async function showDeletePopup() {
       finishDeleteSizeCalculation(deleteUpdateId);
       invoke("cancel_size_calculation");
       popup.classList.add("popup-exit");
-      popup.addEventListener("animationend", () => {
+      safeAnimationEnd(popup, () => {
         popup.remove();
         IsPopUpOpen = false;
         resolve(ok);
-      }, { once: true });
+      });
     };
     popup.querySelector("[data-delete-cancel]").onclick = () => finish(false);
     popup.querySelector("[data-delete-confirm]").onclick = () => finish(true);
@@ -1827,11 +1827,11 @@ async function showCopyMovePopup(isMove = false) {
       finishCopyMoveSizeCalculation(copyMoveUpdateId);
       invoke("cancel_size_calculation");
       popup.classList.add("popup-exit");
-      popup.addEventListener("animationend", () => {
+      safeAnimationEnd(popup, () => {
         popup.remove();
         IsPopUpOpen = false;
         resolve(ok);
-      }, { once: true });
+      });
     };
     popup.querySelector("[data-copy-move-cancel]").onclick = () => finish(false);
     popup.querySelector("[data-copy-move-confirm]").onclick = () => finish(true);
@@ -1956,11 +1956,11 @@ async function showExtractPopup(item) {
       if (isClosed) return;
       isClosed = true;
       popup.classList.add("popup-exit");
-      popup.addEventListener("animationend", () => {
+      safeAnimationEnd(popup, () => {
         popup.remove();
         IsPopUpOpen = false;
         resolve(ok);
-      }, { once: true });
+      });
     };
     popup.querySelector("[data-extract-cancel]").onclick = () => finish(false);
     popup.querySelector("[data-extract-confirm]").onclick = () => finish(true);
@@ -2117,7 +2117,7 @@ async function compressItem(
 
   // Update the file size info of the file which is being compressed
   if (arrItems.length > 1) {
-    var filePath = CurrentDir + "/compressed_items_archive." + compressionType;
+    var filePath = CurrentDir + "/compressed_items_archive." + (compressionType === "br" ? "tar.br" : compressionType);
   } else {
     var filePath =
       arrItems[0].getAttribute("itempath") +
@@ -2185,11 +2185,11 @@ async function closeCompressPopup() {
   let popup = document.querySelector(".compression-popup");
   if (popup) {
     popup.classList.add("popup-exit");
-    popup.addEventListener("animationend", () => {
+    safeAnimationEnd(popup, () => {
       popup?.remove();
       IsPopUpOpen = false;
       IsInputFocused = false;
-    }, { once: true });
+    });
   } else {
     IsPopUpOpen = false;
     IsInputFocused = false;
@@ -2783,11 +2783,11 @@ async function closeUpscalePopup() {
   let popup = document.querySelector(".upscale-popup");
   if (popup) {
     popup.classList.add("popup-exit");
-    popup.addEventListener("animationend", () => {
+    safeAnimationEnd(popup, () => {
       popup?.remove();
       IsPopUpOpen = false;
       IsInputFocused = false;
-    }, { once: true });
+    });
   } else {
     IsPopUpOpen = false;
     IsInputFocused = false;
@@ -2810,10 +2810,10 @@ function closeLoadingPopup() {
   let popup = document.querySelector(".loading-popup");
   if (popup) {
     popup.classList.add("popup-exit");
-    popup.addEventListener("animationend", () => {
+    safeAnimationEnd(popup, () => {
       popup?.remove();
       IsPopUpOpen = false;
-    }, { once: true });
+    });
   } else {
     IsPopUpOpen = false;
   }
@@ -2849,10 +2849,10 @@ function closeInputPopup() {
   let popup = document.querySelector(".input-popup");
   if (popup) {
     popup.classList.add("popup-exit");
-    popup.addEventListener("animationend", () => {
+    safeAnimationEnd(popup, () => {
       popup?.remove();
       IsPopUpOpen = false;
-    }, { once: true });
+    });
   } else {
     IsPopUpOpen = false;
   }
@@ -3070,7 +3070,7 @@ async function showDestinationConflictPopup(conflict, index, total) {
       let selected = popup.querySelector("input[name='conflict-action']:checked")?.value ?? "duplicate";
       let applyToAll = popup.querySelector(".destination-conflict-apply-all-input")?.checked ?? false;
       popup.classList.add("popup-exit");
-      popup.addEventListener("animationend", () => {
+      safeAnimationEnd(popup, () => {
         popup?.remove();
         $(".popup-background").css("display", "none");
         $(".popup-background").css("opacity", "0");
@@ -3080,7 +3080,7 @@ async function showDestinationConflictPopup(conflict, index, total) {
           previouslyFocused.focus();
         }
         resolve({ action: action ?? selected, applyToAll });
-      }, { once: true });
+      });
     };
 
     popup.querySelector(".destination-conflict-cancel").onclick = () => close("cancel");
@@ -5412,6 +5412,19 @@ async function showProperties(item) {
   const modifiedAt = isMulti ? null : first.getAttribute("itemmodified");
   const extDesc = ext ? getExtDescription(ext) : undefined;
 
+  const isArchive = !isMulti && ['.zip', '.7z', '.tar', '.density', '.rar', '.br', '.zst', '.zstd'].includes(ext.toLowerCase());
+  const archiveOriginalSizeRow = isArchive
+    ? `
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-expand"></i>Original Size</dt>
+        <dd class="props-card__value">
+          <span class="properties-item-original-size">
+            <span class="props-card__skeleton"></span>
+          </span>
+        </dd>
+      </div>`
+    : "";
+
   let kindLabel;
   let iconHtml;
   let chipHtml = "";
@@ -5483,6 +5496,7 @@ async function showProperties(item) {
           </span>
         </dd>
       </div>
+      ${archiveOriginalSizeRow}
     </dl>
 
     <footer class="props-card__footer">
@@ -5497,21 +5511,49 @@ async function showProperties(item) {
   popup.classList.add("popup-enter");
   IsPopUpOpen = true;
   const propertiesUpdateId = startPropertiesSizeCalculation();
+  popup.dataset.updateId = propertiesUpdateId;
 
   if (!isMulti) {
     try {
-      await getSimpleDirInfo(
+      const info = await getSimpleDirInfo(
         first.getAttribute("itempath"),
         ".properties-item-size",
         isDir,
         propertiesUpdateId
       );
       finishPropertiesSizeCalculation(propertiesUpdateId);
+
+      if (isArchive && info && info.size) {
+        (async () => {
+          try {
+            const originalBytes = await invoke("get_archive_original_size", { path });
+            const currentPopup = document.querySelector(".item-properties-popup");
+            if (!currentPopup || currentPopup.dataset.updateId !== propertiesUpdateId) return;
+
+            const originalSizeStr = formatBytes(originalBytes, 2);
+            let ratioText = "";
+            if (originalBytes > 0) {
+              const ratio = ((info.size / originalBytes) * 100).toFixed(1);
+              ratioText = ` <span style="font-size: 10.5px; color: #4caf50; font-weight: 600; margin-left: 6px;">(${ratio}% of original size)</span>`;
+            }
+            $(".properties-item-original-size").html(`${originalSizeStr}${ratioText}`);
+          } catch (err) {
+            const currentPopup = document.querySelector(".item-properties-popup");
+            if (!currentPopup || currentPopup.dataset.updateId !== propertiesUpdateId) return;
+            console.error("Failed to get archive original size:", err);
+            $(".properties-item-original-size").html("<span style='color: var(--textColor2); opacity: 0.7;'>Unavailable</span>");
+          }
+        })();
+      }
     } catch (error) {
-      if (!isPropertiesSizeUpdateCurrent(propertiesUpdateId)) return;
+      const currentPopup = document.querySelector(".item-properties-popup");
+      if (!currentPopup || currentPopup.dataset.updateId !== propertiesUpdateId) return;
       finishPropertiesSizeCalculation(propertiesUpdateId);
       writeLog(error);
       $(".properties-item-size").html("Unable to calculate size");
+      if (isArchive) {
+        $(".properties-item-original-size").html("<span style='color: var(--textColor2); opacity: 0.7;'>Unavailable</span>");
+      }
     }
   } else {
     const paths = itemsToProcess.map((i) => i.getAttribute("itempath"));
@@ -5536,11 +5578,11 @@ function closeInfoProperties() {
   let popup = document.querySelector(".item-properties-popup");
   if (popup) {
     popup.classList.add("popup-exit");
-    popup.addEventListener("animationend", () => {
+    safeAnimationEnd(popup, () => {
       popup?.remove();
       IsPopUpOpen = false;
       IsItemPreviewOpen = false;
-    }, { once: true });
+    });
   } else {
     IsPopUpOpen = false;
     IsItemPreviewOpen = false;
@@ -5979,11 +6021,11 @@ function closeMultiRenamePopup() {
   let popup = document.querySelector(".multi-rename-popup");
   if (popup) {
     popup.classList.add("popup-exit");
-    popup.addEventListener("animationend", () => {
+    safeAnimationEnd(popup, () => {
       popup?.remove();
       IsPopUpOpen = false;
       IsInputFocused = false;
-    }, { once: true });
+    });
   } else {
     IsPopUpOpen = false;
     IsInputFocused = false;
@@ -5997,7 +6039,7 @@ async function closeItemPreview() {
   let propsPopup = document.querySelector(".item-properties-popup");
   if (propsPopup) {
     propsPopup.classList.add("popup-exit");
-    propsPopup.addEventListener("animationend", () => propsPopup?.remove(), { once: true });
+    safeAnimationEnd(propsPopup, () => propsPopup?.remove());
   }
   IsPopUpOpen = false;
   IsItemPreviewOpen = false;
@@ -6333,10 +6375,10 @@ function hideFtpLoader(paneSide) {
 function closeFtpConfig() {
   let popup = document.querySelector(".ftp-connect-container");
   popup.classList.add("popup-exit");
-  popup.addEventListener("animationend", () => {
+  safeAnimationEnd(popup, () => {
     popup.style.display = "none";
     popup.classList.remove("popup-exit");
-  }, { once: true });
+  });
   $(".ftp-loader").css("display", "none");
   IsPopUpOpen = false;
   IsDisableShortcuts = false;
@@ -7561,12 +7603,12 @@ function closeConfirmPopup() {
   let popup = document.querySelector(".confirm-popup");
   if (popup) {
     popup.classList.add("popup-exit");
-    popup.addEventListener("animationend", () => {
+    safeAnimationEnd(popup, () => {
       popup?.remove();
       $(".popup-background").css("display", "none");
       $(".popup-background").css("opacity", "0");
       IsPopUpOpen = false;
-    }, { once: true });
+    });
   } else {
     $(".popup-background").css("display", "none");
     $(".popup-background").css("opacity", "0");
@@ -8201,9 +8243,9 @@ async function showDuplicateFinderPopup(path) {
     setTimeout(() => {
       $(".popup-background").css("display", "none");
     }, 150);
-    popup.addEventListener("animationend", () => {
+    safeAnimationEnd(popup, () => {
       popup.remove();
-    }, { once: true });
+    });
   };
 
   popup.querySelectorAll("[data-dup-close]").forEach(el => {
@@ -8857,9 +8899,9 @@ function closeSmartOrganizerPopup() {
     setTimeout(() => {
       $(".popup-background").css("display", "none");
     }, 150);
-    popup.addEventListener("animationend", () => {
+    safeAnimationEnd(popup, () => {
       popup.remove();
-    }, { once: true });
+    });
   }
 }
 

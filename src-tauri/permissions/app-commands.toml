@@ -15,6 +15,7 @@ commands.allow = [
   "delete_item",
   "extract_item",
   "compress_item",
+  "get_archive_original_size",
   "create_folder",
   "switch_view",
   "check_app_config",

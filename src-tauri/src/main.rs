@@ -180,6 +180,7 @@ fn main() {
             delete_item,
             extract_item,
             compress_item,
+            get_archive_original_size,
             create_folder,
             switch_view,
             check_app_config,
@@ -3296,6 +3297,60 @@ mod tests {
         assert_eq!(dup_groups[1].size, 10);
         assert_eq!(dup_groups[1].files.len(), 2);
     }
+
+    #[tokio::test]
+    async fn test_archive_original_size() {
+        use std::fs::write;
+        let temp_dir = std::env::temp_dir();
+        let input_file_path = temp_dir.join("test_orig_input.txt");
+        let test_data = b"Some dummy text data to check archive original size lookup!";
+        write(&input_file_path, test_data).unwrap();
+
+        let output_archive_path = temp_dir.join("test_orig_archive.density");
+        if output_archive_path.exists() {
+            let _ = std::fs::remove_file(&output_archive_path);
+        }
+
+        let res = crate::utils::compress_to_density(
+            &output_archive_path,
+            vec![input_file_path.to_string_lossy().to_string()],
+            1,
+        );
+        assert!(res.is_ok());
+
+        let orig_size_res = get_archive_original_size(output_archive_path.to_string_lossy().to_string()).await;
+        println!("Original size result: {:?}", orig_size_res);
+        assert!(orig_size_res.is_ok());
+        assert!(orig_size_res.unwrap() >= test_data.len() as u64);
+
+        // Cleanup Density
+        let _ = std::fs::remove_file(&input_file_path);
+        let _ = std::fs::remove_file(&output_archive_path);
+
+        // Test Tar + Zstd uncompressed size calculation!
+        let output_zstd_path = temp_dir.join("test_orig_archive.zstd");
+        if output_zstd_path.exists() {
+            let _ = std::fs::remove_file(&output_zstd_path);
+        }
+
+        let zstd_file = std::fs::File::create(&output_zstd_path).unwrap();
+        let enc = zstd::Encoder::new(zstd_file, 1).unwrap();
+        let mut tar_builder = tar::Builder::new(enc.auto_finish());
+
+        let input_file_path = temp_dir.join("test_orig_input.txt");
+        write(&input_file_path, test_data).unwrap();
+        tar_builder.append_path_with_name(&input_file_path, "test_orig_input.txt").unwrap();
+        tar_builder.into_inner().unwrap(); // finish tar and zstd encoder
+
+        let orig_size_res = get_archive_original_size(output_zstd_path.to_string_lossy().to_string()).await;
+        println!("Zstd original size result: {:?}", orig_size_res);
+        assert!(orig_size_res.is_ok());
+        assert!(orig_size_res.unwrap() >= test_data.len() as u64);
+
+        // Cleanup Zstd
+        let _ = std::fs::remove_file(input_file_path);
+        let _ = std::fs::remove_file(output_zstd_path);
+    }
 }
 
 #[tauri::command]
@@ -3500,6 +3555,136 @@ async fn arr_compress_items(
     )
     .await
     .unwrap();
+}
+
+#[tauri::command]
+async fn get_archive_original_size(path: String) -> Result<u64, String> {
+    use std::fs::File;
+    use std::path::PathBuf;
+
+    let path_buf = PathBuf::from(&path);
+    let ext = path_buf
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    match ext.as_str() {
+        "zip" => {
+            let file = File::open(&path).map_err(|e| e.to_string())?;
+            let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
+            let mut total_size = 0;
+            for i in 0..archive.len() {
+                if let Ok(file) = archive.by_index(i) {
+                    total_size += file.size();
+                }
+            }
+            Ok(total_size)
+        }
+        "density" => {
+            // Read from the Density MAGIC_V2 / MAGIC header
+            let mut file = File::open(&path).map_err(|e| e.to_string())?;
+            let mut header = [0u8; 4];
+            use std::io::Read;
+            file.read_exact(&mut header).map_err(|e| e.to_string())?;
+            let magic = u32::from_le_bytes(header);
+            
+            if magic == 0xDE_AF { // MAGIC_V2
+                let mut alg_buf = [0u8; 1];
+                file.read_exact(&mut alg_buf).map_err(|e| e.to_string())?;
+                let mut size_buf = [0u8; 8];
+                file.read_exact(&mut size_buf).map_err(|e| e.to_string())?;
+                Ok(u64::from_le_bytes(size_buf))
+            } else if magic == 0xDE_AD { // MAGIC
+                let mut size_buf = [0u8; 8];
+                file.read_exact(&mut size_buf).map_err(|e| e.to_string())?;
+                Ok(u64::from_le_bytes(size_buf))
+            } else {
+                Err("Unsupported or invalid Density archive format".into())
+            }
+        }
+        "tar" => {
+            let file = File::open(&path).map_err(|e| e.to_string())?;
+            let mut archive = tar::Archive::new(file);
+            let mut total_size = 0;
+            if let Ok(entries) = archive.entries() {
+                for entry in entries.filter_map(|e| e.ok()) {
+                    total_size += entry.header().size().unwrap_or(0);
+                }
+            }
+            Ok(total_size)
+        }
+        "7z" => {
+            let mut total_size = 0;
+            let res = sevenz_rust::decompress_file_with_extract_fn(&path, "", |entry, _, _| {
+                if !entry.is_directory() {
+                    total_size += entry.size();
+                }
+                Ok(false)
+            });
+            if res.is_ok() {
+                Ok(total_size)
+            } else {
+                Err("Failed to read 7z archive".into())
+            }
+        }
+        "rar" => {
+            #[cfg(not(target_os = "windows"))]
+            {
+                let archive = unrar::Archive::new(&path)
+                    .open_for_listing()
+                    .map_err(|e| e.to_string())?;
+                let mut total_size = 0;
+                for entry in archive {
+                    let entry = entry.map_err(|e| e.to_string())?;
+                    total_size += entry.unpacked_size as u64;
+                }
+                Ok(total_size)
+            }
+            #[cfg(target_os = "windows")]
+            {
+                Err("RAR metadata lookup not supported on Windows".into())
+            }
+        }
+        "br" => {
+            use brotlic::DecompressorReader;
+            use std::io::BufReader;
+            let file = File::open(&path).map_err(|e| e.to_string())?;
+            let decompressor = DecompressorReader::new(BufReader::new(file));
+            let mut archive = tar::Archive::new(decompressor);
+            let mut total_size = 0;
+            if let Ok(entries) = archive.entries() {
+                for entry in entries.filter_map(|e| e.ok()) {
+                    total_size += entry.header().size().unwrap_or(0);
+                }
+            }
+            Ok(total_size)
+        }
+        "zst" | "zstd" => {
+            let file = File::open(&path).map_err(|e| e.to_string())?;
+            if let Ok(mut archive) = zip::ZipArchive::new(file) {
+                let mut total_size = 0;
+                for i in 0..archive.len() {
+                    if let Ok(file) = archive.by_index(i) {
+                        total_size += file.size();
+                    }
+                }
+                Ok(total_size)
+            } else {
+                let file = File::open(&path).map_err(|e| e.to_string())?;
+                let decoder = zstd::Decoder::new(file).map_err(|e| e.to_string())?;
+                let mut archive = tar::Archive::new(decoder);
+                let mut total_size = 0;
+                if let Ok(entries) = archive.entries() {
+                    for entry in entries.filter_map(|e| e.ok()) {
+                        total_size += entry.header().size().unwrap_or(0);
+                    }
+                }
+                Ok(total_size)
+            }
+        }
+        _ => Err(format!("Unsupported archive extension: .{}", ext)),
+    }
 }
 
 #[tauri::command]

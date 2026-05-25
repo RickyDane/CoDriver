@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoDriver | High-Performance Desktop File Explorer</title>
+  
+  <!-- Meta Tags for SEO -->
+  <meta name="description" content="CoDriver is a blazingly fast, cross-platform desktop file explorer built with Rust and Tauri v2. Features zero-cache real-time walks, dual-pane productivity, and Google Gemini AI.">
+  <meta name="keywords" content="CoDriver, file explorer, rust, tauri, high performance, cross-platform, file manager, minimalist, dual-pane, sftp, gemini ai, image upscale">
+  <meta name="author" content="Ricky Dane">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="CoDriver | High-Performance Desktop File Explorer">
+  <meta property="og:description" content="A blazingly fast, multi-threaded desktop file explorer built in Rust. No path caching, just pure raw speed and modern design.">
+  <meta property="og:image" content="codriver-hero-image.png">
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:title" content="CoDriver | High-Performance Desktop File Explorer">
+  <meta property="twitter:description" content="A blazingly fast, multi-threaded desktop file explorer built in Rust. No path caching, just pure raw speed and modern design.">
+  <meta property="twitter:image" content="codriver-hero-image.png">
+
+  <!-- Icons & Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header id="header">
+    <div class="container">
+      <div class="logo">
+        <img src="codriver-logo.png" alt="CoDriver Logo" class="logo-image">
+        <span>CoDriver</span>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#download">Download</a></li>
+        </ul>
+      </nav>
+      <div class="nav-actions">
+        <a href="https://github.com/RickyDane/CoDriver" target="_blank" class="github-star" id="githubStarBtn">
+          <i class="fa-brands fa-github"></i> Star on GitHub
+        </a>
+        <a href="#download" class="btn btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.9rem; border-radius: 99px;">Download</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <div class="container">
+      <div class="hero-content">
+
+        <h1 class="gradient-text">The Speed of Rust. <span class="gradient-text-accent">Engineered for Performance.</span></h1>
+        <p class="lead">Experience real-time directory exploration at raw drive speeds. CoDriver walks your folders using parallel multi-threaded disk walks—unifying index-free browsing, rich previews, dual-pane operations, and integrated Gemini AI superpowers.</p>
+        
+        <div class="hero-buttons">
+          <a href="#download" class="btn btn-primary">
+            <i class="fa-solid fa-download"></i> Get CoDriver Free
+          </a>
+          <a href="https://github.com/RickyDane/CoDriver" target="_blank" class="btn btn-secondary">
+            <i class="fa-brands fa-github"></i> View Source
+          </a>
+        </div>
+      </div>
+
+      <!-- macOS Interactive Screenshot Mockup -->
+      <div class="hero-mockup-wrapper reveal">
+        <div class="hero-mockup-glow"></div>
+        <div class="macos-mockup" id="heroMockup">
+          <img src="codriver-hero-image.png" alt="CoDriver Desktop File Explorer Screenshot" class="macos-screenshot">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Metrics Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="glass-card stat-card reveal">
+          <div class="stat-number">0ms</div>
+          <div class="stat-label">Cache Delay</div>
+          <div class="stat-desc">Real-time traversal means zero database lag or folder caching.</div>
+        </div>
+        <div class="glass-card stat-card reveal">
+          <div class="stat-number">100%</div>
+          <div class="stat-label">Rust Core</div>
+          <div class="stat-desc">High-performance system bindings using Tauri v2 backend.</div>
+        </div>
+        <div class="glass-card stat-card reveal">
+          <div class="stat-number">Multi</div>
+          <div class="stat-label">Thread Scanning</div>
+          <div class="stat-desc">Orchestrated disk exploration powered by Rayon and jwalk.</div>
+        </div>
+        <div class="glass-card stat-card reveal">
+          <div class="stat-number">Native</div>
+          <div class="stat-label">Archive Suite</div>
+          <div class="stat-desc">Compress or decompress ZIP, Zstandard, 7Z, RAR, TAR, and Brotli with ease.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Showroom -->
+  <section class="section-padding" id="features">
+    <div class="container">
+      <div class="section-header reveal">
+
+        <h2>Designed for Speed and Elegance</h2>
+        <p>Explore the modular components that make CoDriver a highly capable companion for developers, creators, and power users.</p>
+      </div>
+
+      <!-- Showroom Tab Switchers (Segmented Control Pill Style) -->
+      <div class="showroom-tabs-container reveal">
+        <div class="showroom-tabs">
+          <button class="tab-btn active" data-tab="speed">
+            <i class="fa-solid fa-gauge-high"></i> Speed & Layouts
+          </button>
+          <button class="tab-btn" data-tab="dual-pane">
+            <i class="fa-solid fa-columns"></i> Dual-Pane Mode
+          </button>
+          <button class="tab-btn" data-tab="remote">
+            <i class="fa-solid fa-network-wired"></i> Native SFTP/FTP
+          </button>
+          <button class="tab-btn" data-tab="archive">
+            <i class="fa-solid fa-file-zipper"></i> Archive Suite
+          </button>
+          <button class="tab-btn" data-tab="ai">
+            <i class="fa-solid fa-expand"></i> Gemini AI Upscale
+          </button>
+        </div>
+      </div>
+
+      <!-- Showroom Interactive Content Panels -->
+      <div class="showroom-content glass-card reveal" style="padding: 3rem;">
+        
+        <!-- Panel 1: Speed & Layouts -->
+        <div class="showroom-panel active" id="tab-speed">
+          <div class="showroom-info">
+            <h3><i class="fa-solid fa-circle-nodes"></i> Instant Views & Indexing</h3>
+            <p>CoDriver is designed to handle directories containing hundreds of thousands of files without missing a beat. It accesses disk blocks natively and streams files directly to the UI.</p>
+            <ul class="showroom-bullets">
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-table-cells"></i></div>
+                <div>
+                  <strong>Layout Modes</strong>
+                  <span>Switch seamlessly between Grid, List, and Miller Columns depending on your workflow.</span>
+                </div>
+              </li>
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-keyboard"></i></div>
+                <div>
+                  <strong>Instant Navigation</strong>
+                  <span>Just start typing in any folder to filter matching elements on-the-fly and find files in milliseconds.</span>
+                </div>
+              </li>
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-eye"></i></div>
+                <div>
+                  <strong>Quick Preview (Spacebar)</strong>
+                  <span>Instantly preview PDFs, images, code files, HTML, JSON, or media without launching external apps.</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="showroom-visual">
+            <div class="widget-frame">
+              <div class="speed-widget-bar">
+                <span>Instant Filter Input</span>
+                <span class="speed-metric"><i class="fa-solid fa-magnifying-glass"></i> typing filter active</span>
+              </div>
+              <div class="speed-flex-layout" style="flex-direction: column; gap: 1rem; width: 100%;">
+                <div style="width: 100%; display: flex; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: 8px; padding: 0.5rem 1rem;">
+                  <i class="fa-solid fa-magnifying-glass" style="margin-right: 0.75rem; color: var(--text-muted);"></i>
+                  <span style="font-family: monospace; font-size: 0.9rem; color: var(--text-white);">tauri</span>
+                  <span class="console-cursor" style="height: 12px; width: 6px; background: var(--primary); margin-left: 2px;"></span>
+                </div>
+                <div class="speed-items-list" style="width: 100%;">
+                  <div class="speed-item-row" style="border-color: rgba(139,92,246,0.3); background: rgba(139,92,246,0.05);">
+                    <div class="speed-item-left"><i class="fa-solid fa-file-code" style="color: var(--primary);"></i> <span>src-tauri/src/main.rs</span></div>
+                    <span style="color: var(--primary); font-weight: 600;">Match</span>
+                  </div>
+                  <div class="speed-item-row" style="border-color: rgba(139,92,246,0.3); background: rgba(139,92,246,0.05);">
+                    <div class="speed-item-left"><i class="fa-solid fa-file-code" style="color: var(--primary);"></i> <span>src-tauri/Cargo.toml</span></div>
+                    <span style="color: var(--primary); font-weight: 600;">Match</span>
+                  </div>
+                  <div class="speed-item-row" style="border-color: rgba(139,92,246,0.3); background: rgba(139,92,246,0.05);">
+                    <div class="speed-item-left"><i class="fa-solid fa-file-code" style="color: var(--primary);"></i> <span>src-tauri/tauri.conf.json</span></div>
+                    <span style="color: var(--primary); font-weight: 600;">Match</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Dual Pane -->
+        <div class="showroom-panel" id="tab-dual-pane">
+          <div class="showroom-info">
+            <h3><i class="fa-solid fa-columns"></i> Side-by-Side Dual-Pane</h3>
+            <p>Built for efficiency, CoDriver lets you toggle a balanced Dual-Pane layout using a single button. Say goodbye to dragging and dropping files across multiple windows.</p>
+            <ul class="showroom-bullets">
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-share"></i></div>
+                <div>
+                  <strong>F5 Copy & Move Shortcuts</strong>
+                  <span>Highlight items and press <code>F5</code> to copy or <code>Shift+F5</code> to move them straight into the opposite pane.</span>
+                </div>
+              </li>
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <div>
+                  <strong>Focused Deep Search</strong>
+                  <span>Use <code>F8</code> to trigger a robust concurrent file search isolated to the active folder tree.</span>
+                </div>
+              </li>
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-shuffle"></i></div>
+                <div>
+                  <strong>Multi-Rename Tool</strong>
+                  <span>Batch rename directories or collections with custom regex patterns using <code>Cmd/Ctrl + Shift + M</code>.</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="showroom-visual">
+            <div class="widget-frame" style="justify-content: center;">
+              <div class="dual-pane-widget">
+                <div class="pane-col">
+                  <div class="pane-header"><i class="fa-solid fa-folder-open"></i> Documents/</div>
+                  <div class="pane-item active">
+                    <span><i class="fa-solid fa-file-pdf" style="color: var(--rose);"></i> tax_report.pdf</span>
+                    <span>420 KB</span>
+                  </div>
+                  <div class="pane-item">
+                    <span><i class="fa-solid fa-file-word" style="color: var(--secondary);"></i> draft.docx</span>
+                    <span>1.1 MB</span>
+                  </div>
+                </div>
+                <div class="pane-col">
+                  <div class="pane-header"><i class="fa-solid fa-folder-open"></i> Backups/</div>
+                  <div class="pane-item">
+                    <span><i class="fa-solid fa-file-word" style="color: var(--secondary);"></i> draft.docx</span>
+                    <span>1.1 MB</span>
+                  </div>
+                  <div class="pane-item success-badge">
+                    <span><i class="fa-solid fa-file-pdf" style="color: var(--rose);"></i> tax_report.pdf</span>
+                    <span style="color: var(--accent);">Copied!</span>
+                  </div>
+                </div>
+              </div>
+              <div class="transfer-line"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Native SFTP/FTP -->
+        <div class="showroom-panel" id="tab-remote">
+          <div class="showroom-info">
+            <h3><i class="fa-solid fa-network-wired"></i> Native FTP & SFTP</h3>
+            <p>Work directly on remote file systems as if they were local storage modules. CoDriver has native FTP and SFTP client integration built directly into the explorer tree.</p>
+            <ul class="showroom-bullets">
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-link"></i></div>
+                <div>
+                  <strong>Native Connections</strong>
+                  <span>Connect natively to remote FTP and SFTP servers directly within the disks panel with zero external dependencies.</span>
+                </div>
+              </li>
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-key"></i></div>
+                <div>
+                  <strong>Secure Credentials</strong>
+                  <span>Log in with secure password entry or SSH private keys natively stored within your local client.</span>
+                </div>
+              </li>
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-rocket"></i></div>
+                <div>
+                  <strong>Fast Traversal</strong>
+                  <span>Crawl and stream remote paths instantly using optimized asynchronous multi-threading, providing real-time sidebar nodes.</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="showroom-visual">
+            <div class="widget-frame">
+              <div class="remote-widget">
+                <div class="remote-pill-flex">
+                  <div class="archive-pill" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: var(--accent);">
+                    <i class="fa-solid fa-network-wired"></i> SFTP Mounted
+                  </div>
+                </div>
+                <div class="ftp-terminal">
+                  <div class="ftp-line out">> sftp://rickydane@daneserver.org:22/var/www</div>
+                  <div class="ftp-line in">Authenticating with SSH Key...</div>
+                  <div class="ftp-line in">FUSE Connection established successfully.</div>
+                  <div class="ftp-line in">Registering /mnt/daneserver into CoDriver Disks Panel...</div>
+                  <div class="ftp-line out">> jwalk -d 1 /mnt/daneserver</div>
+                  <div class="ftp-line in" style="color: var(--accent);">15,249 files crawled in 0.12s. Sidebar updated.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 4: Archive Suite -->
+        <div class="showroom-panel" id="tab-archive">
+          <div class="showroom-info">
+            <h3><i class="fa-solid fa-file-zipper"></i> High-Ratio Archive Suite</h3>
+            <p>Compress files instantly or decompress deep directory structures without leaving your file explorer. CoDriver features a native compression suite tuned for high-performance ratios.</p>
+            <ul class="showroom-bullets">
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-file-zipper"></i></div>
+                <div>
+                  <strong>Multi-Format Compression</strong>
+                  <span>Compress items instantly to ZIP, high-density ZStandard, Brotli, or Density archives via context menus.</span>
+                </div>
+              </li>
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-folder-open"></i></div>
+                <div>
+                  <strong>Built-in Extraction</strong>
+                  <span>Decompress zip, rar, 7zip, and tar (.tar.gz, .tar.bz2) files cleanly directly inside active folders.</span>
+                </div>
+              </li>
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div>
+                  <strong>Zero Dependencies</strong>
+                  <span>No external winrar or 7zip tools needed. All algorithms are compiled natively inside CoDriver's Rust core.</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="showroom-visual">
+            <div class="widget-frame">
+              <div class="archive-widget">
+                <div class="archive-item-card">
+                  <div class="archive-item-info">
+                    <i class="fa-solid fa-file-zipper"></i>
+                    <div>
+                      <strong>Compressing photos/</strong>
+                      <span>184 files • 42.1 MB</span>
+                    </div>
+                  </div>
+                  <span class="archive-ratio-badge">zstd -9</span>
+                </div>
+                <div class="archive-progress-container">
+                  <div class="archive-progress-meta">
+                    <span>Packing archive.tar.zstd...</span>
+                    <span class="archive-pct">74%</span>
+                  </div>
+                  <!-- Compression progress bar container -->
+                  <div class="archive-progress-bar-bg">
+                    <div class="archive-progress-fill" style="width: 74%;"></div>
+                  </div>
+                </div>
+                <div class="archive-success-banner">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <div>
+                    <strong>Compression Completed!</strong>
+                    <span>Created archive.tar.zstd [10.8 MB | Saved 74%]</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 4: Gemini AI Upscaler [NEW/CORRECTED] -->
+        <div class="showroom-panel" id="tab-ai">
+          <div class="showroom-info">
+            <h3><i class="fa-solid fa-expand"></i> Gemini AI Image Upscaler</h3>
+            <p>Supercharge your visual workflow natively. Right-click any image inside the explorer and select the Upscale panel to generate high-resolution details on-demand.</p>
+            <ul class="showroom-bullets">
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                <div>
+                  <strong>Gemini AI Super-Resolution</strong>
+                  <span>Upscale low-resolution previews using integrated Google Gemini 3.1 Flash Image models, enhancing details and sharpening textures without pixelation.</span>
+                </div>
+              </li>
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-object-group"></i></div>
+                <div>
+                  <strong>Aspect Ratio & Model Controls</strong>
+                  <span>Toggle between traditional algorithms (Lanczos, Bicubic) and neural upscale paths with customizable target sizes (2x, 4x) and filenames.</span>
+                </div>
+              </li>
+              <li>
+                <div class="bullet-icon"><i class="fa-solid fa-key"></i></div>
+                <div>
+                  <strong>Secure Local Keys</strong>
+                  <span>Your Google AI Studio API key is stored safely within your system's secure local configuration. No middleman proxies or cloud storage.</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="showroom-visual">
+            <div class="widget-frame">
+              <div class="ai-widget">
+                <!-- AI Image Upscale Split Screen Comparison -->
+                <div class="upscale-image-container">
+                  <div class="upscale-before">
+                    <div class="upscale-image-box">
+                      <i class="fa-solid fa-image"></i>
+                      <span style="font-family: monospace; font-size: 11px; color: var(--text-muted);">Low-Res Thumbnail (150x150)</span>
+                    </div>
+                  </div>
+                  <div class="upscale-after">
+                    <div class="upscale-image-box">
+                      <i class="fa-solid fa-image"></i>
+                      <span style="font-family: monospace; font-size: 11px; color: var(--primary);">Upscaled by Gemini 3.1 (600x600)</span>
+                    </div>
+                  </div>
+                  <div class="upscale-slider-line"></div>
+                </div>
+                
+                <div class="upscale-floating-badge">
+                  <i class="fa-solid fa-arrows-up-to-line"></i> Gemini AI Image Upscaler Active...
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Technical Architecture Flow -->
+  <section class="section-padding arch-section" id="architecture">
+    <div class="container">
+      <div class="section-header reveal">
+
+        <h2>Under the Hood: High-Concurrency Core</h2>
+        <p>CoDriver bypasses heavy file system indexing services, bringing frontend events down to metal operations in microseconds.</p>
+      </div>
+
+      <div class="arch-flow-wrapper reveal">
+        <!-- Interactive SVG Glowing Connections -->
+        <div class="arch-svg-container">
+          <svg class="arch-svg" width="100%" height="100%" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="archGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#f97316" />
+                <stop offset="33%" stop-color="#8b5cf6" />
+                <stop offset="66%" stop-color="#d97706" />
+                <stop offset="100%" stop-color="#10b981" />
+              </linearGradient>
+            </defs>
+            <line class="arch-line-bg" x1="12.5%" y1="50%" x2="87.5%" y2="50%" />
+            <line class="arch-line-pulse" x1="12.5%" y1="50%" x2="87.5%" y2="50%" />
+          </svg>
+        </div>
+
+        <div class="arch-flow">
+          <div class="glass-card arch-node node-ui" data-node="ui">
+            <div class="arch-icon-wrapper">
+              <i class="fa-brands fa-html5"></i>
+            </div>
+            <h4>Modern UI (jQuery)</h4>
+            <p>A GPU-accelerated web view renders our stunning, responsive UI, reacting in real-time to active states.</p>
+          </div>
+          
+          <div class="glass-card arch-node node-ipc" data-node="ipc">
+            <div class="arch-icon-wrapper">
+              <i class="fa-solid fa-share-nodes"></i>
+            </div>
+            <h4>Tauri IPC Channel</h4>
+            <p>Tauri v2 bridges UI interactions directly to Rust backend crates, maintaining thread safety and zero latency.</p>
+          </div>
+
+          <div class="glass-card arch-node node-rust" data-node="rust">
+            <div class="arch-icon-wrapper">
+              <i class="fa-brands fa-rust"></i>
+            </div>
+            <h4>Rust Core & jwalk</h4>
+            <p>Parallel disk walking via rayon and notify-driven file monitors react instantly to directory adjustments.</p>
+          </div>
+
+          <div class="glass-card arch-node node-disk" data-node="disk">
+            <div class="arch-icon-wrapper">
+              <i class="fa-solid fa-hard-drive"></i>
+            </div>
+            <h4>Local File System</h4>
+            <p>Direct system interaction with Windows, macOS, and Linux kernels with no intermediary cache buffers.</p>
+          </div>
+        </div>
+
+        <!-- Architectural System Console Terminal -->
+        <div class="arch-console-card">
+          <div class="arch-console-header">
+            <div class="console-dots">
+              <div class="console-dot red"></div>
+              <div class="console-dot yellow"></div>
+              <div class="console-dot green"></div>
+            </div>
+            <div class="console-title"><i class="fa-solid fa-terminal"></i> Architectural Sandbox Logs</div>
+          </div>
+          <div class="arch-console-body">
+            <span class="console-prompt">rickyperlick@MacBook-Pro ~ %</span><span id="archConsoleOutput">Hover over any architectural card above to trace end-to-end system calls and real-time operations inside CoDriver...</span><span class="console-cursor"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download Section -->
+  <section class="section-padding download-section" id="download">
+    <div class="container">
+      <div class="section-header reveal">
+
+        <h2>Get CoDriver Today</h2>
+        <p>Built for the modern developer workspace. Available natively across all major desktop environments.</p>
+      </div>
+
+      <div class="download-grid reveal">
+        
+        <!-- macOS -->
+        <div class="glass-card download-card mac">
+          <div class="download-icon"><i class="fa-brands fa-apple"></i></div>
+          <h3>macOS Installer</h3>
+          <p class="download-meta">Apple Silicon & Intel DMG | Version 0.7.3</p>
+          <a href="https://github.com/RickyDane/CoDriver/releases" target="_blank" class="btn btn-primary">
+            <i class="fa-solid fa-download"></i> Download DMG
+          </a>
+        </div>
+
+        <!-- Windows -->
+        <div class="glass-card download-card windows">
+          <div class="download-icon"><i class="fa-brands fa-windows"></i></div>
+          <h3>Windows Binary</h3>
+          <p class="download-meta">x64 Installer | Version 0.7.3</p>
+          <a href="https://github.com/RickyDane/CoDriver/releases" target="_blank" class="btn btn-primary">
+            <i class="fa-solid fa-download"></i> Download MSI
+          </a>
+        </div>
+
+        <!-- Linux -->
+        <div class="glass-card download-card linux">
+          <div class="download-icon"><i class="fa-brands fa-linux"></i></div>
+          <h3>Linux Package</h3>
+          <p class="download-meta">AppImage & Snap | Version 0.7.3</p>
+          <a href="https://github.com/RickyDane/CoDriver/releases" target="_blank" class="btn btn-primary">
+            <i class="fa-solid fa-download"></i> Get AppImage
+          </a>
+        </div>
+
+      </div>
+
+      <div class="dependencies-hint reveal">
+        <p><i class="fa-solid fa-circle-info"></i> Connection trouble? Make sure to verify your SSH key configurations in settings. Check out our <a href="https://github.com/RickyDane/CoDriver#%EF%B8%8F-ftp-sftp-integration" target="_blank">FTP / SFTP Integration Guide</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="logo">
+            <img src="codriver-logo.png" alt="CoDriver Logo" class="logo-image">
+            <span>CoDriver</span>
+          </div>
+          <p>A blazingly fast, multi-threaded desktop file explorer built in Rust to unify performance, elegance, and AI workflow integrations.</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-column">
+            <h5>Product</h5>
+            <ul>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#architecture">Architecture</a></li>
+              <li><a href="#download">Download</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h5>Resources</h5>
+            <ul>
+              <li><a href="https://github.com/RickyDane/CoDriver" target="_blank">GitHub Repository</a></li>
+              <li><a href="https://github.com/RickyDane/CoDriver#basic-features" target="_blank">Documentation</a></li>
+              <li><a href="https://github.com/RickyDane/CoDriver/releases" target="_blank">Changelog</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h5>Community</h5>
+            <ul>
+              <li><a href="https://discord.gg/zSE27rjdzp" target="_blank">Discord server</a></li>
+              <li><a href="https://ko-fi.com/rickydane" target="_blank">Support Creator</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 CoDriver File Explorer. Licensed under MIT. Made with love for the Rust community.</p>
+        <div class="footer-socials">
+          <a href="https://github.com/RickyDane/CoDriver" target="_blank"><i class="fa-brands fa-github"></i></a>
+          <a href="https://discord.gg/zSE27rjdzp" target="_blank"><i class="fa-brands fa-discord"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
