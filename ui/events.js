@@ -240,3 +240,23 @@ listen("disk-analyzer-progress", (event) => {
     }
   }
 });
+
+listen("update-progress", (event) => {
+  const { chunk_length, content_length } = event.payload;
+  
+  if (content_length) {
+    const percent = Math.min(100, Math.floor((chunk_length / content_length) * 100));
+    $("#update-progress-bar").css("width", percent + "%");
+    $("#update-progress-text").text(`${percent}% (${(chunk_length / 1024 / 1024).toFixed(2)} MB / ${(content_length / 1024 / 1024).toFixed(2)} MB)`);
+  } else {
+    $("#update-progress-bar").css("width", "100%");
+    $("#update-progress-text").text(`Downloaded ${(chunk_length / 1024 / 1024).toFixed(2)} MB`);
+  }
+});
+
+listen("update-finished", () => {
+  $("#update-status-message").text("Installation completed! Relaunching...");
+  $("#update-progress-bar").css("width", "100%");
+  $("#update-progress-text").text("Complete");
+});
+

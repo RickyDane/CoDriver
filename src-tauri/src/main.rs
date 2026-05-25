@@ -246,10 +246,14 @@ fn main() {
             get_disk_space_tree,
             stop_disk_analysis,
             stop_copy_paste,
-            ai_execute_organize
+            ai_execute_organize,
+            check_for_updates,
+            download_and_install_update
         ])
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_drag::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -5900,5 +5904,71 @@ async fn save_clipboard_image(target_dir: String) -> Result<String, String> {
         Err("Not supported on this platform".to_string())
     }
 }
+
+#[derive(serde::Serialize, Clone)]
+struct UpdateResponse {
+    available: bool,
+    version: String,
+    date: Option<String>,
+    body: Option<String>,
+}
+
+#[derive(serde::Serialize, Clone)]
+struct ProgressPayload {
+    chunk_length: usize,
+    content_length: Option<u64>,
+}
+
+#[tauri::command]
+async fn check_for_updates(app: tauri::AppHandle) -> Result<UpdateResponse, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    let update = updater.check().await.map_err(|e| e.to_string())?;
+    
+    if let Some(update) = update {
+        Ok(UpdateResponse {
+            available: true,
+            version: update.version,
+            date: update.date.map(|d| d.to_string()),
+            body: update.body,
+        })
+    } else {
+        Ok(UpdateResponse {
+            available: false,
+            version: String::new(),
+            date: None,
+            body: None,
+        })
+    }
+}
+
+#[tauri::command]
+async fn download_and_install_update(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+    
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    let update = updater.check().await.map_err(|e| e.to_string())?;
+    
+    if let Some(update) = update {
+        let app_clone = app.clone();
+        let mut downloaded = 0;
+        update.download_and_install(
+            move |chunk_length, content_length| {
+                downloaded += chunk_length;
+                let _ = app_clone.emit("update-progress", ProgressPayload {
+                    chunk_length: downloaded,
+                    content_length,
+                });
+            },
+            move || {
+                let _ = app.emit("update-finished", ());
+            }
+        ).await.map_err(|e| e.to_string())?;
+    }
+    
+    Ok(())
+}
+
 
 

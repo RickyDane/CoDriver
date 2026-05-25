@@ -2,6 +2,8 @@
 identifier = "allow-all-app-commands"
 description = "Enables all application-level commands."
 commands.allow = [
+  "check_for_updates",
+  "download_and_install_update",
   "list_dirs",
   "open_dir",
   "open_item",

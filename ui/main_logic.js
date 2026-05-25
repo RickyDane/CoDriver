@@ -10819,3 +10819,94 @@ async function openItemByPath(path) {
     }
   }
 }
+
+let isUpdateInProgress = false;
+
+async function checkForUpdates() {
+  if (isUpdateInProgress) return;
+  
+  const popup = document.getElementById("update-status-popup");
+  if (!popup) return;
+  
+  popup.style.display = "flex";
+  IsPopUpOpen = true;
+  IsDisableShortcuts = true;
+  
+  $("#update-popup-icon").html('<i class="fa-solid fa-spinner fa-spin"></i>');
+  $("#update-popup-title").text("Checking Updates");
+  $("#update-status-message").text("Checking for updates on GitHub...");
+  $("#update-version-row").hide();
+  $("#update-notes-row").hide();
+  $("#update-progress-row").hide();
+  $("#update-action-btn").hide();
+  $("#update-close-btn").prop("disabled", false);
+  
+  try {
+    const update = await invoke("check_for_updates");
+    if (update.available) {
+      $("#update-popup-icon").html('<i class="fa-solid fa-gift" style="color: #4ba3ff;"></i>');
+      $("#update-popup-title").text("New Version!");
+      $("#update-status-message").text("A new version of CoDriver is available!");
+      $("#update-version-details").text(update.version);
+      
+      if (update.body) {
+        $("#update-release-notes").text(update.body);
+        $("#update-notes-row").show();
+      } else {
+        $("#update-notes-row").hide();
+      }
+      
+      $("#update-version-row").show();
+      $("#update-action-btn").show();
+    } else {
+      $("#update-popup-icon").html('<i class="fa-solid fa-circle-check" style="color: #4cd964;"></i>');
+      $("#update-popup-title").text("Up to Date");
+      $("#update-status-message").text("You are running the latest version of CoDriver!");
+      $("#update-version-row").hide();
+      $("#update-notes-row").hide();
+      $("#update-action-btn").hide();
+    }
+  } catch (err) {
+    $("#update-popup-icon").html('<i class="fa-solid fa-circle-exclamation" style="color: #ff3b30;"></i>');
+    $("#update-popup-title").text("Check Failed");
+    $("#update-status-message").text("Error checking updates: " + err);
+    $("#update-version-row").hide();
+    $("#update-notes-row").hide();
+    $("#update-action-btn").hide();
+  }
+}
+
+function closeUpdatePopup() {
+  if (isUpdateInProgress) return;
+  const popup = document.getElementById("update-status-popup");
+  if (popup) {
+    popup.style.display = "none";
+  }
+  IsPopUpOpen = false;
+  IsDisableShortcuts = false;
+}
+
+async function startUpdateDownload() {
+  if (isUpdateInProgress) return;
+  isUpdateInProgress = true;
+  
+  $("#update-close-btn").prop("disabled", true);
+  $("#update-action-btn").hide();
+  $("#update-progress-row").show();
+  $("#update-progress-bar").css("width", "0%");
+  $("#update-progress-text").text("0%");
+  $("#update-status-message").text("Downloading and installing application update...");
+  
+  try {
+    await invoke("download_and_install_update");
+    $("#update-status-message").text("Update complete! Relaunching CoDriver...");
+  } catch (err) {
+    isUpdateInProgress = false;
+    $("#update-close-btn").prop("disabled", false);
+    $("#update-progress-row").hide();
+    $("#update-popup-icon").html('<i class="fa-solid fa-circle-exclamation" style="color: #ff3b30;"></i>');
+    $("#update-popup-title").text("Update Failed");
+    $("#update-status-message").text("Failed to install update: " + err);
+  }
+}
+
