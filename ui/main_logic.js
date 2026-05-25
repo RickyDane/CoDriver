@@ -9539,7 +9539,8 @@ function populateShortcutsUI() {
   let container = $(".shortcuts-list-container");
   container.html("");
 
-  Object.keys(DefaultShortcuts).forEach(actionName => {
+  let actionKeys = Object.keys(DefaultShortcuts);
+  actionKeys.forEach((actionName, index) => {
     let currentShortcut = ConfiguredShortcuts[actionName] || DefaultShortcuts[actionName];
     let label = ShortcutLabels[actionName] || { name: actionName, desc: "" };
 
@@ -9548,8 +9549,12 @@ function populateShortcutsUI() {
     row.style.display = "flex";
     row.style.justifyContent = "space-between";
     row.style.alignItems = "center";
-    row.style.padding = "6px 8px";
-    row.style.borderBottom = "1px solid var(--tertiaryColor)";
+    row.style.padding = "10px 8px";
+    if (index === actionKeys.length - 1) {
+      row.style.borderBottom = "none";
+    } else {
+      row.style.borderBottom = "1px solid var(--tertiaryColor)";
+    }
     row.style.gap = "10px";
     row.setAttribute("data-action", actionName);
 
@@ -9574,15 +9579,21 @@ function populateShortcutsUI() {
 
 function filterShortcuts(query) {
   let q = query.toLowerCase().trim();
+  let visibleRows = [];
   $(".shortcut-row").each(function() {
     let actionName = $(this).attr("data-action");
     let label = ShortcutLabels[actionName] || { name: "", desc: "" };
     if (label.name.toLowerCase().includes(q) || label.desc.toLowerCase().includes(q)) {
       $(this).css("display", "flex");
+      $(this).css("border-bottom", "1px solid var(--tertiaryColor)");
+      visibleRows.push(this);
     } else {
       $(this).css("display", "none");
     }
   });
+  if (visibleRows.length > 0) {
+    $(visibleRows[visibleRows.length - 1]).css("border-bottom", "none");
+  }
 }
 
 function resetSingleShortcut(actionName, btn) {
