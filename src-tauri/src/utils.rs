@@ -906,22 +906,21 @@ pub async fn compress_items(
     let output_path = output_path.as_ref();
     let stop_watch = Stopwatch::start_new();
 
-    if compression_format == "density" {
+    // Reset size calculation cancel flags to prevent stale cancel states from aborting the walk
+    IS_SIZE_CALC_CANCELLED.store(false, Ordering::Relaxed);
+    IS_SELECTION_SIZE_CALC_CANCELLED.store(false, Ordering::Relaxed);
+
+    let original_size = get_items_size(input_paths.clone());
+
+    let final_output_path = if compression_format == "density" {
         compress_to_density(output_path, input_paths, compression_level)
             .expect("Failed to compress to density");
-        let _ =
-            WINDOW.get().unwrap().eval(&format!(
-            "showToast('Compression done in ' + parseFloat('{:?}').toFixed(2) + 's', ToastType.INFO);",
-            stop_watch.elapsed()));
-
-        let _ = WINDOW
-            .get()
-            .unwrap()
-            .eval(&format!("clearInterval({})", interval_id));
+        output_path.to_path_buf()
     } else if compression_format == "br" {
         let mut br_path = output_path.to_path_buf();
         br_path.set_extension("tar.br");
-        let _ = compress_files_to_brotli_tar(br_path, input_paths);
+        compress_files_to_brotli_tar(&br_path, input_paths)?;
+        br_path
     } else {
         // Collect all files to compress
         let mut files_to_compress = Vec::new();
@@ -994,7 +993,6 @@ pub async fn compress_items(
                     match file.read(&mut buffer) {
                         Ok(0) => {
                             // End of file reached
-                            // let _ = tx.send((zip_name.clone(), None)).await;
                             break;
                         }
                         Ok(n) => {
@@ -1020,17 +1018,94 @@ pub async fn compress_items(
 
         drop(tx); // Close channel
         writer_handle.await??; // Propagate errors
+        output_path.to_path_buf()
+    };
 
-        let _ =
-            WINDOW.get().unwrap().eval(&format!(
-            "showToast('Compression done in ' + parseFloat('{:?}').toFixed(2) + 's', ToastType.INFO);",
-            stop_watch.elapsed()));
+    // Clean up interval and show toast for all formats!
+    let _ = WINDOW
+        .get()
+        .unwrap()
+        .eval(&format!("clearInterval({})", interval_id));
 
-        let _ = WINDOW
-            .get()
-            .unwrap()
-            .eval(&format!("clearInterval({})", interval_id));
-    }
+    let elapsed = stop_watch.elapsed().as_secs_f64();
+    let compressed_size = std::fs::metadata(&final_output_path).map(|m| m.len()).unwrap_or(0);
+
+    let original_size_formatted = format_bytes(original_size);
+    let compressed_size_formatted = format_bytes(compressed_size);
+
+    let saved_bytes = if original_size > compressed_size {
+        original_size - compressed_size
+    } else {
+        0
+    };
+    let saved_percentage = if original_size > 0 {
+        (saved_bytes as f64 / original_size as f64) * 100.0
+    } else {
+        0.0
+    };
+    let saved_size_formatted = format_bytes(saved_bytes);
+
+    let ratio = if original_size > 0 {
+        (compressed_size as f64 / original_size as f64) * 100.0
+    } else {
+        100.0
+    };
+    let visual_ratio = ratio.min(100.0);
+
+    let toast_html = format!(
+        r#"<div class="toast-content" style="padding: 14px; min-width: 300px; width: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+    <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(76, 175, 80, 0.15); display: flex; align-items: center; justify-content: center;">
+      <i class="fa-solid fa-circle-check" style="color: #4caf50; font-size: 16px;"></i>
+    </div>
+    <div style="display: flex; flex-direction: column;">
+      <span style="font-size: 13px; font-weight: 600; color: var(--textColor); letter-spacing: -0.01em;">Compression Complete</span>
+      <span style="font-size: 10px; color: var(--textColor2); margin-top: 1px;">Archive created successfully</span>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 10px;">
+    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+      <span style="color: var(--textColor2);">Original Size</span>
+      <span style="color: var(--textColor); font-weight: 500;">{}</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+      <span style="color: var(--textColor2);">Compressed</span>
+      <span style="color: var(--textColor); font-weight: 500;">{}</span>
+    </div>
+    <div style="height: 1px; background: rgba(255, 255, 255, 0.06); margin: 2px 0;"></div>
+    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+      <span style="color: var(--textColor2); font-weight: 500;">Space Saved</span>
+      <span style="color: #4caf50; font-weight: 600;">{} ({:.1}%)</span>
+    </div>
+  </div>
+  <div style="margin-top: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; margin-bottom: 4px;">
+      <span style="color: var(--textColor2);">Compression Ratio</span>
+      <span style="color: var(--textColor); font-weight: 600;">{:.1}%</span>
+    </div>
+    <div style="background: rgba(255, 255, 255, 0.1); border-radius: 10px; height: 5px; overflow: hidden; width: 100%;">
+      <div style="background: linear-gradient(90deg, var(--selectColor2) 0%, #4caf50 100%); height: 100%; width: {:.1}%; border-radius: 10px;"></div>
+    </div>
+  </div>
+  <div style="display: flex; justify-content: flex-end; margin-top: 10px; font-size: 9px; color: var(--textColor2); opacity: 0.8;">
+    <span>Processed in {:.2}s</span>
+  </div>
+</div>"#,
+        original_size_formatted,
+        compressed_size_formatted,
+        saved_size_formatted,
+        saved_percentage,
+        ratio,
+        visual_ratio,
+        elapsed
+    );
+
+    let eval_str = format!(
+        "showToast('{}', ToastType.INFO, 5000);",
+        toast_html.replace("'", "\\'").replace("\n", "")
+    );
+    let _ = WINDOW.get().unwrap().eval(&eval_str);
+
     Ok(())
 }
 
@@ -1105,9 +1180,23 @@ pub fn compress_to_density(
         for path_str in input_paths {
             let path = Path::new(&path_str);
             if path.is_file() {
-                tar_builder.append_path_with_name(path, path.file_name().unwrap())?;
+                if let Some(file_name) = path.file_name() {
+                    if let Err(e) = tar_builder.append_path_with_name(path, file_name) {
+                        eprintln!("Failed to append file {} to tar: {}", path.display(), e);
+                    }
+                }
             } else if path.is_dir() {
-                tar_builder.append_dir_all(path.file_name().unwrap(), path)?;
+                let base_parent = path.parent().unwrap_or(path);
+                for entry in walkdir::WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+                    let entry_path = entry.path();
+                    if entry_path.is_file() {
+                        if let Ok(rel_path) = entry_path.strip_prefix(base_parent) {
+                            if let Err(e) = tar_builder.append_path_with_name(entry_path, rel_path) {
+                                eprintln!("Failed to append file {} to tar: {}", entry_path.display(), e);
+                            }
+                        }
+                    }
+                }
             }
         }
         tar_builder.finish()?;
@@ -1405,11 +1494,22 @@ where
     let mut tar_builder = tar::Builder::new(compressor);
 
     for file_path in files {
-        let file_name = file_path.as_ref().file_name().ok_or_else(|| {
-            io::Error::new(io::ErrorKind::InvalidInput, "File path has no basename")
-        })?;
-        let archive_name = Path::new(file_name);
-        tar_builder.append_path_with_name(&file_path, archive_name)?;
+        let file_path = file_path.as_ref();
+        if file_path.is_file() {
+            if let Some(file_name) = file_path.file_name() {
+                tar_builder.append_path_with_name(file_path, Path::new(file_name))?;
+            }
+        } else if file_path.is_dir() {
+            let base_parent = file_path.parent().unwrap_or(file_path);
+            for entry in walkdir::WalkDir::new(file_path).into_iter().filter_map(|e| e.ok()) {
+                let entry_path = entry.path();
+                if entry_path.is_file() {
+                    if let Ok(rel_path) = entry_path.strip_prefix(base_parent) {
+                        tar_builder.append_path_with_name(entry_path, rel_path)?;
+                    }
+                }
+            }
+        }
     }
 
     tar_builder.finish()?;
@@ -1450,3 +1550,36 @@ where
 pub fn clear_console() {
     println!("\x1B[2J\x1B[1;1H");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::write;
+
+    #[test]
+    fn test_density_compression() {
+        let temp_dir = std::env::temp_dir();
+        let input_file_path = temp_dir.join("test_input.txt");
+        write(&input_file_path, b"Hello density compression test! Hello density compression test! Hello density compression test!").unwrap();
+
+        let output_archive_path = temp_dir.join("test_archive.density");
+        if output_archive_path.exists() {
+            let _ = std::fs::remove_file(&output_archive_path);
+        }
+
+        let res = compress_to_density(
+            &output_archive_path,
+            vec![input_file_path.to_string_lossy().to_string()],
+            1,
+        );
+
+        println!("Compression result: {:?}", res);
+        assert!(res.is_ok());
+        assert!(output_archive_path.exists());
+
+        // Cleanup
+        let _ = std::fs::remove_file(input_file_path);
+        let _ = std::fs::remove_file(output_archive_path);
+    }
+}
+
