@@ -43,7 +43,7 @@
   },
   "productName": "CoDriver",
   "mainBinaryName": "CoDriver",
-  "version": "0.7.3",
+  "version": "0.7.35",
   "identifier": "com.codriver.dev",
   "plugins": {
     "cli": {

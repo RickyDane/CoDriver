@@ -1075,3 +1075,240 @@ async function setItemImage(base64, imageId, imageUrl) {
 
   await cacheImage(imageUrl, base64);
 }
+
+function renderMarkdown(md) {
+  if (!md) return "";
+
+  // 1. Escape basic HTML tags to prevent XSS
+  let html = md
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  const lines = html.split("\n");
+  let inCodeBlock = false;
+  let codeContent = [];
+  let codeLanguage = "";
+  
+  let processedBlocks = [];
+  let currentParagraph = [];
+  let currentList = [];
+  let currentListType = null; // 'ul' or 'ol'
+  let currentQuote = [];
+  
+  function flushParagraph() {
+    if (currentParagraph.length > 0) {
+      let pText = currentParagraph.join(" ").trim();
+      if (pText) {
+        pText = applyInlineFormatting(pText);
+        processedBlocks.push(`<p style="margin: 0 0 10px 0; line-height: 1.5; color: var(--textColor2); font-size: calc(var(--fontSize) * 0.95);">${pText}</p>`);
+      }
+      currentParagraph = [];
+    }
+  }
+  
+  function flushList() {
+    if (currentList.length > 0) {
+      const listStyle = currentListType === "ol" 
+        ? "margin: 8px 0; padding: 0 0 0 20px; list-style-type: decimal;" 
+        : "margin: 8px 0; padding: 0 0 0 20px; list-style-type: disc;";
+      
+      const itemsHtml = currentList.map(item => {
+        return `<li style="margin-bottom: 4px; color: var(--textColor2); line-height: 1.4; font-size: calc(var(--fontSize) * 0.95);">${applyInlineFormatting(item)}</li>`;
+      }).join("");
+      
+      processedBlocks.push(`<${currentListType} style="${listStyle}">${itemsHtml}</${currentListType}>`);
+      currentList = [];
+      currentListType = null;
+    }
+  }
+
+  function flushQuote() {
+    if (currentQuote.length > 0) {
+      const firstLine = currentQuote[0].trim();
+      const alertMatch = firstLine.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/i);
+      
+      if (alertMatch) {
+        const alertType = alertMatch[1].toUpperCase();
+        const contentLines = currentQuote.slice(1);
+        const contentHtml = contentLines.map(line => applyInlineFormatting(line)).join("<br />");
+        
+        let icon = "fa-info-circle";
+        let color = "#4ba3ff"; // Blue for NOTE
+        let title = "Note";
+        let bg = "rgba(75, 163, 255, 0.08)";
+        
+        if (alertType === "TIP") {
+          icon = "fa-lightbulb";
+          color = "#4cd964"; // Green for TIP
+          title = "Tip";
+          bg = "rgba(76, 217, 100, 0.08)";
+        } else if (alertType === "IMPORTANT") {
+          icon = "fa-circle-exclamation";
+          color = "#ad8bff"; // Purple for IMPORTANT
+          title = "Important";
+          bg = "rgba(173, 139, 255, 0.08)";
+        } else if (alertType === "WARNING") {
+          icon = "fa-triangle-exclamation";
+          color = "#ff9500"; // Orange for WARNING
+          title = "Warning";
+          bg = "rgba(255, 149, 0, 0.08)";
+        } else if (alertType === "CAUTION") {
+          icon = "fa-circle-exclamation";
+          color = "#ff3b30"; // Red for CAUTION
+          title = "Caution";
+          bg = "rgba(255, 59, 48, 0.08)";
+        }
+        
+        processedBlocks.push(`
+          <div class="alert-block alert-${alertType.toLowerCase()}" style="border-left: 4px solid ${color}; padding: 10px 14px; margin: 12px 0; background: ${bg}; border-radius: 6px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(255, 255, 255, 0.03); border-right: 1px solid rgba(255, 255, 255, 0.03); border-bottom: 1px solid rgba(255, 255, 255, 0.03);">
+            <div style="display: flex; align-items: center; gap: 8px; color: ${color}; font-weight: 700; font-size: calc(var(--fontSize) * 0.9); text-transform: uppercase; letter-spacing: 0.5px;">
+              <i class="fa-solid ${icon}"></i>
+              <span>${title}</span>
+            </div>
+            <div style="color: var(--textColor3); line-height: 1.45; font-size: calc(var(--fontSize) * 0.95); font-style: normal;">
+              ${contentHtml}
+            </div>
+          </div>
+        `);
+      } else {
+        const contentHtml = currentQuote.map(line => applyInlineFormatting(line)).join("<br />");
+        processedBlocks.push(`<blockquote style="border-left: 3px solid var(--selectColor2); padding: 6px 14px; margin: 12px 0; background: rgba(255, 255, 255, 0.02); color: var(--textColor2); font-style: italic; line-height: 1.45; font-size: calc(var(--fontSize) * 0.95);">${contentHtml}</blockquote>`);
+      }
+      currentQuote = [];
+    }
+  }
+
+  function flushAll() {
+    flushParagraph();
+    flushList();
+    flushQuote();
+  }
+
+  function applyInlineFormatting(text) {
+    return text
+      // Bold
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.*?)__/g, '<strong>$1</strong>')
+      // Italic
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/_(.*?)_/g, '<em>$1</em>')
+      // Strikethrough
+      .replace(/~~(.*?)~~/g, '<del>$1</del>')
+      // Inline code
+      .replace(/`([^`\n]+)`/g, '<code style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.05); padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 90%; color: var(--selectColor2);">$1</code>')
+      // Links (use invoke('open_item', { path: url }) to launch natively)
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+        const cleanUrl = url.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+        return `<a href="#" onclick="event.preventDefault(); invoke('open_item', { path: '${cleanUrl}' });" style="color: #4ba3ff; text-decoration: underline; cursor: pointer; font-weight: 500;">${linkText}</a>`;
+      });
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Handle Code Blocks
+    if (trimmed.startsWith("```")) {
+      if (inCodeBlock) {
+        inCodeBlock = false;
+        const code = codeContent.join("\n");
+        processedBlocks.push(`<pre style="background: rgba(0, 0, 0, 0.25); padding: 10px; border-radius: 6px; border: 1px solid var(--tertiaryColor); font-family: monospace; font-size: calc(var(--fontSize) * 0.85); overflow-x: auto; margin: 10px 0; line-height: 1.4; white-space: pre;"><code style="background: none; padding: 0; color: var(--textColor);">${code}</code></pre>`);
+        codeContent = [];
+        codeLanguage = "";
+      } else {
+        flushAll();
+        inCodeBlock = true;
+        codeLanguage = trimmed.slice(3).trim();
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeContent.push(line);
+      continue;
+    }
+
+    // Blank line
+    if (!trimmed) {
+      flushAll();
+      continue;
+    }
+
+    // Horizontal Rule
+    if (trimmed === "---" || trimmed === "***" || trimmed === "___") {
+      flushAll();
+      processedBlocks.push('<hr style="border: 0; border-top: 1px solid var(--tertiaryColor); margin: 16px 0; opacity: 0.3;" />');
+      continue;
+    }
+
+    // Headers
+    if (trimmed.startsWith("#")) {
+      flushAll();
+      
+      const headerMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+      if (headerMatch) {
+        const level = headerMatch[1].length;
+        const text = applyInlineFormatting(headerMatch[2]);
+        let size = "1.1em";
+        let weight = "600";
+        let border = "";
+        let margin = "12px 0 6px 0";
+        
+        if (level === 1) { size = "1.4em"; weight = "700"; border = "border-bottom: 1px solid var(--tertiaryColor); padding-bottom: 6px;"; margin = "20px 0 10px 0"; }
+        else if (level === 2) { size = "1.25em"; border = "border-bottom: 1px solid var(--tertiaryColor); padding-bottom: 4px;"; margin = "18px 0 8px 0"; }
+        else if (level === 3) { size = "1.15em"; margin = "16px 0 8px 0"; }
+        
+        processedBlocks.push(`<h${level} style="margin: ${margin}; font-weight: ${weight}; font-size: ${size}; color: var(--textColor); ${border}">${text}</h${level}>`);
+        continue;
+      }
+    }
+
+    // Blockquotes
+    if (trimmed.startsWith("&gt;") || trimmed.startsWith(">")) {
+      flushParagraph();
+      flushList();
+      const quoteText = trimmed.replace(/^(&gt;|>)\s?/, "");
+      currentQuote.push(quoteText);
+      continue;
+    }
+
+    // Unordered List Items
+    const ulMatch = trimmed.match(/^([-\*+])\s+(.*)$/);
+    if (ulMatch) {
+      flushParagraph();
+      flushQuote();
+      if (currentListType !== "ul") {
+        flushList();
+        currentListType = "ul";
+      }
+      currentList.push(ulMatch[2]);
+      continue;
+    }
+
+    // Ordered List Items
+    const olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (olMatch) {
+      flushParagraph();
+      flushQuote();
+      if (currentListType !== "ol") {
+        flushList();
+        currentListType = "ol";
+      }
+      currentList.push(olMatch[2]);
+      continue;
+    }
+
+    // Default: regular text lines for paragraph
+    flushList();
+    flushQuote();
+    currentParagraph.push(trimmed);
+  }
+
+  flushParagraph();
+  flushList();
+  flushQuote();
+
+  return processedBlocks.join("\n");
+}
+

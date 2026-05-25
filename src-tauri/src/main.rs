@@ -5952,6 +5952,7 @@ async fn download_and_install_update(app: tauri::AppHandle) -> Result<(), String
     
     if let Some(update) = update {
         let app_clone = app.clone();
+        let app_clone2 = app.clone();
         let mut downloaded = 0;
         update.download_and_install(
             move |chunk_length, content_length| {
@@ -5962,9 +5963,12 @@ async fn download_and_install_update(app: tauri::AppHandle) -> Result<(), String
                 });
             },
             move || {
-                let _ = app.emit("update-finished", ());
+                let _ = app_clone2.emit("update-finished", ());
             }
         ).await.map_err(|e| e.to_string())?;
+        
+        // Relaunch the application after installation is successful
+        app.restart();
     }
     
     Ok(())

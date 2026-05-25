@@ -9157,6 +9157,9 @@ async function showSmartOrganizerPopup(path) {
   document.querySelector(".ai-enabled-checkbox")?.addEventListener("change", (e) => {
     toggleAiProviderRows();
   });
+
+  // Check for updates in the background on startup
+  checkUpdatesInBackground();
 })();
 
 // Helper functions for dynamic refreshing
@@ -10821,16 +10824,42 @@ async function openItemByPath(path) {
 }
 
 let isUpdateInProgress = false;
+let LastCachedUpdate = null;
 
-async function checkForUpdates() {
+function showUpdateDetails(update) {
+  $("#update-popup-icon").html('<i class="fa-solid fa-gift" style="color: #4ba3ff;"></i>');
+  $("#update-popup-title").text("New Version!");
+  $("#update-status-message").text("A new version of CoDriver is available!");
+  $("#update-version-details").text(update.version);
+  
+  if (update.body) {
+    $("#update-release-notes").html(renderMarkdown(update.body));
+    $("#update-notes-row").show();
+  } else {
+    $("#update-notes-row").hide();
+  }
+  
+  $("#update-version-row").show();
+  $("#update-action-btn").show();
+}
+
+async function checkForUpdates(forceRefetch = false) {
   if (isUpdateInProgress) return;
   
   const popup = document.getElementById("update-status-popup");
   if (!popup) return;
   
+  // Hide the notification tooltip immediately when opening the details popup
+  $("#update-notification-tooltip").hide();
+  
   popup.style.display = "flex";
   IsPopUpOpen = true;
   IsDisableShortcuts = true;
+  
+  if (!forceRefetch && LastCachedUpdate && LastCachedUpdate.available) {
+    showUpdateDetails(LastCachedUpdate);
+    return;
+  }
   
   $("#update-popup-icon").html('<i class="fa-solid fa-spinner fa-spin"></i>');
   $("#update-popup-title").text("Checking Updates");
@@ -10843,21 +10872,10 @@ async function checkForUpdates() {
   
   try {
     const update = await invoke("check_for_updates");
+    LastCachedUpdate = update;
     if (update.available) {
-      $("#update-popup-icon").html('<i class="fa-solid fa-gift" style="color: #4ba3ff;"></i>');
-      $("#update-popup-title").text("New Version!");
-      $("#update-status-message").text("A new version of CoDriver is available!");
-      $("#update-version-details").text(update.version);
-      
-      if (update.body) {
-        $("#update-release-notes").text(update.body);
-        $("#update-notes-row").show();
-      } else {
-        $("#update-notes-row").hide();
-      }
-      
-      $("#update-version-row").show();
-      $("#update-action-btn").show();
+      showUpdateDetails(update);
+      $("#header-update-btn").css("display", "flex");
     } else {
       $("#update-popup-icon").html('<i class="fa-solid fa-circle-check" style="color: #4cd964;"></i>');
       $("#update-popup-title").text("Up to Date");
@@ -10865,6 +10883,7 @@ async function checkForUpdates() {
       $("#update-version-row").hide();
       $("#update-notes-row").hide();
       $("#update-action-btn").hide();
+      $("#header-update-btn").hide();
     }
   } catch (err) {
     $("#update-popup-icon").html('<i class="fa-solid fa-circle-exclamation" style="color: #ff3b30;"></i>');
@@ -10873,6 +10892,31 @@ async function checkForUpdates() {
     $("#update-version-row").hide();
     $("#update-notes-row").hide();
     $("#update-action-btn").hide();
+  }
+}
+
+async function checkUpdatesInBackground() {
+  try {
+    const update = await invoke("check_for_updates");
+    LastCachedUpdate = update;
+    if (update.available) {
+      console.log("Background check: New version is available:", update.version);
+      $("#header-update-btn").css("display", "flex");
+      
+      // Trigger and display the update notification tooltip
+      const tooltip = $("#update-notification-tooltip");
+      tooltip.fadeIn(200);
+      
+      // Automatically hide the tooltip after exactly 5 seconds
+      setTimeout(() => {
+        tooltip.fadeOut(300);
+      }, 5000);
+    } else {
+      console.log("Background check: CoDriver is up to date.");
+      $("#header-update-btn").hide();
+    }
+  } catch (err) {
+    console.error("Background check for updates failed:", err);
   }
 }
 

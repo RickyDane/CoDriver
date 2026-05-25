@@ -5979,4 +5979,83 @@ body.dual-pane-mode .active-actions-popup::before {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+/* Premium Top-Right Update Button & Pulse Dot Style */
+.header-update-button {
+  display: none;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+}
+
+.update-pulse-dot {
+  position: absolute;
+  top: 7px; /* Adjusted position to center on standard flat nav buttons */
+  right: 7px; /* Adjusted position to center on standard flat nav buttons */
+  width: 7px;
+  height: 7px;
+  background-color: #4cd964; /* Vibrant green */
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(76, 217, 100, 0.7);
+  animation: update-pulse-dot-anim 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+@keyframes update-pulse-dot-anim {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 217, 100, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(76, 217, 100, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 217, 100, 0);
+  }
+}
+
+/* Premium Glassmorphism Speech-Bubble Tooltip */
+.update-tooltip {
+  position: absolute;
+  top: 42px; /* Adjusted slightly lower from 40px due to larger button */
+  right: 0;
+  background: var(--glass-bg, rgba(45, 47, 57, 0.85));
+  border: 1px solid var(--tertiaryColor, rgba(255, 255, 255, 0.1));
+  backdrop-filter: var(--glass-blur, blur(16px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(16px));
+  color: var(--textColor, #ffffff);
+  padding: 10px 16px; /* Increased padding from 8px 14px */
+  border-radius: 8px;
+  font-size: 12.5px; /* Increased from 11px */
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  animation: update-tooltip-fade-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.update-tooltip-arrow {
+  position: absolute;
+  top: -6px;
+  right: 12px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid var(--tertiaryColor, rgba(255, 255, 255, 0.15));
+}
+
+@keyframes update-tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+
 
