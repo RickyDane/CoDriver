@@ -152,31 +152,54 @@ const handleDragDrop = async (event) => {
     ArrSelectedItems = [];
     ArrCopyItems = [];
     const dropPaths = Array.isArray(event.payload) ? event.payload : (event.payload.paths || []);
-    dropPaths.forEach((item) => {
-      CopyFilePath = item;
-      CopyFileName = CopyFilePath.split("/")[
-        CopyFilePath.split("/").length - 1
-      ].replace("'", "");
+    
+    // Resolve all dropped paths into clean FDir objects using the backend to avoid clipboard collision
+    let droppedItems = [];
+    for (let path of dropPaths) {
+      try {
+        let info = await invoke("get_single_item_info", { path });
+        droppedItems.push(info);
+      } catch (err) {
+        let name = path.split(/[\\\/]/).pop().replace("'", "");
+        droppedItems.push({
+          name: name,
+          path: path,
+          is_dir: 0,
+          size: "0",
+          last_modified: "",
+          extension: path.split(".").pop() || "",
+        });
+      }
+    }
+
+    // Populate ArrCopyItems for legacy compatibility if anything else references it
+    droppedItems.forEach((item) => {
       let element = document.createElement("button");
-      element.setAttribute("itemname", CopyFileName);
-      element.setAttribute("itempath", CopyFilePath);
+      element.setAttribute("itemname", item.name);
+      element.setAttribute("itempath", item.path);
+      element.setAttribute("itemisdir", item.is_dir.toString());
+      element.setAttribute("itemrawsize", item.size);
+      element.setAttribute("itemmodified", item.last_modified);
+      element.setAttribute("itemext", item.extension);
       ArrCopyItems.push(element);
     });
+
     if (IsFileOpIntern == false) {
       if (DraggedOverElement != null) {
         let operation = await fileOperationContextMenu();
         if (operation == "copy") {
-          await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
+          await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "", false, droppedItems);
           await listDirectories();
         } else if (operation == "move") {
           await pasteItem(
             DraggedOverElement.getAttribute("itempath") ?? "",
             true,
+            droppedItems
           );
           await listDirectories();
         }
       } else {
-        await pasteItem();
+        await pasteItem("", false, droppedItems);
       }
       CopyFileName = "";
       CopyFilePath = "";
@@ -190,12 +213,13 @@ const handleDragDrop = async (event) => {
     } else if (DraggedOverElement != null) {
       let operation = await fileOperationContextMenu();
       if (operation == "copy") {
-        await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "");
+        await pasteItem(DraggedOverElement.getAttribute("itempath") ?? "", false, droppedItems);
         await listDirectories();
       } else if (operation == "move") {
         await pasteItem(
           DraggedOverElement.getAttribute("itempath") ?? "",
           true,
+          droppedItems
         );
         await listDirectories();
       }
@@ -860,11 +884,11 @@ function showProgressbar() {
       </dl>
 
       <footer class="props-card__footer">
-        <button class="props-card__btn props-card__btn--primary" id="btn-progress-stop" style="background: rgba(220, 53, 69, 0.25); border-color: rgba(220, 53, 69, 0.4); box-shadow: 0 4px 10px rgba(220, 53, 69, 0.15); cursor: pointer;">
-          <i class="fa-solid fa-stop" style="color: #ff6b6b;"></i><span>Stop</span>
-        </button>
         <button class="props-card__btn" data-progress-background>
           <i class="fa-solid fa-angles-down"></i><span>Run in Background</span>
+        </button>
+        <button class="props-card__btn props-card__btn--primary" id="btn-progress-stop" style="background: rgba(220, 53, 69, 0.25); border-color: rgba(220, 53, 69, 0.4); box-shadow: 0 4px 10px rgba(220, 53, 69, 0.15); cursor: pointer;">
+          <i class="fa-solid fa-stop" style="color: #ff6b6b;"></i><span>Stop</span>
         </button>
       </footer>
     `;

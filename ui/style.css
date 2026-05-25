@@ -5872,4 +5872,18 @@ body.dual-pane-mode .active-actions-popup::before {
   display: block;
 }
 
+/* AI Advanced Settings Sub-card Container */
+.advanced-ai-settings-container {
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  margin-left: 20px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--tertiaryColor) 15%, transparent);
+  border-left: 1px solid var(--selectColor2);
+  border-radius: 0 8px 8px 0;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
 

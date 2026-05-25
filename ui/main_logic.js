@@ -109,6 +109,8 @@ ds.subscribe("DS:unselect", async (payload) => {
 });
 
 /* region Global Variables */
+let ShiftAnchorElement = null;
+let IsLShiftDown = false;
 let ViewMode = "wrap";
 let OrgViewMode = "wrap";
 
@@ -634,6 +636,7 @@ function isShortcut(key) {
 }
 
 document.onkeydown = async (e) => {
+  if (e.code === "ShiftLeft") IsLShiftDown = true;
   if (IsDisableShortcuts === true) return;
 
   // 1. Check custom slot paths shortcuts first
@@ -784,7 +787,23 @@ document.onkeydown = async (e) => {
 
   // Standard list navigations (ArrowUp, ArrowDown, Backspace, Return)
   if ((IsPopUpOpen == false || IsItemPreviewOpen == true) && IsInputFocused == false) {
-    if (matchShortcut("nav_up", e)) {
+    if (IsLShiftDown && (e.key === "ArrowUp" || e.key === "Up")) {
+      e.preventDefault(); e.stopPropagation();
+      handleShiftArrowNavigation("up", e);
+    }
+    else if (IsLShiftDown && (e.key === "ArrowDown" || e.key === "Down")) {
+      e.preventDefault(); e.stopPropagation();
+      handleShiftArrowNavigation("down", e);
+    }
+    else if (IsLShiftDown && ViewMode === "wrap" && (e.key === "ArrowLeft" || e.key === "Left")) {
+      e.preventDefault(); e.stopPropagation();
+      handleShiftArrowNavigation("left", e);
+    }
+    else if (IsLShiftDown && ViewMode === "wrap" && (e.key === "ArrowRight" || e.key === "Right")) {
+      e.preventDefault(); e.stopPropagation();
+      handleShiftArrowNavigation("right", e);
+    }
+    else if (matchShortcut("nav_up", e)) {
       e.preventDefault(); e.stopPropagation();
       if (SelectedElement == null) {
         goUp(false, true);
@@ -831,6 +850,7 @@ document.onkeydown = async (e) => {
 
 document.onkeyup = (e) => {
   if (e.key == "G" || e.key == "g") IsGDown = false;
+  if (e.code === "ShiftLeft") IsLShiftDown = false;
 };
 
 /* End of shortcut config */
@@ -934,7 +954,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1, isFromSort = f
       "onclick",
       "interactWithItem(this, '" + dualPaneSide + "', null, event)",
     );
-    let itemIconId = "icon-" + (dualPaneSide || "single") + "-" + counter;
+    let itemIconId = crypto.randomUUID();
     itemLink.setAttribute("itemiconid", itemIconId);
     itemLink.setAttribute("itempath", item.path);
     itemLink.setAttribute("itemindex", counter++);
@@ -1158,7 +1178,7 @@ async function addSingleItem(
     "onclick",
     "interactWithItem(this, '" + dualPaneSide + "', null, event)",
   );
-  let itemIconId = "icon-" + (dualPaneSide || "single") + "-" + FoundItemsCountIndex;
+  let itemIconId = crypto.randomUUID();
   itemLink.setAttribute("itemiconid", itemIconId);
   itemLink.setAttribute("itempath", item.path);
   itemLink.setAttribute("itemindex", FoundItemsCountIndex++);
@@ -3124,20 +3144,24 @@ async function itemMoveTo(isForDualPane = false) {
   }
 }
 
-async function pasteItem(copyToPath = "", isCopyToCut = false) {
+async function pasteItem(copyToPath = "", isCopyToCut = false, forceItems = null) {
   let arr = [];
   let isSystemClipboard = false;
   let isMove = false;
 
-  // Try to retrieve files from the system clipboard
-  try {
-    let sysFiles = await invoke("get_clipboard_files");
-    if (sysFiles && sysFiles.length > 0) {
-      arr = sysFiles;
-      isSystemClipboard = true;
+  if (forceItems) {
+    arr = forceItems;
+  } else {
+    // Try to retrieve files from the system clipboard
+    try {
+      let sysFiles = await invoke("get_clipboard_files");
+      if (sysFiles && sysFiles.length > 0) {
+        arr = sysFiles;
+        isSystemClipboard = true;
+      }
+    } catch (err) {
+      console.error("Failed to read system clipboard:", err);
     }
-  } catch (err) {
-    console.error("Failed to read system clipboard:", err);
   }
 
   let targetPath = copyToPath;
@@ -3155,29 +3179,31 @@ async function pasteItem(copyToPath = "", isCopyToCut = false) {
   }
 
   if (!isSystemClipboard) {
-    // If no system files, try to save an image from the system clipboard!
-    try {
-      let savedImage = await invoke("save_clipboard_image", { targetDir: targetPath });
-      if (savedImage) {
-        showToast("Pasted screenshot from clipboard", ToastType.SUCCESS);
-        if (IsDualPaneEnabled === true) {
-          refreshBothViews(SelectedItemPaneSide);
-        } else {
-          await listDirectories();
+    if (!forceItems) {
+      // If no system files, try to save an image from the system clipboard!
+      try {
+        let savedImage = await invoke("save_clipboard_image", { targetDir: targetPath });
+        if (savedImage) {
+          showToast("Pasted screenshot from clipboard", ToastType.SUCCESS);
+          if (IsDualPaneEnabled === true) {
+            refreshBothViews(SelectedItemPaneSide);
+          } else {
+            await listDirectories();
+          }
+          scheduleDiskUsageRefresh();
+          return;
         }
-        scheduleDiskUsageRefresh();
-        return;
+      } catch (err) {
+        console.log("No image in system clipboard:", err);
       }
-    } catch (err) {
-      console.log("No image in system clipboard:", err);
-    }
 
-    if (IsDualPaneEnabled == true) {
-      arr = ArrSelectedItems;
-    } else {
-      arr = ArrCopyItems;
+      if (IsDualPaneEnabled == true) {
+        arr = ArrSelectedItems;
+      } else {
+        arr = ArrCopyItems;
+      }
+      arr = arr.map(toCopyModel);
     }
-    arr = arr.map(toCopyModel);
     isMove = (isCopyToCut == true || IsCopyToCut == true);
   } else {
     // If it's from the system clipboard, determine if it was a cut operation
@@ -3840,6 +3866,7 @@ async function interactWithItem(
   }
 
   const isMeta = e ? e.metaKey : (window.event ? window.event.metaKey : false);
+  const isCtrl = e ? e.ctrlKey : (window.event ? window.event.ctrlKey : false);
   const isShift = e ? e.shiftKey : (window.event ? window.event.shiftKey : false);
 
   // Interaction mode: Select
@@ -3847,7 +3874,7 @@ async function interactWithItem(
     element != null &&
     element != SelectedItemToOpen &&
     IsSelectMode == true &&
-    (isDir == 0 || ViewMode != "miller" || isMeta == true)
+    (isDir == 0 || ViewMode != "miller" || isMeta == true || isCtrl == true)
   ) {
     if (isShift === true) {
       if (IsDualPaneEnabled === false) {
@@ -3904,7 +3931,7 @@ async function interactWithItem(
   else if (
     (element != null &&
       (element == SelectedItemToOpen || IsSelectMode == false)) ||
-    (isDir == 1 && ViewMode == "miller" && isMeta == false)
+    (isDir == 1 && ViewMode == "miller" && isMeta == false && isCtrl == false)
   ) {
     await openItem(element, dualPaneSide, shortcutPath);
   }
@@ -3997,6 +4024,15 @@ async function selectItem(
   const isMeta = e ? e.metaKey : (window.event ? window.event.metaKey : false);
   const isCtrl = e ? e.ctrlKey : (window.event ? window.event.ctrlKey : false);
   const isShift = e ? e.shiftKey : (window.event ? window.event.shiftKey : false);
+
+  if (isShift === false) {
+    ShiftAnchorElement = element;
+  }
+
+  if ((isMeta || isCtrl) && ArrSelectedItems.includes(element)) {
+    deSelectItem(element);
+    return;
+  }
 
   // Reset colored selection
   if (
@@ -4158,20 +4194,30 @@ async function updateSelectionInfo() {
 
 function deSelectItem(item) {
   if (IsDualPaneEnabled) {
-    item.children[0].classList.remove("selected-item");
-  } else if (ViewMode == "column") {
-    item.children[0].classList.remove("selected-item");
+    item.children[0]?.classList.remove("selected-item");
+  } else if (ViewMode == "column" || ViewMode == "miller") {
+    if (IsShowDisks == true) {
+      (item.children[1] ?? item.children[0])?.classList.remove("selected-item");
+    } else {
+      item.children[0]?.classList.remove("selected-item");
+    }
   } else {
-    item.children[0].children[0].classList.remove("selected-item");
-    item.children[0].children[1].classList.remove("selected-item-min");
+    if (IsShowDisks == true) {
+      item.children[0]?.classList.remove("selected-item");
+    } else {
+      item.children[0]?.children[0]?.classList.remove("selected-item");
+      item.children[0]?.children[1]?.classList.remove("selected-item-min");
+    }
   }
   var index = ArrSelectedItems.indexOf(item);
   if (index !== -1) {
     ArrSelectedItems.splice(index, 1);
   }
-  var index = ArrSelectedItems.indexOf(item);
-  ArrSelectedItems.splice(index, 1);
   item.setAttribute("itemisselected", false);
+  if (SelectedElement === item) {
+    SelectedElement = ArrSelectedItems.length > 0 ? ArrSelectedItems[ArrSelectedItems.length - 1] : null;
+    SelectedItemPath = SelectedElement ? SelectedElement.getAttribute("itempath") : "";
+  }
   updateSelectionInfo();
 }
 
@@ -4207,6 +4253,7 @@ async function unSelectAllItems() {
   SelectedElement = null;
   ArrSelectedItems = [];
   SelectedItemToOpen = null;
+  ShiftAnchorElement = null;
   $(".selected-item")?.removeClass("selected-item");
   $(".selected-item-min")?.removeClass("selected-item-min");
   updateSelectionInfo();
@@ -4239,6 +4286,93 @@ async function goBack(e = null) {
     await listDirectories();
   }
   await setCurrentDir(await getCurrentDir(), SelectedItemPaneSide, false);
+}
+
+function handleShiftArrowNavigation(direction, e) {
+  let container;
+  if (IsDualPaneEnabled === true) {
+    container = SelectedItemPaneSide === "left" ? LeftPaneItemCollection : RightPaneItemCollection;
+  } else {
+    container = DirectoryList;
+  }
+
+  if (!container) return;
+
+  const items = Array.from(container.querySelectorAll(".item-link"));
+  if (items.length === 0) return;
+
+  let currentIndex = -1;
+  if (SelectedElement != null) {
+    currentIndex = items.indexOf(SelectedElement);
+  }
+  if (currentIndex === -1) {
+    currentIndex = 0;
+  }
+
+  if (!ShiftAnchorElement) {
+    ShiftAnchorElement = SelectedElement || items[0];
+  }
+  const anchorIndex = items.indexOf(ShiftAnchorElement);
+
+  let step = 1;
+  if (ViewMode === "wrap") {
+    const rowlen = Array.prototype.reduce.call(
+      items,
+      function (prev, next) {
+        if (!prev[2]) {
+          var ret = next.getBoundingClientRect().left;
+          if (!(prev[0] > -1 && ret < prev[1])) {
+            prev[0]++;
+          } else {
+            prev[2] = 1;
+          }
+        }
+        return [prev[0], ret, prev[2]];
+      },
+      [0, null, 0],
+    )[0];
+    step = rowlen || 1;
+  }
+
+  let targetIndex;
+  if (direction === "up") {
+    targetIndex = currentIndex - step;
+  } else if (direction === "down") {
+    targetIndex = currentIndex + step;
+  } else if (direction === "left") {
+    targetIndex = currentIndex - 1;
+  } else if (direction === "right") {
+    targetIndex = currentIndex + 1;
+  }
+
+  if (targetIndex < 0) targetIndex = 0;
+  if (targetIndex >= items.length) targetIndex = items.length - 1;
+
+  if (targetIndex === currentIndex) return;
+
+  const savedAnchor = ShiftAnchorElement;
+  
+  unSelectAllItems();
+
+  const start = Math.min(anchorIndex, targetIndex);
+  const end = Math.max(anchorIndex, targetIndex);
+  for (let i = start; i <= end; i++) {
+    if (i !== targetIndex) {
+      selectItem(items[i], SelectedItemPaneSide, true, false, e);
+    }
+  }
+  
+  selectItem(items[targetIndex], SelectedItemPaneSide, true, true, e);
+
+  ShiftAnchorElement = savedAnchor;
+
+  items[targetIndex].scrollIntoView({ block: "nearest", inline: "nearest" });
+
+  if (SelectedItemPaneSide === "left") {
+    LeftPaneItemIndex = targetIndex;
+  } else if (SelectedItemPaneSide === "right") {
+    RightPaneItemIndex = targetIndex;
+  }
 }
 
 function goUp(isSwitched = false, toFirst = false) {
@@ -9667,6 +9801,19 @@ function toggleAiProviderRows() {
       const openaiModels = document.querySelectorAll(".openai-models-row");
       geminiModels.forEach(row => row.style.display = provider === "gemini" ? "flex" : "none");
       openaiModels.forEach(row => row.style.display = provider === "openai" ? "flex" : "none");
+
+      // Clean up the borders of the visible model settings rows dynamically
+      const modelRows = advancedContainer.querySelectorAll(".settings-row");
+      const visibleRows = [];
+      modelRows.forEach(row => {
+        if (row.style.display !== "none") {
+          row.style.borderBottom = "1px solid var(--tertiaryColor)";
+          visibleRows.push(row);
+        }
+      });
+      if (visibleRows.length > 0) {
+        visibleRows[visibleRows.length - 1].style.borderBottom = "none";
+      }
     }
   }
 }
