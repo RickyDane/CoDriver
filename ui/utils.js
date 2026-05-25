@@ -1,5 +1,22 @@
 const { listen } = window.__TAURI__.event;
 
+function safeAnimationEnd(element, callback, timeout = 250) {
+  if (!element) {
+    if (callback) callback();
+    return;
+  }
+  let called = false;
+  const done = () => {
+    if (called) return;
+    called = true;
+    clearTimeout(safetyTimeout);
+    element.removeEventListener("animationend", done);
+    if (callback) callback();
+  };
+  element.addEventListener("animationend", done, { once: true });
+  const safetyTimeout = setTimeout(done, timeout);
+}
+
 // Initialize here to be accessable from anywhere
 let ArrSelectedItems = [];
 let ArrCopyItems = [];
@@ -266,11 +283,15 @@ function showToast(message, type = ToastType.INFO, timeout = 2000) {
       break;
   }
 
-  toast.innerHTML = `
-    <div class="toast-content ${colorClass}">
-      <p>${message}</p>
-    </div>
-  `;
+  if (typeof message === "string" && message.trim().startsWith("<")) {
+    toast.innerHTML = message;
+  } else {
+    toast.innerHTML = `
+      <div class="toast-content ${colorClass}">
+        <p>${message}</p>
+      </div>
+    `;
+  }
 
   $(".toast-container").append(toast);
 
@@ -899,10 +920,10 @@ function showProgressbar() {
     modal.querySelector("[data-progress-background]").onclick = () => {
       window.IsProgressModalDismissed = true;
       modal.classList.add("popup-exit");
-      modal.addEventListener("animationend", () => {
+      safeAnimationEnd(modal, () => {
         modal.remove();
         IsPopUpOpen = false;
-      }, { once: true });
+      });
     };
 
     const stopBtn = modal.querySelector("#btn-progress-stop");
@@ -910,10 +931,10 @@ function showProgressbar() {
       stopBtn.onclick = async () => {
         await invoke("stop_copy_paste").catch(() => {});
         modal.classList.add("popup-exit");
-        modal.addEventListener("animationend", () => {
+        safeAnimationEnd(modal, () => {
           modal.remove();
           IsPopUpOpen = false;
-        }, { once: true });
+        });
         showToast("Copy cancelled.", ToastType.INFO);
       };
     }
@@ -1029,10 +1050,10 @@ function finishProgressBar(time = 0) {
 
     setTimeout(() => {
       modal.classList.add("popup-exit");
-      modal.addEventListener("animationend", () => {
+      safeAnimationEnd(modal, () => {
         modal.remove();
         if (IsPopUpOpen) IsPopUpOpen = false;
-      }, { once: true });
+      });
     }, 1200);
   }
 
