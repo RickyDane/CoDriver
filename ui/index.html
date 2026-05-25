@@ -191,6 +191,10 @@
                             <i class="fa-solid fa-robot"></i>
                             <span>AI Settings</span>
                         </button>
+                        <button class="settings-sidebar-button" onclick="showSettingsTab('info', this)">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>About</span>
+                        </button>
                     </div>
 
                     <div class="settings-main-panel">
@@ -462,6 +466,64 @@
                                             <input type="text" class="text-input openai-image-model-custom-input" placeholder="Enter custom model ID" style="display: none; width: 100%;" />
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- About Tab -->
+                        <div id="settings-tab-info" class="settings-tab-content">
+                            <div class="settings-info-hero">
+                                <div class="settings-info-logo">
+                                    <i class="fa-solid fa-bolt"></i>
+                                </div>
+                                <h2 class="settings-info-appname">CoDriver</h2>
+                                <p class="settings-info-tagline">Next-Generation High-Performance File Explorer</p>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">System Information</h3>
+                                <div class="settings-info-grid">
+                                    <div class="settings-info-card">
+                                        <span class="info-card-label"><i class="fa-solid fa-code-branch"></i> App Version</span>
+                                        <span class="info-card-value" id="info-app-version">0.7.3</span>
+                                    </div>
+                                    <div class="settings-info-card">
+                                        <span class="info-card-label"><i class="fa-solid fa-cubes"></i> Tauri Version</span>
+                                        <span class="info-card-value" id="info-tauri-version">Loading...</span>
+                                    </div>
+                                    <div class="settings-info-card">
+                                        <span class="info-card-label"><i class="fa-solid fa-microchip"></i> Architecture</span>
+                                        <span class="info-card-value" id="info-arch">Loading...</span>
+                                    </div>
+                                    <div class="settings-info-card">
+                                        <span class="info-card-label"><i class="fa-solid fa-laptop"></i> Platform</span>
+                                        <span class="info-card-value" id="info-platform">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-section" style="margin-top: 25px;">
+                                <h3 class="settings-section-title">Project Details</h3>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Developer</p>
+                                        <p class="settings-hint">Ricky Dane & Contributors</p>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">License</p>
+                                        <p class="settings-hint">BSD 2-Clause License</p>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Diagnostics</p>
+                                        <p class="settings-hint">Copy environment & build details to clipboard for troubleshooting</p>
+                                    </div>
+                                    <button class="settings-action-btn secondary" onclick="copyDiagnosticsInfo()">
+                                        <i class="fa-solid fa-copy"></i> Copy Info
+                                    </button>
                                 </div>
                             </div>
                         </div>

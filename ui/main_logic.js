@@ -3415,6 +3415,28 @@ async function showAppInfo() {
   `);
 }
 
+async function copyDiagnosticsInfo() {
+  try {
+    const appVer = await getVersion();
+    const tauriVer = await getTauriVersion();
+    const sysArch = await arch();
+    const sysPlatform = await platform();
+    
+    const diagnostics = `CoDriver Diagnostic Information:
+- App Version: ${appVer}
+- Tauri Version: ${tauriVer}
+- Platform: ${sysPlatform}
+- Architecture: ${sysArch}
+- Developer: Ricky Dane
+- Mode: Production Desktop`;
+    
+    await writeText(diagnostics);
+    showToast("Diagnostics copied to clipboard", ToastType.SUCCESS);
+  } catch (err) {
+    showToast("Failed to copy diagnostics: " + err, ToastType.ERROR);
+  }
+}
+
 async function checkAppConfig() {
   await applyPlatformFeatures();
   await invoke("check_app_config").then(async (appConfig) => {
@@ -3497,6 +3519,26 @@ async function checkAppConfig() {
     }
 
     checkColorMode(appConfig);
+
+    // Populate Info/About section dynamically
+    try {
+      const appVer = await getVersion();
+      const tauriVer = await getTauriVersion();
+      const sysArch = await arch();
+      const sysPlatform = await platform();
+      
+      const appVerEl = document.getElementById("info-app-version");
+      const tauriVerEl = document.getElementById("info-tauri-version");
+      const archEl = document.getElementById("info-arch");
+      const platformEl = document.getElementById("info-platform");
+
+      if (appVerEl) appVerEl.textContent = appVer;
+      if (tauriVerEl) tauriVerEl.textContent = tauriVer;
+      if (archEl) archEl.textContent = sysArch;
+      if (platformEl) platformEl.textContent = sysPlatform;
+    } catch (err) {
+      console.error("Failed to load environment diagnostics:", err);
+    }
 
     // Keyboard Shortcuts Initialization
     ConfiguredShortcuts = { ...DefaultShortcuts, ...(appConfig.shortcuts || {}) };

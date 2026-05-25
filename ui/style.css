@@ -5886,4 +5886,97 @@ body.dual-pane-mode .active-actions-popup::before {
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
+/* About / Info Tab Styles */
+.settings-info-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 0 16px 0;
+}
+
+.settings-info-logo {
+  font-size: 46px;
+  color: var(--selectColor2);
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 15px rgba(67, 147, 255, 0.4));
+}
+
+.settings-info-logo i {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.settings-info-hero:hover .settings-info-logo i {
+  transform: scale(1.1) rotate(10deg);
+}
+
+.settings-info-appname {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--textColor);
+  margin: 0 0 4px 0;
+  letter-spacing: 0.5px;
+}
+
+.settings-info-tagline {
+  font-size: 12px;
+  color: var(--textColor2);
+  margin: 0 0 20px 0;
+  font-weight: 500;
+}
+
+.settings-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 520px) {
+  .settings-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-info-card {
+  background-color: var(--transparentColor);
+  border: 1px solid var(--tertiaryColor);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.settings-info-card:hover {
+  border-color: var(--selectColor2);
+  background-color: var(--transparentColorActive);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.info-card-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--textColor2);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-card-label i {
+  color: var(--selectColor2);
+  font-size: 11px;
+}
+
+.info-card-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--textColor);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 
