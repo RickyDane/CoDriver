@@ -65,6 +65,15 @@
                         <button class="cancel-search-button" aria-label="Cancel search" onclick="cancelSearch()"><i
                                 class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                     </div>
+                    <button id="header-update-btn" onclick="checkForUpdates(false)" class="header-nav-button header-update-button" style="display: none;" title="New version available!">
+                        <i class="fa-solid fa-cloud-arrow-down"></i>
+                        <span class="update-pulse-dot"></span>
+                        <div id="update-notification-tooltip" class="update-tooltip" style="display: none;">
+                            <span class="update-tooltip-arrow"></span>
+                            <i class="fa-solid fa-gift" style="color: #4cd964; margin-right: 6px;"></i>
+                            <span>New update available!</span>
+                        </div>
+                    </button>
                     <div class="view-mode-group" role="group" aria-label="View mode">
                         <button class="view-mode-btn active" data-view="wrap" onclick="switchView('wrap')" aria-pressed="true" title="Grid view">
                             <i class="fa-solid fa-grip"></i>
@@ -191,6 +200,10 @@
                             <i class="fa-solid fa-robot"></i>
                             <span>AI Settings</span>
                         </button>
+                        <button class="settings-sidebar-button" onclick="showSettingsTab('info', this)">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>About</span>
+                        </button>
                     </div>
 
                     <div class="settings-main-panel">
@@ -307,7 +320,7 @@
                                     </div>
                                 </div>
 
-                                <div class="shortcuts-list-container" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 8px; background-color: var(--transparentColor);">
+                                <div class="shortcuts-list-container" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 8px; background-color: var(--transparentColor);">
                                     <!-- Keyboard shortcuts rows will be loaded dynamically via JavaScript -->
                                 </div>
 
@@ -418,7 +431,7 @@
                                         Advanced Model Settings
                                     </span>
                                 </div>
-                                <div class="advanced-ai-settings-container" style="display: none; flex-direction: column; gap: 12px; margin-top: 8px; border-left: 2px solid var(--tertiaryColor); padding-left: 12px; margin-left: 6px;">
+                                <div class="advanced-ai-settings-container" style="display: none;">
                                     <!-- Gemini Advanced Models -->
                                     <div class="settings-row gemini-models-row" style="display: none;">
                                         <div class="settings-control-group">
@@ -462,6 +475,79 @@
                                             <input type="text" class="text-input openai-image-model-custom-input" placeholder="Enter custom model ID" style="display: none; width: 100%;" />
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- About Tab -->
+                        <div id="settings-tab-info" class="settings-tab-content">
+                            <div class="settings-info-hero">
+                                <div class="settings-info-logo">
+                                    <img src="resources/app_icon.png" alt="CoDriver Logo" />
+                                </div>
+                                <div class="settings-info-text">
+                                    <h2 class="settings-info-appname">CoDriver</h2>
+                                    <p class="settings-info-tagline">Next-Generation High-Performance File Explorer</p>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3 class="settings-section-title">System Information</h3>
+                                <div class="settings-info-grid">
+                                    <div class="settings-info-card">
+                                        <span class="info-card-label"><i class="fa-solid fa-code-branch"></i> App Version</span>
+                                        <span class="info-card-value" id="info-app-version">0.7.3</span>
+                                    </div>
+                                    <div class="settings-info-card">
+                                        <span class="info-card-label"><i class="fa-solid fa-cubes"></i> Tauri Version</span>
+                                        <span class="info-card-value" id="info-tauri-version">Loading...</span>
+                                    </div>
+                                    <div class="settings-info-card">
+                                        <span class="info-card-label"><i class="fa-solid fa-microchip"></i> Architecture</span>
+                                        <span class="info-card-value" id="info-arch">Loading...</span>
+                                    </div>
+                                    <div class="settings-info-card">
+                                        <span class="info-card-label"><i class="fa-solid fa-laptop"></i> Platform</span>
+                                        <span class="info-card-value" id="info-platform">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-section" style="margin-top: 25px;">
+                                <h3 class="settings-section-title">Project Details</h3>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Developer</p>
+                                        <p class="settings-hint">Ricky Dane & Contributors</p>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">License</p>
+                                        <p class="settings-hint">BSD 2-Clause License</p>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Diagnostics</p>
+                                        <p class="settings-hint">Copy environment & build details to clipboard for troubleshooting</p>
+                                    </div>
+                                    <button class="settings-action-btn secondary" onclick="copyDiagnosticsInfo()">
+                                        <i class="fa-solid fa-copy"></i> Copy Info
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-section" style="margin-top: 25px;">
+                                <h3 class="settings-section-title">Application Updates</h3>
+                                <div class="settings-row">
+                                    <div class="settings-control-group">
+                                        <p class="settings-label">Check for Updates</p>
+                                        <p class="settings-hint">Check if there is a newer version of CoDriver available on GitHub</p>
+                                    </div>
+                                    <button class="settings-action-btn primary" id="check-updates-btn" onclick="checkForUpdates(true)">
+                                        <i class="fa-solid fa-cloud-arrow-down"></i> Check now
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -560,6 +646,62 @@
                     </button>
                     <button class="props-card__btn props-card__btn--primary fullsearch-search-button" onclick="startFullSearch()">
                         <i class="fa-solid fa-magnifying-glass"></i><span>Search</span>
+                    </button>
+                </footer>
+            </div>
+
+            <!-- :update-modal | Application Update UI -->
+            <div id="update-status-popup" class="props-card" style="display: none; width: min(540px, 90vw); z-index: 9999;">
+                <section class="props-card__hero">
+                    <div class="props-card__thumb" id="update-popup-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+                    <div class="props-card__heading">
+                        <h2 class="props-card__name" id="update-popup-title">App Update</h2>
+                        <div class="props-card__meta">
+                            <span>System</span>
+                            <span class="props-card__chip" id="update-popup-badge">Updater</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="props-card__scroll-wrap" style="max-height: none; overflow: visible;">
+                    <dl class="props-card__list">
+                        <!-- Progress / Status Message -->
+                        <div class="props-card__row" id="update-status-row">
+                            <dt class="props-card__label"><i class="fa-solid fa-circle-info"></i>Status</dt>
+                            <dd class="props-card__value" id="update-status-message">Checking for updates...</dd>
+                        </div>
+                        
+                        <!-- Version info (shown when update found) -->
+                        <div class="props-card__row" id="update-version-row" style="display: none;">
+                            <dt class="props-card__label"><i class="fa-solid fa-code-branch"></i>Version</dt>
+                            <dd class="props-card__value" id="update-version-details"></dd>
+                        </div>
+                        
+                        <!-- Release Notes (shown when update found) -->
+                        <div class="props-card__row" id="update-notes-row" style="display: none; align-items: flex-start;">
+                            <dt class="props-card__label" style="padding-top: 6px;"><i class="fa-solid fa-scroll"></i>Notes</dt>
+                            <dd class="props-card__value" id="update-release-notes" style="white-space: normal; overflow-x: hidden; font-size: calc(var(--fontSize) * 0.9); line-height: 1.4; max-height: 220px; overflow-y: auto; padding: 10px; background: var(--transparentColor); border-radius: 6px; border: 1px solid var(--tertiaryColor);"></dd>
+                        </div>
+                        
+                        <!-- Download Progress Row -->
+                        <div class="props-card__row" id="update-progress-row" style="display: none;">
+                            <dt class="props-card__label"><i class="fa-solid fa-spinner fa-spin"></i>Progress</dt>
+                            <dd class="props-card__value" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <div class="update-progress-bar-container" style="width: 100%; height: 6px; background: var(--tertiaryColor); border-radius: 3px; overflow: hidden;">
+                                    <div id="update-progress-bar" style="width: 0%; height: 100%; background: var(--selectColor2, #0b64fd); transition: width 0.2s ease;"></div>
+                                </div>
+                                <span id="update-progress-text" style="font-size: 10px; opacity: 0.8;">0%</span>
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <footer class="props-card__footer">
+                    <button class="props-card__btn" id="update-close-btn" onclick="closeUpdatePopup()">
+                        <i class="fa-solid fa-xmark"></i><span>Close</span>
+                    </button>
+                    <button class="props-card__btn props-card__btn--primary" id="update-action-btn" onclick="startUpdateDownload()" style="display: none;">
+                        <i class="fa-solid fa-download"></i><span>Update now</span>
                     </button>
                 </footer>
             </div>
@@ -963,6 +1105,145 @@
                     </button>
                     <button class="props-card__btn props-card__btn--primary" onclick="executeSync()">
                         <i class="fa-solid fa-play"></i><span>Start Sync</span>
+                    </button>
+                </footer>
+            </div>
+
+            <!-- :disk-analyzer | Disk Space Analyzer UI -->
+            <div id="disk-analyzer-popup" class="props-card props-card--wide" style="display: none; width: min(760px, 94vw); height: min(500px, 85vh); z-index: 9999; flex-direction: column;">
+                <section class="props-card__hero" style="flex-shrink: 0;">
+                    <div class="props-card__thumb"><i class="fa-solid fa-chart-pie"></i></div>
+                    <div class="props-card__heading">
+                        <h2 class="props-card__name">Disk Space Analyzer</h2>
+                        <div class="props-card__meta">
+                            <span>Visualization</span>
+                            <span class="props-card__chip" id="disk-analyzer-path-chip">Path</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="props-card__scroll-wrap" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; padding: 0;">
+                    <!-- Setup Screen inside Modal -->
+                    <div id="disk-analyzer-setup" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 24px; align-items: center; justify-content: center; max-width: 440px; margin: auto; width: 100%; box-sizing: border-box;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; margin-bottom: 4px;">
+                            <div style="width: 44px; height: 44px; border-radius: 50%; background: color-mix(in srgb, var(--selectColor2) 15%, transparent); display: flex; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--selectColor2) 30%, transparent); margin-bottom: 2px; filter: drop-shadow(0 0 8px rgba(11, 100, 253, 0.2));">
+                                <i class="fa-solid fa-chart-pie" style="font-size: 18px; color: #4da3ff;"></i>
+                            </div>
+                            <h3 style="font-size: 14px; font-weight: 700; color: var(--textColor); letter-spacing: 0.5px; margin: 0;">Space Analyzer Config</h3>
+                            <p style="font-size: 11px; color: var(--textColor2); line-height: 1.4; max-width: 320px; margin: 0;">Configure recursion depth limit to build pre-calculated subdirectory maps.</p>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label for="disk-analyzer-depth-input" style="font-size: 11px; font-weight: 600; color: var(--textColor3);">Analyzer Depth Limit</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; user-select: none; color: var(--textColor2);">
+                                    <input type="checkbox" id="disk-analyzer-depth-unlimited" style="accent-color: var(--selectColor2); width: 14px; height: 14px; cursor: pointer;" />
+                                    <span>Deep Scan (Unlimited)</span>
+                                </label>
+                            </div>
+
+                            <input type="number" id="disk-analyzer-depth-input" min="1" max="15" value="5" class="props-card__input" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--tertiaryColor); border-radius: 8px; color: var(--textColor); font-size: 13px; font-family: monospace; transition: all 0.2s;" />
+                            <span style="font-size: 10.5px; opacity: 0.5; line-height: 1.4; text-align: left;">Recommended limit is 5 to keep scans instantaneous.</span>
+                        </div>
+
+                        <button class="props-card__btn props-card__btn--primary" id="btn-disk-analyzer-start" style="width: 100%; padding: 11px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border-radius: 8px; box-shadow: 0 4px 12px rgba(11, 100, 253, 0.25);">
+                            <i class="fa-solid fa-play"></i><span>Start Analysis</span>
+                        </button>
+                    </div>
+
+                    <!-- Loading State inside Modal -->
+                    <div id="disk-analyzer-loading" style="display: none; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 18px; min-height: 250px; padding: 20px; box-sizing: border-box; text-align: center;">
+                        <div class="preloader-invert" style="width: 40px; height: 40px;"></div>
+                        <div style="display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 400px; align-items: center;">
+                            <p style="color: var(--textColor); font-size: 13px; font-weight: 600; margin: 0;">Analyzing folder structure recursively...</p>
+                            
+                            <!-- Progress Stats -->
+                            <div style="display: flex; gap: 14px; margin-top: 4px; font-size: 11px; color: var(--textColor2); font-family: monospace;">
+                                <span>Folders: <strong id="disk-analyzer-progress-folders" style="color: var(--selectColor2);">0</strong></span>
+                                <span>Files: <strong id="disk-analyzer-progress-files" style="color: var(--selectColor2);">0</strong></span>
+                            </div>
+                            
+                            <!-- Current scanning directory -->
+                            <div id="disk-analyzer-progress-path" style="font-size: 10.5px; color: var(--textColor3); opacity: 0.8; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px; font-family: monospace; background: rgba(0,0,0,0.15); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03); width: 100%; box-sizing: border-box;">
+                                Initializing scan...
+                            </div>
+
+                            <!-- Premium Progress Bar -->
+                            <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.03); border-radius: 4px; overflow: hidden; margin-top: 6px; position: relative;">
+                                <div id="disk-analyzer-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--selectColor) 0%, var(--selectColor2) 100%); border-radius: 4px; transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 8px var(--selectColor2);"></div>
+                            </div>
+                            
+                            <!-- Progress Percentage Label -->
+                            <span id="disk-analyzer-progress-percent" style="font-size: 11px; font-weight: 700; color: var(--selectColor2); font-family: monospace; margin-top: 2px;">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Main Visualization and Stats Grid -->
+                    <div id="disk-analyzer-content" style="display: none; flex-direction: row; gap: 20px; flex: 1; padding: 12px 20px; overflow: hidden; align-items: center; min-height: 0;">
+                        <!-- SVG Sunburst/Donut Column -->
+                        <div style="flex: 0.85; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; height: 100%;">
+                            <svg id="disk-analyzer-svg" width="250" height="250" viewBox="-125 -125 250 250" style="max-width: 100%; max-height: 100%; overflow: visible;"></svg>
+                        </div>
+
+                        <!-- Side Stats Panel -->
+                        <div style="flex: 1.35; display: flex; flex-direction: column; gap: 10px; height: 100%; overflow: hidden; padding-right: 4px; min-width: 0;">
+                            <h4 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--textColor3); border-bottom: 1px solid var(--tertiaryColor); padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;">Folder Breakdown</h4>
+                            <div id="disk-analyzer-legend" style="flex: 1; overflow-y: auto; min-width: 0; min-height: 0; position: relative;">
+                                <div class="virtual-scroll-spacer" style="width: 100%; height: 0px; pointer-events: none;"></div>
+                                <div class="virtual-scroll-content" style="position: absolute; top: 0; left: 0; right: 0; display: flex; flex-direction: column; gap: 6px; pointer-events: auto;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Deletion Summary Screen inside Modal -->
+                    <div id="disk-analyzer-summary" style="display: none; flex-direction: column; gap: 14px; padding: 18px 24px; align-items: center; justify-content: center; max-width: 440px; margin: auto; width: 100%; box-sizing: border-box; text-align: center;">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(0, 200, 83, 0.15); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(0, 200, 83, 0.3); margin-bottom: 4px; filter: drop-shadow(0 0 8px rgba(0, 200, 83, 0.2));">
+                            <i class="fa-solid fa-circle-check" style="font-size: 20px; color: #00c853;"></i>
+                        </div>
+                        <h3 style="font-size: 16px; font-weight: 700; color: var(--textColor); margin: 0;">Deletion Complete</h3>
+                        <p style="font-size: 12px; color: var(--textColor2); line-height: 1.4; margin: 0;">Selected items have been deleted successfully.</p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 10px;">
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--tertiaryColor); padding: 10px; border-radius: 8px;">
+                                <span style="font-size: 10px; color: var(--textColor3); text-transform: uppercase;">Reclaimed Space</span>
+                                <div id="disk-analyzer-summary-reclaimed" style="font-size: 15px; font-weight: 700; color: var(--selectColor2); margin-top: 4px;">0 B</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--tertiaryColor); padding: 10px; border-radius: 8px;">
+                                <span style="font-size: 10px; color: var(--textColor3); text-transform: uppercase;">Items Deleted</span>
+                                <div id="disk-analyzer-summary-count" style="font-size: 15px; font-weight: 700; color: var(--selectColor2); margin-top: 4px;">0</div>
+                            </div>
+                        </div>
+
+                        <!-- List of deleted items -->
+                        <div style="display: flex; flex-direction: column; width: 100%; gap: 6px; text-align: left; margin-top: 8px;">
+                            <span style="font-size: 11px; font-weight: 600; color: var(--textColor3);">Deleted Items:</span>
+                            <div id="disk-analyzer-summary-list" style="max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid var(--tertiaryColor); border-radius: 8px; padding: 8px; font-family: monospace; font-size: 11px; color: var(--textColor2); display: flex; flex-direction: column; gap: 4px; width: 100%; box-sizing: border-box;">
+                                <!-- Populate with list of deleted paths -->
+                            </div>
+                        </div>
+
+                        <button class="props-card__btn props-card__btn--primary" id="btn-disk-analyzer-summary-done" style="width: 100%; padding: 10px; font-size: 12px; font-weight: 600; margin-top: 8px; cursor: pointer; border-radius: 8px;" onclick="closeDiskAnalyzerPopup()">
+                            <i class="fa-solid fa-check"></i><span>Done</span>
+                        </button>
+                    </div>
+                </div>
+
+                <footer class="props-card__footer" style="flex-shrink: 0;">
+                    <span id="disk-analyzer-total-size" style="margin-right: auto; font-size: var(--fontSize); font-weight: 600; color: var(--textColor3); opacity: 0.95;">Total Size: --</span>
+                    <button class="props-card__btn" id="btn-disk-analyzer-background" style="display: none;">
+                        <i class="fa-solid fa-angles-down"></i><span>Background</span>
+                    </button>
+                    <button class="props-card__btn props-card__btn--primary" id="btn-disk-analyzer-stop" style="display: none; background: rgba(220, 53, 69, 0.25); border-color: rgba(220, 53, 69, 0.4); box-shadow: 0 4px 10px rgba(220, 53, 69, 0.15);">
+                        <i class="fa-solid fa-stop" style="color: #ff6b6b;"></i><span>Stop Scan</span>
+                    </button>
+                    <button id="disk-analyzer-back-btn" class="props-card__btn" style="display: none;" onclick="navigateDiskAnalyzerBack()">
+                        <i class="fa-solid fa-arrow-left"></i><span>Back</span>
+                    </button>
+                    <button id="btn-disk-analyzer-delete" class="props-card__btn" style="display: none; background: rgba(220, 53, 69, 0.25); border-color: rgba(220, 53, 69, 0.4); box-shadow: 0 4px 10px rgba(220, 53, 69, 0.15); color: #ff6b6b;" onclick="startAnalyzerDeletion()">
+                        <i class="fa-solid fa-trash-can" style="color: #ff6b6b;"></i><span>Delete Selected (0 B)</span>
+                    </button>
+                    <button id="disk-analyzer-close-btn" class="props-card__btn" onclick="closeDiskAnalyzerPopup()">
+                        <i class="fa-solid fa-xmark"></i><span>Close</span>
                     </button>
                 </footer>
             </div>

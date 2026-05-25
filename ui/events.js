@@ -189,3 +189,74 @@ listen("finish-progress-bar", (event) => {
     }
   }, 100);
 });
+
+listen("disk-analyzer-progress", (event) => {
+  const { folders, files, bytes_scanned, volume_used_bytes, target_size, current_path } = event.payload;
+  $("#disk-analyzer-progress-folders").text(folders.toLocaleString());
+  $("#disk-analyzer-progress-files").text(files.toLocaleString());
+  
+  // Calculate real progress percentage based on actual disk load / directory total size
+  let percent = 0;
+  if (target_size > 0 && bytes_scanned > 0) {
+    percent = Math.min(99, Math.floor((bytes_scanned / target_size) * 100));
+  } else {
+    // Fallback if target_size is zero or not yet calculated
+    const items = folders + files;
+    percent = Math.min(95, Math.floor(15 * Math.log10(items + 1)));
+  }
+  
+  if (percent === 0 && (folders > 0 || files > 0)) {
+    percent = 1;
+  }
+  
+  $("#disk-analyzer-progress-fill").css("width", percent + "%");
+  $("#disk-analyzer-progress-percent").text(percent + "%");
+  
+  let path = current_path || "";
+  if (path.length > 50) {
+    path = path.slice(0, 47) + "...";
+  }
+  $("#disk-analyzer-progress-path").text(path);
+
+  // Store in global cache for when reopening the popup
+  if (typeof DiskAnalyzerLastPayload !== "undefined") {
+    DiskAnalyzerLastPayload = { folders, files, percent, path };
+  }
+
+  // Update background action card
+  if (typeof DiskAnalyzerIsBackground !== "undefined" && DiskAnalyzerIsBackground) {
+    const actionId = "diskanalyzer-scan";
+    if (typeof ArrActiveActions !== "undefined") {
+      const action = ArrActiveActions.find((a) => a.id === actionId);
+      if (action) {
+        action.progress = percent;
+        action.currentFile = path;
+        action.countLabel = `${(folders + files).toLocaleString()} items`;
+        action.speedLabel = "Scanning...";
+        
+        if (typeof renderActiveActionsPill === "function") renderActiveActionsPill();
+        if (typeof refreshActiveActionsPopup === "function") refreshActiveActionsPopup();
+      }
+    }
+  }
+});
+
+listen("update-progress", (event) => {
+  const { chunk_length, content_length } = event.payload;
+  
+  if (content_length) {
+    const percent = Math.min(100, Math.floor((chunk_length / content_length) * 100));
+    $("#update-progress-bar").css("width", percent + "%");
+    $("#update-progress-text").text(`${percent}% (${(chunk_length / 1024 / 1024).toFixed(2)} MB / ${(content_length / 1024 / 1024).toFixed(2)} MB)`);
+  } else {
+    $("#update-progress-bar").css("width", "100%");
+    $("#update-progress-text").text(`Downloaded ${(chunk_length / 1024 / 1024).toFixed(2)} MB`);
+  }
+});
+
+listen("update-finished", () => {
+  $("#update-status-message").text("Installation completed! Relaunching...");
+  $("#update-progress-bar").css("width", "100%");
+  $("#update-progress-text").text("Complete");
+});
+

@@ -106,6 +106,8 @@ lazy_static! {
         Arc::new(std::sync::atomic::AtomicBool::new(false));
     pub static ref IS_DUP_FIND_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
         Arc::new(std::sync::atomic::AtomicBool::new(false));
+    pub static ref IS_COPY_PASTE_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
+        Arc::new(std::sync::atomic::AtomicBool::new(false));
     pub static ref CURRENT_DIR_OVERRIDE: std::sync::Mutex<Option<String>> =
         std::sync::Mutex::new(None);
     pub static ref CURRENT_SEARCH_ID: std::sync::Mutex<u64> = std::sync::Mutex::new(0);
@@ -241,10 +243,17 @@ fn main() {
             write_clipboard_files,
             save_clipboard_image,
             ai_get_organizer_suggestions,
-            ai_execute_organize
+            get_disk_space_tree,
+            stop_disk_analysis,
+            stop_copy_paste,
+            ai_execute_organize,
+            check_for_updates,
+            download_and_install_update
         ])
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_drag::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -836,6 +845,363 @@ fn parse_ftp_url(url: &str) -> Option<(String, String)> {
     }
 }
 
+#[derive(Clone, Debug, serde::Serialize)]
+struct DiskSpaceNode {
+    name: String,
+    path: String,
+    is_dir: bool,
+    size: u64,
+    children: Vec<DiskSpaceNode>,
+}
+
+fn is_local_path(path: &std::path::Path) -> bool {
+    let path_str = path.to_string_lossy().replace("\\", "/");
+    let lower_path = path_str.to_lowercase();
+    
+    // 1. Skip iCloud Drive / Ubiquitous containers
+    if lower_path.contains("library/mobile documents") {
+        return false;
+    }
+    // 2. Skip modern macOS CloudStorage (OneDrive, GDrive, Dropbox, Box, etc.)
+    if lower_path.contains("library/cloudstorage") {
+        return false;
+    }
+    // 3. Skip iCloud Photos libraries which hold online-only streams
+    if lower_path.contains(".photoslibrary") {
+        return false;
+    }
+    
+    // 4. For macOS, check if mount point is local (MNT_LOCAL flag via statfs)
+    #[cfg(target_os = "macos")]
+    {
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        
+        if let Ok(path_c) = CString::new(path.as_os_str().as_bytes()) {
+            let mut stat: libc::statfs = unsafe { std::mem::zeroed() };
+            unsafe {
+                if libc::statfs(path_c.as_ptr(), &mut stat) == 0 {
+                    // MNT_LOCAL = 0x00001000
+                    let is_local = (stat.f_flags & 0x00001000) != 0;
+                    if !is_local {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    
+    true
+}
+
+static DISK_ANALYZER_ABORT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+struct ScanProgress {
+    folders_scanned: std::sync::atomic::AtomicU64,
+    files_scanned: std::sync::atomic::AtomicU64,
+    bytes_scanned: std::sync::atomic::AtomicU64,
+    last_emit: std::sync::Mutex<std::time::Instant>,
+    volume_used_bytes: u64,
+    target_size: u64,
+}
+
+#[derive(serde::Serialize, Clone)]
+struct DiskAnalyzerProgressPayload {
+    folders: u64,
+    files: u64,
+    bytes_scanned: u64,
+    volume_used_bytes: u64,
+    target_size: u64,
+    current_path: String,
+}
+
+fn report_progress(progress: &std::sync::Arc<ScanProgress>, current_path: String) {
+    let now = std::time::Instant::now();
+    let mut last = progress.last_emit.lock().unwrap();
+    if now.duration_since(*last).as_millis() >= 100 {
+        *last = now;
+        let folders = progress.folders_scanned.load(std::sync::atomic::Ordering::Relaxed);
+        let files = progress.files_scanned.load(std::sync::atomic::Ordering::Relaxed);
+        let bytes_scanned = progress.bytes_scanned.load(std::sync::atomic::Ordering::Relaxed);
+        let volume_used_bytes = progress.volume_used_bytes;
+        let target_size = progress.target_size;
+        
+        if let Some(app_window) = WINDOW.get() {
+            let _ = app_window.emit("disk-analyzer-progress", DiskAnalyzerProgressPayload {
+                folders,
+                files,
+                bytes_scanned,
+                volume_used_bytes,
+                target_size,
+                current_path,
+            });
+        }
+    }
+}
+
+fn get_volume_used_bytes(path: &std::path::Path) -> u64 {
+    #[cfg(target_os = "macos")]
+    {
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        
+        if let Ok(path_c) = CString::new(path.as_os_str().as_bytes()) {
+            let mut stat: libc::statfs = unsafe { std::mem::zeroed() };
+            unsafe {
+                if libc::statfs(path_c.as_ptr(), &mut stat) == 0 {
+                    let total_blocks = stat.f_blocks;
+                    let free_blocks = stat.f_bfree;
+                    let block_size = stat.f_bsize as u64;
+                    if total_blocks > free_blocks {
+                        return (total_blocks - free_blocks) * block_size;
+                    }
+                }
+            }
+        }
+    }
+    0
+}
+
+fn should_skip_directory(path: &std::path::Path, root_path: &std::path::Path) -> bool {
+    let path_str = path.to_string_lossy().replace("\\", "/");
+    let root_str = root_path.to_string_lossy().replace("\\", "/");
+    
+    // Normalize trailing slashes
+    let norm_path = if path_str.ends_with('/') { path_str } else { format!("{}/", path_str) };
+    let norm_root = if root_str.ends_with('/') { root_str } else { format!("{}/", root_str) };
+    
+    // Only apply loop/virtual mount skips if the target is NOT our start/root path
+    if norm_path != norm_root {
+        let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        if name == "Volumes" || name == "dev" || name == "cores" {
+            return true;
+        }
+        // Also skip System/Volumes to prevent nested macOS firmlink / mount loops
+        if norm_path.contains("/System/Volumes") {
+            return true;
+        }
+    }
+    false
+}
+
+fn calculate_local_dir_size(
+    path: &std::path::Path,
+    progress: std::sync::Arc<ScanProgress>,
+    root_path: &std::path::Path,
+) -> Result<u64, String> {
+    if DISK_ANALYZER_ABORT.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err("Cancelled".to_string());
+    }
+    if !is_local_path(path) {
+        return Ok(0);
+    }
+    if should_skip_directory(path, root_path) {
+        return Ok(0);
+    }
+    
+    let mut total_size = 0;
+    
+    // Use jwalk for extremely fast, multi-threaded parallel size calculation of leaf directories
+    for entry in jwalk::WalkDirGeneric::<((), ())>::new(path)
+        .skip_hidden(true)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        if DISK_ANALYZER_ABORT.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err("Cancelled".to_string());
+        }
+        
+        let entry_path = entry.path();
+        if !is_local_path(&entry_path) {
+            continue;
+        }
+        if should_skip_directory(&entry_path, root_path) {
+            continue;
+        }
+        
+        if entry.file_type.is_dir() {
+            progress.folders_scanned.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            // Throttle reporting progress of deep subdirectories to keep layout speed fast
+            if progress.folders_scanned.load(std::sync::atomic::Ordering::Relaxed) % 100 == 0 {
+                report_progress(&progress, entry_path.to_string_lossy().into_owned());
+            }
+        } else {
+            progress.files_scanned.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            if let Ok(metadata) = entry.metadata() {
+                let fsize = metadata.len();
+                total_size += fsize;
+                progress.bytes_scanned.fetch_add(fsize, std::sync::atomic::Ordering::Relaxed);
+            }
+        }
+    }
+    
+    Ok(total_size)
+}
+
+fn calculate_space_tree_rec(
+    path_buf: std::path::PathBuf,
+    current_depth: u32,
+    max_depth: u32,
+    progress: std::sync::Arc<ScanProgress>,
+    root_path: std::path::PathBuf,
+) -> Result<DiskSpaceNode, String> {
+    if DISK_ANALYZER_ABORT.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err("Cancelled".to_string());
+    }
+    let name = path_buf.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let path = path_buf.to_string_lossy().into_owned().replace("\\", "/");
+    let is_dir = path_buf.is_dir();
+    
+    if is_dir {
+        progress.folders_scanned.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        report_progress(&progress, path_buf.to_string_lossy().into_owned());
+        
+        let mut children = Vec::new();
+        let mut size = 0;
+        
+        if current_depth < max_depth {
+            if let Ok(entries) = fs::read_dir(&path_buf) {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let sub_path = entry.path();
+                        let sub_name = sub_path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+                        if sub_name.starts_with('.') {
+                            continue;
+                        }
+                        if !is_local_path(&sub_path) {
+                            continue;
+                        }
+                        if should_skip_directory(&sub_path, &root_path) {
+                            continue;
+                        }
+                        let child_node = calculate_space_tree_rec(
+                            sub_path,
+                            current_depth + 1,
+                            max_depth,
+                            std::sync::Arc::clone(&progress),
+                            root_path.clone(),
+                        )?;
+                        size += child_node.size;
+                        children.push(child_node);
+                    }
+                }
+            }
+        } else {
+            size = calculate_local_dir_size(&path_buf, std::sync::Arc::clone(&progress), &root_path)?;
+        }
+        
+        children.sort_by(|a, b| b.size.cmp(&a.size));
+        
+        Ok(DiskSpaceNode {
+            name,
+            path,
+            is_dir,
+            size,
+            children,
+        })
+    } else {
+        progress.files_scanned.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let size = if is_local_path(&path_buf) {
+            let fsize = path_buf.metadata().map(|m| m.len()).unwrap_or(0);
+            progress.bytes_scanned.fetch_add(fsize, std::sync::atomic::Ordering::Relaxed);
+            fsize
+        } else {
+            0
+        };
+        Ok(DiskSpaceNode {
+            name,
+            path,
+            is_dir,
+            size,
+            children: Vec::new(),
+        })
+    }
+}
+
+fn get_dir_size_fast(path: &std::path::Path, root_path: &std::path::Path) -> u64 {
+    let mut total_size = 0;
+    for entry in jwalk::WalkDirGeneric::<((), ())>::new(path)
+        .skip_hidden(true)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        let entry_path = entry.path();
+        if !is_local_path(&entry_path) {
+            continue;
+        }
+        if should_skip_directory(&entry_path, root_path) {
+            continue;
+        }
+        if entry.file_type.is_file() {
+            if let Ok(metadata) = entry.metadata() {
+                total_size += metadata.len();
+            }
+        }
+        if DISK_ANALYZER_ABORT.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
+    }
+    total_size
+}
+
+#[tauri::command]
+async fn get_disk_space_tree(path: String, max_depth: u32) -> Result<DiskSpaceNode, String> {
+    let path_buf = std::path::PathBuf::from(&path);
+    if !path_buf.exists() {
+        return Err(format!("Path '{}' does not exist", path));
+    }
+    if !is_local_path(&path_buf) {
+        return Err("Cannot analyze non-local, remote, or cloud-backed storage paths (such as iCloud Drive, CloudStorage, or remote mounts).".to_string());
+    }
+    
+    // Reset abort flag
+    DISK_ANALYZER_ABORT.store(false, std::sync::atomic::Ordering::Relaxed);
+    
+    let volume_used_bytes = get_volume_used_bytes(&path_buf);
+    
+    // Determine if the path is a disk
+    let mut is_disk = path == "/" || path == "\\" || path.ends_with(":\\") || path.ends_with(":");
+    if !is_disk {
+        let disks = sysinfo::Disks::new_with_refreshed_list();
+        for disk in &disks {
+            let mount_point = disk.mount_point().to_string_lossy().to_string().replace("\\", "/");
+            let norm_path = path.replace("\\", "/");
+            if mount_point == norm_path || mount_point == format!("{}/", norm_path) || norm_path == format!("{}/", mount_point) {
+                is_disk = true;
+                break;
+            }
+        }
+    }
+
+    // Fast calculation of start directory total size if it's a subfolder, otherwise use disk volume load
+    let target_size = if is_disk {
+        volume_used_bytes
+    } else {
+        get_dir_size_fast(&path_buf, &path_buf)
+    };
+    
+    let progress = std::sync::Arc::new(ScanProgress {
+        folders_scanned: std::sync::atomic::AtomicU64::new(0),
+        files_scanned: std::sync::atomic::AtomicU64::new(0),
+        bytes_scanned: std::sync::atomic::AtomicU64::new(0),
+        last_emit: std::sync::Mutex::new(std::time::Instant::now()),
+        volume_used_bytes,
+        target_size,
+    });
+    
+    let path_buf_clone = path_buf.clone();
+    let root_node = tokio::task::spawn_blocking(move || {
+        calculate_space_tree_rec(path_buf, 0, max_depth, progress, path_buf_clone)
+    }).await.map_err(|e| format!("Space analyzer recursive walk failed: {}", e))??;
+    
+    Ok(root_node)
+}
+
+#[tauri::command]
+fn stop_disk_analysis() {
+    DISK_ANALYZER_ABORT.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
 #[tauri::command]
 async fn list_dirs() -> Vec<FDir> {
     if let Some(ref ftp_path) = *CURRENT_DIR_OVERRIDE.lock().unwrap() {
@@ -1381,6 +1747,7 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
     *(COPY_COUNTER.lock().await) = 0.0;
     *(TOTAL_BYTES_COPIED.lock().await) = 0.0;
     crate::utils::reset_copy_start_time();
+    IS_COPY_PASTE_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
 
     show_progressbar(app_window);
 
@@ -1397,12 +1764,18 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
         if dest_is_ftp && !src_has_ftp {
             // Local to FTP (Upload) - can accurately walk the local directory
             for item in arr_items.clone() {
+                if IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                    break;
+                }
                 count_to_copy += count_entries(&item.path).unwrap_or(1.0) as f32;
                 total_size += dir_info(item.path.clone()).size as f32;
             }
         } else {
             // FTP involved as source - recursively compute sizes and file counts
             for item in arr_items.clone() {
+                if IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                    break;
+                }
                 if item.path.starts_with("ftp://") {
                     if let Some((conn_name, remote_path)) = parse_ftp_url(&item.path) {
                         if item.is_dir == 1 {
@@ -1508,6 +1881,10 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
         let cb_ref: Option<&crate::remote::ftp::FtpProgressCallback> = Some(&progress_callback);
 
         for item in arr_items {
+            if IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                wng_log("Copy-paste operation cancelled by user.");
+                break;
+            }
             let item_path = item.path;
             let filename = item_path
                 .replace("\\", "/")
@@ -1688,6 +2065,9 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
                     }
                 }
             }
+            if IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+                break;
+            }
         }
         let _ = app_window.emit("finish-progress-bar", sw.elapsed().as_secs_f32());
         return;
@@ -1697,12 +2077,19 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
     let mut counter = 0.0;
     let mut total_bytes = 0.0;
     for item in arr_items.clone() {
+        if IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
         counter += count_entries(&item.path).unwrap();
         total_bytes += dir_info(item.path.clone()).size as f32;
     }
 
     let sw = Stopwatch::start_new();
     for item in arr_items {
+        if IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            wng_log("Copy-paste operation cancelled by user.");
+            break;
+        }
         let item_path = item.path;
         filename = item_path
             .replace("\\", "/")
@@ -1720,6 +2107,9 @@ async fn arr_copy_paste(arr_items: Vec<FDir>, is_for_dual_pane: String, mut copy
         // Execute the copy process for either a dir or file
         if let Err(err) = copy_to(final_filename, item_path, total_bytes, counter).await {
             err_log(format!("Copy failed: {}", err));
+        }
+        if IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
         }
     }
     dbg_log(format!("Copy-Paste time: {:?}", sw.elapsed().as_secs_f32()));
@@ -1739,12 +2129,16 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
     *(COPY_COUNTER.lock().await) = 0.0;
     *(TOTAL_BYTES_COPIED.lock().await) = 0.0;
     crate::utils::reset_copy_start_time();
+    IS_COPY_PASTE_CANCELLED.store(false, std::sync::atomic::Ordering::Relaxed);
 
     show_progressbar(app_window);
 
     let mut counter = 0.0;
     let mut total_bytes = 0.0;
     for item in items.clone() {
+        if IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
+        }
         if item.policy == "skip" {
             continue;
         }
@@ -1822,6 +2216,10 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
     let mut errors: Vec<String> = Vec::new();
 
     for item in items {
+        if IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            wng_log("Copy-paste operation cancelled by user.");
+            break;
+        }
         if item.policy == "skip" {
             continue;
         }
@@ -2263,6 +2661,9 @@ async fn arr_copy_paste_resolved(items: Vec<CopyConflictItem>) -> CopyPasteResol
                 ));
                 errors.push(format!("{} → {}: {}", source, destination, err));
             }
+        }
+        if IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            break;
         }
     }
 
@@ -3367,6 +3768,11 @@ async fn cancel_size_calculation() {
 #[tauri::command]
 async fn cancel_selection_size_calculation() {
     IS_SELECTION_SIZE_CALC_CANCELLED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[tauri::command]
+fn stop_copy_paste() {
+    IS_COPY_PASTE_CANCELLED.store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
 #[tauri::command]
@@ -5498,5 +5904,75 @@ async fn save_clipboard_image(target_dir: String) -> Result<String, String> {
         Err("Not supported on this platform".to_string())
     }
 }
+
+#[derive(serde::Serialize, Clone)]
+struct UpdateResponse {
+    available: bool,
+    version: String,
+    date: Option<String>,
+    body: Option<String>,
+}
+
+#[derive(serde::Serialize, Clone)]
+struct ProgressPayload {
+    chunk_length: usize,
+    content_length: Option<u64>,
+}
+
+#[tauri::command]
+async fn check_for_updates(app: tauri::AppHandle) -> Result<UpdateResponse, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    let update = updater.check().await.map_err(|e| e.to_string())?;
+    
+    if let Some(update) = update {
+        Ok(UpdateResponse {
+            available: true,
+            version: update.version,
+            date: update.date.map(|d| d.to_string()),
+            body: update.body,
+        })
+    } else {
+        Ok(UpdateResponse {
+            available: false,
+            version: String::new(),
+            date: None,
+            body: None,
+        })
+    }
+}
+
+#[tauri::command]
+async fn download_and_install_update(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+    
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    let update = updater.check().await.map_err(|e| e.to_string())?;
+    
+    if let Some(update) = update {
+        let app_clone = app.clone();
+        let app_clone2 = app.clone();
+        let mut downloaded = 0;
+        update.download_and_install(
+            move |chunk_length, content_length| {
+                downloaded += chunk_length;
+                let _ = app_clone.emit("update-progress", ProgressPayload {
+                    chunk_length: downloaded,
+                    content_length,
+                });
+            },
+            move || {
+                let _ = app_clone2.emit("update-finished", ());
+            }
+        ).await.map_err(|e| e.to_string())?;
+        
+        // Relaunch the application after installation is successful
+        app.restart();
+    }
+    
+    Ok(())
+}
+
 
 

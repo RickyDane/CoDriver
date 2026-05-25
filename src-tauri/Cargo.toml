@@ -1,6 +1,6 @@
 [package]
 name = "CoDriver"
-version = "0.7.2"
+version = "0.7.35"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "BSD-2-Clause license"
@@ -37,6 +37,7 @@ stopwatch = "0.0.7"
 zip-extensions = "0.6.1"
 sevenz-rust = "0.5.2"
 sysinfo = "0.30.5"
+libc = "0.2"
 color-print = "0.3.5"
 rayon = "1.8.1"
 flate2 = "1.0.28"
@@ -71,6 +72,8 @@ suppaftp = { version = "6.2.0", features = ["native-tls"] }
 tauri-plugin-http = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-cli = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]

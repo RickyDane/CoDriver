@@ -5770,3 +5770,309 @@ body.dual-pane-mode .active-actions-popup::before {
   color: var(--textColor2);
   margin: 0;
 }
+
+/* ==========================================================================
+   CDVisualInnovations: Disk Analyzer Styling
+   ========================================================================== */
+
+/* Disk Space Analyzer UI Styles */
+.analyzer-arc {
+  transition: opacity 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), filter 0.25s ease, transform 0.25s ease;
+  cursor: pointer;
+  stroke: var(--secondaryColor);
+  stroke-width: 1.5px;
+}
+
+.analyzer-arc:hover {
+  filter: drop-shadow(0 0 8px var(--selectColor2));
+  opacity: 1 !important;
+  transform: scale(1.03);
+}
+
+.analyzer-legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  height: 32px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  gap: 8px;
+}
+
+.analyzer-legend-row:hover {
+  background: var(--transparentColorActive);
+  border-color: var(--selectColor3);
+}
+
+.analyzer-legend-color-box {
+  width: 10px;
+  height: 100%;
+  min-height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Premium styles for space analyzer checkbox */
+.analyzer-item-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--tertiaryColor);
+  border-radius: 4px;
+  outline: none;
+  background: rgba(0, 0, 0, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  margin-right: 4px;
+}
+
+.analyzer-item-checkbox:hover {
+  border-color: var(--selectColor2);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.analyzer-item-checkbox:checked {
+  background: var(--selectColor2);
+  border-color: var(--selectColor2);
+  box-shadow: 0 0 8px var(--selectColor2);
+}
+
+.analyzer-item-checkbox:checked::after {
+  content: "\f00c";
+  font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif;
+  font-weight: 900;
+  font-size: 8px;
+  color: #fff;
+  display: block;
+}
+
+.analyzer-item-checkbox.indeterminate {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: var(--selectColor2);
+}
+
+.analyzer-item-checkbox.indeterminate::after {
+  content: "\f068";
+  font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif;
+  font-weight: 900;
+  font-size: 8px;
+  color: var(--selectColor2);
+  display: block;
+}
+
+/* AI Advanced Settings Sub-card Container */
+.advanced-ai-settings-container {
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  margin-left: 20px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--tertiaryColor) 15%, transparent);
+  border-left: 1px solid var(--selectColor2);
+  border-radius: 0 8px 8px 0;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+/* About / Info Tab Styles */
+.settings-info-hero {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 20px 24px;
+  gap: 22px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--tertiaryColor);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.settings-info-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.settings-info-logo img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 15px rgba(67, 147, 255, 0.4));
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.settings-info-logo img:hover {
+  transform: scale(1.12) rotate(10deg);
+}
+
+.settings-info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.settings-info-appname {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--textColor);
+  margin: 0;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.settings-info-tagline {
+  font-size: 12px;
+  color: var(--textColor2);
+  margin: 0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.settings-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 520px) {
+  .settings-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-info-card {
+  background-color: var(--transparentColor);
+  border: 1px solid var(--tertiaryColor);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.settings-info-card:hover {
+  border-color: var(--selectColor2);
+  background-color: var(--transparentColorActive);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.info-card-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--textColor2);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-card-label i {
+  color: var(--selectColor2);
+  font-size: 11px;
+}
+
+.info-card-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--textColor);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Premium Top-Right Update Button & Pulse Dot Style */
+.header-update-button {
+  display: none;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+}
+
+.update-pulse-dot {
+  position: absolute;
+  top: 7px; /* Adjusted position to center on standard flat nav buttons */
+  right: 7px; /* Adjusted position to center on standard flat nav buttons */
+  width: 7px;
+  height: 7px;
+  background-color: #4cd964; /* Vibrant green */
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(76, 217, 100, 0.7);
+  animation: update-pulse-dot-anim 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+@keyframes update-pulse-dot-anim {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 217, 100, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(76, 217, 100, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 217, 100, 0);
+  }
+}
+
+/* Premium Glassmorphism Speech-Bubble Tooltip */
+.update-tooltip {
+  position: absolute;
+  top: 42px; /* Adjusted slightly lower from 40px due to larger button */
+  right: 0;
+  background: var(--glass-bg, rgba(45, 47, 57, 0.85));
+  border: 1px solid var(--tertiaryColor, rgba(255, 255, 255, 0.1));
+  backdrop-filter: var(--glass-blur, blur(16px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(16px));
+  color: var(--textColor, #ffffff);
+  padding: 10px 16px; /* Increased padding from 8px 14px */
+  border-radius: 8px;
+  font-size: 12.5px; /* Increased from 11px */
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  animation: update-tooltip-fade-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.update-tooltip-arrow {
+  position: absolute;
+  top: -6px;
+  right: 12px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid var(--tertiaryColor, rgba(255, 255, 255, 0.15));
+}
+
+@keyframes update-tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+
+
