@@ -2,6 +2,8 @@
 
 Welcome, agent! This document serves as your technical manual and architectural reference for developing, debugging, and extending **CoDriver**. Refer to this guide to align with existing design patterns, technology choices, and structural constraints.
 
+For a comprehensive, deep-dive architectural reference covering module trees, Tauri IPC command descriptions, frontend global state variables, and end-to-end data flows (such as conflict resolution paste and AI integrations), please refer to [CONTEXT.md](file:///Users/rickyperlick/Coding/CoDriver/CONTEXT.md).
+
 ---
 
 ## 🚀 Repository Identity & Mission
@@ -44,6 +46,7 @@ CoDriver/
 │   ├── utils.js           # Shared DOM and IPC helpers
 │   ├── models.js          # Core JS model definitions (e.g. ActiveAction, Popups)
 │   └── style.css          # Premium glassmorphism design system & styles
+├── CONTEXT.md             # Technical & architectural reference document (deep-dive)
 └── README.md              # Public orientation document
 ```
 

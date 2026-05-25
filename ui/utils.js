@@ -507,7 +507,40 @@ function refreshActiveActionsPopup() {
   }
   const count = document.querySelector(".active-actions-popup__count");
   if (count) count.textContent = ArrActiveActions.length;
-  list.innerHTML = ArrActiveActions.map((a) => a.getHTMLElement()).join("");
+
+  const existingChildrenCount = list.querySelectorAll(".active-action").length;
+  if (existingChildrenCount !== ArrActiveActions.length) {
+    list.innerHTML = ArrActiveActions.map((a) => a.getHTMLElement()).join("");
+    return;
+  }
+  
+  ArrActiveActions.forEach((a) => {
+    const el = list.querySelector(`.active-action-${a.id}`);
+    if (el) {
+      const nameEl = el.querySelector(".active-action__name");
+      const descEl = el.querySelector(".active-action__desc");
+      const percentEl = el.querySelector(".active-action__percent");
+      const fillEl = el.querySelector(".active-action__progress-fill");
+      const countEl = el.querySelector(".active-action__count");
+      const speedEl = el.querySelector(".active-action__speed");
+      
+      if (nameEl && nameEl.textContent !== a.name) nameEl.textContent = a.name;
+      if (descEl && descEl.textContent !== (a.currentFile || a.description)) {
+        descEl.textContent = a.currentFile || a.description;
+      }
+      if (percentEl) {
+        const pctText = `${Math.round(a.progress)}%`;
+        if (percentEl.textContent !== pctText) percentEl.textContent = pctText;
+      }
+      if (fillEl) {
+        fillEl.style.width = `${a.progress}%`;
+      }
+      if (countEl && countEl.textContent !== a.countLabel) countEl.textContent = a.countLabel;
+      if (speedEl && speedEl.textContent !== a.speedLabel) speedEl.textContent = a.speedLabel;
+    } else {
+      list.innerHTML = ArrActiveActions.map((item) => item.getHTMLElement()).join("");
+    }
+  });
 }
 
 function endsWith(text, divider = ".", ends = []) {
@@ -759,6 +792,12 @@ function getOrCreateFileOpAction(name = "File operation", description = "Prepari
 }
 
 function reopenProgressModal(actionId) {
+  if (actionId && actionId.startsWith("diskanalyzer-")) {
+    if (typeof reopenDiskAnalyzerModal === "function") {
+      reopenDiskAnalyzerModal();
+    }
+    return;
+  }
   window.IsProgressModalDismissed = false;
   showProgressbar();
   closeActiveActionsPopup();
@@ -821,8 +860,11 @@ function showProgressbar() {
       </dl>
 
       <footer class="props-card__footer">
-        <button class="props-card__btn props-card__btn--primary" data-progress-background>
-          <i class="fa-solid fa-window-minimize"></i><span>Run in Background</span>
+        <button class="props-card__btn props-card__btn--primary" id="btn-progress-stop" style="background: rgba(220, 53, 69, 0.25); border-color: rgba(220, 53, 69, 0.4); box-shadow: 0 4px 10px rgba(220, 53, 69, 0.15); cursor: pointer;">
+          <i class="fa-solid fa-stop" style="color: #ff6b6b;"></i><span>Stop</span>
+        </button>
+        <button class="props-card__btn" data-progress-background>
+          <i class="fa-solid fa-angles-down"></i><span>Run in Background</span>
         </button>
       </footer>
     `;
@@ -838,6 +880,19 @@ function showProgressbar() {
         IsPopUpOpen = false;
       }, { once: true });
     };
+
+    const stopBtn = modal.querySelector("#btn-progress-stop");
+    if (stopBtn) {
+      stopBtn.onclick = async () => {
+        await invoke("stop_copy_paste").catch(() => {});
+        modal.classList.add("popup-exit");
+        modal.addEventListener("animationend", () => {
+          modal.remove();
+          IsPopUpOpen = false;
+        }, { once: true });
+        showToast("Copy cancelled.", ToastType.INFO);
+      };
+    }
   }
 }
 

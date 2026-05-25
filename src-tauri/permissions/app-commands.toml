@@ -76,5 +76,8 @@ commands.allow = [
   "write_clipboard_files",
   "save_clipboard_image",
   "ai_get_organizer_suggestions",
-  "ai_execute_organize"
+  "ai_execute_organize",
+  "get_disk_space_tree",
+  "stop_disk_analysis",
+  "stop_copy_paste"
 ]

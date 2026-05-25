@@ -7955,6 +7955,9 @@ async function showDuplicateFinderPopup(path) {
         <button class="props-card__btn" data-dup-close style="cursor: pointer;">
           <i class="fa-solid fa-xmark"></i><span>Cancel</span>
         </button>
+        <button class="props-card__btn props-card__btn--primary" id="btn-dup-stop-scan" style="display: none; background: rgba(220, 53, 69, 0.25); border-color: rgba(220, 53, 69, 0.4); box-shadow: 0 4px 10px rgba(220, 53, 69, 0.15); cursor: pointer;">
+          <i class="fa-solid fa-stop" style="color: #ff6b6b;"></i><span>Stop Search</span>
+        </button>
         <button class="props-card__btn props-card__btn--primary" id="btn-dup-delete" disabled style="opacity: 0.5; cursor: not-allowed;">
           <i class="fa-solid fa-trash"></i><span>Delete Selected</span>
         </button>
@@ -8031,6 +8034,17 @@ async function showDuplicateFinderPopup(path) {
     el.onclick = () => closePopup();
   });
 
+  const stopScanBtn = popup.querySelector("#btn-dup-stop-scan");
+  if (stopScanBtn) {
+    stopScanBtn.onclick = async () => {
+      try {
+        await invoke("cancel_duplicate_finder");
+      } catch (err) {
+        showToast(`Failed to stop search: ${err}`, ToastType.ERROR);
+      }
+    };
+  }
+
   popup.querySelector("#btn-dup-rescan").onclick = () => {
     renderSetupScreen();
   };
@@ -8045,6 +8059,12 @@ async function showDuplicateFinderPopup(path) {
     deleteBtn.setAttribute("disabled", "true");
     deleteBtn.style.opacity = "0.5";
     deleteBtn.style.cursor = "not-allowed";
+
+    const cancelBtn = popup.querySelector("[data-dup-close]");
+    const stopScanBtn = popup.querySelector("#btn-dup-stop-scan");
+    if (cancelBtn) cancelBtn.style.display = "flex";
+    if (deleteBtn) deleteBtn.style.display = "flex";
+    if (stopScanBtn) stopScanBtn.style.display = "none";
 
     const body = popup.querySelector(".duplicate-finder-body");
     body.style.height = "";
@@ -8117,29 +8137,33 @@ async function showDuplicateFinderPopup(path) {
 
     const body = popup.querySelector(".duplicate-finder-body");
 
-    // Transition body to scanning state with Stop button
+    // Hide close and delete, show stop in footer
+    const cancelBtn = popup.querySelector("[data-dup-close]");
+    const deleteBtn = popup.querySelector("#btn-dup-delete");
+    const stopScanBtn = popup.querySelector("#btn-dup-stop-scan");
+    if (cancelBtn) cancelBtn.style.display = "none";
+    if (deleteBtn) deleteBtn.style.display = "none";
+    if (stopScanBtn) stopScanBtn.style.display = "flex";
+
+    // Transition body to scanning state
     body.innerHTML = `
       <div class="duplicate-finder-scanning" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 30px 0;">
         <div class="preloader-small-invert" style="width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; border-width: 3px; margin-bottom: 8px;"></div>
         <span style="font-size: var(--fontSize); opacity: 0.85;">Scanning directory structure recursively...</span>
         <span style="font-size: 11px; opacity: 0.6; text-align: center; max-width: 80%; margin-bottom: 12px;">Evaluating files for duplicate content. Please wait.</span>
-        <button class="props-card__btn props-card__btn--primary" id="btn-dup-stop-scan" style="background: var(--errorColor); border-color: var(--errorColor); cursor: pointer; padding: 6px 16px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-stop"></i><span>Stop Search</span>
-        </button>
       </div>
     `;
-
-    body.querySelector("#btn-dup-stop-scan").onclick = async () => {
-      try {
-        await invoke("cancel_duplicate_finder");
-      } catch (err) {
-        showToast(`Failed to stop search: ${err}`, ToastType.ERROR);
-      }
-    };
 
     try {
       const results = await invoke("find_duplicates", { path, maxDepth });
       isSearching = false;
+
+      const cancelBtn = popup.querySelector("[data-dup-close]");
+      const deleteBtn = popup.querySelector("#btn-dup-delete");
+      const stopScanBtn = popup.querySelector("#btn-dup-stop-scan");
+      if (cancelBtn) cancelBtn.style.display = "flex";
+      if (deleteBtn) deleteBtn.style.display = "flex";
+      if (stopScanBtn) stopScanBtn.style.display = "none";
 
       if (!results || results.length === 0) {
         body.style.height = "";
@@ -8623,6 +8647,13 @@ async function showDuplicateFinderPopup(path) {
       }
     } catch (err) {
       isSearching = false;
+      const cancelBtn = popup.querySelector("[data-dup-close]");
+      const deleteBtn = popup.querySelector("#btn-dup-delete");
+      const stopScanBtn = popup.querySelector("#btn-dup-stop-scan");
+      if (cancelBtn) cancelBtn.style.display = "flex";
+      if (deleteBtn) deleteBtn.style.display = "flex";
+      if (stopScanBtn) stopScanBtn.style.display = "none";
+
       if (err === "Search cancelled" || (err && typeof err === "string" && err.includes("cancelled"))) {
         showToast("Search was stopped", ToastType.INFO);
         renderSetupScreen();
@@ -9656,5 +9687,935 @@ function onOpenAiImageModelChange() {
   const customInput = document.querySelector(".openai-image-model-custom-input");
   if (select && customInput) {
     customInput.style.display = select.value === "custom" ? "block" : "none";
+  }
+}
+
+// ==========================================================================
+// CDVisualInnovations: Disk Space Analyzer Orchestrator
+// ==========================================================================
+
+let DiskAnalyzerRootNode = null;
+let ActiveAnalyzerNode = null;
+let DiskAnalyzerStack = [];
+let DiskAnalyzerIsScanning = false;
+let DiskAnalyzerIsBackground = false;
+let DiskAnalyzerUserCancelled = false;
+let DiskAnalyzerPath = "";
+let DiskAnalyzerMaxDepth = 5;
+let DiskAnalyzerLastPayload = null;
+
+let DiskAnalyzerSelections = {}; // path -> boolean
+let DiskAnalyzerChartData = [];
+let DiskAnalyzerLastTotalSize = 0;
+const DiskAnalyzerColors = [
+  "rgba(11, 100, 253, 0.85)",
+  "rgba(0, 200, 83, 0.85)",
+  "rgba(255, 179, 0, 0.85)",
+  "rgba(233, 30, 99, 0.85)",
+  "rgba(156, 39, 176, 0.85)",
+  "rgba(0, 188, 212, 0.85)",
+  "rgba(244, 67, 54, 0.85)"
+];
+
+function isNodeSelected(path) {
+  let currentPath = path;
+  while (true) {
+    if (DiskAnalyzerSelections[currentPath] !== undefined) {
+      return DiskAnalyzerSelections[currentPath];
+    }
+    let lastSlash = currentPath.lastIndexOf("/");
+    if (lastSlash === -1 || currentPath === "/") {
+      break;
+    }
+    let parentPath = currentPath.substring(0, lastSlash);
+    if (parentPath === "") {
+      parentPath = "/";
+    }
+    currentPath = parentPath;
+  }
+  return false;
+}
+
+function clearNestedOverrides(parentPath) {
+  const prefix = parentPath.endsWith("/") ? parentPath : parentPath + "/";
+  for (const key in DiskAnalyzerSelections) {
+    if (key.startsWith(prefix)) {
+      delete DiskAnalyzerSelections[key];
+    }
+  }
+}
+
+function toggleNodeSelection(path) {
+  const currentSelection = isNodeSelected(path);
+  DiskAnalyzerSelections[path] = !currentSelection;
+  clearNestedOverrides(path);
+}
+
+function hasDeselectedDescendants(parentPath) {
+  const prefix = parentPath.endsWith("/") ? parentPath : parentPath + "/";
+  for (const key in DiskAnalyzerSelections) {
+    if (key.startsWith(prefix) && DiskAnalyzerSelections[key] === false) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasSelectedDescendants(parentPath) {
+  const prefix = parentPath.endsWith("/") ? parentPath : parentPath + "/";
+  for (const key in DiskAnalyzerSelections) {
+    if (key.startsWith(prefix) && DiskAnalyzerSelections[key] === true) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isNodeIndeterminate(node) {
+  const isSelected = isNodeSelected(node.path);
+  if (isSelected) {
+    return hasDeselectedDescendants(node.path);
+  } else {
+    return hasSelectedDescendants(node.path);
+  }
+}
+
+function updateDeleteButton() {
+  const stats = getSelectedStats();
+  const deleteBtn = document.getElementById("btn-disk-analyzer-delete");
+  if (deleteBtn) {
+    if (stats.plan.length > 0) {
+      deleteBtn.style.display = "inline-flex";
+      deleteBtn.querySelector("span").textContent = `Delete Selected (${formatBytes(stats.totalSize)})`;
+    } else {
+      deleteBtn.style.display = "none";
+    }
+  }
+}
+
+async function startAnalyzerDeletion() {
+  const stats = getSelectedStats();
+  if (stats.plan.length === 0) {
+    showToast("No items selected for deletion.", ToastType.INFO);
+    return;
+  }
+
+  const confirmed = await confirm(
+    `Are you sure you want to permanently delete ${stats.plan.length} item(s) totalling ${formatBytes(stats.totalSize)}?\n\nThis action cannot be undone!`
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  // Visual transitions to loading state
+  $("#disk-analyzer-content").hide();
+  $("#btn-disk-analyzer-delete").hide();
+  $("#disk-analyzer-back-btn").hide();
+  $("#disk-analyzer-close-btn").hide();
+  $("#disk-analyzer-total-size").text("Deleting items...");
+
+  const loadingTitleEl = $("#disk-analyzer-loading p");
+  const foldersStatEl = $("#disk-analyzer-progress-folders");
+  const filesStatEl = $("#disk-analyzer-progress-files");
+  
+  const originalTitle = loadingTitleEl.text();
+  loadingTitleEl.text("Deleting selected items...");
+  foldersStatEl.parent().hide();
+  filesStatEl.parent().hide();
+  
+  $("#disk-analyzer-progress-path").text("Executing deletion plan...");
+  $("#disk-analyzer-progress-fill").css("width", "50%");
+  $("#disk-analyzer-progress-percent").text("Working...");
+  $("#disk-analyzer-loading").css("display", "flex");
+
+  const pathsToDelete = stats.plan.map((item) => item.path);
+  try {
+    await invoke("arr_delete_items", { arrItems: pathsToDelete });
+    
+    // Restore loader title/stats layout secretly
+    loadingTitleEl.text(originalTitle);
+    foldersStatEl.parent().css("display", "inline");
+    filesStatEl.parent().css("display", "inline");
+    
+    $("#disk-analyzer-loading").hide();
+
+    // Populate summary statistics screen
+    $("#disk-analyzer-summary-reclaimed").text(formatBytes(stats.totalSize));
+    $("#disk-analyzer-summary-count").text(stats.plan.length.toLocaleString());
+
+    const listContainer = document.getElementById("disk-analyzer-summary-list");
+    if (listContainer) {
+      listContainer.innerHTML = "";
+      for (const item of stats.plan) {
+        const div = document.createElement("div");
+        div.style.display = "flex";
+        div.style.justifyContent = "space-between";
+        div.style.alignItems = "center";
+        div.style.borderBottom = "1px solid rgba(255,255,255,0.03)";
+        div.style.padding = "4px 0";
+        div.style.gap = "8px";
+        
+        const folderIcon = item.is_dir 
+          ? '<i class="fa-solid fa-folder" style="opacity: 0.7; font-size: 10px; color: #4da3ff;"></i>' 
+          : '<i class="fa-solid fa-file" style="opacity: 0.6; font-size: 10px;"></i>';
+          
+        div.innerHTML = `
+          <span style="display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; font-weight: 550; color: var(--textColor); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${folderIcon} ${item.name}
+          </span>
+          <span style="font-weight: 600; color: var(--selectColor2); font-size: 11px; font-family: monospace; flex-shrink: 0;">
+            ${formatBytes(item.size)}
+          </span>
+        `;
+        listContainer.appendChild(div);
+      }
+    }
+
+    $("#disk-analyzer-summary").css("display", "flex");
+    $("#disk-analyzer-close-btn").show();
+    $("#disk-analyzer-total-size").text("Reclaimed: " + formatBytes(stats.totalSize));
+    showToast("Items successfully deleted.", ToastType.SUCCESS);
+
+    // Refresh active explorer directory list
+    await listDirectories();
+
+  } catch (error) {
+    console.error("Failed to delete selected analyzer items:", error);
+    showToast("Deletion failed: " + error, ToastType.ERROR);
+    
+    // Restore loader title/stats layout
+    loadingTitleEl.text(originalTitle);
+    foldersStatEl.parent().css("display", "inline");
+    filesStatEl.parent().css("display", "inline");
+    
+    $("#disk-analyzer-loading").hide();
+    $("#disk-analyzer-close-btn").show();
+    $("#disk-analyzer-content").css("display", "flex");
+    renderDiskSpaceNode(ActiveAnalyzerNode);
+  }
+}
+
+
+
+function getSelectedStats() {
+  const plan = [];
+  if (DiskAnalyzerRootNode) {
+    collectDeletionPlan(DiskAnalyzerRootNode, false, plan);
+  }
+  
+  let totalSize = 0;
+  let foldersCount = 0;
+  let filesCount = 0;
+  
+  for (const item of plan) {
+    totalSize += item.size;
+    if (item.is_dir) {
+      foldersCount++;
+    } else {
+      filesCount++;
+    }
+  }
+  
+  return { plan, totalSize, foldersCount, filesCount };
+}
+
+function collectDeletionPlan(node, parentSelected, plan) {
+  const isSelected = DiskAnalyzerSelections[node.path] !== undefined 
+    ? DiskAnalyzerSelections[node.path] 
+    : parentSelected;
+    
+  if (isSelected) {
+    if (!hasDeselectedDescendants(node.path)) {
+      plan.push(node);
+    } else {
+      for (const child of node.children) {
+        collectDeletionPlan(child, true, plan);
+      }
+    }
+  } else {
+    for (const child of node.children) {
+      collectDeletionPlan(child, false, plan);
+    }
+  }
+}
+
+
+function putDiskAnalyzerInBackground() {
+  DiskAnalyzerIsBackground = true;
+  IsPopUpOpen = false;
+  
+  const modal = document.getElementById("disk-analyzer-popup");
+  if (modal) modal.style.display = "none";
+  $(".popup-background").css("opacity", "0");
+  setTimeout(() => $(".popup-background").css("display", "none"), 200);
+  
+  const actionId = "diskanalyzer-scan";
+  const name = "Disk Analyzer";
+  const folderName = DiskAnalyzerPath.split("/").pop() || DiskAnalyzerPath;
+  const description = `Scanning ${folderName}`;
+  
+  let action = ArrActiveActions.find((a) => a.id === actionId);
+  if (!action) {
+    action = new ActiveAction(name, description, actionId, DiskAnalyzerPath, true);
+    action.progress = 0;
+    action.countLabel = "0 items";
+    action.speedLabel = "Scanning...";
+    ArrActiveActions.push(action);
+  }
+  
+  renderActiveActionsPill();
+  refreshActiveActionsPopup();
+  showToast("Scan running in background.", ToastType.INFO);
+}
+
+async function triggerStopDiskAnalysis() {
+  await invoke("stop_disk_analysis");
+}
+
+function reopenDiskAnalyzerModal() {
+  DiskAnalyzerIsBackground = false;
+  IsPopUpOpen = true;
+  
+  const modal = document.getElementById("disk-analyzer-popup");
+  if (modal) {
+    modal.style.display = "flex";
+    if (!DiskAnalyzerIsScanning && DiskAnalyzerRootNode) {
+      modal.style.width = "min(760px, 94vw)";
+      modal.style.height = "min(500px, 85vh)";
+    } else {
+      modal.style.width = "min(450px, 94vw)";
+      modal.style.height = "420px";
+    }
+  }
+  
+  $(".popup-background").css("display", "block");
+  $(".popup-background").css("opacity", "1");
+  
+  removeAction("diskanalyzer-scan");
+
+  if (!DiskAnalyzerIsScanning && DiskAnalyzerRootNode) {
+    $("#disk-analyzer-setup").hide();
+    $("#disk-analyzer-loading").hide();
+    $("#disk-analyzer-summary").hide();
+    $("#btn-disk-analyzer-background").hide();
+    $("#btn-disk-analyzer-stop").hide();
+    $("#disk-analyzer-close-btn").show();
+    $("#disk-analyzer-content").css("display", "flex");
+    renderDiskSpaceNode(ActiveAnalyzerNode);
+  } else {
+    $("#disk-analyzer-setup").hide();
+    $("#disk-analyzer-content").hide();
+    $("#disk-analyzer-close-btn").hide();
+    $("#btn-disk-analyzer-background").css("display", "flex");
+    $("#btn-disk-analyzer-stop").css("display", "flex");
+    $("#disk-analyzer-loading").css("display", "flex");
+    
+    if (DiskAnalyzerLastPayload) {
+      const { folders, files, percent, path } = DiskAnalyzerLastPayload;
+      $("#disk-analyzer-progress-folders").text(folders.toLocaleString());
+      $("#disk-analyzer-progress-files").text(files.toLocaleString());
+      $("#disk-analyzer-progress-fill").css("width", percent + "%");
+      $("#disk-analyzer-progress-percent").text(percent + "%");
+      $("#disk-analyzer-progress-path").text(path);
+    }
+  }
+}
+
+async function showDiskAnalyzerPopup(path) {
+  if (DiskAnalyzerIsScanning) {
+    if (DiskAnalyzerPath === path) {
+      reopenDiskAnalyzerModal();
+      return;
+    } else if (!DiskAnalyzerIsBackground) {
+      DiskAnalyzerUserCancelled = true;
+      await triggerStopDiskAnalysis();
+    }
+  }
+
+  IsPopUpOpen = true;
+  DiskAnalyzerStack = [];
+  DiskAnalyzerRootNode = null;
+  ActiveAnalyzerNode = null;
+  DiskAnalyzerIsScanning = false;
+  DiskAnalyzerIsBackground = false;
+  DiskAnalyzerPath = path;
+  DiskAnalyzerLastPayload = null;
+  DiskAnalyzerSelections = {}; // Clear selections for the new scan
+  
+  $("#disk-analyzer-back-btn").hide();
+
+  const chip = document.getElementById("disk-analyzer-path-chip");
+  if (chip) chip.textContent = path.split("/").pop() || path;
+
+  const modal = document.getElementById("disk-analyzer-popup");
+  if (modal) {
+    modal.style.display = "flex";
+    modal.style.width = "min(450px, 94vw)";
+    modal.style.height = "420px";
+  }
+  
+  $(".popup-background").css("display", "block");
+  setTimeout(() => $(".popup-background").css("opacity", "1"));
+
+  $("#disk-analyzer-setup").css("display", "flex");
+  $("#disk-analyzer-content").hide();
+  $("#disk-analyzer-loading").hide();
+  $("#disk-analyzer-summary").hide();
+  $("#btn-disk-analyzer-delete").hide();
+  $("#btn-disk-analyzer-background").hide();
+  $("#btn-disk-analyzer-stop").hide();
+  $("#disk-analyzer-close-btn").show();
+  $("#disk-analyzer-total-size").text("Total Size: --");
+
+  const depthInput = document.getElementById("disk-analyzer-depth-input");
+  const unlimitedCheck = document.getElementById("disk-analyzer-depth-unlimited");
+  const startBtn = document.getElementById("btn-disk-analyzer-start");
+  const bgBtn = document.getElementById("btn-disk-analyzer-background");
+  const stopBtn = document.getElementById("btn-disk-analyzer-stop");
+
+  if (depthInput && unlimitedCheck) {
+    unlimitedCheck.checked = false;
+    depthInput.removeAttribute("disabled");
+    depthInput.style.opacity = "1";
+    depthInput.value = "5";
+
+    unlimitedCheck.onchange = () => {
+      if (unlimitedCheck.checked) {
+        depthInput.setAttribute("disabled", "true");
+        depthInput.style.opacity = "0.5";
+      } else {
+        depthInput.removeAttribute("disabled");
+        depthInput.style.opacity = "1";
+      }
+    };
+  }
+
+  if (bgBtn) {
+    bgBtn.onclick = () => {
+      putDiskAnalyzerInBackground();
+    };
+  }
+
+  if (stopBtn) {
+    stopBtn.onclick = async () => {
+      DiskAnalyzerUserCancelled = true;
+      await triggerStopDiskAnalysis();
+    };
+  }
+
+  if (startBtn) {
+    startBtn.onclick = async () => {
+      let maxDepth = 5;
+      if (unlimitedCheck && unlimitedCheck.checked) {
+        maxDepth = 15;
+      } else if (depthInput) {
+        maxDepth = Math.max(1, parseInt(depthInput.value) || 5);
+      }
+      
+      DiskAnalyzerMaxDepth = maxDepth;
+      DiskAnalyzerIsScanning = true;
+      DiskAnalyzerIsBackground = false;
+
+      $("#disk-analyzer-setup").hide();
+      $("#disk-analyzer-progress-folders").text("0");
+      $("#disk-analyzer-progress-files").text("0");
+      $("#disk-analyzer-progress-path").text("Initializing scan...");
+      $("#disk-analyzer-progress-fill").css("width", "0%");
+      $("#disk-analyzer-progress-percent").text("0%");
+      $("#disk-analyzer-close-btn").hide();
+      $("#btn-disk-analyzer-background").css("display", "flex");
+      $("#btn-disk-analyzer-stop").css("display", "flex");
+      $("#disk-analyzer-loading").css("display", "flex");
+
+      try {
+        const rootNode = await invoke("get_disk_space_tree", { path, maxDepth });
+        DiskAnalyzerRootNode = rootNode;
+        ActiveAnalyzerNode = rootNode;
+        DiskAnalyzerIsScanning = false;
+        
+        if (DiskAnalyzerIsBackground) {
+          const action = ArrActiveActions.find((a) => a.id === "diskanalyzer-scan");
+          if (action) {
+            action.progress = 100;
+            action.currentFile = "Scan completed! Click to view results.";
+            action.countLabel = "100%";
+            action.speedLabel = "Done";
+            renderActiveActionsPill();
+            refreshActiveActionsPopup();
+          }
+          showToast("Disk analysis complete! Click active action to view.", ToastType.SUCCESS);
+        } else {
+          $("#disk-analyzer-progress-fill").css("width", "100%");
+          $("#disk-analyzer-progress-percent").text("100%");
+          
+          setTimeout(() => {
+            const modal = document.getElementById("disk-analyzer-popup");
+            if (modal) {
+              modal.style.width = "min(760px, 94vw)";
+              modal.style.height = "min(500px, 85vh)";
+            }
+            $("#disk-analyzer-loading").hide();
+            $("#btn-disk-analyzer-background").hide();
+            $("#btn-disk-analyzer-stop").hide();
+            $("#disk-analyzer-close-btn").show();
+            
+            $("#disk-analyzer-content").css("display", "flex");
+            renderDiskSpaceNode(ActiveAnalyzerNode);
+          }, 300);
+        }
+      } catch (error) {
+        if (DiskAnalyzerPath === path) {
+          const wasScanning = DiskAnalyzerIsScanning;
+          DiskAnalyzerIsScanning = false;
+          removeAction("diskanalyzer-scan");
+          
+          $("#btn-disk-analyzer-background").hide();
+          $("#btn-disk-analyzer-stop").hide();
+          $("#disk-analyzer-close-btn").show();
+          
+          if (error === "Cancelled") {
+            if (DiskAnalyzerUserCancelled) {
+              showToast("Analysis stopped.", ToastType.INFO);
+              DiskAnalyzerUserCancelled = false;
+            }
+            if (IsPopUpOpen) {
+              const modal = document.getElementById("disk-analyzer-popup");
+              if (modal) {
+                modal.style.width = "min(450px, 94vw)";
+                modal.style.height = "420px";
+              }
+              $("#disk-analyzer-loading").hide();
+              $("#disk-analyzer-content").hide();
+              $("#disk-analyzer-setup").css("display", "flex");
+            }
+          } else {
+            console.error("Failed to analyze directory storage:", error);
+            showToast("Analysis failed: " + error, ToastType.ERROR);
+            closeDiskAnalyzerPopup();
+          }
+        } else {
+          console.log("Silently ignored old cancelled scan for path:", path);
+        }
+      }
+    };
+  }
+}
+
+function closeDiskAnalyzerPopup() {
+  if (DiskAnalyzerIsScanning && !DiskAnalyzerIsBackground) {
+    DiskAnalyzerUserCancelled = true;
+    triggerStopDiskAnalysis();
+  }
+  const modal = document.getElementById("disk-analyzer-popup");
+  if (modal) modal.style.display = "none";
+  
+  $(".popup-background").css("opacity", "0");
+  setTimeout(() => $(".popup-background").css("display", "none"), 200);
+  IsPopUpOpen = false;
+  
+  DiskAnalyzerRootNode = null;
+  ActiveAnalyzerNode = null;
+  DiskAnalyzerStack = [];
+}
+
+function renderDiskSpaceNode(node) {
+  if (!node) return;
+
+  const chip = document.getElementById("disk-analyzer-path-chip");
+  if (chip) {
+    let visualPath = node.path;
+    let parts = visualPath.split("/");
+    if (parts.length > 2) {
+      chip.textContent = ".../" + parts[parts.length - 2] + "/" + parts[parts.length - 1];
+    } else {
+      chip.textContent = visualPath;
+    }
+  }
+
+  $("#disk-analyzer-total-size").text("Total Size: " + formatBytes(node.size));
+
+  if (DiskAnalyzerStack.length > 0) {
+    $("#disk-analyzer-back-btn").show();
+  } else {
+    $("#disk-analyzer-back-btn").hide();
+  }
+
+  drawDonutChart("disk-analyzer-svg", node.children, node.size);
+  updateDeleteButton();
+}
+
+function navigateDiskAnalyzerBack() {
+  if (DiskAnalyzerStack.length > 0) {
+    ActiveAnalyzerNode = DiskAnalyzerStack.pop();
+    renderDiskSpaceNode(ActiveAnalyzerNode);
+  }
+}
+
+function drawDonutChart(svgId, nodes, totalSize) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  svg.innerHTML = "";
+  
+  const rOut = 100;
+  const rIn = 65;
+  
+  let chartData = [];
+  let otherSize = 0;
+  
+  // Separate directories and files
+  let directories = nodes.filter(n => n.is_dir);
+  let files = nodes.filter(n => !n.is_dir);
+  
+  // Sort both by size descending
+  directories.sort((a, b) => b.size - a.size);
+  files.sort((a, b) => b.size - a.size);
+  
+  // All directories are individual items
+  chartData.push(...directories);
+  
+  // Add up to 6 largest files individually, group the rest
+  const maxFilesToShow = 6;
+  for (let i = 0; i < files.length; i++) {
+    if (i < maxFilesToShow) {
+      chartData.push(files[i]);
+    } else {
+      otherSize += files[i].size;
+    }
+  }
+  
+  if (otherSize > 0) {
+    chartData.push({
+      name: "Other items",
+      path: "",
+      is_dir: false,
+      size: otherSize,
+      children: []
+    });
+  }
+  
+  // Sort the combined chartData descending by size for ordered rendering
+  chartData.sort((a, b) => b.size - a.size);
+  
+  // Save globally for virtual scrolling
+  DiskAnalyzerChartData = chartData;
+  DiskAnalyzerLastTotalSize = totalSize;
+  
+  let cumulativeAngle = -Math.PI / 2;
+  
+  const centerName = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  centerName.setAttribute("class", "donut-center-name");
+  centerName.setAttribute("text-anchor", "middle");
+  centerName.setAttribute("y", "-8");
+  centerName.setAttribute("fill", "var(--textColor)");
+  centerName.setAttribute("font-size", "11px");
+  centerName.setAttribute("font-weight", "600");
+  centerName.style.pointerEvents = "none";
+  centerName.textContent = "Total Folder";
+  
+  const centerSize = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  centerSize.setAttribute("class", "donut-center-size");
+  centerSize.setAttribute("text-anchor", "middle");
+  centerSize.setAttribute("y", "12");
+  centerSize.setAttribute("fill", "var(--textColor2)");
+  centerSize.setAttribute("font-size", "11px");
+  centerSize.style.pointerEvents = "none";
+  centerSize.textContent = formatBytes(totalSize);
+
+  const centerPercent = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  centerPercent.setAttribute("class", "donut-center-percent");
+  centerPercent.setAttribute("text-anchor", "middle");
+  centerPercent.setAttribute("y", "28");
+  centerPercent.setAttribute("fill", "var(--selectColor2)");
+  centerPercent.setAttribute("font-size", "10px");
+  centerPercent.setAttribute("font-weight", "700");
+  centerPercent.style.pointerEvents = "none";
+  centerPercent.textContent = "100%";
+
+  svg.appendChild(centerName);
+  svg.appendChild(centerSize);
+  svg.appendChild(centerPercent);
+
+  if (totalSize === 0) {
+    centerName.textContent = "Empty Folder";
+    centerSize.textContent = "0 B";
+    centerPercent.textContent = "";
+    
+    // Clear virtual list as well
+    const legend = document.getElementById("disk-analyzer-legend");
+    if (legend) {
+      const content = legend.querySelector(".virtual-scroll-content");
+      const spacer = legend.querySelector(".virtual-scroll-spacer");
+      if (content) content.innerHTML = "";
+      if (spacer) spacer.style.height = "0px";
+    }
+    return;
+  }
+
+  chartData.forEach((item, index) => {
+    const percentage = item.size / totalSize;
+    if (percentage === 0) return;
+    
+    const angleDelta = percentage * 2 * Math.PI;
+    const startAngle = cumulativeAngle;
+    const endAngle = cumulativeAngle + angleDelta;
+    cumulativeAngle = endAngle;
+    
+    const x1 = rOut * Math.cos(startAngle);
+    const y1 = rOut * Math.sin(startAngle);
+    const x2 = rOut * Math.cos(endAngle);
+    const y2 = rOut * Math.sin(endAngle);
+    
+    const x3 = rIn * Math.cos(endAngle);
+    const y3 = rIn * Math.sin(endAngle);
+    const x4 = rIn * Math.cos(startAngle);
+    const y4 = rIn * Math.sin(startAngle);
+    
+    const largeArcFlag = angleDelta > Math.PI ? 1 : 0;
+    
+    const d = `
+      M ${x1} ${y1}
+      A ${rOut} ${rOut} 0 ${largeArcFlag} 1 ${x2} ${y2}
+      L ${x3} ${y3}
+      A ${rIn} ${rIn} 0 ${largeArcFlag} 0 ${x4} ${y4}
+      Z
+    `;
+    
+    const color = DiskAnalyzerColors[index % DiskAnalyzerColors.length];
+    
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d.trim());
+    path.setAttribute("fill", color);
+    path.setAttribute("class", `analyzer-arc arc-index-${index}`);
+    path.setAttribute("opacity", "0.82");
+    
+    const itemPctStr = (percentage * 100).toFixed(1) + "%";
+    const formattedSize = formatBytes(item.size);
+    
+    const highlightLegend = () => {
+      path.setAttribute("opacity", "1");
+      path.style.transform = "scale(1.03)";
+      
+      centerName.textContent = truncateString(item.name, 15);
+      centerSize.textContent = formattedSize;
+      centerPercent.textContent = itemPctStr;
+      
+      $(`.legend-row-${index}`).css({
+        "background": "var(--transparentColorActive)",
+        "border-color": "var(--selectColor2)",
+        "transform": "none"
+      });
+    };
+    
+    const clearHighlight = () => {
+      path.setAttribute("opacity", "0.82");
+      path.style.transform = "none";
+      
+      centerName.textContent = "Total Folder";
+      centerSize.textContent = formatBytes(totalSize);
+      centerPercent.textContent = "100%";
+      
+      $(`.legend-row-${index}`).css({
+        "background": "rgba(255, 255, 255, 0.02)",
+        "border-color": "rgba(255, 255, 255, 0.03)",
+        "transform": "none"
+      });
+    };
+    
+    path.addEventListener("mouseenter", highlightLegend);
+    path.addEventListener("mouseleave", clearHighlight);
+    
+    if (item.is_dir && item.children && item.children.length > 0) {
+      path.addEventListener("click", () => {
+        DiskAnalyzerStack.push(ActiveAnalyzerNode);
+        ActiveAnalyzerNode = item;
+        renderDiskSpaceNode(ActiveAnalyzerNode);
+      });
+    } else {
+      path.addEventListener("click", () => {
+        if (item.is_dir) {
+          showToast("This folder has no pre-calculated sub-elements (either it is empty or the analysis depth limit was reached).", ToastType.INFO);
+        } else {
+          showToast("This item is a file and does not contain sub-folders.", ToastType.INFO);
+        }
+      });
+    }
+    
+    svg.appendChild(path);
+  });
+  
+  // Virtual scrolling setup for legend
+  const legend = document.getElementById("disk-analyzer-legend");
+  if (legend) {
+    legend.scrollTop = 0;
+    if (!legend.dataset.scrollBound) {
+      legend.addEventListener("scroll", () => {
+        renderVirtualLegend();
+      });
+      legend.dataset.scrollBound = "true";
+    }
+    renderVirtualLegend();
+  }
+}
+
+function renderVirtualLegend() {
+  const legend = document.getElementById("disk-analyzer-legend");
+  if (!legend) return;
+  
+  const content = legend.querySelector(".virtual-scroll-content");
+  const spacer = legend.querySelector(".virtual-scroll-spacer");
+  if (!content || !spacer) return;
+  
+  const totalItems = DiskAnalyzerChartData.length;
+  const rowHeight = 32;
+  const rowGap = 6;
+  const rowSpacing = rowHeight + rowGap; // 38px
+  
+  const totalHeight = totalItems > 0 ? (totalItems * rowSpacing - rowGap) : 0;
+  spacer.style.height = totalHeight + "px";
+  
+  const scrollTop = legend.scrollTop;
+  const containerHeight = legend.clientHeight || 300;
+  
+  const startIndex = Math.floor(scrollTop / rowSpacing);
+  const endIndex = Math.min(totalItems, Math.ceil((scrollTop + containerHeight) / rowSpacing));
+  
+  const bufferedStartIndex = Math.max(0, startIndex - 3);
+  const bufferedEndIndex = Math.min(totalItems, endIndex + 3);
+  
+  content.innerHTML = "";
+  content.style.transform = `translateY(${bufferedStartIndex * rowSpacing}px)`;
+  
+  const svg = document.getElementById("disk-analyzer-svg");
+  
+  for (let index = bufferedStartIndex; index < bufferedEndIndex; index++) {
+    const item = DiskAnalyzerChartData[index];
+    const percentage = item.size / DiskAnalyzerLastTotalSize;
+    const itemPctStr = (percentage * 100).toFixed(1) + "%";
+    const formattedSize = formatBytes(item.size);
+    const color = DiskAnalyzerColors[index % DiskAnalyzerColors.length];
+    
+    const legendRow = document.createElement("div");
+    legendRow.className = `analyzer-legend-row legend-row-${index}`;
+    
+    let folderIcon = item.is_dir ? '<i class="fa-solid fa-folder" style="opacity: 0.7; font-size: 10px;"></i>' : '<i class="fa-solid fa-file" style="opacity: 0.6; font-size: 10px;"></i>';
+    if (item.name === "Other items") {
+      folderIcon = '<i class="fa-solid fa-cubes" style="opacity: 0.7; font-size: 10px;"></i>';
+    }
+
+    let checkboxHtml = '';
+    if (item.path && item.name !== "Other items") {
+      const isChecked = isNodeSelected(item.path);
+      const isIndeterminate = isNodeIndeterminate(item);
+      const indeterminateClass = isIndeterminate ? ' indeterminate' : '';
+      checkboxHtml = `<input type="checkbox" class="analyzer-item-checkbox${indeterminateClass}" ${isChecked ? 'checked' : ''} style="cursor: pointer;" />`;
+    }
+
+    legendRow.innerHTML = `
+      <span style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+        <span class="analyzer-legend-color-box" style="background-color: ${color}; width: 8px; height: 8px;"></span>
+        ${checkboxHtml}
+        ${folderIcon}
+        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; color: var(--textColor);">${item.name}</span>
+      </span>
+      <span style="display: flex; gap: 8px; align-items: center; font-variant-numeric: tabular-nums;">
+        <span style="color: var(--textColor2); opacity: 0.85;">${itemPctStr}</span>
+        <span style="font-weight: 600; color: var(--selectColor2);">${formattedSize}</span>
+      </span>
+    `;
+    
+    const checkboxEl = legendRow.querySelector(".analyzer-item-checkbox");
+    if (checkboxEl) {
+      checkboxEl.onclick = (e) => {
+        e.stopPropagation();
+        toggleNodeSelection(item.path);
+        renderDiskSpaceNode(ActiveAnalyzerNode);
+      };
+    }
+
+    const highlightArc = () => {
+      if (svg) {
+        const pathEl = svg.querySelector(`.arc-index-${index}`);
+        if (pathEl) {
+          pathEl.setAttribute("opacity", "1");
+          pathEl.style.transform = "scale(1.03)";
+        }
+        
+        const centerName = svg.querySelector(".donut-center-name");
+        const centerSize = svg.querySelector(".donut-center-size");
+        const centerPercent = svg.querySelector(".donut-center-percent");
+        
+        if (centerName) centerName.textContent = truncateString(item.name, 15);
+        if (centerSize) centerSize.textContent = formattedSize;
+        if (centerPercent) centerPercent.textContent = itemPctStr;
+      }
+      
+      $(`.legend-row-${index}`).css({
+        "background": "var(--transparentColorActive)",
+        "border-color": "var(--selectColor2)",
+        "transform": "none"
+      });
+    };
+    
+    const clearHighlightArc = () => {
+      if (svg) {
+        const pathEl = svg.querySelector(`.arc-index-${index}`);
+        if (pathEl) {
+          pathEl.setAttribute("opacity", "0.82");
+          pathEl.style.transform = "none";
+        }
+        
+        const centerName = svg.querySelector(".donut-center-name");
+        const centerSize = svg.querySelector(".donut-center-size");
+        const centerPercent = svg.querySelector(".donut-center-percent");
+        
+        if (centerName) centerName.textContent = "Total Folder";
+        if (centerSize) centerSize.textContent = formatBytes(DiskAnalyzerLastTotalSize);
+        if (centerPercent) centerPercent.textContent = "100%";
+      }
+      
+      $(`.legend-row-${index}`).css({
+        "background": "rgba(255, 255, 255, 0.02)",
+        "border-color": "rgba(255, 255, 255, 0.03)",
+        "transform": "none"
+      });
+    };
+
+    legendRow.addEventListener("mouseenter", highlightArc);
+    legendRow.addEventListener("mouseleave", clearHighlightArc);
+    
+    if (item.is_dir && item.children && item.children.length > 0) {
+      legendRow.onclick = () => {
+        DiskAnalyzerStack.push(ActiveAnalyzerNode);
+        ActiveAnalyzerNode = item;
+        renderDiskSpaceNode(ActiveAnalyzerNode);
+      };
+    } else {
+      legendRow.onclick = () => {
+        if (item.is_dir) {
+          showToast("This folder has no pre-calculated sub-elements (either it is empty or the analysis depth limit was reached).", ToastType.INFO);
+        } else {
+          showToast("This item is a file and does not contain sub-folders.", ToastType.INFO);
+        }
+      };
+    }
+    
+    content.appendChild(legendRow);
+  }
+}
+
+function truncateString(str, num) {
+  return str.length > num ? str.slice(0, num) + "..." : str;
+}
+
+async function openItemByPath(path) {
+  let isSwitched = await invoke("open_dir", { path });
+  if (isSwitched) {
+    if (IsDualPaneEnabled === false) {
+      await setCurrentDir(path, "", false);
+      await listDirectories();
+    } else {
+      await setCurrentDir(path, SelectedItemPaneSide, false);
+      await listDirectories();
+    }
   }
 }

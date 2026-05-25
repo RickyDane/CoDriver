@@ -1,0 +1,5 @@
+[2026-05-25T12:34:13.539676+02:00] search_for execution: file_name = l, is_quick_search = true, curr_dir = /Users/rickyperlick/Library, search_id = 1
+[2026-05-25T12:34:13.714943+02:00] search_for execution: file_name = li, is_quick_search = true, curr_dir = /Users/rickyperlick/Library, search_id = 2
+[2026-05-25T12:34:13.809050+02:00] search_for execution: file_name = lin, is_quick_search = true, curr_dir = /Users/rickyperlick/Library, search_id = 3
+[2026-05-25T12:34:13.944583+02:00] search_for execution: file_name = link, is_quick_search = true, curr_dir = /Users/rickyperlick/Library, search_id = 4
+[2026-05-25T12:34:14.046054+02:00] search_for execution: file_name = links, is_quick_search = true, curr_dir = /Users/rickyperlick/Library, search_id = 5

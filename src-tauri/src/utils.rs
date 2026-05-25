@@ -203,6 +203,9 @@ async fn copy_to_with_overwrite_policy(
         println!("Copying file...");
         let copy_counter = copy_counter.clone();
         loop {
+            if crate::IS_COPY_PASTE_CANCELLED.load(Ordering::Relaxed) {
+                return Err("Copy operation was cancelled".to_string());
+            }
             match fr.read(&mut buf) {
                 Ok(ds) => {
                     s += ds as u64;
@@ -272,6 +275,9 @@ async fn copy_to_with_overwrite_policy(
         for entry in fs::read_dir(&from_path)
             .map_err(|err| format!("Failed to read directory '{}': {}", from_path, err))?
         {
+            if crate::IS_COPY_PASTE_CANCELLED.load(Ordering::Relaxed) {
+                return Err("Copy operation was cancelled".to_string());
+            }
             let entry = entry.map_err(|err| format!("Failed to read directory entry: {}", err))?;
             let path = entry.path();
             let relative_path = path

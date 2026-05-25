@@ -25,6 +25,7 @@ dependencies = [
  "image",
  "jwalk 0.8.1",
  "lazy_static",
+ "libc",
  "notify",
  "num_cpus",
  "objc",

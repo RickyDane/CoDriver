@@ -18,6 +18,12 @@ pub struct CallbackReader<R, F: Fn(usize) + ?Sized> {
 
 impl<R: std::io::Read, F: Fn(usize) + ?Sized> std::io::Read for CallbackReader<R, F> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        if crate::IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Interrupted,
+                "Copy operation was cancelled",
+            ));
+        }
         let len = self.inner.read(buf)?;
         if len > 0 {
             (self.callback)(len);
@@ -671,6 +677,9 @@ pub fn download_ftp_dir_recursive(
     let entries = list_ftp_dir_internal(client, raw_dir, connection_name)?;
 
     for entry in entries {
+        if crate::IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err("Copy operation was cancelled".to_string());
+        }
         let entry_name = entry.name;
         let remote_item_path = entry.path;
         let local_item_path = format!("{}/{}", local_dest_dir, entry_name);
@@ -714,6 +723,9 @@ pub fn upload_ftp_dir_recursive(
         .map_err(|e| format!("Failed to read local directory: {}", e))?;
 
     for entry in local_entries {
+        if crate::IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err("Copy operation was cancelled".to_string());
+        }
         let entry = entry.map_err(|e| format!("Failed to read local entry: {}", e))?;
         let path = entry.path();
         let entry_name = path
@@ -746,6 +758,9 @@ pub fn copy_ftp_to_ftp(
     remote_dest: &str,
     progress_callback: Option<&FtpProgressCallback>,
 ) -> Result<(), String> {
+    if crate::IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err("Copy operation was cancelled".to_string());
+    }
     let config = {
         let conns = FTP_CONNECTIONS.lock().unwrap();
         conns.get(connection_name).cloned()
@@ -793,6 +808,9 @@ pub fn copy_ftp_dir_to_ftp_recursive(
     let raw_src_dir = to_raw_ftp_path(remote_src_dir);
     let entries = list_ftp_dir_internal(&mut client, raw_src_dir, connection_name)?;
     for entry in entries {
+        if crate::IS_COPY_PASTE_CANCELLED.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err("Copy operation was cancelled".to_string());
+        }
         let entry_name = entry.name;
         let remote_src_item = entry.path;
         let remote_dest_item = format!("{}/{}", raw_dest_dir, entry_name);

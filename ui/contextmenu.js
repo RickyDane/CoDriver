@@ -54,6 +54,17 @@ class CDContextMenu {
               this.hide();
             },
           },
+          {
+            label: "Disk Analyzer",
+            icon: "fa-solid fa-chart-pie",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showDiskAnalyzerPopup(path);
+              this.hide();
+            },
+          },
         ],
       },
     ],
@@ -177,6 +188,17 @@ class CDContextMenu {
               this.hide();
             },
           },
+          {
+            label: "Disk Analyzer",
+            icon: "fa-solid fa-chart-pie",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showDiskAnalyzerPopup(path);
+              this.hide();
+            },
+          },
         ],
       },
     ],
@@ -257,6 +279,17 @@ class CDContextMenu {
                 ? this.selectedItem.getAttribute("itempath")
                 : CurrentDir;
               showSmartOrganizerPopup(path);
+              this.hide();
+            },
+          },
+          {
+            label: "Disk Analyzer",
+            icon: "fa-solid fa-chart-pie",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showDiskAnalyzerPopup(path);
               this.hide();
             },
           },
