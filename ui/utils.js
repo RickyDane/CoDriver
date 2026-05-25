@@ -91,25 +91,25 @@ const handleDragOver = (event) => {
   try {
     const { x, y } = event.payload.position || {};
     if (x === undefined || y === undefined) return;
-    
+
     // Find DOM element under the OS drag cursor
     let rawEl = document.elementFromPoint(x, y);
     if (!rawEl) return;
-    
+
     // Find if it's a directory item or sidebar/back button
     let el = rawEl.closest(".item-link") || rawEl.closest(".site-nav-bar-button") || rawEl.closest(".site-nav-bar-button-fav") || rawEl.closest(".go-back-button");
-    
+
     if (el) {
       // Check if it is a folder (for .item-link directory entry)
       let isDir = el.getAttribute("itemisdir") == "1";
       // Sidebar button/back buttons are folders conceptually (they accept drops)
       let isAcceptableDrop = isDir || el.classList.contains("site-nav-bar-button") || el.classList.contains("site-nav-bar-button-fav") || el.classList.contains("go-back-button");
-      
+
       if (isAcceptableDrop) {
         if (LastDraggedOverElement && LastDraggedOverElement !== el) {
           clearDragHighlight(LastDraggedOverElement);
         }
-        
+
         // Apply hover highlights based on target type
         if (el.classList.contains("site-nav-bar-button") || el.classList.contains("site-nav-bar-button-fav")) {
           el.style.border = "1px solid var(--tertiaryColor)";
@@ -129,7 +129,7 @@ const handleDragOver = (event) => {
             el.style.backgroundColor = "var(--selectColor3)";
           }
         }
-        
+
         DraggedOverElement = el;
         LastDraggedOverElement = el;
         if (typeof MousePos !== "undefined") {
@@ -138,7 +138,7 @@ const handleDragOver = (event) => {
         return;
       }
     }
-    
+
     // If not hovering over a valid drop target, clear previous highlight
     if (LastDraggedOverElement) {
       clearDragHighlight(LastDraggedOverElement);
@@ -169,7 +169,7 @@ const handleDragDrop = async (event) => {
     ArrSelectedItems = [];
     ArrCopyItems = [];
     const dropPaths = Array.isArray(event.payload) ? event.payload : (event.payload.paths || []);
-    
+
     // Resolve all dropped paths into clean FDir objects using the backend to avoid clipboard collision
     let droppedItems = [];
     for (let path of dropPaths) {
@@ -558,7 +558,7 @@ function refreshActiveActionsPopup() {
     list.innerHTML = ArrActiveActions.map((a) => a.getHTMLElement()).join("");
     return;
   }
-  
+
   ArrActiveActions.forEach((a) => {
     const el = list.querySelector(`.active-action-${a.id}`);
     if (el) {
@@ -568,7 +568,7 @@ function refreshActiveActionsPopup() {
       const fillEl = el.querySelector(".active-action__progress-fill");
       const countEl = el.querySelector(".active-action__count");
       const speedEl = el.querySelector(".active-action__speed");
-      
+
       if (nameEl && nameEl.textContent !== a.name) nameEl.textContent = a.name;
       if (descEl && descEl.textContent !== (a.currentFile || a.description)) {
         descEl.textContent = a.currentFile || a.description;
@@ -863,7 +863,7 @@ function showProgressbar() {
     modal.setAttribute("role", "dialog");
     modal.setAttribute("aria-modal", "true");
     modal.setAttribute("aria-label", "File progress");
-    
+
     let actionTitle = (typeof IsCopyToCut !== "undefined" && IsCopyToCut === true) ? "Moving Items" : "Copying Items";
 
     const progress = action.progress ?? 0;
@@ -885,7 +885,7 @@ function showProgressbar() {
           </div>
         </div>
       </section>
- 
+
       <dl class="props-card__list">
         <div class="props-card__row props-card__row--block">
           <dt class="props-card__label"><i class="fa-regular fa-file"></i>Current File</dt>
@@ -1026,7 +1026,7 @@ function finishProgressBar(time = 0) {
   const modal = document.querySelector(".file-progress-modal");
   if (modal) {
     modal.querySelector(".progress-modal-title").textContent = "Completed Successfully!";
-    
+
     const thumbEl = modal.querySelector(".file-progress-modal__thumb");
     if (thumbEl) {
       thumbEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--successColor, #4ade80);"></i>`;
@@ -1110,13 +1110,13 @@ function renderMarkdown(md) {
   let inCodeBlock = false;
   let codeContent = [];
   let codeLanguage = "";
-  
+
   let processedBlocks = [];
   let currentParagraph = [];
   let currentList = [];
   let currentListType = null; // 'ul' or 'ol'
   let currentQuote = [];
-  
+
   function flushParagraph() {
     if (currentParagraph.length > 0) {
       let pText = currentParagraph.join(" ").trim();
@@ -1127,17 +1127,17 @@ function renderMarkdown(md) {
       currentParagraph = [];
     }
   }
-  
+
   function flushList() {
     if (currentList.length > 0) {
-      const listStyle = currentListType === "ol" 
-        ? "margin: 8px 0; padding: 0 0 0 20px; list-style-type: decimal;" 
+      const listStyle = currentListType === "ol"
+        ? "margin: 8px 0; padding: 0 0 0 20px; list-style-type: decimal;"
         : "margin: 8px 0; padding: 0 0 0 20px; list-style-type: disc;";
-      
+
       const itemsHtml = currentList.map(item => {
         return `<li style="margin-bottom: 4px; color: var(--textColor2); line-height: 1.4; font-size: calc(var(--fontSize) * 0.95);">${applyInlineFormatting(item)}</li>`;
       }).join("");
-      
+
       processedBlocks.push(`<${currentListType} style="${listStyle}">${itemsHtml}</${currentListType}>`);
       currentList = [];
       currentListType = null;
@@ -1148,17 +1148,17 @@ function renderMarkdown(md) {
     if (currentQuote.length > 0) {
       const firstLine = currentQuote[0].trim();
       const alertMatch = firstLine.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/i);
-      
+
       if (alertMatch) {
         const alertType = alertMatch[1].toUpperCase();
         const contentLines = currentQuote.slice(1);
         const contentHtml = contentLines.map(line => applyInlineFormatting(line)).join("<br />");
-        
+
         let icon = "fa-info-circle";
         let color = "#4ba3ff"; // Blue for NOTE
         let title = "Note";
         let bg = "rgba(75, 163, 255, 0.08)";
-        
+
         if (alertType === "TIP") {
           icon = "fa-lightbulb";
           color = "#4cd964"; // Green for TIP
@@ -1180,7 +1180,7 @@ function renderMarkdown(md) {
           title = "Caution";
           bg = "rgba(255, 59, 48, 0.08)";
         }
-        
+
         processedBlocks.push(`
           <div class="alert-block alert-${alertType.toLowerCase()}" style="border-left: 4px solid ${color}; padding: 10px 14px; margin: 12px 0; background: ${bg}; border-radius: 6px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid rgba(255, 255, 255, 0.03); border-right: 1px solid rgba(255, 255, 255, 0.03); border-bottom: 1px solid rgba(255, 255, 255, 0.03);">
             <div style="display: flex; align-items: center; gap: 8px; color: ${color}; font-weight: 700; font-size: calc(var(--fontSize) * 0.9); text-transform: uppercase; letter-spacing: 0.5px;">
@@ -1266,7 +1266,7 @@ function renderMarkdown(md) {
     // Headers
     if (trimmed.startsWith("#")) {
       flushAll();
-      
+
       const headerMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
       if (headerMatch) {
         const level = headerMatch[1].length;
@@ -1275,11 +1275,11 @@ function renderMarkdown(md) {
         let weight = "600";
         let border = "";
         let margin = "12px 0 6px 0";
-        
+
         if (level === 1) { size = "1.4em"; weight = "700"; border = "border-bottom: 1px solid var(--tertiaryColor); padding-bottom: 6px;"; margin = "20px 0 10px 0"; }
         else if (level === 2) { size = "1.25em"; border = "border-bottom: 1px solid var(--tertiaryColor); padding-bottom: 4px;"; margin = "18px 0 8px 0"; }
         else if (level === 3) { size = "1.15em"; margin = "16px 0 8px 0"; }
-        
+
         processedBlocks.push(`<h${level} style="margin: ${margin}; font-weight: ${weight}; font-size: ${size}; color: var(--textColor); ${border}">${text}</h${level}>`);
         continue;
       }
@@ -1332,4 +1332,3 @@ function renderMarkdown(md) {
 
   return processedBlocks.join("\n");
 }
-
