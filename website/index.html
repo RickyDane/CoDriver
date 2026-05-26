@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CoDriver | High-Performance Desktop File Explorer</title>
-  
+
   <!-- Meta Tags for SEO -->
   <meta name="description" content="CoDriver is a blazingly fast, cross-platform desktop file explorer built with Rust and Tauri v2. Features zero-cache real-time walks, dual-pane productivity, and Google Gemini AI.">
   <meta name="keywords" content="CoDriver, file explorer, rust, tauri, high performance, cross-platform, file manager, minimalist, dual-pane, sftp, gemini ai, image upscale">
   <meta name="author" content="Ricky Dane">
-  
+
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="CoDriver | High-Performance Desktop File Explorer">
   <meta property="og:description" content="A blazingly fast, multi-threaded desktop file explorer built in Rust. No path caching, just pure raw speed and modern design.">
   <meta property="og:image" content="codriver-hero-image.png">
-  
+
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image">
   <meta property="twitter:title" content="CoDriver | High-Performance Desktop File Explorer">
@@ -25,6 +25,8 @@
   <!-- Icons & Fonts -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+
+  <script src="app.js" defer></script>
 </head>
 <body>
 
@@ -39,6 +41,7 @@
         <ul>
           <li><a href="#features">Features</a></li>
           <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#shortcuts">Shortcuts</a></li>
           <li><a href="#download">Download</a></li>
         </ul>
       </nav>
@@ -58,7 +61,7 @@
 
         <h1 class="gradient-text">The Speed of Rust. <span class="gradient-text-accent">Engineered for Performance.</span></h1>
         <p class="lead">Experience real-time directory exploration at raw drive speeds. CoDriver walks your folders using parallel multi-threaded disk walks—unifying index-free browsing, rich previews, dual-pane operations, and integrated Gemini AI superpowers.</p>
-        
+
         <div class="hero-buttons">
           <a href="#download" class="btn btn-primary">
             <i class="fa-solid fa-download"></i> Get CoDriver Free
@@ -101,7 +104,7 @@
         <div class="glass-card stat-card reveal">
           <div class="stat-number">Native</div>
           <div class="stat-label">Archive Suite</div>
-          <div class="stat-desc">Compress or decompress ZIP, Zstandard, 7Z, RAR, TAR, and Brotli with ease.</div>
+          <div class="stat-desc">Compress to ZIP, Zstd, Brotli, and <a href="https://github.com/g1mv/density" target="_blank" style="color: var(--primary); text-decoration: underline;">Density</a>. Decompress 7Z, RAR, TAR, GZIP, and more.</div>
         </div>
       </div>
     </div>
@@ -126,20 +129,20 @@
             <i class="fa-solid fa-columns"></i> Dual-Pane Mode
           </button>
           <button class="tab-btn" data-tab="remote">
-            <i class="fa-solid fa-network-wired"></i> Native SFTP/FTP
+            <i class="fa-solid fa-network-wired"></i> Native FTP Client
           </button>
           <button class="tab-btn" data-tab="archive">
             <i class="fa-solid fa-file-zipper"></i> Archive Suite
           </button>
           <button class="tab-btn" data-tab="ai">
-            <i class="fa-solid fa-expand"></i> Gemini AI Upscale
+            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Superpowers
           </button>
         </div>
       </div>
 
       <!-- Showroom Interactive Content Panels -->
       <div class="showroom-content glass-card reveal" style="padding: 3rem;">
-        
+
         <!-- Panel 1: Speed & Layouts -->
         <div class="showroom-panel active" id="tab-speed">
           <div class="showroom-info">
@@ -260,31 +263,31 @@
           </div>
         </div>
 
-        <!-- Panel 3: Native SFTP/FTP -->
+        <!-- Panel 3: Native FTP Client -->
         <div class="showroom-panel" id="tab-remote">
           <div class="showroom-info">
-            <h3><i class="fa-solid fa-network-wired"></i> Native FTP & SFTP</h3>
-            <p>Work directly on remote file systems as if they were local storage modules. CoDriver has native FTP and SFTP client integration built directly into the explorer tree.</p>
+            <h3><i class="fa-solid fa-network-wired"></i> Native FTP Client Integration</h3>
+            <p>Work directly on remote file systems as if they were local storage volumes. CoDriver has a fully native, high-performance FTP client built directly into the file explorer tree.</p>
             <ul class="showroom-bullets">
               <li>
                 <div class="bullet-icon"><i class="fa-solid fa-link"></i></div>
                 <div>
-                  <strong>Native Connections</strong>
-                  <span>Connect natively to remote FTP and SFTP servers directly within the disks panel with zero external dependencies.</span>
+                  <strong>Zero External Dependencies</strong>
+                  <span>Connect natively to remote FTP servers directly within the sidebar disks panel without any external CLI tools, FUSE layers, or third-party wrappers.</span>
                 </div>
               </li>
               <li>
                 <div class="bullet-icon"><i class="fa-solid fa-key"></i></div>
                 <div>
                   <strong>Secure Credentials</strong>
-                  <span>Log in with secure password entry or SSH private keys natively stored within your local client.</span>
+                  <span>Store and retrieve secure FTP connection settings natively in-memory with safety and high-fidelity local configurations.</span>
                 </div>
               </li>
               <li>
                 <div class="bullet-icon"><i class="fa-solid fa-rocket"></i></div>
                 <div>
-                  <strong>Fast Traversal</strong>
-                  <span>Crawl and stream remote paths instantly using optimized asynchronous multi-threading, providing real-time sidebar nodes.</span>
+                  <strong>Blazingly Fast Traversal</strong>
+                  <span>Crawl, query, and stream remote paths instantly using optimized asynchronous multi-threading, providing instant sidebar disk updates.</span>
                 </div>
               </li>
             </ul>
@@ -294,16 +297,16 @@
               <div class="remote-widget">
                 <div class="remote-pill-flex">
                   <div class="archive-pill" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: var(--accent);">
-                    <i class="fa-solid fa-network-wired"></i> SFTP Mounted
+                    <i class="fa-solid fa-network-wired"></i> FTP Connected
                   </div>
                 </div>
                 <div class="ftp-terminal">
-                  <div class="ftp-line out">> sftp://rickydane@daneserver.org:22/var/www</div>
-                  <div class="ftp-line in">Authenticating with SSH Key...</div>
-                  <div class="ftp-line in">FUSE Connection established successfully.</div>
-                  <div class="ftp-line in">Registering /mnt/daneserver into CoDriver Disks Panel...</div>
-                  <div class="ftp-line out">> jwalk -d 1 /mnt/daneserver</div>
-                  <div class="ftp-line in" style="color: var(--accent);">15,249 files crawled in 0.12s. Sidebar updated.</div>
+                  <div class="ftp-line out">> ftp://ftp.rickydane.org:21/var/www</div>
+                  <div class="ftp-line in">Authenticating secure user login...</div>
+                  <div class="ftp-line in">TCP persistent connection established natively in Rust.</div>
+                  <div class="ftp-line in">Registering remote volume in Sidebar Disks list...</div>
+                  <div class="ftp-line out">> LIST /var/www</div>
+                  <div class="ftp-line in" style="color: var(--accent);">15,249 files crawled in 0.12s. Remote tree populated.</div>
                 </div>
               </div>
             </div>
@@ -320,14 +323,14 @@
                 <div class="bullet-icon"><i class="fa-solid fa-file-zipper"></i></div>
                 <div>
                   <strong>Multi-Format Compression</strong>
-                  <span>Compress items instantly to ZIP, high-density ZStandard, Brotli, or Density archives via context menus.</span>
+                  <span>Compress folders or collections natively to ZIP, Zstandard, Brotli, or the high-ratio custom <a href="https://github.com/g1mv/density" target="_blank" style="color: var(--primary); text-decoration: underline;">Density</a> formats.</span>
                 </div>
               </li>
               <li>
                 <div class="bullet-icon"><i class="fa-solid fa-folder-open"></i></div>
                 <div>
                   <strong>Built-in Extraction</strong>
-                  <span>Decompress zip, rar, 7zip, and tar (.tar.gz, .tar.bz2) files cleanly directly inside active folders.</span>
+                  <span>Decompress ZIP, 7Z, RAR, TAR, GZIP, BZIP2, Zstandard, and Brotli archives natively directly inside active folders.</span>
                 </div>
               </li>
               <li>
@@ -374,31 +377,31 @@
           </div>
         </div>
 
-        <!-- Panel 4: Gemini AI Upscaler [NEW/CORRECTED] -->
+        <!-- Panel 5: AI Superpowers -->
         <div class="showroom-panel" id="tab-ai">
           <div class="showroom-info">
-            <h3><i class="fa-solid fa-expand"></i> Gemini AI Image Upscaler</h3>
-            <p>Supercharge your visual workflow natively. Right-click any image inside the explorer and select the Upscale panel to generate high-resolution details on-demand.</p>
+            <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Dual-Provider AI Superpowers</h3>
+            <p>Supercharge your daily workspace natively. CoDriver features extensive integrated support for both <strong>Google Gemini</strong> and <strong>OpenAI</strong> models to automate visual and structural workflows.</p>
             <ul class="showroom-bullets">
               <li>
                 <div class="bullet-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
                 <div>
-                  <strong>Gemini AI Super-Resolution</strong>
-                  <span>Upscale low-resolution previews using integrated Google Gemini 3.1 Flash Image models, enhancing details and sharpening textures without pixelation.</span>
+                  <strong>AI Upscaler & Creative Styling</strong>
+                  <span>Right-click any image to run high-resolution AI Super-Resolution, apply artistic Creative Enhancement, or restyle image compositions with customized prompts (e.g. converting a sketch to a cyberpunk oil painting).</span>
                 </div>
               </li>
               <li>
-                <div class="bullet-icon"><i class="fa-solid fa-object-group"></i></div>
+                <div class="bullet-icon"><i class="fa-solid fa-folder-tree"></i></div>
                 <div>
-                  <strong>Aspect Ratio & Model Controls</strong>
-                  <span>Toggle between traditional algorithms (Lanczos, Bicubic) and neural upscale paths with customizable target sizes (2x, 4x) and filenames.</span>
+                  <strong>AI Semantic Directory Organizer</strong>
+                  <span>Cluster, categorize, and sort chaotic directories automatically. CoDriver builds an optimal proposed folder tree via LLM analysis, completing bulk file movements securely upon your review.</span>
                 </div>
               </li>
               <li>
-                <div class="bullet-icon"><i class="fa-solid fa-key"></i></div>
+                <div class="bullet-icon"><i class="fa-solid fa-shield-halved"></i></div>
                 <div>
-                  <strong>Secure Local Keys</strong>
-                  <span>Your Google AI Studio API key is stored safely within your system's secure local configuration. No middleman proxies or cloud storage.</span>
+                  <strong>Secure Keychain API Keys</strong>
+                  <span>Your Gemini and OpenAI API keys are stored safely within your system's secure local keychain (like macOS Keychain). No third-party servers or intermediary cloud proxies.</span>
                 </div>
               </li>
             </ul>
@@ -417,14 +420,14 @@
                   <div class="upscale-after">
                     <div class="upscale-image-box">
                       <i class="fa-solid fa-image"></i>
-                      <span style="font-family: monospace; font-size: 11px; color: var(--primary);">Upscaled by Gemini 3.1 (600x600)</span>
+                      <span style="font-family: monospace; font-size: 11px; color: var(--primary);">Enhanced AI Masterpiece (600x600)</span>
                     </div>
                   </div>
                   <div class="upscale-slider-line"></div>
                 </div>
-                
+
                 <div class="upscale-floating-badge">
-                  <i class="fa-solid fa-arrows-up-to-line"></i> Gemini AI Image Upscaler Active...
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> Gemini & OpenAI AI Models Active...
                 </div>
               </div>
             </div>
@@ -469,7 +472,7 @@
             <h4>Modern UI (jQuery)</h4>
             <p>A GPU-accelerated web view renders our stunning, responsive UI, reacting in real-time to active states.</p>
           </div>
-          
+
           <div class="glass-card arch-node node-ipc" data-node="ipc">
             <div class="arch-icon-wrapper">
               <i class="fa-solid fa-share-nodes"></i>
@@ -513,6 +516,224 @@
     </div>
   </section>
 
+  <!-- Command Center & Keyboard Shortcuts Section -->
+  <section class="section-padding shortcuts-section" id="shortcuts">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="badge badge-shortcuts">
+          <i class="fa-solid fa-keyboard"></i> Pro Productivity
+        </div>
+        <h2>Command Center & Hotkeys</h2>
+        <p>Explore terminal-grade keyboard combinations designed to maximize your directory navigation speed and execute operations entirely cache-free.</p>
+      </div>
+
+
+      <!-- Configurable Hint Alert Banner -->
+      <div style="display: flex; justify-content: center; width: 100%;">
+        <div class="shortcuts-hint reveal">
+          <i class="fa-solid fa-circle-info hint-icon"></i>
+          <span><strong>Pro Tip:</strong> All shortcuts listed below are fully customizable and freely configurable inside the application settings.</span>
+        </div>
+      </div>
+
+      <!-- Shortcuts Grid -->
+      <div class="shortcuts-grid reveal" id="shortcutsGrid">
+        <!-- Spacebar (Nav) -->
+        <div class="glass-card shortcut-card" data-category="nav" data-tags="spacebar quick preview pdf image code video json html text file">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-eye card-icon"></i>
+              <h4>Quick Preview</h4>
+            </div>
+            <p>Instantly preview PDFs, images, code files, HTML, JSON, or media without opening external applications.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key wide">Spacebar</kbd>
+          </div>
+        </div>
+
+        <!-- F5 (Ops) -->
+        <div class="glass-card shortcut-card" data-category="ops" data-tags="f5 copy element pane opposite dual panel transfer">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-clone card-icon"></i>
+              <h4>Copy to Opposite Pane</h4>
+            </div>
+            <p>In Dual-Pane mode, instantly copy the highlighted files or folders straight into the opposite active path.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key">F5</kbd>
+          </div>
+        </div>
+
+        <!-- Shift + F5 (Ops) -->
+        <div class="glass-card shortcut-card" data-category="ops" data-tags="shift f5 move element pane opposite dual panel transfer">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-arrow-right-arrow-left card-icon"></i>
+              <h4>Move to Opposite Pane</h4>
+            </div>
+            <p>In Dual-Pane mode, instantly move the highlighted files or folders straight into the opposite active path.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key">Shift</kbd>
+            <span class="key-plus">+</span>
+            <kbd class="kbd-key">F5</kbd>
+          </div>
+        </div>
+
+        <!-- F8 (Nav) -->
+        <div class="glass-card shortcut-card" data-category="nav" data-tags="f8 search find locate folder directory query isolate">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-magnifying-glass card-icon"></i>
+              <h4>Deep Local Search</h4>
+            </div>
+            <p>Trigger a highly parallelized recursive file search isolated strictly to the active directory tree.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key">F8</kbd>
+          </div>
+        </div>
+
+        <!-- F6 (Ops) -->
+        <div class="glass-card shortcut-card" data-category="ops" data-tags="f6 create new file blank element">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-file-circle-plus card-icon"></i>
+              <h4>Create New File</h4>
+            </div>
+            <p>Quickly spawn a new empty file in the active folder directory without right-clicking.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key">F6</kbd>
+          </div>
+        </div>
+
+        <!-- F7 (Ops) -->
+        <div class="glass-card shortcut-card" data-category="ops" data-tags="f7 create new folder directory element path">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-folder-plus card-icon"></i>
+              <h4>Create New Folder</h4>
+            </div>
+            <p>Instantly spawn a new sub-directory inside the active folder path.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key">F7</kbd>
+          </div>
+        </div>
+
+        <!-- Cmd/Ctrl + G (Nav) -->
+        <div class="glass-card shortcut-card" data-category="nav" data-tags="cmd ctrl g jump direct path address input go">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-location-arrow card-icon"></i>
+              <h4>Jump to Location</h4>
+            </div>
+            <p>Open the absolute path input overlay to jump directly to any local directory instantly.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key">Cmd</kbd>
+            <span class="key-slash">/</span>
+            <kbd class="kbd-key">Ctrl</kbd>
+            <span class="key-plus">+</span>
+            <kbd class="kbd-key">G</kbd>
+          </div>
+        </div>
+
+        <!-- Cmd/Ctrl + Shift + M (Ops) -->
+        <div class="glass-card shortcut-card" data-category="ops" data-tags="cmd ctrl shift m batch rename regex select collection replace">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-pen-nib card-icon"></i>
+              <h4>Batch Regex Rename</h4>
+            </div>
+            <p>Open the batch renaming modal to edit multiple filenames in parallel using regex matching patterns.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key">Cmd</kbd>
+            <span class="key-slash">/</span>
+            <kbd class="kbd-key">Ctrl</kbd>
+            <span class="key-plus">+</span>
+            <kbd class="kbd-key">Shift</kbd>
+            <span class="key-plus">+</span>
+            <kbd class="kbd-key">M</kbd>
+          </div>
+        </div>
+
+
+        <!-- Alt + F1 / Alt + F2 (Nav) -->
+        <div class="glass-card shortcut-card" data-category="nav" data-tags="alt f1 f2 disk select menu dropdown dual pane active side change volume">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-hard-drive card-icon"></i>
+              <h4>Open Pane Disk Menu</h4>
+            </div>
+            <p>In Dual-Pane mode, instantly open the left or right disk selection dropdown to change system drives or FTP volumes.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key">Alt</kbd>
+            <span class="key-plus">+</span>
+            <kbd class="kbd-key">F1</kbd>
+            <span class="key-slash">/</span>
+            <kbd class="kbd-key">F2</kbd>
+          </div>
+        </div>
+
+        <!-- Option/Alt + 1/2/3 (Nav) -->
+        <div class="glass-card shortcut-card" data-category="nav" data-tags="option alt 1 2 3 navigate bookmark favorite preset save list fast">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-star card-icon"></i>
+              <h4>Jump to Preset Favorites</h4>
+            </div>
+            <p>Instantly navigate to custom bookmarked paths 1, 2, or 3 configured directly in your app settings.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key">Opt</kbd>
+            <span class="key-slash">/</span>
+            <kbd class="kbd-key">Alt</kbd>
+            <span class="key-plus">+</span>
+            <kbd class="kbd-key">1</kbd>
+            <span class="key-slash">|</span>
+            <kbd class="kbd-key">2</kbd>
+            <span class="key-slash">|</span>
+            <kbd class="kbd-key">3</kbd>
+          </div>
+        </div>
+
+        <!-- Esc (Ops) -->
+        <div class="glass-card shortcut-card" data-category="ops" data-tags="esc escape close cancel modal popup dialog overlay preview">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-circle-xmark card-icon"></i>
+              <h4>Cancel & Close Modals</h4>
+            </div>
+            <p>Dismiss active media previews, close popup cards, and reset the focus instantly.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key font-sm">Esc</kbd>
+          </div>
+        </div>
+
+        <!-- Typing (Nav) -->
+        <div class="glass-card shortcut-card" data-category="nav" data-tags="typing keyboard key filter text characters quick instant match">
+          <div class="shortcut-info">
+            <div class="shortcut-header">
+              <i class="fa-solid fa-filter card-icon"></i>
+              <h4>Instant Folder Filtering</h4>
+            </div>
+            <p>Just start typing the name of any file or directory to filter matching elements from view in real-time.</p>
+          </div>
+          <div class="shortcut-keys">
+            <kbd class="kbd-key wide">Start Typing</kbd>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Download Section -->
   <section class="section-padding download-section" id="download">
     <div class="container">
@@ -523,12 +744,12 @@
       </div>
 
       <div class="download-grid reveal">
-        
+
         <!-- macOS -->
         <div class="glass-card download-card mac">
           <div class="download-icon"><i class="fa-brands fa-apple"></i></div>
           <h3>macOS Installer</h3>
-          <p class="download-meta">Apple Silicon & Intel DMG | Version 0.7.3</p>
+          <p class="download-meta">Apple Silicon & Intel DMG | Version 0.7.4</p>
           <a href="https://github.com/RickyDane/CoDriver/releases" target="_blank" class="btn btn-primary">
             <i class="fa-solid fa-download"></i> Download DMG
           </a>
@@ -538,7 +759,7 @@
         <div class="glass-card download-card windows">
           <div class="download-icon"><i class="fa-brands fa-windows"></i></div>
           <h3>Windows Binary</h3>
-          <p class="download-meta">x64 Installer | Version 0.7.3</p>
+          <p class="download-meta">x64 Installer | Version 0.7.4</p>
           <a href="https://github.com/RickyDane/CoDriver/releases" target="_blank" class="btn btn-primary">
             <i class="fa-solid fa-download"></i> Download MSI
           </a>
@@ -548,16 +769,12 @@
         <div class="glass-card download-card linux">
           <div class="download-icon"><i class="fa-brands fa-linux"></i></div>
           <h3>Linux Package</h3>
-          <p class="download-meta">AppImage & Snap | Version 0.7.3</p>
+          <p class="download-meta">AppImage & Snap | Version 0.7.4</p>
           <a href="https://github.com/RickyDane/CoDriver/releases" target="_blank" class="btn btn-primary">
             <i class="fa-solid fa-download"></i> Get AppImage
           </a>
         </div>
 
-      </div>
-
-      <div class="dependencies-hint reveal">
-        <p><i class="fa-solid fa-circle-info"></i> Connection trouble? Make sure to verify your SSH key configurations in settings. Check out our <a href="https://github.com/RickyDane/CoDriver#%EF%B8%8F-ftp-sftp-integration" target="_blank">FTP / SFTP Integration Guide</a>.</p>
       </div>
     </div>
   </section>
@@ -579,6 +796,7 @@
             <ul>
               <li><a href="#features">Features</a></li>
               <li><a href="#architecture">Architecture</a></li>
+              <li><a href="#shortcuts">Shortcuts</a></li>
               <li><a href="#download">Download</a></li>
             </ul>
           </div>
@@ -601,7 +819,7 @@
       </div>
 
       <div class="footer-bottom">
-        <p>&copy; 2026 CoDriver File Explorer. Licensed under MIT. Made with love for the Rust community.</p>
+        <p>&copy; 2026 CoDriver File Explorer. Licensed under BSD-2-Clause. Made with love for the Rust community.</p>
         <div class="footer-socials">
           <a href="https://github.com/RickyDane/CoDriver" target="_blank"><i class="fa-brands fa-github"></i></a>
           <a href="https://discord.gg/zSE27rjdzp" target="_blank"><i class="fa-brands fa-discord"></i></a>
@@ -609,7 +827,5 @@
       </div>
     </div>
   </footer>
-
-  <script src="app.js"></script>
 </body>
 </html>

@@ -72,15 +72,14 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
 
-  // --- SFTP Terminal Typing Simulation ---
+  // --- FTP Terminal Typing Simulation ---
   let typingInterval = null;
   const terminalLines = [
-    { text: "[CoDriver SFTP] Connecting to sftp://rickydane@daneserver.org:22...", type: "out" },
-    { text: "[CoDriver SFTP] Handshake completed successfully.", type: "in" },
-    { text: "[CoDriver SFTP] Active cipher: chacha20-poly1305@openssh.com", type: "in" },
-    { text: "[CoDriver SFTP] Connection established natively.", type: "in" },
-    { text: "[CoDriver SFTP] Reading remote folder structure /var/www...", type: "out" },
-    { text: "[CoDriver SFTP] Indexing completed: 15,249 items indexed natively. Remote sidebar populated.", type: "in", highlight: true }
+    { text: "[CoDriver FTP] Connecting to ftp://ftp.rickydane.org:21...", type: "out" },
+    { text: "[CoDriver FTP] Authenticating secure user login...", type: "in" },
+    { text: "[CoDriver FTP] TCP persistent connection established natively in Rust.", type: "in" },
+    { text: "[CoDriver FTP] Reading remote directory /var/www...", type: "out" },
+    { text: "[CoDriver FTP] Crawled 15,249 remote files natively. Sidebar tree updated.", type: "in", highlight: true }
   ];
 
   const animateTerminal = () => {
@@ -329,6 +328,102 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // --- Pull Latest Release Version dynamically from GitHub ---
+  const fetchLatestVersion = async () => {
+    const macMeta = document.querySelector('.download-card.mac .download-meta');
+    const windowsMeta = document.querySelector('.download-card.windows .download-meta');
+    const linuxMeta = document.querySelector('.download-card.linux .download-meta');
+    
+    const macBtn = document.querySelector('.download-card.mac .btn');
+    const windowsBtn = document.querySelector('.download-card.windows .btn');
+    const linuxBtn = document.querySelector('.download-card.linux .btn');
+
+    try {
+      let version = '0.7.3'; // default fallback
+      let tag = 'CoDriver-v0.7.3';
+      let dmgUrl = 'https://github.com/RickyDane/CoDriver/releases';
+      let msiUrl = 'https://github.com/RickyDane/CoDriver/releases';
+      let appImageUrl = 'https://github.com/RickyDane/CoDriver/releases';
+
+      // 1. Fetch the latest release JSON directly from the official Tauri updates endpoint
+      try {
+        const response = await fetch('https://github.com/RickyDane/CoDriver/releases/latest/download/latest.json');
+        if (response.ok) {
+          const data = await response.json();
+          version = data.version;
+          tag = `CoDriver-v${version}`;
+          
+          if (data.platforms) {
+            // macOS DMG is not in tauri's latest.json platforms by default, but we construct it dynamically
+            dmgUrl = `https://github.com/RickyDane/CoDriver/releases/download/${tag}/CoDriver_universal.dmg`;
+            
+            // Windows MSI
+            if (data.platforms['windows-x86_64-msi']) {
+              msiUrl = data.platforms['windows-x86_64-msi'].url;
+            } else if (data.platforms['windows-x86_64']) {
+              msiUrl = data.platforms['windows-x86_64'].url;
+            } else {
+              msiUrl = `https://github.com/RickyDane/CoDriver/releases/download/${tag}/CoDriver_${version}_x64_en-US.msi`;
+            }
+            
+            // Linux AppImage
+            if (data.platforms['linux-x86_64-appimage']) {
+              appImageUrl = data.platforms['linux-x86_64-appimage'].url;
+            } else if (data.platforms['linux-x86_64']) {
+              appImageUrl = data.platforms['linux-x86_64'].url;
+            } else {
+              appImageUrl = `https://github.com/RickyDane/CoDriver/releases/download/${tag}/CoDriver_${version}_amd64.AppImage`;
+            }
+          }
+        } else {
+          throw new Error('Non-ok response from latest.json redirect');
+        }
+      } catch (jsonErr) {
+        console.warn('latest.json fetch failed, attempting GitHub API fallback:', jsonErr);
+        
+        // 2. Fallback: Fetch directly from GitHub Releases API (guarantees CORS compliance)
+        const apiResponse = await fetch('https://api.github.com/repos/RickyDane/CoDriver/releases/latest');
+        if (apiResponse.ok) {
+          const releaseData = await apiResponse.json();
+          tag = releaseData.tag_name;
+          version = tag.replace(/^CoDriver-v|^v/, '');
+
+          if (releaseData.assets && releaseData.assets.length > 0) {
+            const dmgAsset = releaseData.assets.find(a => a.name.endsWith('.dmg'));
+            const msiAsset = releaseData.assets.find(a => a.name.endsWith('.msi'));
+            const appImageAsset = releaseData.assets.find(a => a.name.endsWith('.AppImage'));
+
+            if (dmgAsset) dmgUrl = dmgAsset.browser_download_url;
+            else dmgUrl = `https://github.com/RickyDane/CoDriver/releases/download/${tag}/CoDriver_universal.dmg`;
+
+            if (msiAsset) msiUrl = msiAsset.browser_download_url;
+            else msiUrl = `https://github.com/RickyDane/CoDriver/releases/download/${tag}/CoDriver_${version}_x64_en-US.msi`;
+
+            if (appImageAsset) appImageUrl = appImageAsset.browser_download_url;
+            else appImageUrl = `https://github.com/RickyDane/CoDriver/releases/download/${tag}/CoDriver_${version}_amd64.AppImage`;
+          }
+        }
+      }
+
+      // Update UI elements with the fetched data
+      if (macMeta) macMeta.textContent = `Apple Silicon & Intel DMG | Version ${version}`;
+      if (windowsMeta) windowsMeta.textContent = `x64 Installer | Version ${version}`;
+      if (linuxMeta) linuxMeta.textContent = `AppImage & Snap | Version ${version}`;
+
+      if (macBtn) macBtn.setAttribute('href', dmgUrl);
+      if (windowsBtn) windowsBtn.setAttribute('href', msiUrl);
+      if (linuxBtn) linuxBtn.setAttribute('href', appImageUrl);
+
+      console.log(`CoDriver version dynamic pull completed: v${version}`);
+    } catch (err) {
+      console.error('Failed to pull latest CoDriver release version:', err);
+    }
+  };
+
+
+
   fetchGitHubStars();
+  fetchLatestVersion();
 
 });
+
