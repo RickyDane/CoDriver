@@ -43,7 +43,7 @@
   },
   "productName": "CoDriver",
   "mainBinaryName": "CoDriver",
-  "version": "0.7.3",
+  "version": "0.7.5",
   "identifier": "com.codriver.dev",
   "plugins": {
     "cli": {
@@ -92,7 +92,7 @@
         "titleBarStyle": "Overlay",
         "trafficLightPosition": {
           "x": 25,
-          "y": 32
+          "y": 25
         },
         "useHttpsScheme": true
       }
