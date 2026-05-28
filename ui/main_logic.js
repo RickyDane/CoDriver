@@ -180,6 +180,440 @@ let CurrentSortAscending = true;
 let SelectedItemToOpen = null;
 let DefaultFileIcon = "";
 let DefaultFolderIcon = "";
+const IconThemes = ["Prestige Glass", "Minimalist Outline", "Golden Luxury", "Lucide Default"];
+
+function getVectorIconAndColor(item, themeName) {
+  let isDir = item.is_dir == 1;
+  let name = (item.name || "").toLowerCase();
+  let ext = (item.extension || "").toLowerCase();
+
+  let iconClass = "fa-solid fa-file";
+  let iconColor = "var(--textColor2)";
+  let customStyle = "";
+
+  let customColor = localStorage.getItem("icon-color-" + themeName);
+
+  if (themeName === "Minimalist Outline") {
+    let baseColor = customColor || "var(--textColor2)";
+    iconColor = baseColor;
+    if (isDir) {
+      iconClass = "fa-regular fa-folder";
+      switch (name) {
+        case "downloads": iconClass = "fa-regular fa-circle-down"; break;
+        case "desktop": iconClass = "fa-solid fa-desktop"; break;
+        case "dokumente":
+        case "documents":
+        case "docs":
+          iconClass = "fa-regular fa-file-lines";
+          break;
+        case "musik":
+        case "music":
+          iconClass = "fa-solid fa-music";
+          break;
+        case "bilder":
+        case "photos":
+        case "pictures":
+        case "images":
+          iconClass = "fa-regular fa-image";
+          break;
+        case "videos":
+        case "video":
+        case "movies":
+          iconClass = "fa-regular fa-file-video";
+          break;
+        case "coding":
+        case "code":
+          iconClass = "fa-solid fa-code";
+          break;
+        case "tools":
+          iconClass = "fa-solid fa-wrench";
+          break;
+        case "games":
+          iconClass = "fa-solid fa-gamepad";
+          break;
+      }
+    } else {
+      switch (ext) {
+        case ".rs":
+        case ".js":
+        case ".jsx":
+        case ".ts":
+        case ".tsx":
+        case ".py":
+        case ".go":
+        case ".c":
+        case ".cs":
+        case ".html":
+        case ".css":
+        case ".json":
+        case ".xml":
+        case ".php":
+        case ".dart":
+          iconClass = "fa-regular fa-file-code";
+          break;
+        case ".png":
+        case ".jpg":
+        case ".jpeg":
+        case ".gif":
+        case ".webp":
+        case ".svg":
+          iconClass = "fa-regular fa-file-image";
+          break;
+        case ".mp3":
+        case ".wav":
+        case ".ogg":
+        case ".opus":
+          iconClass = "fa-regular fa-file-audio";
+          break;
+        case ".mp4":
+        case ".mkv":
+        case ".avi":
+        case ".mov":
+        case ".webm":
+          iconClass = "fa-regular fa-file-video";
+          break;
+        case ".pdf":
+          iconClass = "fa-regular fa-file-pdf";
+          break;
+        case ".docx":
+        case ".doc":
+          iconClass = "fa-regular fa-file-word";
+          break;
+        case ".xlsx":
+          iconClass = "fa-regular fa-file-excel";
+          break;
+        case ".zip":
+        case ".rar":
+        case ".tar":
+        case ".7z":
+        case ".zst":
+        case ".zstd":
+        case ".gz":
+        case ".xz":
+        case ".bz2":
+        case ".lz":
+        case ".lz4":
+        case ".lzma":
+        case ".lzo":
+        case ".z":
+        case ".br":
+        case ".brotli":
+        case ".density":
+        case ".tgz":
+        case ".tbz2":
+        case ".txz":
+          iconClass = "fa-regular fa-file-zipper";
+          break;
+        case ".txt":
+        case ".md":
+          iconClass = "fa-regular fa-file-lines";
+          break;
+        default:
+          iconClass = "fa-regular fa-file";
+          break;
+      }
+    }
+  } else if (themeName === "Golden Luxury") {
+    if (isDir) {
+      iconClass = "fa-solid fa-folder";
+      iconColor = customColor || "#d4af37";
+      customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
+      switch (name) {
+        case "downloads": 
+          iconClass = "fa-solid fa-circle-down"; 
+          iconColor = customColor || "#f3e5ab"; 
+          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`; 
+          break;
+        case "desktop": 
+          iconClass = "fa-solid fa-desktop"; 
+          iconColor = customColor || "#d4af37"; 
+          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`; 
+          break;
+        case "dokumente":
+        case "documents":
+        case "docs":
+          iconClass = "fa-solid fa-file-invoice"; 
+          iconColor = customColor || "#c5a059"; 
+          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
+          break;
+        case "musik":
+        case "music":
+          iconClass = "fa-solid fa-music"; 
+          iconColor = customColor || "#b8860b"; 
+          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
+          break;
+        case "bilder":
+        case "photos":
+        case "pictures":
+        case "images":
+          iconClass = "fa-solid fa-image"; 
+          iconColor = customColor || "#ffd700"; 
+          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
+          break;
+        case "videos":
+        case "video":
+        case "movies":
+          iconClass = "fa-solid fa-video"; 
+          iconColor = customColor || "#b76e79"; 
+          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
+          break;
+        case "coding":
+        case "code":
+          iconClass = "fa-solid fa-code"; 
+          iconColor = customColor || "#f0e68c"; 
+          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
+          break;
+        case "tools":
+          iconClass = "fa-solid fa-screwdriver-wrench"; 
+          iconColor = customColor || "#cd7f32"; 
+          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
+          break;
+        case "games":
+          iconClass = "fa-solid fa-gamepad"; 
+          iconColor = customColor || "#ffdf00"; 
+          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
+          break;
+      }
+    } else {
+      switch (ext) {
+        case ".rs":
+        case ".js":
+        case ".jsx":
+        case ".ts":
+        case ".tsx":
+        case ".py":
+        case ".go":
+        case ".c":
+        case ".cs":
+        case ".html":
+        case ".css":
+        case ".json":
+        case ".xml":
+        case ".php":
+        case ".dart":
+          iconClass = "fa-solid fa-file-code";
+          iconColor = "#f3e5ab";
+          customStyle = "--glow-color: rgba(243, 229, 171, 0.35);";
+          break;
+        case ".png":
+        case ".jpg":
+        case ".jpeg":
+        case ".gif":
+        case ".webp":
+        case ".svg":
+          iconClass = "fa-solid fa-file-image";
+          iconColor = "#ffd700";
+          customStyle = "--glow-color: rgba(255, 215, 0, 0.35);";
+          break;
+        case ".mp3":
+        case ".wav":
+        case ".ogg":
+        case ".opus":
+          iconClass = "fa-solid fa-file-audio";
+          iconColor = "#b8860b";
+          customStyle = "--glow-color: rgba(184, 134, 11, 0.35);";
+          break;
+        case ".mp4":
+        case ".mkv":
+        case ".avi":
+        case ".mov":
+        case ".webm":
+          iconClass = "fa-solid fa-file-video";
+          iconColor = "#b76e79";
+          customStyle = "--glow-color: rgba(183, 110, 121, 0.35);";
+          break;
+        case ".pdf":
+          iconClass = "fa-solid fa-file-pdf";
+          iconColor = "#ffd700";
+          customStyle = "--glow-color: rgba(255, 215, 0, 0.35);";
+          break;
+        case ".docx":
+        case ".doc":
+          iconClass = "fa-solid fa-file-word";
+          iconColor = "#c5a059";
+          customStyle = "--glow-color: rgba(197, 160, 89, 0.35);";
+          break;
+        case ".xlsx":
+          iconClass = "fa-solid fa-file-excel";
+          iconColor = "#ffd700";
+          customStyle = "--glow-color: rgba(255, 215, 0, 0.35);";
+          break;
+        case ".zip":
+        case ".rar":
+        case ".tar":
+        case ".7z":
+        case ".zst":
+        case ".zstd":
+        case ".gz":
+        case ".xz":
+        case ".bz2":
+        case ".lz":
+        case ".lz4":
+        case ".lzma":
+        case ".lzo":
+        case ".z":
+        case ".br":
+        case ".brotli":
+        case ".density":
+        case ".tgz":
+        case ".tbz2":
+        case ".txz":
+          iconClass = "fa-solid fa-file-zipper";
+          iconColor = "#aa7c11";
+          customStyle = "--glow-color: rgba(170, 124, 17, 0.35);";
+          break;
+        case ".txt":
+        case ".md":
+          iconClass = "fa-solid fa-file-lines";
+          iconColor = "#f5f5dc";
+          customStyle = "--glow-color: rgba(245, 245, 220, 0.3);";
+          break;
+        default:
+          iconClass = "fa-solid fa-file";
+          iconColor = customColor || "#d4af37";
+          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.3)};`;
+          break;
+      }
+    }
+  } else if (themeName === "Lucide Default") {
+    if (isDir) {
+      iconClass = "fa-solid fa-folder lucide-generic-folder";
+      iconColor = customColor || "#6E6E80";
+      customStyle = "";
+      switch (name) {
+        case "downloads":
+          iconClass = "lucide icon-download";
+          customStyle = "";
+          break;
+        case "desktop":
+          iconClass = "lucide icon-monitor";
+          customStyle = "";
+          break;
+        case "dokumente":
+        case "documents":
+        case "docs":
+          iconClass = "lucide icon-files";
+          customStyle = "";
+          break;
+        case "musik":
+        case "music":
+          iconClass = "lucide icon-music";
+          customStyle = "";
+          break;
+        case "bilder":
+        case "photos":
+        case "pictures":
+        case "images":
+          iconClass = "lucide icon-image";
+          customStyle = "";
+          break;
+        case "videos":
+        case "video":
+        case "movies":
+          iconClass = "lucide icon-video";
+          customStyle = "";
+          break;
+        case "coding":
+        case "code":
+          iconClass = "lucide icon-code-2";
+          customStyle = "";
+          break;
+        case "tools":
+          iconClass = "lucide icon-wrench";
+          customStyle = "";
+          break;
+        case "games":
+          iconClass = "lucide icon-gamepad-2";
+          customStyle = "";
+          break;
+      }
+    } else {
+      iconColor = customColor || "var(--textColor2)";
+      switch (ext) {
+        case ".rs":
+        case ".js":
+        case ".jsx":
+        case ".ts":
+        case ".tsx":
+        case ".py":
+        case ".go":
+        case ".c":
+        case ".cs":
+        case ".html":
+        case ".css":
+        case ".json":
+        case ".xml":
+        case ".php":
+        case ".dart":
+          iconClass = "lucide icon-file-code";
+          break;
+        case ".png":
+        case ".jpg":
+        case ".jpeg":
+        case ".gif":
+        case ".webp":
+        case ".svg":
+          iconClass = "lucide icon-file-image";
+          break;
+        case ".mp3":
+        case ".wav":
+        case ".ogg":
+        case ".opus":
+          iconClass = "lucide icon-file-audio";
+          break;
+        case ".mp4":
+        case ".mkv":
+        case ".avi":
+        case ".mov":
+        case ".webm":
+          iconClass = "lucide icon-file-video";
+          break;
+        case ".pdf":
+          iconClass = "lucide icon-file-text";
+          break;
+        case ".docx":
+        case ".doc":
+          iconClass = "lucide icon-file-text";
+          break;
+        case ".xlsx":
+          iconClass = "lucide icon-file-spreadsheet";
+          break;
+        case ".zip":
+        case ".rar":
+        case ".tar":
+        case ".7z":
+        case ".zst":
+        case ".zstd":
+        case ".gz":
+        case ".xz":
+        case ".bz2":
+        case ".lz":
+        case ".lz4":
+        case ".lzma":
+        case ".lzo":
+        case ".z":
+        case ".br":
+        case ".brotli":
+        case ".density":
+        case ".tgz":
+        case ".tbz2":
+        case ".txz":
+          iconClass = "lucide icon-file-archive";
+          break;
+        case ".txt":
+        case ".md":
+          iconClass = "lucide icon-file-text";
+          break;
+        default:
+          iconClass = "lucide icon-file";
+          break;
+      }
+    }
+  }
+
+  return { iconClass, iconColor, customStyle };
+}
+
 let IsFileOpIntern = false;
 let DraggedOverElement = null;
 let MousePos = [];
@@ -187,6 +621,7 @@ let FileOperation = "";
 let IsFirstRun = true;
 const TIMETORESET = 500;
 let CurrentQuickSearch = "";
+let ActiveFilter = "";
 let CurrentQuickSearchTime = 100;
 let CurrentQuickSearchTimer = null;
 
@@ -219,6 +654,18 @@ function updateFileSearchbarState(forceCancelVisible = null) {
   );
 }
 
+// Global focus delegation to keep IsInputFocused perfectly in sync
+document.addEventListener("focusin", (e) => {
+  if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) {
+    IsInputFocused = true;
+  }
+});
+document.addEventListener("focusout", (e) => {
+  if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) {
+    IsInputFocused = false;
+  }
+});
+
 document.querySelector(".search-bar-input").addEventListener("focusin", (e) => {
   $(".file-searchbar").css("width", "clamp(220px, 30vw, 320px)");
   IsInputFocused = true;
@@ -232,13 +679,19 @@ document
 document
   .querySelector(".search-bar-input")
   .addEventListener("input", updateFileSearchbarState);
+document.querySelector(".search-bar-input").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    e.preventDefault();
+    e.stopPropagation();
+    e.target.blur();
+  }
+});
+
 document.querySelector(".search-bar-input").addEventListener("keyup", (e) => {
   updateFileSearchbarState();
   if (e.keyCode === 13) {
     let fileName = $(".search-bar-input").val();
     searchFor(fileName);
-  } else if (e.keyCode === 27) {
-    cancelSearch();
   }
 });
 
@@ -260,12 +713,14 @@ async function startFullSearch() {
     let fileName = document.querySelector(".full-dualpane-search-input").value;
     let maxItems = parseInt(
       document.querySelector(".full-search-max-items-input").value,
-    );
-    maxItems = maxItems >= 1 ? maxItems : 9999999;
+    ) || 1000;
+    maxItems = Math.max(1, Math.min(1000, maxItems));
+    document.querySelector(".full-search-max-items-input").value = maxItems;
     let searchDepth = parseInt(
       document.querySelector(".full-search-search-depth-input").value,
-    );
-    searchDepth = searchDepth >= 1 ? searchDepth : 1;
+    ) || 10;
+    searchDepth = Math.max(1, Math.min(100, searchDepth));
+    document.querySelector(".full-search-search-depth-input").value = searchDepth;
     let fileContent = document.querySelector(
       ".full-dualpane-search-file-content-input",
     ).value;
@@ -299,30 +754,86 @@ document.addEventListener("keydown", async (e) => {
   if (e.metaKey) return;
   if (e.ctrlKey) return;
   if (e.key === "Escape") {
-    let wasQuickSearching = CurrentQuickSearch !== "";
-    if (IsQuickSearchOpen == true) {
-      goUp(false, true);
-    }
-    await resetEverything();
-    document.querySelector(".search-bar-input").value = "";
-    updateFileSearchbarState();
-    $(".search-bar-input").blur();
-    // Close all popups etc.
-    // ContextMenu.style.display = "none";
-    if (DraggedOverElement != null) {
-      DraggedOverElement.style.opacity = "1";
-    }
-    await stopSearching();
-    document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
-      item.style.opacity = "1";
-    });
+    let wasQuickSearching = CurrentQuickSearch !== "" || ActiveFilter !== "";
+    let hasActiveSearch = IsSearching || IsFullSearching || wasQuickSearching || IsQuickSearchOpen ||
+                          (document.querySelector(".search-bar-input") && document.querySelector(".search-bar-input").value !== "") ||
+                          (document.querySelector(".dualpane-search-input") && document.querySelector(".dualpane-search-input").value !== "");
 
-    if (wasQuickSearching) {
-      if (IsDualPaneEnabled === true) {
-        refreshBothViews(SelectedItemPaneSide);
-      } else {
-        refreshView();
+    console.log("[Escape Debug] Global keydown Escape. hasActiveSearch:", hasActiveSearch, "CurrentDir:", CurrentDir);
+
+    if (hasActiveSearch) {
+      if (document.querySelector(".search-bar-input")) {
+        document.querySelector(".search-bar-input").value = "";
+        document.querySelector(".search-bar-input").blur();
       }
+      if (document.querySelector(".dualpane-search-input")) {
+        document.querySelector(".dualpane-search-input").value = "";
+        document.querySelector(".dualpane-search-input").blur();
+      }
+      
+      await clearQuickSearch(false);
+      IsSearching = false;
+      IsFullSearching = false;
+      IsQuickSearchOpen = false;
+
+      updateFileSearchbarState();
+      await stopSearching();
+      closeSearchBar();
+
+      if (DraggedOverElement != null) {
+        DraggedOverElement.style.opacity = "1";
+      }
+      document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
+        item.style.opacity = "1";
+      });
+
+      if (IsDualPaneEnabled === true) {
+        await refreshBothViews(SelectedItemPaneSide);
+      } else {
+        await refreshView();
+      }
+    } else {
+      await resetEverything();
+      if (DraggedOverElement != null) {
+        DraggedOverElement.style.opacity = "1";
+      }
+      document.querySelectorAll(".site-nav-bar-button").forEach((item) => {
+        item.style.opacity = "1";
+      });
+
+      if (IsDualPaneEnabled === true) {
+        await refreshBothViews(SelectedItemPaneSide);
+      } else {
+        await refreshView();
+      }
+    }
+  }
+
+  // Intercept Backspace if quick search is active
+  if (e.key === "Backspace" && CurrentQuickSearch !== "") {
+    const activeEl = document.activeElement;
+    const isFormElementFocused =
+      activeEl &&
+      /^(INPUT|TEXTAREA|SELECT)$/.test(activeEl.tagName) &&
+      !activeEl.disabled &&
+      !activeEl.classList.contains("instant-search-input");
+    if (IsInputFocused === false && IsPopUpOpen === false && isFormElementFocused === false) {
+      e.preventDefault();
+      e.stopPropagation();
+      CurrentQuickSearch = CurrentQuickSearch.slice(0, -1);
+      if (CurrentQuickSearch === "") {
+        await clearQuickSearch(true);
+      } else {
+        ActiveFilter = CurrentQuickSearch;
+        $(".instant-search-input").val(CurrentQuickSearch);
+        await searchFor(CurrentQuickSearch, 999999, 1, true);
+
+        // Reset timer countdown
+        CurrentQuickSearchTime = TIMETORESET;
+        clearInterval(CurrentQuickSearchTimer);
+        resetQuickSearch();
+      }
+      return;
     }
   }
 
@@ -333,32 +844,50 @@ document.addEventListener("keydown", async (e) => {
     /^(INPUT|TEXTAREA|SELECT)$/.test(activeEl.tagName) &&
     !activeEl.disabled &&
     !activeEl.classList.contains("instant-search-input");
+  const isPrintable = e.key.length === 1;
   if (
     IsInputFocused === false &&
     IsPopUpOpen === false &&
     isFormElementFocused === false &&
     !e.metaKey &&
     !e.ctrlKey &&
-    !e.shiftKey &&
+    isPrintable &&
     !isShortcut(e.key) &&
-    e.key != " "
+    (e.key !== " " || CurrentQuickSearch !== "")
   ) {
+    e.preventDefault();
+    e.stopPropagation();
     CurrentQuickSearch += e.key;
+    ActiveFilter = CurrentQuickSearch;
     $(".instant-search-input").css("display", "block");
     $(".instant-search-input").val(CurrentQuickSearch);
     await searchFor(CurrentQuickSearch, 999999, 1, true);
-    setTimeout(() => {
-      if (IsDualPaneEnabled === true) {
-        // goUp(true);
-      } else {
-        // goLeft();
-      }
-    }, 500);
+
+    // Reset timer countdown
     CurrentQuickSearchTime = TIMETORESET;
     clearInterval(CurrentQuickSearchTimer);
     resetQuickSearch();
   }
 });
+
+async function clearQuickSearch(shouldRefresh = false) {
+  if (CurrentQuickSearchTimer) {
+    clearInterval(CurrentQuickSearchTimer);
+    CurrentQuickSearchTimer = null;
+  }
+  CurrentQuickSearchTime = TIMETORESET;
+  CurrentQuickSearch = "";
+  ActiveFilter = "";
+  $(".instant-search-input").val("");
+  $(".instant-search-input").css("display", "none");
+  if (shouldRefresh) {
+    if (IsDualPaneEnabled === true) {
+      await refreshBothViews(SelectedItemPaneSide);
+    } else {
+      await refreshView();
+    }
+  }
+}
 
 function resetQuickSearch() {
   CurrentQuickSearchTimer = setInterval(() => {
@@ -369,17 +898,9 @@ function resetQuickSearch() {
     if (CurrentQuickSearchTime <= 0) {
       clearInterval(CurrentQuickSearchTimer);
       CurrentQuickSearchTime = TIMETORESET;
-      let wasQuickSearching = CurrentQuickSearch !== "";
       CurrentQuickSearch = "";
       $(".instant-search-input").val("");
       $(".instant-search-input").css("display", "none");
-      if (wasQuickSearching) {
-        if (IsDualPaneEnabled === true) {
-          refreshBothViews(SelectedItemPaneSide);
-        } else {
-          refreshView();
-        }
-      }
     } else {
       CurrentQuickSearchTime -= 50;
     }
@@ -420,8 +941,7 @@ async function resetEverything() {
   $(".item-link").css("scale", "1");
   $(".path-item").css("border", "1px solid transparent");
   $(".path-item").css("backgroundColor", "var(--transparentColor)");
-  CurrentQuickSearch = "";
-  resetQuickSearch();
+  await clearQuickSearch(false);
   cdCtMenu.hide();
   cdCtMenu.hideSubMenu();
 }
@@ -740,6 +1260,7 @@ document.onkeydown = async (e) => {
     }
     else if (matchShortcut("refresh_view", e)) {
       e.preventDefault(); e.stopPropagation();
+      await clearQuickSearch(false);
       await unSelectAllItems();
       if (IsDualPaneEnabled === true) {
         refreshBothViews(SelectedItemPaneSide);
@@ -962,7 +1483,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1, isFromSort = f
     itemLink.setAttribute("itemisdir", item.is_dir ? 1 : 0);
     itemLink.setAttribute("itemext", item.extension);
     itemLink.setAttribute("itemname", item.name);
-    itemLink.setAttribute("itemsize", formatBytes(item.size));
+    itemLink.setAttribute("itemsize", item.is_dir ? "-" : formatBytes(item.size));
     itemLink.setAttribute("itemrawsize", item.size);
     itemLink.setAttribute("itemmodified", item.last_modified);
     itemLink.setAttribute("draggable", true);
@@ -976,53 +1497,7 @@ async function showItems(items, dualPaneSide = "", millerCol = 1, isFromSort = f
     itemLink.setAttribute("itemicon", fileIcon);
     itemLink.className = "item-link directory-entry";
 
-    if (ViewMode == "wrap") {
-      var itemButton = document.createElement("div");
-      itemButton.innerHTML = `
-        <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
-        <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="${iconSize}" height="${iconSize}" loading="lazy" />
-        <p class="item-button-text" style="text-align: left;">${item.name}</p>
-        `;
-      itemButton.className = "item-button directory-entry";
-      itemLink.append(itemButton);
-    } else if (ViewMode == "column") {
-      var itemButtonList = document.createElement("div");
-      itemButtonList.innerHTML = `
-        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; min-width: 0; width: fit-content; max-width: 500px; overflow: hidden;">
-          <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
-          <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
-          <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
-        </span>
-        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: fit-content; justify-content: flex-end; padding-right: 5px;">
-          <p class="item-button-list-text" style="width: 100%; text-align: right;">${item.last_modified}</p>
-          <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
-               <span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
-               <i class="fa-solid fa-cube"></i>
-          </div>
-        </span>
-        `;
-      if (dualPaneSide != null && dualPaneSide != "") {
-        itemButtonList.className = "directory-entry dual-pane-list-item";
-      } else {
-        itemButtonList.className = "item-button-list directory-entry";
-      }
-      itemLink.append(itemButtonList);
-    } else if (ViewMode == "miller") {
-      var itemButtonList = document.createElement("div");
-      itemButtonList.innerHTML = `
-        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
-        <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
-        <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="24px" height="24px" loading="lazy"/>
-        <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
-        </span>
-        `;
-      if (dualPaneSide != null && dualPaneSide != "") {
-        itemButtonList.className = "directory-entry dual-pane-list-item";
-      } else {
-        itemButtonList.className = "item-button-list directory-entry";
-      }
-      itemLink.append(itemButtonList);
-    }
+    itemLink.innerHTML = createItemInnerHtml(item, itemIconId, ViewMode, dualPaneSide);
     // DirectoryList.append(itemLink);
     docFragment.append(itemLink);
     ArrDirectoryItems.push(itemLink);
@@ -1186,7 +1661,7 @@ async function addSingleItem(
   itemLink.setAttribute("itemisdir", item.is_dir ? 1 : 0);
   itemLink.setAttribute("itemext", item.extension);
   itemLink.setAttribute("itemname", item.name);
-  itemLink.setAttribute("itemsize", formatBytes(item.size));
+  itemLink.setAttribute("itemsize", item.is_dir ? "-" : formatBytes(item.size));
   itemLink.setAttribute("itemrawsize", item.size);
   itemLink.setAttribute("itemmodified", item.last_modified);
   itemLink.setAttribute("draggable", true);
@@ -1199,45 +1674,7 @@ async function addSingleItem(
   itemLink.setAttribute("itemicon", fileIcon);
   itemLink.className = "item-link directory-entry";
 
-  if (ViewMode == "wrap") {
-    var itemButton = document.createElement("div");
-    itemButton.innerHTML = `
-      <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
-      <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="${iconSize}" height="${iconSize}" loading="lazy" />
-      <p class="item-button-text" style="text-align: left;">${item.name}</p>
-      `;
-    itemButton.className = "item-button directory-entry";
-    itemLink.append(itemButton);
-    const dirList = document.querySelector(".directory-list-dual-pane, .directory-list");
-    if (dirList) applyDirectoryListStyles(dirList, "wrap");
-  } else if (ViewMode == "column") {
-    var itemButtonList = document.createElement("div");
-    itemButtonList.innerHTML = `
-      <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 500px; overflow: hidden;">
-        <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
-        <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
-        <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
-      </span>
-      <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; width: 50%; justify-content: flex-end; padding-right: 5px;">
-        <p class="item-button-list-text" style="width: auto; text-align: right;">${item.last_modified}</p>
-        <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
-      			<span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
-      			<i class="fa-solid fa-cube"></i>
-    		</div>
-      </span>
-      `;
-    if (dualPaneSide != null && dualPaneSide != "") {
-      itemButtonList.className = "directory-entry dual-pane-list-item";
-    } else {
-      itemButtonList.className = "item-button-list directory-entry";
-    }
-    itemLink.append(itemButtonList);
-    const dirList = document.querySelector(".directory-list-dual-pane, .directory-list");
-    if (dirList) applyDirectoryListStyles(dirList, "column");
-  } else if (ViewMode == "miller") {
-    const dirList = document.querySelector(".directory-list-dual-pane, .directory-list");
-    if (dirList) applyDirectoryListStyles(dirList, "miller");
-  }
+  itemLink.innerHTML = createItemInnerHtml(item, itemIconId, ViewMode, dualPaneSide);
   // Start dragging item
   itemLink.ondragstart = (e) => {
     handleDragStart(e, itemLink);
@@ -1318,6 +1755,10 @@ async function getCurrentDir() {
 async function setCurrentDir(currentDir = "", dualPaneSide = "", syncBackend = true) {
   try {
     if (currentDir == "") return;
+
+    if (currentDir !== CurrentDir) {
+      await clearQuickSearch(false);
+    }
 
     if (IsDualPaneEnabled && typeof comparisonActive !== "undefined" && comparisonActive) {
       clearComparisonVisuals();
@@ -1408,6 +1849,8 @@ function updateCurrentPath(currentDir, dualPaneSide) {
 
       if (isFtp && counter == 0) {
         currentPathTracker += path; // e.g. ftp://connectionName
+      } else if (currentPathTracker === "") {
+        currentPathTracker = path;
       } else {
         currentPathTracker += (currentPathTracker.endsWith("/") ? "" : "/") + path;
       }
@@ -2115,7 +2558,14 @@ async function compressItem(
     arrItems.length == 1 ? arrItems[0].getAttribute("itempath") : null,
   );
 
-  // Update the file size info of the file which is being compressed
+  window.IsCompressingActive = true;
+  let currentSessionId = crypto.randomUUID();
+  window.CompressionSessionId = currentSessionId;
+  
+  if (typeof FileOpProgressActionId !== "undefined") {
+    FileOpProgressActionId = null;
+  }
+
   if (arrItems.length > 1) {
     var filePath = CurrentDir + "/compressed_items_archive." + (compressionType === "br" ? "tar.br" : compressionType);
   } else {
@@ -2126,6 +2576,7 @@ async function compressItem(
       compressionType;
   }
   let isCompressingDone = false;
+  await invoke("reset_compression_cancelled").catch(() => {});
   let intervalId = setInterval(async () => {
     if (!isCompressingDone) {
       try {
@@ -2140,6 +2591,7 @@ async function compressItem(
         isCompressingDone = true;
         showToast("Compressing stopped", ToastType.ERROR);
         clearInterval(intervalId);
+    
         removeAction(actionId);
         return;
       }
@@ -2149,36 +2601,74 @@ async function compressItem(
       }
     } else {
       clearInterval(intervalId);
+    
     }
   }, 200);
 
-  if (arrItems.length > 1) {
-    await invoke("arr_compress_items", {
-      arrItems: arrItems.map((item) => item.getAttribute("itempath")),
-      compressionLevel: parseInt(compressionLevel),
-      compressionType: compressionType,
-      intervalId: intervalId,
-    });
-    await listDirectories();
-  } else {
-    let item = arrItems[0];
-    let compressFilePath = item.getAttribute("itempath");
-    let compressFileName = item.getAttribute("itemname");
-    if (compressFileName != "") {
-      SelectedItemPaneSide = item.getAttribute("itempaneside");
-      await invoke("compress_item", {
-        fromPath: compressFilePath,
+  let isSuccess = false;
+  const compressStartTime = Date.now();
+
+  try {
+    if (arrItems.length > 1) {
+      await invoke("arr_compress_items", {
+        arrItems: arrItems.map((item) => item.getAttribute("itempath")),
         compressionLevel: parseInt(compressionLevel),
         compressionType: compressionType,
-        pathToZip: compressFilePath,
         intervalId: intervalId,
       });
       await listDirectories();
+    } else {
+      let item = arrItems[0];
+      let compressFilePath = item.getAttribute("itempath");
+      let compressFileName = item.getAttribute("itemname");
+      if (compressFileName != "") {
+        SelectedItemPaneSide = item.getAttribute("itempaneside");
+        await invoke("compress_item", {
+          fromPath: compressFilePath,
+          compressionLevel: parseInt(compressionLevel),
+          compressionType: compressionType,
+          pathToZip: compressFilePath,
+          intervalId: intervalId,
+        });
+        await listDirectories();
+      }
     }
+    isSuccess = true;
+    const elapsedSeconds = (Date.now() - compressStartTime) / 1000;
+    finishProgressBar(elapsedSeconds);
+  } catch (error) {
+    console.error("Compression error:", error);
+    if (!error.toString().includes("cancelled") && !error.toString().includes("Interrupted")) {
+      showToast("Compression failed: " + error, ToastType.ERROR);
+    } else {
+      invoke("delete_item", { path: filePath }).catch(() => {});
+    }
+
+    // Immediately close progress modal on error or cancellation
+    const modal = document.querySelector(".file-progress-modal");
+    if (modal) {
+      modal.classList.add("popup-exit");
+      safeAnimationEnd(modal, () => {
+        modal.remove();
+        IsPopUpOpen = false;
+      });
+    }
+  } finally {
+    isCompressingDone = true;
+    clearInterval(intervalId);
+    
+    removeAction(actionId);
+    if (window.CompressionSessionId === currentSessionId) {
+      if (!isSuccess) {
+        if (typeof FileOpProgressActionId !== "undefined" && FileOpProgressActionId && FileOpProgressActionId !== "CANCELLED") {
+          removeAction(FileOpProgressActionId);
+        }
+        FileOpProgressActionId = "CANCELLED";
+      }
+      window.IsCompressingActive = false;
+    }
+    scheduleDiskUsageRefresh();
   }
-  isCompressingDone = true;
-  removeAction(actionId);
-  scheduleDiskUsageRefresh();
 }
 
 async function closeCompressPopup() {
@@ -2222,20 +2712,25 @@ async function showImageEditPopup(item) {
 
   const providerName = AiProvider === "openai" ? "OpenAI" : "Gemini";
 
-  const tabsHtml = IsAiEnabled ? `
+  const tabsHtml = `
     <!-- Navigation Tabs -->
     <div class="modal-tabs" style="display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--tertiaryColor); margin-bottom: 10px;">
       <button class="modal-tab-button active" data-tab="upscale" style="background: rgba(255, 255, 255, 0.08); border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor); cursor: pointer; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--selectColor2); margin-bottom: -1px; transition: all 0.15s ease;">
         <i class="fa-solid fa-expand"></i><span>Image Upscale</span>
       </button>
+      ${IsAiEnabled ? `
       <button class="modal-tab-button" data-tab="enhance" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
         <i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Enhancement</span>
       </button>
       <button class="modal-tab-button" data-tab="style" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
         <i class="fa-solid fa-palette"></i><span>Edit Style</span>
       </button>
+      ` : ''}
+      <button class="modal-tab-button" data-tab="compress" style="background: transparent; border: none; padding: 8px 16px; border-radius: 6px 6px 0 0; color: var(--textColor2); cursor: pointer; font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s ease;">
+        <i class="fa-solid fa-compress"></i><span>Compress Image</span>
+      </button>
     </div>
-  ` : '';
+  `;
 
   const aiMethodOption = IsAiEnabled ? `
               <option value="ai">AI Super-Resolution</option>
@@ -2397,6 +2892,64 @@ async function showImageEditPopup(item) {
       </dl>
     </div>
 
+    <!-- Compress Image Tab View -->
+    <div class="compress-tab-view" style="display: none;">
+      <dl class="props-card__list">
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-file-image"></i>Format</dt>
+          <dd class="props-card__value">
+            <select class="props-card__input compress-format-select" style="cursor: pointer;">
+              <option value="jpeg" selected>JPEG (Lossy, Very Small)</option>
+              <option value="webp">WEBP (Lossless, Modern)</option>
+              <option value="png">PNG (Lossless, High Quality)</option>
+            </select>
+          </dd>
+        </div>
+        <div class="props-card__row compress-quality-row">
+          <dt class="props-card__label"><i class="fa-solid fa-sliders"></i>Quality</dt>
+          <dd class="props-card__value" style="display: flex; align-items: center; gap: 12px;">
+            <input type="range" class="props-card__input compress-quality-slider" min="10" max="100" value="80" style="flex: 1; height: 6px; cursor: pointer;" />
+            <span class="compress-quality-badge" style="font-family: monospace; font-size: 13px; font-weight: bold; min-width: 32px; text-align: right; color: var(--textColor);">80%</span>
+          </dd>
+        </div>
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-expand"></i>Resize</dt>
+          <dd class="props-card__value">
+            <select class="props-card__input compress-resize-select" style="cursor: pointer;">
+              <option value="1.0" selected>100% (Original Dimensions)</option>
+              <option value="0.75">75% Dimensions</option>
+              <option value="0.5">50% Dimensions</option>
+              <option value="0.25">25% Dimensions</option>
+              <option value="custom">Custom Width / Height</option>
+            </select>
+          </dd>
+        </div>
+        <div class="props-card__row compress-custom-dims-row" style="display: none;">
+          <dt class="props-card__label"><i class="fa-solid fa-arrows-left-right"></i>Dimensions</dt>
+          <dd class="props-card__value" style="display: flex; align-items: center; gap: 8px;">
+            <input type="number" class="props-card__input compress-width-input" placeholder="Width" style="width: 80px; text-align: center;" />
+            <span style="color: var(--textColor2);">x</span>
+            <input type="number" class="props-card__input compress-height-input" placeholder="Height" style="width: 80px; text-align: center;" />
+            <button class="props-card__btn compress-aspect-lock-btn" title="Lock aspect ratio" style="padding: 4px 8px; font-size: 12px; height: auto; background: rgba(255, 255, 255, 0.15);">
+              <i class="fa-solid fa-lock"></i>
+            </button>
+          </dd>
+        </div>
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-file-signature"></i>Filename</dt>
+          <dd class="props-card__value">
+            <input type="text" class="props-card__input compress-filename-input" value="" />
+          </dd>
+        </div>
+        <div class="props-card__row">
+          <dt class="props-card__label"><i class="fa-solid fa-info-circle"></i>Target Size</dt>
+          <dd class="props-card__value compress-resolution-preview" style="font-family: monospace; font-size: 12px; color: var(--textColor2);">
+            Fetching dimensions...
+          </dd>
+        </div>
+      </dl>
+    </div>
+
     <footer class="props-card__footer">
       <button class="props-card__btn" onclick="closeUpscalePopup()">
         <i class="fa-solid fa-xmark"></i><span>Close</span>
@@ -2409,6 +2962,9 @@ async function showImageEditPopup(item) {
       </button>
       <button class="props-card__btn props-card__btn--primary style-item-button" style="display: none;">
         <i class="fa-solid fa-palette"></i><span>Apply Style</span>
+      </button>
+      <button class="props-card__btn props-card__btn--primary compress-image-action-btn" style="display: none;">
+        <i class="fa-solid fa-compress"></i><span>Compress</span>
       </button>
     </footer>
   `;
@@ -2430,6 +2986,101 @@ async function showImageEditPopup(item) {
   filenameInput.value = `${baseName}_4x${extName}`;
   enhanceFilenameInput.value = `${baseName}_ai_enhanced${extName}`;
   styleFilenameInput.value = `${baseName}_styled${extName}`;
+
+  const compressFormatSelect = popup.querySelector(".compress-format-select");
+  const compressQualitySlider = popup.querySelector(".compress-quality-slider");
+  const compressQualityBadge = popup.querySelector(".compress-quality-badge");
+  const compressResizeSelect = popup.querySelector(".compress-resize-select");
+  const compressWidthInput = popup.querySelector(".compress-width-input");
+  const compressHeightInput = popup.querySelector(".compress-height-input");
+  const compressAspectLockBtn = popup.querySelector(".compress-aspect-lock-btn");
+  const compressFilenameInput = popup.querySelector(".compress-filename-input");
+  const compressResPreview = popup.querySelector(".compress-resolution-preview");
+
+  const updateCompressFilename = () => {
+    const format = compressFormatSelect.value;
+    const ext = format === "jpeg" ? "jpg" : format;
+    compressFilenameInput.value = `${baseName}_compressed.${ext}`;
+  };
+  updateCompressFilename();
+
+  const updateCompressResolutionPreview = () => {
+    let scale = parseFloat(compressResizeSelect.value);
+    let targetWidth = width;
+    let targetHeight = height;
+
+    if (compressResizeSelect.value === "custom") {
+      targetWidth = parseInt(compressWidthInput.value) || width;
+      targetHeight = parseInt(compressHeightInput.value) || height;
+    } else {
+      targetWidth = Math.round(width * scale);
+      targetHeight = Math.round(height * scale);
+    }
+
+    if (width && height) {
+      compressResPreview.innerHTML = `${width}x${height} &rarr; <span style="color: var(--textColor); font-weight: bold;">${targetWidth}x${targetHeight}</span>`;
+    } else {
+      compressResPreview.textContent = "Fetching dimensions...";
+    }
+  };
+
+  compressFormatSelect.addEventListener("change", () => {
+    const format = compressFormatSelect.value;
+    const qualityRow = popup.querySelector(".compress-quality-row");
+    if (format === "png") {
+      qualityRow.style.display = "none";
+    } else {
+      qualityRow.style.display = "grid";
+    }
+    updateCompressFilename();
+  });
+
+  compressQualitySlider.addEventListener("input", () => {
+    compressQualityBadge.textContent = `${compressQualitySlider.value}%`;
+  });
+
+  compressResizeSelect.addEventListener("change", () => {
+    if (compressResizeSelect.value === "custom") {
+      popup.querySelector(".compress-custom-dims-row").style.display = "grid";
+      compressWidthInput.value = width;
+      compressHeightInput.value = height;
+    } else {
+      popup.querySelector(".compress-custom-dims-row").style.display = "none";
+    }
+    updateCompressResolutionPreview();
+  });
+
+  let isAspectLocked = true;
+  compressAspectLockBtn.addEventListener("click", () => {
+    isAspectLocked = !isAspectLocked;
+    if (isAspectLocked) {
+      compressAspectLockBtn.innerHTML = '<i class="fa-solid fa-lock"></i>';
+      compressAspectLockBtn.style.background = "rgba(255, 255, 255, 0.15)";
+    } else {
+      compressAspectLockBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i>';
+      compressAspectLockBtn.style.background = "transparent";
+    }
+  });
+
+  compressWidthInput.addEventListener("input", () => {
+    if (isAspectLocked && width && height) {
+      const val = parseInt(compressWidthInput.value);
+      if (val) {
+        compressHeightInput.value = Math.round(val * (height / width));
+      }
+    }
+    updateCompressResolutionPreview();
+  });
+
+  compressHeightInput.addEventListener("input", () => {
+    if (isAspectLocked && width && height) {
+      const val = parseInt(compressHeightInput.value);
+      if (val) {
+        compressWidthInput.value = Math.round(val * (width / height));
+      }
+    }
+    updateCompressResolutionPreview();
+  });
 
   const updateMethodFields = () => {
     const method = methodSelect.value;
@@ -2486,19 +3137,23 @@ async function showImageEditPopup(item) {
         popup.querySelector(".upscale-tab-view").style.display = "block";
         popup.querySelector(".enhance-tab-view").style.display = "none";
         popup.querySelector(".style-tab-view").style.display = "none";
+        popup.querySelector(".compress-tab-view").style.display = "none";
 
         popup.querySelector(".upscale-item-button").style.display = "inline-flex";
         popup.querySelector(".enhance-item-button").style.display = "none";
         popup.querySelector(".style-item-button").style.display = "none";
+        popup.querySelector(".compress-image-action-btn").style.display = "none";
         updateMethodFields();
       } else if (tabName === "enhance") {
         popup.querySelector(".upscale-tab-view").style.display = "none";
         popup.querySelector(".enhance-tab-view").style.display = "block";
         popup.querySelector(".style-tab-view").style.display = "none";
+        popup.querySelector(".compress-tab-view").style.display = "none";
 
         popup.querySelector(".upscale-item-button").style.display = "none";
         popup.querySelector(".enhance-item-button").style.display = "inline-flex";
         popup.querySelector(".style-item-button").style.display = "none";
+        popup.querySelector(".compress-image-action-btn").style.display = "none";
 
         // Validate API key for Enhance tab
         const apiKey = getActiveApiKey();
@@ -2514,10 +3169,12 @@ async function showImageEditPopup(item) {
         popup.querySelector(".upscale-tab-view").style.display = "none";
         popup.querySelector(".enhance-tab-view").style.display = "none";
         popup.querySelector(".style-tab-view").style.display = "block";
+        popup.querySelector(".compress-tab-view").style.display = "none";
 
         popup.querySelector(".upscale-item-button").style.display = "none";
         popup.querySelector(".enhance-item-button").style.display = "none";
         popup.querySelector(".style-item-button").style.display = "inline-flex";
+        popup.querySelector(".compress-image-action-btn").style.display = "none";
 
         // Check API key for Style tab
         const apiKey = getActiveApiKey();
@@ -2529,6 +3186,18 @@ async function showImageEditPopup(item) {
           styleWarning.style.display = "none";
           popup.querySelector(".style-item-button").disabled = false;
         }
+      } else if (tabName === "compress") {
+        popup.querySelector(".upscale-tab-view").style.display = "none";
+        popup.querySelector(".enhance-tab-view").style.display = "none";
+        popup.querySelector(".style-tab-view").style.display = "none";
+        popup.querySelector(".compress-tab-view").style.display = "block";
+
+        popup.querySelector(".upscale-item-button").style.display = "none";
+        popup.querySelector(".enhance-item-button").style.display = "none";
+        popup.querySelector(".style-item-button").style.display = "none";
+        popup.querySelector(".compress-image-action-btn").style.display = "inline-flex";
+
+        updateCompressResolutionPreview();
       }
     });
   });
@@ -2576,6 +3245,30 @@ async function showImageEditPopup(item) {
   filenameInput.addEventListener("keyup", (e) => {
     if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
       popup.querySelector(".upscale-item-button").click();
+    }
+  });
+
+  compressFilenameInput.addEventListener("focus", () => (IsInputFocused = true));
+  compressFilenameInput.addEventListener("blur", () => (IsInputFocused = false));
+  compressFilenameInput.addEventListener("keyup", (e) => {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+      popup.querySelector(".compress-image-action-btn").click();
+    }
+  });
+
+  compressWidthInput.addEventListener("focus", () => (IsInputFocused = true));
+  compressWidthInput.addEventListener("blur", () => (IsInputFocused = false));
+  compressWidthInput.addEventListener("keyup", (e) => {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+      popup.querySelector(".compress-image-action-btn").click();
+    }
+  });
+
+  compressHeightInput.addEventListener("focus", () => (IsInputFocused = true));
+  compressHeightInput.addEventListener("blur", () => (IsInputFocused = false));
+  compressHeightInput.addEventListener("keyup", (e) => {
+    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+      popup.querySelector(".compress-image-action-btn").click();
     }
   });
 
@@ -2762,6 +3455,65 @@ async function showImageEditPopup(item) {
     });
   }
 
+  popup.querySelector(".compress-image-action-btn").addEventListener("click", async () => {
+    const outName = compressFilenameInput.value.trim();
+    if (!outName) {
+      alert("Please enter an output filename");
+      return;
+    }
+
+    const dir = path.substring(0, path.lastIndexOf('/'));
+    const outputPath = dir + "/" + outName;
+
+    closeUpscalePopup();
+
+    let actionId = crypto.randomUUID();
+    const format = compressFormatSelect.value;
+    const quality = parseInt(compressQualitySlider.value);
+
+    let targetWidth = width;
+    let targetHeight = height;
+
+    if (compressResizeSelect.value === "custom") {
+      targetWidth = parseInt(compressWidthInput.value) || width;
+      targetHeight = parseInt(compressHeightInput.value) || height;
+    } else {
+      const scale = parseFloat(compressResizeSelect.value);
+      targetWidth = Math.round(width * scale);
+      targetHeight = Math.round(height * scale);
+    }
+
+    createNewAction(
+      actionId,
+      "Compressing Image",
+      `${filename} (${targetWidth}x${targetHeight})`,
+      path
+    );
+
+    try {
+      await invoke("compress_image", {
+        fromPath: path,
+        targetWidth: targetWidth,
+        targetHeight: targetHeight,
+        format: format,
+        quality: quality,
+        outputPath: outputPath,
+      });
+      showToast("Image compression completed successfully", ToastType.SUCCESS);
+      const existing = document.querySelector(`[itempath="${outputPath}"]`);
+      if (existing) {
+        await handleDynamicUpdate(outputPath);
+      } else {
+        await handleDynamicCreate(outputPath);
+      }
+    } catch (error) {
+      showToast(`Image compression failed: ${error}`, ToastType.ERROR);
+    } finally {
+      removeAction(actionId);
+      scheduleDiskUsageRefresh();
+    }
+  });
+
 
 
   try {
@@ -2769,8 +3521,10 @@ async function showImageEditPopup(item) {
     width = dims[0];
     height = dims[1];
     updateResolutionPreview();
+    updateCompressResolutionPreview();
   } catch (err) {
     resPreview.textContent = "Unable to read image dimensions";
+    compressResPreview.textContent = "Unable to read image dimensions";
     console.error("Failed to load image dimensions", err);
   }
 }
@@ -3009,33 +3763,35 @@ async function runResolvedCopyMove(items, targetPath, shouldMove = false) {
 async function showDestinationConflictPopup(conflict, index, total) {
   let isFolderConflict = conflict.item.is_dir == 1 && conflict.existing.is_dir == 1;
   let popup = document.createElement("div");
-  popup.className = "uni-popup destination-conflict-popup";
+  popup.className = "destination-conflict-popup props-card";
   popup.setAttribute("role", "dialog");
   popup.setAttribute("aria-modal", "true");
   popup.setAttribute("aria-labelledby", "destination-conflict-title");
   popup.setAttribute("aria-describedby", "destination-conflict-desc");
   popup.innerHTML = `
-    <div class="popup-header destination-conflict-header">
-      <div class="destination-conflict-title-row">
-        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-        <h3 id="destination-conflict-title">Item already exists</h3>
+    <section class="props-card__hero destination-conflict-hero">
+      <div class="props-card__thumb"><i class="fa-solid fa-triangle-exclamation" style="color: #f5a623; font-size: 18px;"></i></div>
+      <div class="props-card__heading">
+        <h2 class="props-card__name" id="destination-conflict-title">Item already exists</h2>
+        <div class="props-card__meta">
+          <span class="props-card__chip">Conflict ${index} of ${total}</span>
+        </div>
       </div>
-      <p class="destination-conflict-count">Conflict ${index} of ${total}</p>
-    </div>
-    <div class="popup-body destination-conflict-body">
-      <p id="destination-conflict-desc" class="popup-body-content">“${escapeHtml(conflict.item.name)}” already exists in the destination.</p>
+    </section>
+    <div class="props-card__list destination-conflict-body" style="display: flex; flex-direction: column; gap: 14px; padding: 4px 14px 14px 14px;">
+      <p id="destination-conflict-desc" class="popup-body-content" style="margin: 0; font-size: var(--fontSize); color: var(--textColor); line-height: 1.4;">“${escapeHtml(conflict.item.name)}” already exists in the destination.</p>
       <div class="destination-conflict-comparison" aria-label="Item comparison">
         <section class="destination-conflict-card">
           <h4>Incoming item</h4>
-          <p class="destination-conflict-name" title="${escapeHtml(conflict.item.path)}">${escapeHtml(conflict.item.name)}</p>
+          <p class="destination-conflict-name" title="${escapeHtml(conflict.item.name)}">${escapeHtml(conflict.item.name)}</p>
           <p class="text-2"><i class="fa-regular fa-clock" style="font-size: 11px;"></i> ${escapeHtml(formatConflictMeta(conflict.item))}</p>
-          <p class="text-2" title="${escapeHtml(conflict.item.path)}"><i class="fa-solid fa-folder-open" style="font-size: 11px;"></i> From: ${escapeHtml(normalizePath(conflict.item.path).split("/").slice(0, -1).join("/") || "/")}</p>
+          <p class="text-2" title="${escapeHtml(conflict.item.path)}"><i class="fa-solid fa-folder-open" style="font-size: 11px;"></i> <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">From: ${escapeHtml(normalizePath(conflict.item.path).split("/").slice(0, -1).join("/") || "/")}</span></p>
         </section>
         <section class="destination-conflict-card">
           <h4>Existing item</h4>
-          <p class="destination-conflict-name" title="${escapeHtml(conflict.existing.path)}">${escapeHtml(conflict.existing.name)}</p>
+          <p class="destination-conflict-name" title="${escapeHtml(conflict.existing.name)}">${escapeHtml(conflict.existing.name)}</p>
           <p class="text-2"><i class="fa-regular fa-clock" style="font-size: 11px;"></i> ${escapeHtml(formatConflictMeta(conflict.existing))}</p>
-          <p class="text-2" title="${escapeHtml(conflict.destinationPath)}"><i class="fa-solid fa-location-dot" style="font-size: 11px;"></i> In: ${escapeHtml(normalizePath(conflict.destinationPath).split("/").slice(0, -1).join("/") || "/")}</p>
+          <p class="text-2" title="${escapeHtml(conflict.destinationPath)}"><i class="fa-solid fa-location-dot" style="font-size: 11px;"></i> <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">In: ${escapeHtml(normalizePath(conflict.destinationPath).split("/").slice(0, -1).join("/") || "/")}</span></p>
         </section>
       </div>
       <fieldset class="destination-conflict-options">
@@ -3046,11 +3802,11 @@ async function showDestinationConflictPopup(conflict, index, total) {
       </fieldset>
       ${total > 1 ? `<label class="destination-conflict-apply-all"><input type="checkbox" class="destination-conflict-apply-all-input"> Apply this choice to all remaining conflicts</label>` : ""}
     </div>
-    <div class="popup-controls destination-conflict-controls">
-      <button class="icon-button destination-conflict-cancel"><div class="button-icon"><i class="fa-solid fa-xmark"></i></div>Cancel</button>
-      <button class="icon-button destination-conflict-skip"><div class="button-icon"><i class="fa-solid fa-forward-step"></i></div>Skip</button>
-      <button class="icon-button destination-conflict-confirm"><div class="button-icon"><i class="fa-solid fa-check"></i></div>Continue</button>
-    </div>`;
+    <footer class="props-card__footer destination-conflict-controls">
+      <button class="props-card__btn destination-conflict-cancel"><i class="fa-solid fa-xmark"></i><span>Cancel</span></button>
+      <button class="props-card__btn destination-conflict-skip"><i class="fa-solid fa-forward-step"></i><span>Skip</span></button>
+      <button class="props-card__btn props-card__btn--primary destination-conflict-confirm"><i class="fa-solid fa-check"></i><span>Continue</span></button>
+    </footer>`;
   document.querySelector(".main-container").appendChild(popup);
   popup.classList.add("popup-enter");
 
@@ -3441,7 +4197,12 @@ async function checkAppConfig() {
   await applyPlatformFeatures();
   await invoke("check_app_config").then(async (appConfig) => {
     let viewMode = appConfig.view_mode.replaceAll('"', "");
-    await switchView(viewMode);
+    if (!viewMode || viewMode === "null") {
+      viewMode = "wrap";
+    }
+    if (IsFirstRun) {
+      await switchView(viewMode);
+    }
 
     if (appConfig.is_dual_pane_enabled.includes("1")) {      document.querySelector(".show-dual-pane-checkbox").checked = true;
       document.querySelector(".switch-dualpane-view-button").style.display =
@@ -3518,6 +4279,25 @@ async function checkAppConfig() {
       $(".edit-theme-btn").css("display", "block");
     }
 
+    // Set active icon theme card matching localStorage
+    let savedIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
+    document.querySelectorAll(".icon-theme-card").forEach(card => {
+      if (card.getAttribute("data-theme") === savedIconTheme) {
+        card.classList.add("active");
+      } else {
+        card.classList.remove("active");
+      }
+    });
+
+    // Wire and load icon scale settings
+    let savedIconScale = localStorage.getItem("current-icon-scale") || "100";
+    let iconSlider = document.querySelector(".icon-size-slider");
+    if (iconSlider) {
+      iconSlider.value = savedIconScale;
+    }
+    changeIconSize(savedIconScale);
+    initIconColorSettings();
+
     checkColorMode(appConfig);
 
     // Populate Info/About section dynamically
@@ -3552,10 +4332,13 @@ async function checkAppConfig() {
     document.querySelector(".configured-path-three-input").value =
       ConfiguredPathThree = appConfig.configured_path_three;
     document.querySelector(".launch-path-input").value = appConfig.launch_path;
-    document.querySelector(".search-depth-input").value = SettingsSearchDepth =
-      parseInt(appConfig.search_depth);
-    document.querySelector(".max-items-input").value = SettingsMaxItems =
-      parseInt(appConfig.max_items);
+    let loadedDepth = parseInt(appConfig.search_depth) || 10;
+    loadedDepth = Math.max(1, Math.min(100, loadedDepth));
+    document.querySelector(".search-depth-input").value = SettingsSearchDepth = loadedDepth;
+
+    let loadedMaxItems = parseInt(appConfig.max_items) || 1000;
+    loadedMaxItems = Math.max(1, Math.min(1000, loadedMaxItems));
+    document.querySelector(".max-items-input").value = SettingsMaxItems = loadedMaxItems;
 
     // New settings
     let fontSize = parseInt(appConfig.font_size) || 12;
@@ -3642,38 +4425,87 @@ async function checkAppConfig() {
       document.body.style.opacity = "1.0";
     }
 
-    if (appConfig.is_dual_pane_active.includes("1")) {
-      await switchToDualPane();
-      if (appConfig.launch_path.length >= 1) {
+    if (IsFirstRun == true) {
+      if (appConfig.is_dual_pane_active.includes("1")) {
+        await switchToDualPane();
+        if (appConfig.launch_path.length >= 1) {
+          let path = appConfig.launch_path;
+          let isSwitched = await invoke("open_dir", { path });
+          if (isSwitched === true) {
+            await setCurrentDir(path, "left", false);
+            await listDirectories();
+          }
+        } else {
+          await initDualPane(await getCurrentDir());
+          await goHome();
+        }
+      } else if (appConfig.launch_path.length >= 1) {
         let path = appConfig.launch_path;
         let isSwitched = await invoke("open_dir", { path });
         if (isSwitched === true) {
           await setCurrentDir(path, "left", false);
           await listDirectories();
+        } else {
+          alert(
+            "No directory found or unable to open due to missing permissions",
+          );
         }
       } else {
         await initDualPane(await getCurrentDir());
         await goHome();
       }
-    } else if (appConfig.launch_path.length >= 1 && IsFirstRun == true) {
-      let path = appConfig.launch_path;
-      let isSwitched = await invoke("open_dir", { path });
-      if (isSwitched === true) {
-        await setCurrentDir(path, "left", false);
-        await listDirectories();
-      } else {
-        alert(
-          "No directory found or unable to open due to missing permissions",
-        );
-      }
-    } else {
-      await initDualPane(await getCurrentDir());
-      await goHome();
     }
   });
   await configBackButton();
   await unSelectAllItems();
   IsFirstRun = false;
+}
+
+async function refreshThemesOnly() {
+  try {
+    LoadedUserThemes = await invoke("get_themes");
+  } catch (err) {
+    console.error("Failed to load user themes:", err);
+    LoadedUserThemes = [];
+  }
+
+  let themeSelect = document.querySelector(".theme-select");
+  if (themeSelect) {
+    let currentVal = themeSelect.value;
+    themeSelect.innerHTML = "";
+
+    // 1. Add built-in themes
+    Object.keys(BuiltInThemes).forEach(themeName => {
+      let themeOption = document.createElement("option");
+      themeOption.value = themeName;
+      themeOption.textContent = themeName;
+      themeSelect.appendChild(themeOption);
+    });
+
+    // 2. Add custom loaded themes
+    LoadedUserThemes.forEach(theme => {
+      if (!BuiltInThemes[theme.name]) {
+        let themeOption = document.createElement("option");
+        themeOption.value = theme.name;
+        themeOption.textContent = theme.name;
+        themeSelect.appendChild(themeOption);
+      }
+    });
+
+    // Restore selection
+    if (themeSelect.querySelector(`option[value="${currentVal}"]`)) {
+      themeSelect.value = currentVal;
+    } else if (themeSelect.querySelector(`option[value="${CurrentTheme}"]`)) {
+      themeSelect.value = CurrentTheme;
+    } else {
+      themeSelect.value = "Default Dark";
+    }
+  }
+  showToast("Themes refreshed", ToastType.INFO);
+}
+
+function openAppChangelog() {
+  invoke("open_item", { path: "https://github.com/RickyDane/CoDriver/releases" });
 }
 
 async function applyPlatformFeatures() {
@@ -3815,6 +4647,11 @@ function isEjectableDisk(item) {
 
 async function listDirectories(fromDualPaneCopy = false) {
   const backendDir = await getCurrentDir();
+
+  if (backendDir !== CurrentDir) {
+    await clearQuickSearch(false);
+  }
+
   const isFtp = backendDir && backendDir.startsWith("ftp://");
   let side = SelectedItemPaneSide;
   if (IsDualPaneEnabled && fromDualPaneCopy) {
@@ -3823,6 +4660,15 @@ async function listDirectories(fromDualPaneCopy = false) {
 
   if (isFtp) {
     showFtpLoader(side);
+  }
+
+  if (ActiveFilter !== "" && !fromDualPaneCopy) {
+    try {
+      await searchFor(ActiveFilter, 999999, 1, true);
+      return;
+    } catch (e) {
+      console.error("Failed to run quicksearch during listDirectories:", e);
+    }
   }
 
   try {
@@ -3843,10 +4689,10 @@ async function listDirectories(fromDualPaneCopy = false) {
       } else {
         await showItems(lsItems, SelectedItemPaneSide);
       }
-      goUp(false, true);
     } else {
       // Sync current directory state from the backend before showing items
       const backendDir = await getCurrentDir();
+      console.log("[Escape Debug] listDirectories (non-dual pane) - CurrentDir before sync:", CurrentDir, "backendDir from backend:", backendDir);
       await setCurrentDir(backendDir, "", false);
       await showItems(lsItems, "", CurrentMillerCol);
     }
@@ -3883,8 +4729,6 @@ async function refreshBothViews(dualPaneSide = "") {
     // Refresh the active pane second, ensuring focus and state remain on the correct side
     await setCurrentDir(origPath, origSide);
     await listDirectories();
-
-    goUp(false, true);
   } else {
     await listDirectories();
   }
@@ -4894,9 +5738,11 @@ document
       if (IsDualPaneEnabled == true) {
         await openSelectedItem(SelectedElement);
       }
+    } else if (e.key === "Escape") {
+      await cancelSearch(true);
+      closeSearchBar();
     } else if (
       IsQuickSearchOpen == true &&
-      e.key !== "Escape" &&
       e.key != "Shift" &&
       e.key != "Control" &&
       e.key != "Alt" &&
@@ -4930,7 +5776,7 @@ function closeSearchBar() {
   IsPopUpOpen = false;
 }
 
-async function cancelSearch() {
+async function cancelSearch(shouldRefresh = false) {
   document.querySelector(".cancel-search-button").classList.remove("is-visible");
   document.querySelector(".search-bar-input").value = "";
   updateFileSearchbarState();
@@ -4939,14 +5785,20 @@ async function cancelSearch() {
     IsSearching = false;
     IsFullSearching = false;
   }
-  // await listDirectories();
+  if (shouldRefresh) {
+    if (IsDualPaneEnabled === true) {
+      await refreshBothViews(SelectedItemPaneSide);
+    } else {
+      await refreshView();
+    }
+  }
 }
 
 async function switchView(newMode = null) {
   if (IsDualPaneEnabled == false) {
-    if (newMode) {
+    if (newMode && ["wrap", "column", "miller"].includes(newMode)) {
       ViewMode = newMode;
-    } else {
+    } else if (newMode === null) {
       if (ViewMode == "wrap") ViewMode = "column";
       else if (ViewMode == "column") ViewMode = "miller";
       else ViewMode = "wrap";
@@ -5164,6 +6016,7 @@ async function closeSettings() {
   }, 300);
   IsDisableShortcuts = false;
   IsPopUpOpen = false;
+  await checkAppConfig();
 }
 
 function showSettingsTab(tabName, btn) {
@@ -5195,7 +6048,12 @@ async function saveConfig(isToReload = true, isVerbose = true) {
   let searchDepth = parseInt(
     document.querySelector(".search-depth-input").value,
   ) || 10;
+  searchDepth = Math.max(1, Math.min(100, searchDepth));
+  document.querySelector(".search-depth-input").value = searchDepth;
+
   let maxItems = parseInt(document.querySelector(".max-items-input").value) || 1000;
+  maxItems = Math.max(1, Math.min(1000, maxItems));
+  document.querySelector(".max-items-input").value = maxItems;
   let isImagePreview = (IsImagePreview = document.querySelector(
     ".image-preview-checkbox",
   ).checked);
@@ -5310,7 +6168,12 @@ async function resetSettingsToDefaults() {
   const confirmed = await confirm("Reset all settings to their default values?");
   if (!confirmed) return;
 
-  document.querySelector(".theme-select").value = "0";
+  document.querySelector(".theme-select").value = "Default Dark";
+  selectIconTheme("Prestige Glass");
+  changeIconSize("100");
+  if (document.querySelector(".icon-size-slider")) {
+    document.querySelector(".icon-size-slider").value = "100";
+  }
   document.querySelector("#choose-interaction-mode").checked = true;
   document.querySelector(".image-preview-checkbox").checked = true;
   document.querySelector(".configured-path-one-input").value = "";
@@ -5412,15 +6275,35 @@ async function showProperties(item) {
   const modifiedAt = isMulti ? null : first.getAttribute("itemmodified");
   const extDesc = ext ? getExtDescription(ext) : undefined;
 
+  const imageExts = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".tiff", ".avif", ".jfif"];
+  const isImage = !isMulti && !isDir && ext && imageExts.includes(ext.toLowerCase()) && path && !path.startsWith("ftp://");
+  const resolutionRow = isImage
+    ? `
+      <div class="props-card__row">
+        <dt class="props-card__label"><i class="fa-solid fa-image"></i>Resolution</dt>
+        <dd class="props-card__value">
+          <button class="props-card__copy" title="Copy resolution to clipboard" onclick="copyPropertiesSizeRow(this)">
+            <span class="properties-item-resolution">
+              <span class="props-card__skeleton"></span>
+            </span>
+            <i class="fa-regular fa-copy props-card__copy-icon"></i>
+          </button>
+        </dd>
+      </div>`
+    : "";
+
   const isArchive = !isMulti && ['.zip', '.7z', '.tar', '.density', '.rar', '.br', '.zst', '.zstd'].includes(ext.toLowerCase());
   const archiveOriginalSizeRow = isArchive
     ? `
       <div class="props-card__row">
         <dt class="props-card__label"><i class="fa-solid fa-expand"></i>Original Size</dt>
         <dd class="props-card__value">
-          <span class="properties-item-original-size">
-            <span class="props-card__skeleton"></span>
-          </span>
+          <button class="props-card__copy" title="Copy original size to clipboard" onclick="copyPropertiesSizeRow(this)">
+            <span class="properties-item-original-size">
+              <span class="props-card__skeleton"></span>
+            </span>
+            <i class="fa-regular fa-copy props-card__copy-icon"></i>
+          </button>
         </dd>
       </div>`
     : "";
@@ -5491,11 +6374,15 @@ async function showProperties(item) {
       <div class="props-card__row">
         <dt class="props-card__label"><i class="fa-solid fa-database"></i>Size</dt>
         <dd class="props-card__value">
-          <span class="properties-item-size props-card__size">
-            <span class="props-card__skeleton"></span>
-          </span>
+          <button class="props-card__copy" title="Copy size to clipboard" onclick="copyPropertiesSizeRow(this)">
+            <span class="properties-item-size props-card__size">
+              <span class="props-card__skeleton"></span>
+            </span>
+            <i class="fa-regular fa-copy props-card__copy-icon"></i>
+          </button>
         </dd>
       </div>
+      ${resolutionRow}
       ${archiveOriginalSizeRow}
     </dl>
 
@@ -5514,6 +6401,23 @@ async function showProperties(item) {
   popup.dataset.updateId = propertiesUpdateId;
 
   if (!isMulti) {
+    if (isImage) {
+      (async () => {
+        try {
+          const dims = await invoke("get_image_dimensions", { path });
+          const currentPopup = document.querySelector(".item-properties-popup");
+          if (!currentPopup || currentPopup.dataset.updateId !== propertiesUpdateId) return;
+
+          $(".properties-item-resolution").html(`${dims[0]} × ${dims[1]}`);
+        } catch (err) {
+          const currentPopup = document.querySelector(".item-properties-popup");
+          if (!currentPopup || currentPopup.dataset.updateId !== propertiesUpdateId) return;
+          console.error("Failed to get image dimensions:", err);
+          $(".properties-item-resolution").html("<span style='color: var(--textColor2); opacity: 0.7;'>Unavailable</span>");
+        }
+      })();
+    }
+
     try {
       const info = await getSimpleDirInfo(
         first.getAttribute("itempath"),
@@ -5587,6 +6491,35 @@ function closeInfoProperties() {
     IsPopUpOpen = false;
     IsItemPreviewOpen = false;
   }
+}
+
+function copyPropertiesSizeRow(btn) {
+  let textSpan = btn.querySelector(".properties-item-size, .properties-item-original-size, .properties-item-resolution");
+  let text = "";
+  if (textSpan) {
+    text = textSpan.innerText.trim();
+  } else {
+    text = btn.innerText.trim();
+  }
+  if (!text || text.includes("Calculating") || btn.querySelector(".props-card__skeleton")) {
+    return;
+  }
+  text = text.replace(/[\r\n]+/g, " ").trim();
+
+  if (textSpan) {
+    if (textSpan.classList.contains("properties-item-size")) {
+      if (text.includes(" - ")) {
+        text = text.split(" - ")[0].trim();
+      }
+    } else if (textSpan.classList.contains("properties-item-original-size")) {
+      if (text.includes("(")) {
+        text = text.split("(")[0].trim();
+      }
+    }
+  }
+
+  writeText(text);
+  showToast(`Copied "${text}" to clipboard`, ToastType.INFO);
 }
 
 async function showItemPreview(item, isOverride = false) {
@@ -6608,6 +7541,200 @@ function parseCssColor(colorStr) {
   };
 }
 
+const DefaultIconColors = {
+  "Minimalist Outline": "var(--textColor2)",
+  "Golden Luxury": "#d4af37",
+  "Lucide Default": "#6E6E80"
+};
+
+function initIconColorSettings() {
+  let activeIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
+  
+  if (activeIconTheme === "Prestige Glass") {
+    $(".icon-color-controls").css("display", "none");
+    $(".icon-color-na-message").css("display", "block");
+  } else {
+    $(".icon-color-controls").css("display", "flex");
+    $(".icon-color-na-message").css("display", "none");
+    
+    let customColor = localStorage.getItem("icon-color-" + activeIconTheme);
+    let defaultColor = DefaultIconColors[activeIconTheme] || "var(--textColor2)";
+    
+    let displayColor = customColor || defaultColor;
+    if (displayColor.startsWith("var(")) {
+      displayColor = getComputedStyle(document.documentElement).getPropertyValue(displayColor.replace("var(", "").replace(")", "")).trim();
+    }
+    
+    let hexColor = convertToHex(displayColor);
+    
+    $(".icon-accent-color-picker").val(hexColor);
+    $(".icon-accent-color-text").val(customColor || hexColor);
+  }
+  
+  updateIconThemePreviews();
+}
+
+function applyCustomIconColor(color) {
+  let activeIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
+  if (activeIconTheme === "Prestige Glass") return;
+  
+  let cleanedColor = color.trim();
+  if (!cleanedColor) return;
+  
+  localStorage.setItem("icon-color-" + activeIconTheme, cleanedColor);
+  
+  let hexColor = convertToHex(cleanedColor);
+  if (hexColor.startsWith("#") && hexColor.length === 7) {
+    $(".icon-accent-color-picker").val(hexColor);
+  }
+  $(".icon-accent-color-text").val(cleanedColor);
+  
+  updateIconThemePreviews();
+  
+  if (IsDualPaneEnabled) {
+    refreshBothViews(SelectedItemPaneSide);
+  } else {
+    listDirectories();
+  }
+}
+
+function resetCustomIconColor() {
+  let activeIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
+  if (activeIconTheme === "Prestige Glass") return;
+  
+  localStorage.removeItem("icon-color-" + activeIconTheme);
+  
+  initIconColorSettings();
+  
+  if (IsDualPaneEnabled) {
+    refreshBothViews(SelectedItemPaneSide);
+  } else {
+    listDirectories();
+  }
+}
+
+function updateIconThemePreviews() {
+  document.querySelectorAll(".icon-theme-card").forEach(card => {
+    let themeName = card.getAttribute("data-theme");
+    let customColor = localStorage.getItem("icon-color-" + themeName);
+    
+    let folderIcon = card.querySelector(".icon-preview-row i.fa-folder, .icon-preview-row i.fa-folder-open, .icon-preview-row i.icon-folder, .icon-preview-row img[src*='folder']");
+    let fileCodeIcon = card.querySelector(".icon-preview-row i.fa-file-code, .icon-preview-row i.fa-code, .icon-preview-row i.icon-file-code, .icon-preview-row img[src*='code']");
+    let fileImageIcon = card.querySelector(".icon-preview-row i.fa-file-image, .icon-preview-row i.icon-image, .icon-preview-row img[src*='img']");
+
+    if (customColor) {
+      if (folderIcon) {
+        if (folderIcon.tagName !== "IMG") {
+          folderIcon.style.color = customColor;
+          if (themeName === "Golden Luxury") {
+            folderIcon.style.setProperty("--glow-color", hexToRgba(customColor, 0.4));
+            folderIcon.style.filter = `drop-shadow(0 0 6px ${hexToRgba(customColor, 0.4)})`;
+          } else {
+            folderIcon.style.filter = "none";
+          }
+        }
+      }
+      
+      if (themeName === "Minimalist Outline" || themeName === "Lucide Default") {
+        if (fileCodeIcon) fileCodeIcon.style.color = customColor;
+        if (fileImageIcon) fileImageIcon.style.color = customColor;
+      }
+    } else {
+      if (themeName === "Minimalist Outline") {
+        if (folderIcon) folderIcon.style.color = "var(--textColor2)";
+        if (fileCodeIcon) fileCodeIcon.style.color = "var(--textColor2)";
+        if (fileImageIcon) fileImageIcon.style.color = "var(--textColor2)";
+      } else if (themeName === "Golden Luxury") {
+        if (folderIcon) {
+          folderIcon.style.color = "#d4af37";
+          folderIcon.style.filter = "drop-shadow(0 0 6px rgba(212, 175, 55, 0.5))";
+        }
+      } else if (themeName === "Lucide Default") {
+        if (folderIcon) {
+          folderIcon.style.color = "#6E6E80";
+          folderIcon.style.filter = "none";
+        }
+      }
+    }
+  });
+}
+
+function selectIconTheme(themeName) {
+  // Update visual selection highlights in settings cards
+  document.querySelectorAll(".icon-theme-card").forEach(card => {
+    if (card.getAttribute("data-theme") === themeName) {
+      card.classList.add("active");
+    } else {
+      card.classList.remove("active");
+    }
+  });
+
+  // Save selection
+  localStorage.setItem("current-icon-theme", themeName);
+
+  // Initialize color controls for the newly active icon theme
+  initIconColorSettings();
+
+  // Recalculate dynamic CSS variables for correct size weight scaling
+  let savedScale = localStorage.getItem("current-icon-scale") || "100";
+  changeIconSize(savedScale);
+
+  // Apply immediately by refreshing directory contents
+  if (IsDualPaneEnabled) {
+    refreshBothViews(SelectedItemPaneSide);
+  } else {
+    listDirectories();
+  }
+}
+
+function changeIconSize(scalePercent) {
+  let scale = parseInt(scalePercent) / 100;
+
+  // Set visual scale indicator text
+  const indicator = document.getElementById("icon-size-value");
+  if (indicator) {
+    indicator.textContent = scalePercent + "%";
+  }
+
+  // Save scale to localStorage
+  localStorage.setItem("current-icon-scale", scalePercent);
+
+  // Check if current active icon theme is a Lucide theme
+  let currentIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
+  let isLucideTheme = currentIconTheme === "Lucide Default";
+
+  // Determine base sizes with premium boosts for default PG and LD
+  let baseListIcon = 24;
+  let baseMillerIcon = 18;
+  let baseGridIcon = 56;
+
+  if (currentIconTheme === "Prestige Glass" || currentIconTheme === "Lucide Default") {
+    baseListIcon = 28;
+    baseMillerIcon = 21;
+    baseGridIcon = 64;
+  }
+
+  // Boost base font size for thin outline vectors (Lucide) to align visual presence with solid vectors
+  let baseListVector = isLucideTheme ? 17 : 13;
+  let baseMillerVector = isLucideTheme ? 13 : 10;
+  let baseGridVector = isLucideTheme ? 36 : 28;
+
+  if (currentIconTheme === "Lucide Default") {
+    baseListVector = 21;
+    baseMillerVector = 16;
+    baseGridVector = 44;
+  }
+
+  // Update dynamic CSS variables on :root
+  let r = document.querySelector(":root");
+  r.style.setProperty("--listIconSize", (baseListIcon * scale) + "px");
+  r.style.setProperty("--listVectorFontSize", (baseListVector * scale) + "px");
+  r.style.setProperty("--millerIconSize", (baseMillerIcon * scale) + "px");
+  r.style.setProperty("--millerVectorFontSize", (baseMillerVector * scale) + "px");
+  r.style.setProperty("--gridIconSize", (baseGridIcon * scale) + "px");
+  r.style.setProperty("--gridVectorFontSize", (baseGridVector * scale) + "px");
+}
+
 function checkColorMode(appConfig) {
   var r = document.querySelector(":root");
   let activeThemeName = CurrentTheme || "Default Dark";
@@ -6654,12 +7781,14 @@ function checkColorMode(appConfig) {
     r.style.setProperty("--glass-shadow", "0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.06)");
     r.style.setProperty("--glass-border", "1px solid rgba(0, 0, 0, 0.08)");
     r.style.setProperty("--glass-border-subtle", "1px solid rgba(0, 0, 0, 0.05)");
+    document.body.classList.add("light-mode");
   } else {
     r.style.setProperty("--glass-bg", "color-mix(in srgb, var(--primaryColor) 85%, transparent)");
     r.style.setProperty("--glass-header-bg", "color-mix(in srgb, var(--secondaryColor) 80%, transparent)");
     r.style.setProperty("--glass-shadow", "0 8px 32px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0.5px 0 rgba(255, 255, 255, 0.06)");
     r.style.setProperty("--glass-border", "1px solid color-mix(in srgb, var(--tertiaryColor) 50%, transparent)");
     r.style.setProperty("--glass-border-subtle", "1px solid color-mix(in srgb, var(--tertiaryColor) 35%, transparent)");
+    document.body.classList.remove("light-mode");
   }
 }
 
@@ -9200,6 +10329,37 @@ async function showSmartOrganizerPopup(path) {
     toggleAiProviderRows();
   });
 
+  // Set up validation / bounds clamping for depth and results inputs
+  const clampInput = (inputSelector, maxVal, minVal = 1) => {
+    const input = document.querySelector(inputSelector);
+    if (!input) return;
+
+    // Enforce limits as they type (only clamp if it exceeds max, to allow typing from scratch)
+    input.addEventListener("input", (e) => {
+      let val = parseInt(input.value);
+      if (!isNaN(val)) {
+        if (val > maxVal) {
+          input.value = maxVal;
+        }
+      }
+    });
+
+    // Enforce limits on focus loss or change
+    input.addEventListener("blur", (e) => {
+      let val = parseInt(input.value);
+      if (isNaN(val) || val < minVal) {
+        input.value = minVal;
+      } else if (val > maxVal) {
+        input.value = maxVal;
+      }
+    });
+  };
+
+  clampInput(".search-depth-input", 100, 1);
+  clampInput(".max-items-input", 1000, 1);
+  clampInput(".full-search-search-depth-input", 100, 1);
+  clampInput(".full-search-max-items-input", 1000, 1);
+
   // Check for updates in the background on startup
   checkUpdatesInBackground();
 })();
@@ -9274,13 +10434,61 @@ function getTargetContainers(parentPath) {
 function createItemInnerHtml(item, itemIconId, viewMode, dualPaneSide) {
   let fileIcon = "resources/file-icon.png";
   let iconSize = "56px";
+  let vectorFontSize = "28px";
+  if (viewMode === "column") {
+    iconSize = "24px";
+    vectorFontSize = "13px";
+  }
+  if (viewMode === "miller") {
+    iconSize = "18px";
+    vectorFontSize = "10px";
+  }
   fileIcon = getIconForFile(item, 1);
+
+  // Normalize extension and check if it's .app (macOS application bundle)
+  let ext = (item.extension || "").toLowerCase();
+  if (ext && !ext.startsWith('.')) {
+    ext = '.' + ext;
+  }
+  let isApp = ext === ".app";
+
+  // Get active icon theme
+  let currentIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
+  let isVectorTheme = currentIconTheme !== "Prestige Glass" && fileIcon.startsWith("resources/") && !isApp;
+
+  // Boost initial font size for thin outline vectors (Lucide) to align visual presence with solid vectors
+  if (isVectorTheme && currentIconTheme.startsWith("Lucide")) {
+    if (viewMode === "wrap") vectorFontSize = "36px";
+    else if (viewMode === "column") vectorFontSize = "17px";
+    else if (viewMode === "miller") vectorFontSize = "13px";
+  }
+
+  let vectorHtml = "";
+  if (isVectorTheme) {
+    let vectorData = getVectorIconAndColor(item, currentIconTheme);
+    let finalFontSize = vectorFontSize;
+    let finalTransform = "";
+    if (currentIconTheme === "Lucide Default" && vectorData.iconClass.includes("fa-folder")) {
+      if (viewMode === "wrap") {
+        finalFontSize = "29px !important";
+        finalTransform = "transform: scale(0.68) !important;";
+      } else if (viewMode === "column") {
+        finalFontSize = "15px !important";
+        finalTransform = "transform: scale(0.7) !important;";
+      } else if (viewMode === "miller") {
+        finalFontSize = "12px !important";
+        finalTransform = "transform: scale(0.7) !important;";
+      }
+    }
+    vectorHtml = `<i class="${vectorData.iconClass} item-icon vector-icon" style="color: ${vectorData.iconColor}; font-size: ${finalFontSize}; ${finalTransform} display: flex; align-items: center; justify-content: center; ${vectorData.customStyle}" id="${itemIconId}-vector"></i>`;
+  }
 
   if (viewMode === "wrap") {
     return `
       <div class="item-button directory-entry">
-        <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
-        <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="${iconSize}" height="${iconSize}" loading="lazy" />
+        <div style="margin: 8px; ${fileIcon.startsWith("resources/") || isVectorTheme ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+        <img style="${fileIcon.startsWith("resources/") && !isVectorTheme ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="${iconSize}" height="${iconSize}" loading="lazy" />
+        ${vectorHtml}
         <p class="item-button-text" style="text-align: left;">${item.name}</p>
       </div>
     `;
@@ -9288,15 +10496,16 @@ function createItemInnerHtml(item, itemIconId, viewMode, dualPaneSide) {
     const className = (dualPaneSide != null && dualPaneSide !== "") ? "directory-entry dual-pane-list-item" : "item-button-list directory-entry";
     return `
       <div class="${className}">
-        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; min-width: 0; width: fit-content; max-width: 500px; overflow: hidden;">
-          <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
-          <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="32px" height="32px" loading="lazy"/>
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; min-width: 0; width: fit-content; max-width: 500px; overflow: visible;">
+          <div style="margin: 8px; ${fileIcon.startsWith("resources/") || isVectorTheme ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+          <img style="${fileIcon.startsWith("resources/") && !isVectorTheme ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="${iconSize}" height="${iconSize}" loading="lazy"/>
+          ${vectorHtml}
           <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
         </span>
         <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: fit-content; justify-content: flex-end; padding-right: 5px;">
           <p class="item-button-list-text" style="width: 100%; text-align: right;">${item.last_modified}</p>
           <div class="item-button-list-text item-size-box" style="width: 115px; display: flex; gap: 10px; align-items: center; justify-content: space-around;">
-               <span id="size-${item.path}">${formatBytes(parseInt(item.size), 2)}</span>
+               <span id="size-${item.path}">${item.is_dir ? "-" : formatBytes(parseInt(item.size), 2)}</span>
                <i class="fa-solid fa-cube"></i>
           </div>
         </span>
@@ -9306,9 +10515,10 @@ function createItemInnerHtml(item, itemIconId, viewMode, dualPaneSide) {
     const className = (dualPaneSide != null && dualPaneSide !== "") ? "directory-entry dual-pane-list-item" : "item-button-list directory-entry";
     return `
       <div class="${className}">
-        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: hidden;">
-          <div style="margin: 8px; ${fileIcon.startsWith("resources/") ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
-          <img style="${fileIcon.startsWith("resources/") ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="24px" height="24px" loading="lazy"/>
+        <span class="item-button-list-info-span" style="display: flex; gap: 10px; align-items: center; max-width: 200px; overflow: visible;">
+          <div style="margin: 8px; ${fileIcon.startsWith("resources/") || isVectorTheme ? "display: none;" : ""}" class="preloader-small-invert preloader-${itemIconId}"></div>
+          <img style="${fileIcon.startsWith("resources/") && !isVectorTheme ? "" : "display: none;"}" id="${itemIconId}" src="${fileIcon.startsWith("resources/") ? fileIcon : `resources/preloader.gif`}" decoding="async" class="item-icon" width="${iconSize}" height="${iconSize}" loading="lazy"/>
+          ${vectorHtml}
           <p class="item-button-list-text" style="text-align: left; overflow: hidden; text-overflow: ellipsis;">${item.name}</p>
         </span>
       </div>
@@ -9413,7 +10623,7 @@ async function handleDynamicCreate(path) {
       itemLink.setAttribute("itemext", fileInfo.extension);
       itemLink.setAttribute("itemicon", getIconForFile(fileInfo, 1));
       itemLink.setAttribute("itemname", fileInfo.name);
-      itemLink.setAttribute("itemsize", formatBytes(fileInfo.size));
+      itemLink.setAttribute("itemsize", fileInfo.is_dir ? "-" : formatBytes(fileInfo.size));
       itemLink.setAttribute("itemrawsize", fileInfo.size);
       itemLink.setAttribute("itemmodified", fileInfo.last_modified);
       itemLink.setAttribute("draggable", true);
@@ -9422,6 +10632,20 @@ async function handleDynamicCreate(path) {
       itemLink.className = "item-link directory-entry";
 
       itemLink.innerHTML = createItemInnerHtml(fileInfo, itemIconId, target.mode, target.side);
+
+      let extLower = (fileInfo.extension || "").toLowerCase();
+      if (extLower && !extLower.startsWith('.')) {
+        extLower = '.' + extLower;
+      }
+      if (extLower === ".app") {
+        try {
+          itemLink.querySelector("img").src = convertFileSrc(
+            await invoke("get_app_icns", { path: fileInfo.path }),
+          );
+        } catch (e) {
+          console.error("Failed to load app icon for dynamic create:", e);
+        }
+      }
 
       itemLink.ondragstart = (e) => {
         handleDragStart(e, itemLink);
@@ -9538,7 +10762,7 @@ async function handleDynamicUpdate(path) {
     for (const target of targets) {
       const existing = target.element.querySelector(`[itempath="${path}"]`);
       if (existing) {
-        existing.setAttribute("itemsize", formatBytes(fileInfo.size));
+        existing.setAttribute("itemsize", fileInfo.is_dir ? "-" : formatBytes(fileInfo.size));
         existing.setAttribute("itemrawsize", fileInfo.size);
         existing.setAttribute("itemmodified", fileInfo.last_modified);
         existing.setAttribute("itemext", fileInfo.extension);
@@ -9548,6 +10772,20 @@ async function handleDynamicUpdate(path) {
         const itemIconId = existing.getAttribute("itemiconid") || crypto.randomUUID();
         existing.setAttribute("itemiconid", itemIconId);
         existing.innerHTML = createItemInnerHtml(fileInfo, itemIconId, target.mode, target.side);
+
+        let extLower = (fileInfo.extension || "").toLowerCase();
+        if (extLower && !extLower.startsWith('.')) {
+          extLower = '.' + extLower;
+        }
+        if (extLower === ".app") {
+          try {
+            existing.querySelector("img").src = convertFileSrc(
+              await invoke("get_app_icns", { path: fileInfo.path }),
+            );
+          } catch (e) {
+            console.error("Failed to load app icon for dynamic update:", e);
+          }
+        }
 
         arrLoadItemImage([existing], true);
       }

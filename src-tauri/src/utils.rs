@@ -32,7 +32,91 @@ fn config_dir() -> Option<std::path::PathBuf> {
     dirs::config_dir()
 }
 use tokio::sync::MutexGuard;
-use tokio::task;
+
+use std::sync::Arc;
+
+struct CancelableFile {
+    inner: std::fs::File,
+    session_id: usize,
+    processed_bytes: Option<Arc<Mutex<u64>>>,
+    original_size: u64,
+    start_time: Option<Instant>,
+    file_name: String,
+    total_files: usize,
+    current_file_index: usize,
+}
+
+impl CancelableFile {
+    #[allow(dead_code)]
+    fn new(inner: std::fs::File, session_id: usize) -> Self {
+        Self {
+            inner,
+            session_id,
+            processed_bytes: None,
+            original_size: 0,
+            start_time: None,
+            file_name: String::new(),
+            total_files: 0,
+            current_file_index: 0,
+        }
+    }
+
+    fn with_progress(
+        inner: std::fs::File,
+        session_id: usize,
+        processed_bytes: Arc<Mutex<u64>>,
+        original_size: u64,
+        start_time: Instant,
+        file_name: String,
+        total_files: usize,
+        current_file_index: usize,
+    ) -> Self {
+        Self {
+            inner,
+            session_id,
+            processed_bytes: Some(processed_bytes),
+            original_size,
+            start_time: Some(start_time),
+            file_name,
+            total_files,
+            current_file_index,
+        }
+    }
+}
+
+impl std::io::Read for CancelableFile {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != self.session_id {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user"));
+        }
+        let n = std::io::Read::read(&mut self.inner, buf)?;
+        if n > 0 {
+            if let Some(ref processed_arc) = self.processed_bytes {
+                if let Ok(mut processed) = processed_arc.lock() {
+                    *processed += n as u64;
+                    if self.original_size > 0 {
+                        let progress = (*processed as f32 / self.original_size as f32) * 100.0;
+                        let speed = if let Some(start) = self.start_time {
+                            calc_transfer_speed(*processed, start.elapsed().as_millis() as i64)
+                        } else {
+                            0.0
+                        };
+                        update_progressbar(
+                            progress,
+                            progress,
+                            self.total_files as f32,
+                            self.current_file_index as f32,
+                            &self.file_name,
+                            speed,
+                        );
+                    }
+                }
+            }
+        }
+        Ok(n)
+    }
+}
+
 use zip::write::FileOptions;
 use zip::ZipWriter;
 
@@ -230,7 +314,6 @@ async fn copy_to_with_overwrite_policy(
                             println!("Progress: {:.0}% | Total size: {} | Bytes copied: {} | Speed: {:.0} MB/s", progress, format_bytes(total_size as u64), format_bytes(*(TOTAL_BYTES_COPIED.lock().await) as u64), speed);
                             // Only update the progressbar every 5%
                             // if progress % 5.0 < 1.0 {
-                            show_progressbar(&WINDOW.get().unwrap());
                             let overall_progress = if count_to_copy > 0.0 {
                                 let file_fraction = progress / 100.0;
                                 let raw_pct =
@@ -381,6 +464,7 @@ pub fn update_progressbar(
     }
 
     if should_emit {
+        dbg_log(format!("Progress update: file_name: {}, progress: {:.1}%, speed: {:.1} MB/s", file_name, progress, mb_per_sec));
         let _ = WINDOW.get().unwrap().emit(
             "update-progress-bar",
             (
@@ -454,7 +538,7 @@ impl DirWalker {
         let mut last_emit = std::time::Instant::now();
 
         for entry in jwalk::WalkDir::new(path)
-            .parallelism(jwalk::Parallelism::RayonNewPool(num_cpus::get() - 1))
+            .parallelism(jwalk::Parallelism::RayonNewPool(num_cpus::get()))
             .sort(true)
             .min_depth(0)
             .max_depth(depth as usize)
@@ -896,6 +980,7 @@ pub fn human_to_bytes<S: Into<String>>(input: S) -> Result<u64, String> {
 }
 
 pub async fn compress_items(
+    session_id: usize,
     output_path: impl AsRef<Path>,
     input_paths: Vec<String>,
     compression_level: i32,
@@ -913,23 +998,36 @@ pub async fn compress_items(
     let original_size = get_items_size(input_paths.clone());
 
     let final_output_path = if compression_format == "density" {
-        compress_to_density(output_path, input_paths, compression_level)
+        dbg_log(format!("Starting Density compression. Session ID: {}, Target: {:?}", session_id, output_path));
+        compress_to_density(session_id, output_path, input_paths, compression_level)
             .expect("Failed to compress to density");
         output_path.to_path_buf()
     } else if compression_format == "br" {
+        dbg_log(format!("Starting Brotli compression. Session ID: {}, Target: {:?}", session_id, output_path));
         let mut br_path = output_path.to_path_buf();
         br_path.set_extension("tar.br");
-        compress_files_to_brotli_tar(&br_path, input_paths)?;
+        compress_files_to_brotli_tar(session_id, &br_path, input_paths)?;
         br_path
     } else {
+        dbg_log(format!("Starting ZIP/ZSTD ({}) compression. Session ID: {}, Target: {:?}", compression_format, session_id, output_path));
         // Collect all files to compress
         let mut files_to_compress = Vec::new();
         for input_path in input_paths {
+            if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != session_id {
+                let active_id = crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst);
+                dbg_log(format!("Compression cancelled during file list traversal. Local ID: {}, Active ID: {}", session_id, active_id));
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user"));
+            }
             let path = Path::new(&input_path);
             if path.is_file() {
                 files_to_compress.push((path.to_path_buf(), path.to_path_buf()));
             } else if path.is_dir() {
                 for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+                    if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != session_id {
+                        let active_id = crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst);
+                        dbg_log(format!("Compression cancelled during WalkDir entry. Local ID: {}, Active ID: {}", session_id, active_id));
+                        return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user"));
+                    }
                     let entry_path = entry.path();
                     if entry_path.is_file() {
                         files_to_compress.push((entry_path.to_path_buf(), path.to_path_buf()));
@@ -952,27 +1050,17 @@ pub async fn compress_items(
             .compression_level(Some(compression_level))
             .unix_permissions(0o644);
 
-        // Channel to send file data to writer
-        let (tx, mut rx) = tokio::sync::mpsc::channel::<(String, Vec<u8>, bool)>(CHUNK_SIZE);
+        let mut processed_bytes = 0u64;
 
-        // Writer task
-        let writer_handle = task::spawn(async move {
-            while let Some((name, data, is_same)) = rx.recv().await {
-                if !is_same {
-                    zip.start_file(&name, options)?;
-                }
-                // Async write data to zip file
-                zip.write_all(&data).unwrap();
+        // Read and write files synchronously
+        for (idx, (full_path, base_path)) in files_to_compress.clone().into_iter().enumerate() {
+            let current_file_idx = idx + 1;
+            if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != session_id {
+                let active_id = crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst);
+                dbg_log(format!("Compression cancelled before starting file: {:?}. Local ID: {}, Active ID: {}", full_path, session_id, active_id));
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user"));
             }
-            zip.finish().map(|_| ())
-        });
-
-        // Read files in parallel
-        for (full_path, base_path) in files_to_compress.clone() {
-            let tx = tx.clone();
-            let strip = strip_prefix.map(|p| p.to_path_buf());
-
-            let zip_path = if let Some(strip) = strip {
+            let zip_path = if let Some(strip) = strip_prefix {
                 full_path.strip_prefix(strip).unwrap_or(&full_path)
             } else {
                 full_path
@@ -980,44 +1068,41 @@ pub async fn compress_items(
                     .unwrap_or(&full_path)
             };
             let zip_name = zip_path.to_string_lossy().replace("\\", "/");
-            let mut last_path = String::new();
 
-            // 1. Open file
-            let file_open_result = File::open(&full_path);
+            zip.start_file(&zip_name, options)?;
 
-            if let Ok(mut file) = file_open_result {
-                // 2. Buffer for the next chunk
-                let mut buffer = vec![0; CHUNK_SIZE];
-                loop {
-                    // 3. Read
-                    match file.read(&mut buffer) {
-                        Ok(0) => {
-                            // End of file reached
-                            break;
-                        }
-                        Ok(n) => {
-                            // Keep only read bytes
-                            buffer.truncate(n);
-
-                            // 4. Send async
-                            let _ = tx
-                                .send((zip_name.clone(), buffer.clone(), last_path == zip_name))
-                                .await;
-                            last_path = zip_name.clone();
-                        }
-                        Err(e) => {
-                            eprintln!("Error reading file {}: {}", full_path.display(), e);
-                            break;
-                        }
-                    }
+            let mut file = File::open(&full_path)?;
+            let mut buffer = vec![0; CHUNK_SIZE];
+            loop {
+                if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != session_id {
+                    let active_id = crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst);
+                    dbg_log(format!("Compression cancelled inside chunk loop for file: {:?}. Local ID: {}, Active ID: {}", full_path, session_id, active_id));
+                    return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user"));
                 }
-            } else {
-                eprintln!("Error opening file {}", full_path.display());
+                use std::io::{Read, Write};
+                let n = file.read(&mut buffer)?;
+                if n == 0 {
+                    break;
+                }
+                zip.write_all(&buffer[..n])?;
+
+                processed_bytes += n as u64;
+
+                if original_size > 0 {
+                    let progress = (processed_bytes as f32 / original_size as f32) * 100.0;
+                    let speed = calc_transfer_speed(processed_bytes, stop_watch.elapsed().as_millis() as i64);
+                    update_progressbar(
+                        progress,
+                        progress,
+                        files_to_compress.len() as f32,
+                        current_file_idx as f32,
+                        &zip_name,
+                        speed,
+                    );
+                }
             }
         }
-
-        drop(tx); // Close channel
-        writer_handle.await??; // Propagate errors
+        zip.finish()?;
         output_path.to_path_buf()
     };
 
@@ -1157,10 +1242,23 @@ pub fn get_items_size<I: IntoIterator<Item = String>>(items: I) -> u64 {
 }
 
 pub fn compress_to_density(
+    session_id: usize,
     output_path: &Path,
     input_paths: Vec<String>,
     compression_level: i32,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let original_size = get_items_size(input_paths.clone());
+    let processed_bytes = Arc::new(Mutex::new(0u64));
+    let start_time = Instant::now();
+    let total_files = {
+        let mut count = 0usize;
+        for path_str in &input_paths {
+            count += count_entries(path_str).unwrap_or(0.0) as usize;
+        }
+        if count == 0 { 1 } else { count }
+    };
+    let current_file_idx = Arc::new(Mutex::new(0usize));
+
     // 1. Create a tar archive in a temp location
     let mut temp_tar_path = output_path.to_path_buf();
     let ext = temp_tar_path
@@ -1178,21 +1276,81 @@ pub fn compress_to_density(
         let mut tar_builder = tar::Builder::new(temp_tar_file);
 
         for path_str in input_paths {
+            if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != session_id {
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user").into());
+            }
             let path = Path::new(&path_str);
             if path.is_file() {
                 if let Some(file_name) = path.file_name() {
-                    if let Err(e) = tar_builder.append_path_with_name(path, file_name) {
-                        eprintln!("Failed to append file {} to tar: {}", path.display(), e);
+                    if let Ok(file) = File::open(path) {
+                        if let Ok(metadata) = file.metadata() {
+                            let mut header = tar::Header::new_gnu();
+                            header.set_metadata(&metadata);
+                            let current_idx_val = {
+                                if let Ok(mut idx) = current_file_idx.lock() {
+                                    *idx += 1;
+                                    *idx
+                                } else {
+                                    1
+                                }
+                            };
+                            let mut cancelable_file = CancelableFile::with_progress(
+                                file,
+                                session_id,
+                                processed_bytes.clone(),
+                                original_size,
+                                start_time,
+                                file_name.to_string_lossy().to_string(),
+                                total_files,
+                                current_idx_val,
+                            );
+                            if let Err(e) = tar_builder.append_data(&mut header, file_name, &mut cancelable_file) {
+                                if e.to_string().contains("cancelled") {
+                                    return Err(e.into());
+                                }
+                                eprintln!("Failed to append file {} to tar: {}", path.display(), e);
+                            }
+                        }
                     }
                 }
             } else if path.is_dir() {
                 let base_parent = path.parent().unwrap_or(path);
                 for entry in walkdir::WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+                    if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != session_id {
+                        return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user").into());
+                    }
                     let entry_path = entry.path();
                     if entry_path.is_file() {
                         if let Ok(rel_path) = entry_path.strip_prefix(base_parent) {
-                            if let Err(e) = tar_builder.append_path_with_name(entry_path, rel_path) {
-                                eprintln!("Failed to append file {} to tar: {}", entry_path.display(), e);
+                            if let Ok(file) = File::open(entry_path) {
+                                if let Ok(metadata) = file.metadata() {
+                                    let mut header = tar::Header::new_gnu();
+                                    header.set_metadata(&metadata);
+                                    let current_idx_val = {
+                                        if let Ok(mut idx) = current_file_idx.lock() {
+                                            *idx += 1;
+                                            *idx
+                                        } else {
+                                            1
+                                        }
+                                    };
+                                    let mut cancelable_file = CancelableFile::with_progress(
+                                        file,
+                                        session_id,
+                                        processed_bytes.clone(),
+                                        original_size,
+                                        start_time,
+                                        rel_path.to_string_lossy().to_string(),
+                                        total_files,
+                                        current_idx_val,
+                                    );
+                                    if let Err(e) = tar_builder.append_data(&mut header, rel_path, &mut cancelable_file) {
+                                        if e.to_string().contains("cancelled") {
+                                            return Err(e.into());
+                                        }
+                                        eprintln!("Failed to append file {} to tar: {}", entry_path.display(), e);
+                                    }
+                                }
                             }
                         }
                     }
@@ -1208,6 +1366,9 @@ pub fn compress_to_density(
     let mut num_chunks = 0u32;
     let mut buffer = vec![0u8; CHUNK_SIZE];
     loop {
+        if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != session_id {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user").into());
+        }
         let n = temp_tar_file.read(&mut buffer)?;
         if n == 0 {
             break;
@@ -1226,6 +1387,9 @@ pub fn compress_to_density(
 
     // 4. Second pass to compress and write chunks
     for i in 0..num_chunks {
+        if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != session_id {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user").into());
+        }
         let n = temp_tar_file.read(&mut buffer)?;
         let chunk = &buffer[..n];
 
@@ -1483,29 +1647,91 @@ pub fn extract_tar_bz2(archive_path: &Path, output_dir: &Path) -> io::Result<()>
 }
 
 pub fn compress_files_to_brotli_tar<P>(
+    session_id: usize,
     output_path: P,
     files: Vec<impl AsRef<Path>>,
 ) -> io::Result<()>
 where
     P: AsRef<Path>,
 {
+    let string_paths: Vec<String> = files.iter().map(|f| f.as_ref().to_string_lossy().into_owned()).collect();
+    let original_size = get_items_size(string_paths.clone());
+    let processed_bytes = Arc::new(Mutex::new(0u64));
+    let start_time = Instant::now();
+    let total_files = {
+        let mut count = 0usize;
+        for path_str in &string_paths {
+            count += count_entries(path_str).unwrap_or(0.0) as usize;
+        }
+        if count == 0 { 1 } else { count }
+    };
+    let current_file_idx = Arc::new(Mutex::new(0usize));
+
     let output_file = File::create(output_path.as_ref())?;
     let compressor = CompressorWriter::new(output_file);
     let mut tar_builder = tar::Builder::new(compressor);
 
     for file_path in files {
+        if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != session_id {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user"));
+        }
         let file_path = file_path.as_ref();
         if file_path.is_file() {
             if let Some(file_name) = file_path.file_name() {
-                tar_builder.append_path_with_name(file_path, Path::new(file_name))?;
+                let file = File::open(file_path)?;
+                let mut header = tar::Header::new_gnu();
+                header.set_metadata(&file.metadata()?);
+                let current_idx_val = {
+                    if let Ok(mut idx) = current_file_idx.lock() {
+                        *idx += 1;
+                        *idx
+                    } else {
+                        1
+                    }
+                };
+                let mut cancelable_file = CancelableFile::with_progress(
+                    file,
+                    session_id,
+                    processed_bytes.clone(),
+                    original_size,
+                    start_time,
+                    file_name.to_string_lossy().into_owned(),
+                    total_files,
+                    current_idx_val,
+                );
+                tar_builder.append_data(&mut header, Path::new(file_name), &mut cancelable_file)?;
             }
         } else if file_path.is_dir() {
             let base_parent = file_path.parent().unwrap_or(file_path);
             for entry in walkdir::WalkDir::new(file_path).into_iter().filter_map(|e| e.ok()) {
+                if crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst) != session_id {
+                    return Err(std::io::Error::new(std::io::ErrorKind::Other, "Compression cancelled by user"));
+                }
                 let entry_path = entry.path();
                 if entry_path.is_file() {
                     if let Ok(rel_path) = entry_path.strip_prefix(base_parent) {
-                        tar_builder.append_path_with_name(entry_path, rel_path)?;
+                        let file = File::open(entry_path)?;
+                        let mut header = tar::Header::new_gnu();
+                        header.set_metadata(&file.metadata()?);
+                        let current_idx_val = {
+                            if let Ok(mut idx) = current_file_idx.lock() {
+                                *idx += 1;
+                                *idx
+                            } else {
+                                1
+                            }
+                        };
+                        let mut cancelable_file = CancelableFile::with_progress(
+                            file,
+                            session_id,
+                            processed_bytes.clone(),
+                            original_size,
+                            start_time,
+                            rel_path.to_string_lossy().into_owned(),
+                            total_files,
+                            current_idx_val,
+                        );
+                        tar_builder.append_data(&mut header, rel_path, &mut cancelable_file)?;
                     }
                 }
             }
@@ -1567,11 +1793,7 @@ mod tests {
             let _ = std::fs::remove_file(&output_archive_path);
         }
 
-        let res = compress_to_density(
-            &output_archive_path,
-            vec![input_file_path.to_string_lossy().to_string()],
-            1,
-        );
+        let res = compress_to_density(0, &output_archive_path, vec![input_file_path.to_string_lossy().to_string()], 1);
 
         println!("Compression result: {:?}", res);
         assert!(res.is_ok());
@@ -1582,4 +1804,3 @@ mod tests {
         let _ = std::fs::remove_file(output_archive_path);
     }
 }
-

@@ -100,6 +100,7 @@ lazy_static! {
     static ref TO_COPY_COUNTER: Mutex<f32> = Mutex::new(0.0);
     static ref TOTAL_BYTES_COPIED: Arc<Mutex<f32>> = Arc::new(Mutex::new(0.0));
     static ref IS_SEARCHING: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+    pub static ref COMPRESSION_SESSION_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     pub static ref IS_SIZE_CALC_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
         Arc::new(std::sync::atomic::AtomicBool::new(false));
     pub static ref IS_SELECTION_SIZE_CALC_CANCELLED: Arc<std::sync::atomic::AtomicBool> =
@@ -217,6 +218,7 @@ fn main() {
             get_image_dimensions,
             upscale_image,
             ai_upscale_image,
+            compress_image,
             ai_style_image,
             get_simple_dir_info,
             get_selection_size,
@@ -246,6 +248,7 @@ fn main() {
             ai_get_organizer_suggestions,
             get_disk_space_tree,
             stop_disk_analysis,
+            stop_compression,
             stop_copy_paste,
             ai_execute_organize,
             check_for_updates,
@@ -332,6 +335,67 @@ struct AppConfig {
     shortcuts: std::collections::HashMap<String, String>,
 }
 
+fn load_app_config() -> Value {
+    let config_path = config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("/tmp"))
+        .join("com.codriver.dev/app_config.json");
+
+    if let Ok(file) = File::open(&config_path) {
+        let reader = BufReader::new(file);
+        if let Ok(json) = serde_json::from_reader(reader) {
+            return json;
+        }
+    }
+
+    let app_config_json = AppConfig {
+        view_mode: "wrap".to_string(),
+        last_modified: chrono::offset::Local::now().to_string(),
+        configured_path_one: "".to_string(),
+        configured_path_two: "".to_string(),
+        configured_path_three: "".to_string(),
+        is_open_in_terminal: "0".to_string(),
+        is_dual_pane_enabled: "0".to_string(),
+        launch_path: "".to_string(),
+        is_dual_pane_active: "0".to_string(),
+        search_depth: 10,
+        max_items: 1000,
+        is_image_preview: "1".to_string(),
+        is_select_mode: "1".to_string(),
+        arr_favorites: vec![],
+        current_theme: "0".to_string(),
+        font_size: 12,
+        is_window_transparency: "0".to_string(),
+        gemini_api_key: "".to_string(),
+        openai_api_key: "".to_string(),
+        is_ai_enabled: "0".to_string(),
+        ai_provider: "gemini".to_string(),
+        gemini_text_model: "gemini-3.1-flash-lite-preview".to_string(),
+        gemini_image_model: "gemini-3.1-flash-image-preview".to_string(),
+        openai_text_model: "gpt-4o".to_string(),
+        openai_image_model: "gpt-image-2".to_string(),
+        shortcuts: std::collections::HashMap::new(),
+    };
+    if let Some(parent) = config_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(file) = File::create(&config_path) {
+        let _ = serde_json::to_writer_pretty(file, &app_config_json);
+    }
+    serde_json::to_value(&app_config_json).unwrap_or(serde_json::Value::Null)
+}
+
+fn save_app_config(app_config: &Value) {
+    let config_path = config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("/tmp"))
+        .join("com.codriver.dev/app_config.json");
+    if let Some(parent) = config_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(file) = File::create(&config_path) {
+        let _ = serde_json::to_writer_pretty(file, app_config);
+    }
+}
+
 fn log_debug(msg: String) {
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
@@ -379,68 +443,7 @@ async fn check_app_config() -> AppConfig {
     )
     .await;
 
-    // If config doesn't exist, create it
-    if fs::metadata(
-        config_dir()
-            .unwrap()
-            .join("com.codriver.dev/app_config.json"),
-    )
-    .is_err()
-    {
-        let _ = File::create(
-            config_dir()
-                .unwrap()
-                .join("com.codriver.dev/app_config.json"),
-        );
-        let app_config_json = AppConfig {
-            view_mode: "".to_string(),
-            last_modified: chrono::offset::Local::now().to_string(),
-            configured_path_one: "".to_string(),
-            configured_path_two: "".to_string(),
-            configured_path_three: "".to_string(),
-            is_open_in_terminal: "0".to_string(),
-            is_dual_pane_enabled: "0".to_string(),
-            launch_path: "".to_string(),
-            is_dual_pane_active: "0".to_string(),
-            search_depth: 10,
-            max_items: 1000,
-            is_image_preview: "1".to_string(),
-            is_select_mode: "1".to_string(),
-            arr_favorites: vec![],
-            current_theme: "0".to_string(),
-            font_size: 12,
-            is_window_transparency: "0".to_string(),
-            gemini_api_key: "".to_string(),
-            openai_api_key: "".to_string(),
-            is_ai_enabled: "0".to_string(),
-            ai_provider: "gemini".to_string(),
-            gemini_text_model: "gemini-3.1-flash-lite-preview".to_string(),
-            gemini_image_model: "gemini-3.1-flash-image-preview".to_string(),
-            openai_text_model: "gpt-4o".to_string(),
-            openai_image_model: "gpt-image-2".to_string(),
-            shortcuts: std::collections::HashMap::new(),
-        };
-        let _ = serde_json::to_writer_pretty(
-            File::create(
-                config_dir()
-                    .unwrap()
-                    .join("com.codriver.dev/app_config.json")
-                    .to_str()
-                    .unwrap(),
-            )
-            .unwrap(),
-            &app_config_json,
-        );
-    }
-
-    let app_config_file = File::open(
-        config_dir()
-            .unwrap()
-            .join("com.codriver.dev/app_config.json"),
-    )
-    .unwrap();
-    let app_config_reader = BufReader::new(app_config_file);
-    let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+    let app_config = load_app_config();
 
     let default_vec: Vec<Value> = vec![];
     let mut shortcuts_map = std::collections::HashMap::new();
@@ -769,26 +772,9 @@ async fn switch_to_directory(current_dir: String) {
 }
 #[tauri::command]
 async fn switch_view(view_mode: String) -> Vec<FDir> {
-    let app_config_file = File::open(
-        app_config_dir(&Config::default())
-            .unwrap()
-            .join("com.codriver.dev/app_config.json"),
-    )
-    .unwrap();
-    let app_config_reader = BufReader::new(app_config_file);
-    let mut app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+    let mut app_config = load_app_config();
     app_config["view_mode"] = Value::from(String::from(&view_mode));
-    let _ = serde_json::to_writer_pretty(
-        File::create(
-            app_config_dir(&Config::default())
-                .unwrap()
-                .join("com.codriver.dev/app_config.json")
-                .to_str()
-                .unwrap(),
-        )
-        .unwrap(),
-        &app_config,
-    );
+    save_app_config(&app_config);
     list_dirs().await
 }
 
@@ -815,11 +801,17 @@ fn set_dir(current_dir: String) -> bool {
     }
     *CURRENT_DIR_OVERRIDE.lock().unwrap() = None;
     let md = fs::metadata(&current_dir);
-    if md.is_err() {
+    if let Err(e) = md {
+        err_log(format!("set_dir metadata check failed for path {}: {}", &current_dir, e));
         return false;
     }
-    let _ = set_current_dir(&current_dir);
-    true
+    match set_current_dir(&current_dir) {
+        Ok(_) => true,
+        Err(e) => {
+            err_log(format!("Failed to set process working directory to {}: {}", &current_dir, e));
+            false
+        }
+    }
 }
 
 fn parse_ftp_url(url: &str) -> Option<(String, String)> {
@@ -3311,7 +3303,7 @@ mod tests {
             let _ = std::fs::remove_file(&output_archive_path);
         }
 
-        let res = crate::utils::compress_to_density(
+        let res = crate::utils::compress_to_density(0, 
             &output_archive_path,
             vec![input_file_path.to_string_lossy().to_string()],
             1,
@@ -3517,18 +3509,24 @@ async fn compress_item(
     path_to_zip: String,
     compression_type: String,
     interval_id: usize,
-) {
+) -> Result<(), String> {
     let output = format!("{}.{}", path_to_zip, compression_type);
-    compress_items(
-        output,
-        vec![from_path],
-        compression_level,
-        &compression_type,
-        None,
-        interval_id,
-    )
-    .await
-    .unwrap();
+    let current_session_id = crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst);
+    let out_clone = output.clone();
+    let res = tauri::async_runtime::spawn_blocking(move || {
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async {
+            compress_items(current_session_id, out_clone, vec![from_path], compression_level, &compression_type, None, interval_id).await
+        })
+    }).await.map_err(|e| e.to_string())?;
+
+    match res {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            let _ = std::fs::remove_file(&output);
+            Err(e.to_string())
+        }
+    }
 }
 
 #[tauri::command]
@@ -3537,7 +3535,7 @@ async fn arr_compress_items(
     compression_level: i32,
     compression_type: String,
     interval_id: usize,
-) {
+) -> Result<(), String> {
     let output = current_dir()
         .unwrap()
         .join("compressed_items_archive")
@@ -3545,16 +3543,22 @@ async fn arr_compress_items(
         .to_string_lossy()
         .to_string();
 
-    compress_items(
-        output,
-        arr_items,
-        compression_level,
-        &compression_type,
-        None,
-        interval_id,
-    )
-    .await
-    .unwrap();
+    let current_session_id = crate::COMPRESSION_SESSION_ID.load(std::sync::atomic::Ordering::SeqCst);
+    let out_clone = output.clone();
+    let res = tauri::async_runtime::spawn_blocking(move || {
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async {
+            compress_items(current_session_id, out_clone, arr_items, compression_level, &compression_type, None, interval_id).await
+        })
+    }).await.map_err(|e| e.to_string())?;
+
+    match res {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            let _ = std::fs::remove_file(&output);
+            Err(e.to_string())
+        }
+    }
 }
 
 #[tauri::command]
@@ -3785,14 +3789,7 @@ async fn save_config(
     openai_image_model: String,
     shortcuts: std::collections::HashMap<String, String>,
 ) {
-    let app_config_file = File::open(
-        app_config_dir(&Config::default())
-            .unwrap()
-            .join("com.codriver.dev/app_config.json"),
-    )
-    .unwrap();
-    let app_config_reader = BufReader::new(app_config_file);
-    let app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+    let app_config = load_app_config();
 
     let final_gemini_api_key = {
         let clean_key = gemini_api_key.replace("\\", "");
@@ -3829,7 +3826,14 @@ async fn save_config(
     };
 
     let app_config_json = AppConfig {
-        view_mode: app_config["view_mode"].to_string().replace('"', ""),
+        view_mode: {
+            let vm = app_config["view_mode"].to_string().replace('"', "");
+            if vm.is_empty() || vm == "null" {
+                "wrap".to_string()
+            } else {
+                vm
+            }
+        },
         last_modified: chrono::offset::Local::now().to_string(),
         configured_path_one: configured_path_one.replace("\\", "/"),
         configured_path_two: configured_path_two.replace("\\", "/"),
@@ -3856,14 +3860,8 @@ async fn save_config(
         openai_image_model: openai_image_model.replace("\\", ""),
         shortcuts,
     };
-    let config_dir = app_config_dir(&Config::default())
-        .unwrap()
-        .join("com.codriver.dev/app_config.json")
-        .to_str()
-        .unwrap()
-        .to_string();
-    let _ = serde_json::to_writer_pretty(File::create(&config_dir).unwrap(), &app_config_json);
-    dbg_log(format!("app_config was saved to {}", config_dir));
+    let app_config_val = serde_json::to_value(&app_config_json).unwrap_or(serde_json::Value::Null);
+    save_app_config(&app_config_val);
 }
 
 #[tauri::command]
@@ -3897,30 +3895,13 @@ async fn rename_elements_with_format(
 // TODO: impl this stuff
 #[tauri::command]
 async fn add_favorite(arr_favorites: Vec<String>) {
-    let app_config_file = File::open(
-        app_config_dir(&Config::default())
-            .unwrap()
-            .join("com.codriver.dev/app_config.json"),
-    )
-    .unwrap();
-    let app_config_reader = BufReader::new(app_config_file);
-    let mut app_config: Value = serde_json::from_reader(app_config_reader).unwrap();
+    let mut app_config = load_app_config();
     app_config["arr_favorites"] = arr_favorites
         .clone()
         .into_iter()
         .map(Value::String)
         .collect();
-    let _ = serde_json::to_writer_pretty(
-        File::create(
-            app_config_dir(&Config::default())
-                .unwrap()
-                .join("com.codriver.dev/app_config.json")
-                .to_str()
-                .unwrap(),
-        )
-        .unwrap(),
-        &app_config,
-    );
+    save_app_config(&app_config);
     dbg_log(format!("Saved favorites: {:?}", arr_favorites));
 }
 
@@ -3953,6 +3934,12 @@ async fn cancel_size_calculation() {
 #[tauri::command]
 async fn cancel_selection_size_calculation() {
     IS_SELECTION_SIZE_CALC_CANCELLED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[tauri::command]
+fn stop_compression() {
+    let old_id = COMPRESSION_SESSION_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    dbg_log(format!("stop_compression called! Incrementing session ID. Old: {}, New: {}", old_id, old_id + 1));
 }
 
 #[tauri::command]
@@ -4213,6 +4200,52 @@ async fn upscale_image(
 
     res.save(&output_path)
         .map_err(|e| format!("Failed to save upscaled image: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn compress_image(
+    from_path: String,
+    target_width: u32,
+    target_height: u32,
+    format: String,
+    quality: u8,
+    output_path: String,
+) -> Result<(), String> {
+    let mut img = image::open(&from_path).map_err(|e| format!("Failed to open image: {}", e))?;
+
+    if target_width == 0 || target_height == 0 {
+        return Err("Target dimensions must be greater than 0".to_string());
+    }
+
+    if img.width() != target_width || img.height() != target_height {
+        img = img.resize(target_width, target_height, image::imageops::FilterType::Lanczos3);
+    }
+
+    let file = std::fs::File::create(&output_path)
+        .map_err(|e| format!("Failed to create output file: {}", e))?;
+
+    match format.to_lowercase().as_str() {
+        "jpeg" | "jpg" => {
+            let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(file, quality);
+            encoder.encode_image(&img)
+                .map_err(|e| format!("Failed to encode JPEG image: {}", e))?;
+        }
+        "webp" => {
+            let encoder = image::codecs::webp::WebPEncoder::new_lossless(file);
+            img.write_with_encoder(encoder)
+                .map_err(|e| format!("Failed to encode WebP image: {}", e))?;
+        }
+        "png" => {
+            let encoder = image::codecs::png::PngEncoder::new(file);
+            img.write_with_encoder(encoder)
+                .map_err(|e| format!("Failed to encode PNG image: {}", e))?;
+        }
+        _ => {
+            return Err(format!("Unsupported format: {}", format));
+        }
+    }
 
     Ok(())
 }
