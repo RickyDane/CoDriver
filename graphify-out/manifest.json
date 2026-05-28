@@ -1,13 +1,8 @@
 {
-  "/Users/rickyperlick/Coding/CoDriver/ui/main_logic.js": {
-    "mtime": 1779743768.7728965,
-    "ast_hash": "f570acd47bd03d2eaa17825dea0b9d86",
-    "semantic_hash": ""
-  },
   "/Users/rickyperlick/Coding/CoDriver/ui/events.js": {
-    "mtime": 1779721025.3516877,
-    "ast_hash": "64d86bf7f50b82225ae281136f58bfb0",
-    "semantic_hash": "64d86bf7f50b82225ae281136f58bfb0"
+    "mtime": 1779987026.8857088,
+    "ast_hash": "3c26cca6fb4f60246f8d4c559d8c4e19",
+    "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/compressImage.js": {
     "mtime": 1779136409.2371228,
@@ -20,9 +15,9 @@
     "semantic_hash": "7f40379b88cefe6f6f7c26c813b05b25"
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/models.js": {
-    "mtime": 1779617902.0174296,
-    "ast_hash": "7262981d9e907c556343044d1ada1e21",
-    "semantic_hash": "7262981d9e907c556343044d1ada1e21"
+    "mtime": 1779906735.328352,
+    "ast_hash": "904f0f1a57a98d8623db74a6585f9ee7",
+    "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/ds.min.js": {
     "mtime": 1779136409.2378688,
@@ -40,8 +35,8 @@
     "semantic_hash": "25fdd06b0fd5b3c204ed9d0a2b8fd7f7"
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/utils.js": {
-    "mtime": 1779743761.9157853,
-    "ast_hash": "b7707fe8e4e106794e7218580f306e32",
+    "mtime": 1779968841.1567497,
+    "ast_hash": "ee03ac0eed250e5819939b184eb2afe4",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/jquery.js": {
@@ -145,9 +140,9 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/tauri.conf.json": {
-    "mtime": 1779733817.8976698,
-    "ast_hash": "401b16348b0ff4a408bb7bf63ab74a84",
-    "semantic_hash": "401b16348b0ff4a408bb7bf63ab74a84"
+    "mtime": 1779986356.2795198,
+    "ast_hash": "717ad13ef4827e5d3700164645463a2e",
+    "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/build.rs": {
     "mtime": 1779136409.2133887,
@@ -165,9 +160,9 @@
     "semantic_hash": "bfb21cab154c2d86a3ba998639726cb6"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/acl-manifests.json": {
-    "mtime": 1779736944.0063837,
-    "ast_hash": "76a08445792956ed16f090b17e356ba0",
-    "semantic_hash": "76a08445792956ed16f090b17e356ba0"
+    "mtime": 1779970917.1299555,
+    "ast_hash": "0840e96d381e3cfc41a34a468e96199f",
+    "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/macOS-schema.json": {
     "mtime": 1779720987.9504397,
@@ -190,14 +185,14 @@
     "semantic_hash": "8fe56b9fb9f759017a8fcb36d80c505b"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/main.rs": {
-    "mtime": 1779736969.112033,
-    "ast_hash": "22519c1c8509006996f4b3866ba2b585",
-    "semantic_hash": "22519c1c8509006996f4b3866ba2b585"
+    "mtime": 1779973448.2530525,
+    "ast_hash": "d54ca81ea70bcff94c9ae6c3276f3467",
+    "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/utils.rs": {
-    "mtime": 1779736040.9048135,
-    "ast_hash": "ae9f7a44b85c0c7cf5af1ec66986121e",
-    "semantic_hash": "ae9f7a44b85c0c7cf5af1ec66986121e"
+    "mtime": 1779988488.2120383,
+    "ast_hash": "d8770147dbb03aa1332111ef214bd1d0",
+    "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/remote/ftp.rs": {
     "mtime": 1779705515.9851446,
@@ -235,9 +230,9 @@
     "semantic_hash": "4dd049c7551ae2631b94fca70847265c"
   },
   "/Users/rickyperlick/Coding/CoDriver/CONTEXT.md": {
-    "mtime": 1779654986.6099715,
-    "ast_hash": "d21f39ee633a2bc7dbb5ba0440a92fdc",
-    "semantic_hash": "d21f39ee633a2bc7dbb5ba0440a92fdc"
+    "mtime": 1779782784.3191395,
+    "ast_hash": "f2bdd2f449ce13f83bd534d139aeffa2",
+    "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/README.md": {
     "mtime": 1779730408.9223602,
@@ -245,14 +240,14 @@
     "semantic_hash": "1418d910d79e0735a99232e9b89127e4"
   },
   "/Users/rickyperlick/Coding/CoDriver/AGENTS.md": {
-    "mtime": 1779744099.051104,
-    "ast_hash": "eaa3e0a18fcf222277cf04001c53d7ea",
+    "mtime": 1779970932.4412994,
+    "ast_hash": "43161689a8d2ec9bcaf0fcb27cf3d081",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/index.html": {
-    "mtime": 1779729468.9491847,
-    "ast_hash": "96f51ef3f8e5f2e273ae1b92ea838263",
-    "semantic_hash": "96f51ef3f8e5f2e273ae1b92ea838263"
+    "mtime": 1779988092.88233,
+    "ast_hash": "a366cbcfc200d349ae395e8a55c02d2b",
+    "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/resources/inter/OFL.txt": {
     "mtime": 1779136409.6519003,
@@ -11092,6 +11087,16 @@
   "/Users/rickyperlick/Coding/CoDriver/.github/workflows/deploy-website.yml": {
     "mtime": 1779744900.535451,
     "ast_hash": "3f1414731a8583fb1c8d00425b5b5390",
+    "semantic_hash": ""
+  },
+  "/Users/rickyperlick/Coding/CoDriver/ui/lucide/webfonts/lucide.svg": {
+    "mtime": 1779827495.2952385,
+    "ast_hash": "b2ccf1aec0bbfdef0d5f7c0e98187b14",
+    "semantic_hash": ""
+  },
+  "/Users/rickyperlick/Coding/CoDriver/ui/main_logic.js": {
+    "mtime": 1779990350.4144485,
+    "ast_hash": "6ba92bebeb1772a675a6e67fca540da0",
     "semantic_hash": ""
   }
 }

@@ -42,8 +42,7 @@ The table below lists the essential Tauri backend commands declared in `src/main
 | `list_dirs` | None | `Vec<FDir>` | Reads and returns files and folders of the active Rust working directory. |
 | `open_dir` | `path: String` | `Vec<FDir>` | Changes the current working directory to `path` and lists its entries. |
 | `open_item` | `path: String` | `Result<(), String>` | Opens a file using the host OS default handler. |
-| `list_disks` | None | `Vec<DisksInfo>` | Detects local disks, external volumes (`/Volumes`), active SSHFS mounts, and active FTP remotes. |
-| `mount_sshfs` | `config: SSHFSConfig` | `Result<String, String>` | Mounts a remote system via SSHFS into a `/tmp` mount point. |
+| `list_disks` | None | `Vec<DisksInfo>` | Detects local disks, external volumes (`/Volumes`), and active FTP remotes. |
 | `connect_ftp` | `config: FtpConfig` | `Result<String, String>` | Establishes a persistent TCP stream connection to a remote FTP host. |
 | `disconnect_ftp`| `name: String` | `Result<(), String>` | Closes the active FTP connection stream. |
 | `arr_copy_paste`| `sources: Vec<String>`, `is_for_dual_pane: bool`, `copy_to_path: String` | `Result<(), String>` | Spawns a background thread to copy selected files/folders asynchronously. |
@@ -112,9 +111,8 @@ sequenceDiagram
 
 If conflicts are encountered (duplicate file names), `arr_copy_paste_resolved` allows user policies to override actions, e.g., Replace, Merge, Duplicate, Skip.
 
-### 3. SSHFS and FTP Remote Mounts
+### 3. Native FTP Remote Mounts
 Remote folders blend directly into local navigation:
-- **SSHFS**: Tauri's `mount_sshfs` issues shell mounts under a private directory `/tmp/codriver-sshfs-mount/` on Mac and Linux. The filesystem watcher registers this directory path, dynamically firing `fs-mount-changed` events to add network icons to the disks list.
 - **FTP remotes**: Persisted on the Rust backend within a thread-safe mutex map `remote::ftp::FTP_CONNECTIONS`. Directory listings (`list_dirs`) look for the `ftp://` prefix, routing file manipulations and stream retrievals directly through the cached `FtpStream` instance to guarantee near-instant remote browsing.
 
 ### 4. Duplicate Finder Workflow

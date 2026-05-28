@@ -61,6 +61,14 @@
   --glass-radius: 15px;
   --glass-header-bg: color-mix(in srgb, var(--secondaryColor) 80%, transparent);
   --glass-border-subtle: 1px solid color-mix(in srgb, var(--tertiaryColor) 35%, transparent);
+
+  /* Dynamic Icon Theme Size variables */
+  --listIconSize: 24px;
+  --listVectorFontSize: 13px;
+  --millerIconSize: 18px;
+  --millerVectorFontSize: 10px;
+  --gridIconSize: 56px;
+  --gridVectorFontSize: 28px;
 }
 
 html {
@@ -768,6 +776,32 @@ body {
   font-size: 13px;
   font-weight: 800 !important;
 }
+
+.active-action__inline-cancel-btn {
+  background: transparent;
+  border: none;
+  color: var(--textColor2);
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  flex: 0 0 auto;
+  outline: none;
+}
+
+.active-action__inline-cancel-btn:hover {
+  background: rgba(255, 68, 68, 0.15);
+  color: #ff5555;
+}
+
+.active-action__inline-cancel-btn:active {
+  transform: scale(0.92);
+}
+
 
 .active-action__progress-track {
   width: 100%;
@@ -4325,7 +4359,8 @@ button>svg {
   font-weight: bold !important;
 }
 
-.destination-conflict-popup {
+.destination-conflict-popup,
+.destination-conflict-popup.props-card {
   width: min(620px, 92vw);
   height: fit-content;
   color: var(--textColor);
@@ -4368,20 +4403,14 @@ button>svg {
 }
 
 .destination-conflict-card {
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid var(--tertiaryColor);
-  border-radius: 12px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--secondaryColor) 40%, transparent);
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: border-color 0.25s ease, background-color 0.25s ease;
-}
-
-.destination-conflict-card:hover {
-  border-color: color-mix(in srgb, var(--tertiaryColor) 150%, transparent);
-  background: color-mix(in srgb, var(--secondaryColor) 60%, transparent);
 }
 
 .destination-conflict-card h4 {
@@ -4448,9 +4477,9 @@ button>svg {
   grid-template-columns: 20px 1fr;
   align-items: start;
   gap: 2px 12px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: 1px solid var(--tertiaryColor);
-  border-radius: 12px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--secondaryColor) 30%, transparent);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -6073,6 +6102,280 @@ body.dual-pane-mode .active-actions-popup::before {
   }
 }
 
+/* ==========================================================================
+   CUSTOMIZABLE ICON THEMES & VECTOR STYLINGS
+   ========================================================================== */
 
+.icon-themes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin-top: 10px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
 
+.icon-theme-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--transparentColor);
+  border: 1px solid var(--tertiaryColor);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.icon-theme-card:hover {
+  background: var(--transparentColorActive);
+  border-color: var(--selectColor2);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+.icon-theme-card.active {
+  border-color: var(--selectColor2);
+  background: color-mix(in srgb, var(--selectColor2) 8%, var(--transparentColorActive));
+  box-shadow: 0 0 0 2px var(--selectColor2), 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.icon-theme-card__preview {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--tertiaryColor);
+  padding: 8px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.icon-theme-card__preview.bg-glassy {
+  background: radial-gradient(circle at center, rgba(255,255,255,0.05), transparent 80%), rgba(20, 20, 25, 0.4);
+}
+.icon-theme-card__preview.bg-outline {
+  background: rgba(15, 15, 18, 0.4);
+}
+.icon-theme-card__preview.bg-neon {
+  background: radial-gradient(circle at center, rgba(0, 240, 255, 0.08), transparent 75%), rgba(10, 10, 15, 0.5);
+}
+.icon-theme-card__preview.bg-pastel {
+  background: rgba(30, 30, 35, 0.35);
+}
+.icon-theme-card__preview.bg-golden {
+  background: radial-gradient(circle at center, rgba(212, 175, 55, 0.12), transparent 75%), rgba(18, 15, 12, 0.6);
+}
+.icon-theme-card__preview.bg-lucide {
+  background: radial-gradient(circle at center, rgba(92, 124, 250, 0.08), transparent 75%), rgba(20, 22, 28, 0.45);
+}
+.icon-theme-card__preview.bg-lucide-candy {
+  background: radial-gradient(circle at center, rgba(255, 183, 3, 0.08), transparent 75%), rgba(25, 25, 30, 0.45);
+}
+.icon-theme-card__preview.bg-lucide-neon {
+  background: radial-gradient(circle at center, rgba(0, 240, 255, 0.1), transparent 75%), rgba(10, 10, 15, 0.55);
+}
+.icon-theme-card__preview.bg-lucide-default {
+  background: radial-gradient(circle at center, rgba(92, 124, 250, 0.05), transparent 75%), rgba(18, 20, 24, 0.50);
+}
+
+/* Light mode overrides for settings card icon theme selector previews to keep them perfectly readable */
+body.light-mode .icon-theme-card__preview {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+body.light-mode .icon-theme-card__preview.bg-glassy {
+  background: radial-gradient(circle at center, rgba(0,0,0,0.01), transparent 80%), rgba(255, 255, 255, 0.45) !important;
+}
+body.light-mode .icon-theme-card__preview.bg-outline {
+  background: rgba(255, 255, 255, 0.4) !important;
+}
+body.light-mode .icon-theme-card__preview.bg-neon {
+  background: radial-gradient(circle at center, rgba(0, 240, 255, 0.05), transparent 75%), rgba(255, 255, 255, 0.5) !important;
+}
+body.light-mode .icon-theme-card__preview.bg-pastel {
+  background: rgba(255, 255, 255, 0.35) !important;
+}
+body.light-mode .icon-theme-card__preview.bg-golden {
+  background: radial-gradient(circle at center, rgba(212, 175, 55, 0.08), transparent 75%), rgba(255, 255, 255, 0.5) !important;
+}
+body.light-mode .icon-theme-card__preview.bg-lucide {
+  background: radial-gradient(circle at center, rgba(92, 124, 250, 0.05), transparent 75%), rgba(255, 255, 255, 0.45) !important;
+}
+body.light-mode .icon-theme-card__preview.bg-lucide-candy {
+  background: radial-gradient(circle at center, rgba(255, 183, 3, 0.05), transparent 75%), rgba(255, 255, 255, 0.45) !important;
+}
+body.light-mode .icon-theme-card__preview.bg-lucide-neon {
+  background: radial-gradient(circle at center, rgba(0, 240, 255, 0.06), transparent 75%), rgba(255, 255, 255, 0.5) !important;
+}
+body.light-mode .icon-theme-card__preview.bg-lucide-default {
+  background: radial-gradient(circle at center, rgba(92, 124, 250, 0.03), transparent 75%), rgba(255, 255, 255, 0.4) !important;
+}
+
+.lucide {
+  font-family: 'lucide' !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+}
+
+.icon-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.icon-preview-row i, .icon-preview-row img {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  pointer-events: none;
+}
+
+.icon-theme-card__info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.icon-theme-card__name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--textColor);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.icon-theme-card__check {
+  font-size: 12px;
+  color: var(--selectColor2);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-theme-card.active .icon-theme-card__check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Explorer Dynamic Vector Icon Themes Styles */
+.item-icon.vector-icon {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  pointer-events: none;
+  filter: saturate(1.1);
+}
+
+/* Hover effects for premium interactive micro-animations */
+.directory-entry:hover .item-icon.vector-icon {
+  filter: saturate(1.3) brightness(1.1);
+}
+
+/* Glowing effects for Cyberpunk neon themes */
+.item-icon.vector-icon[style*="--glow-color"] {
+  filter: drop-shadow(0 0 6px var(--glow-color)) saturate(1.2) !important;
+}
+
+.directory-entry:hover .item-icon.vector-icon[style*="--glow-color"] {
+  filter: drop-shadow(0 0 9px var(--glow-color)) saturate(1.4) brightness(1.15) !important;
+}
+
+/* List views spacing controls */
+.item-button-list .item-icon,
+.dual-pane-list-item .item-icon {
+  width: var(--listIconSize);
+  height: var(--listIconSize);
+  margin-left: 6px;
+  margin-right: 2px;
+}
+
+.item-button-list .item-icon.vector-icon,
+.dual-pane-list-item .item-icon.vector-icon {
+  width: var(--listIconSize);
+  height: var(--listIconSize);
+  font-size: var(--listVectorFontSize) !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Miller column spacing controls */
+.explorer-container[style*="miller"] .item-icon {
+  width: var(--millerIconSize);
+  height: var(--millerIconSize);
+  margin-left: 4px;
+  margin-right: 2px;
+}
+
+.explorer-container[style*="miller"] .item-icon.vector-icon {
+  width: var(--millerIconSize);
+  height: var(--millerIconSize);
+  font-size: var(--millerVectorFontSize) !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Grid view (wrap) spacing controls */
+.item-button .item-icon {
+  width: var(--gridIconSize) !important;
+  height: var(--gridIconSize) !important;
+}
+
+.item-button .item-icon.vector-icon {
+  width: var(--gridIconSize) !important;
+  height: var(--gridIconSize) !important;
+  font-size: var(--gridVectorFontSize) !important;
+}
+
+/* Clickable info card in Settings > About */
+.settings-info-card-clickable {
+  cursor: pointer;
+  transition: background-color 0.22s, border-color 0.22s, transform 0.22s, box-shadow 0.22s;
+}
+
+.settings-info-card-clickable:hover {
+  background-color: var(--transparentColorActive) !important;
+  border-color: var(--selectColor2) !important;
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.settings-info-card-clickable:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* Generic solid folder scaling for Lucide Default theme to match visual weight of outline icons */
+.lucide-generic-folder {
+  font-size: 15px !important;
+  transform: scale(0.7) !important;
+}
+
+.item-button-list .item-icon.vector-icon.lucide-generic-folder,
+.dual-pane-list-item .item-icon.vector-icon.lucide-generic-folder {
+  font-size: 15px !important;
+  transform: scale(0.7) !important;
+}
+
+.item-button .item-icon.vector-icon.lucide-generic-folder {
+  font-size: 29px !important;
+  transform: scale(0.68) !important;
+}
+
+.explorer-container[style*="miller"] .item-icon.vector-icon.lucide-generic-folder {
+  font-size: 12px !important;
+  transform: scale(0.7) !important;
+}
 

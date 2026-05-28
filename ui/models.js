@@ -31,7 +31,12 @@ class ActiveAction {
                             <p class="active-action__name">${esc(this.name)}</p>
                             <p class="active-action__desc active-action__current-file">${esc(this.currentFile || this.description)}</p>
                         </div>
-                        <span class="active-action__percent">${Math.round(this.progress)}%</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="active-action__percent">${Math.round(this.progress)}%</span>
+                            <button class="active-action__inline-cancel-btn" title="Cancel operation" onclick="cancelActionInline(event, '${this.id}', '${esc(this.name)}')">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="active-action__progress-track">
                         <div class="active-action__progress-fill" style="width: ${this.progress}%"></div>
@@ -51,6 +56,9 @@ class ActiveAction {
                     <p class="active-action__name">${esc(this.name)}</p>
                     <p class="active-action__desc">${esc(this.description)}</p>
                 </div>
+                <button class="active-action__inline-cancel-btn" title="Cancel operation" onclick="cancelActionInline(event, '${this.id}', '${esc(this.name)}')">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
         `;
     }

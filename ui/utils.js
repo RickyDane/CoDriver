@@ -165,6 +165,7 @@ listen("tauri://file-drop-cancelled", handleDragLeave);
 listen("tauri://drag-leave", handleDragLeave);
 
 const handleDragDrop = async (event) => {
+  const { invoke } = TAURI.core;
   try {
     ArrSelectedItems = [];
     ArrCopyItems = [];
@@ -306,11 +307,13 @@ function showToast(message, type = ToastType.INFO, timeout = 2000) {
 }
 
 async function getThumbnail(imagePath) {
+  const { invoke } = TAURI.core;
   let thumbnailPath = await invoke("get_thumbnail", { imagePath });
   return thumbnailPath;
 }
 
 async function getSimpleDirInfo(path = "", classToFill = "", isDir = false, updateId = null) {
+  const { invoke } = TAURI.core;
   setSizeCalculationLoading(classToFill);
   try {
     const simpleDirInfo = await invoke("get_simple_dir_info", { path, appWindow, classToFill, updateId, isDir });
@@ -391,6 +394,7 @@ function formatSizeWithLimit(bytes, decimals = 2) {
 }
 
 async function writeLog(log) {
+  const { invoke } = TAURI.core;
   await invoke("log", { log: JSON.stringify(log) });
   console.log(log);
 }
@@ -417,6 +421,7 @@ function isImage(fileExt) {
 }
 
 async function stopSearching() {
+  const { invoke } = TAURI.core;
   await invoke("stop_searching");
 }
 
@@ -783,7 +788,11 @@ function getIconForFile(item, itemsCount) {
       case ".z":
       case ".zstd":
       case ".br":
+      case ".brotli":
       case ".density":
+      case ".tgz":
+      case ".tbz2":
+      case ".txz":
         fileIcon = "resources/zip-file.png";
         break;
       case ".xlsx":
@@ -823,12 +832,22 @@ let lastFileOpProgressUpdate = 0;
 window.IsProgressModalDismissed = false;
 
 function getOrCreateFileOpAction(name = "File operation", description = "Preparing…") {
+  if (FileOpProgressActionId === "CANCELLED") return null;
   if (FileOpProgressActionId) {
     const existing = ArrActiveActions.find((a) => a.id === FileOpProgressActionId);
     if (existing) return existing;
+    return null; // The action was removed/cancelled. Ignore stray events.
+  }
+  let finalName = name;
+  if (window.IsCompressingActive) {
+    finalName = "Compressing Items";
+    // Deduplicate: filter out non-progress spinner "Archive" items
+    ArrActiveActions = ArrActiveActions.filter(
+      (a) => a.isProgress || (a.name !== "Archive" && a.name !== "Compressing Items" && !a.description.includes("into "))
+    );
   }
   FileOpProgressActionId = `fileop-${Date.now()}`;
-  const action = new ActiveAction(name, description, FileOpProgressActionId, "", true);
+  const action = new ActiveAction(finalName, description, FileOpProgressActionId, "", true);
   action.progress = 0;
   ArrActiveActions.push(action);
   renderActiveActionsPill();
@@ -848,8 +867,36 @@ function reopenProgressModal(actionId) {
   closeActiveActionsPopup();
 }
 
+async function cancelActionInline(event, id, name) {
+  const { invoke } = TAURI.core;
+  if (event) event.stopPropagation();
+  let isCompress = window.IsCompressingActive || name.toLowerCase().includes("compress") || name.toLowerCase().includes("archiv");
+  
+  // Force stop both to guarantee backend process halts, since they cannot run concurrently anyway
+  await invoke("stop_compression").catch((err) => { console.error("stop_compression failed:", err); });
+  await invoke("stop_copy_paste").catch((err) => { console.error("stop_copy_paste failed:", err); });
+  
+  if (isCompress) {
+    showToast("Compression cancelled.", ToastType.INFO);
+  } else {
+    showToast("Copy cancelled.", ToastType.INFO);
+  }
+  removeAction(id);
+  FileOpProgressActionId = "CANCELLED";
+  
+  const modal = document.querySelector(".file-progress-modal");
+  if (modal) {
+    modal.classList.add("popup-exit");
+    safeAnimationEnd(modal, () => {
+      modal.remove();
+      IsPopUpOpen = false;
+    });
+  }
+}
+
 function showProgressbar() {
   const action = getOrCreateFileOpAction();
+  if (!action) return;
 
   if (window.IsProgressModalDismissed) {
     return;
@@ -864,7 +911,12 @@ function showProgressbar() {
     modal.setAttribute("aria-modal", "true");
     modal.setAttribute("aria-label", "File progress");
 
-    let actionTitle = (typeof IsCopyToCut !== "undefined" && IsCopyToCut === true) ? "Moving Items" : "Copying Items";
+    let actionTitle = "Copying Items";
+    if (action.name.toLowerCase().includes("compress") || action.name.toLowerCase().includes("archiv")) {
+      actionTitle = "Compressing Items";
+    } else if (typeof IsCopyToCut !== "undefined" && IsCopyToCut === true) {
+      actionTitle = "Moving Items";
+    }
 
     const progress = action.progress ?? 0;
     const currentFile = action.currentFile || "Preparing...";
@@ -929,13 +981,26 @@ function showProgressbar() {
     const stopBtn = modal.querySelector("#btn-progress-stop");
     if (stopBtn) {
       stopBtn.onclick = async () => {
-        await invoke("stop_copy_paste").catch(() => {});
+        const { invoke } = TAURI.core;
+        const action = getOrCreateFileOpAction();
+        if (!action) return;
+        let isCompress = window.IsCompressingActive || action.name.toLowerCase().includes("compress") || action.name.toLowerCase().includes("archiv");
+        
+        await invoke("stop_compression").catch((err) => { console.error("stop_compression failed:", err); });
+        await invoke("stop_copy_paste").catch((err) => { console.error("stop_copy_paste failed:", err); });
+        
+        if (isCompress) {
+          showToast("Compression cancelled.", ToastType.INFO);
+        } else {
+          showToast("Copy cancelled.", ToastType.INFO);
+        }
+        removeAction(action.id);
+        FileOpProgressActionId = "CANCELLED";
         modal.classList.add("popup-exit");
         safeAnimationEnd(modal, () => {
           modal.remove();
           IsPopUpOpen = false;
         });
-        showToast("Copy cancelled.", ToastType.INFO);
       };
     }
   }
@@ -943,12 +1008,16 @@ function showProgressbar() {
 
 function updateProgressBar(totalPercentage, elementsPercentage, countElements, currentElementNumber, currentFile, currentSpeed) {
   const action = getOrCreateFileOpAction();
+  if (!action) return;
+  if (window.IsCompressingActive) {
+    action.name = "Compressing Items";
+  }
   action.progress = totalPercentage;
   action.currentFile = currentFile;
   action.countLabel = countElements > 1
     ? `${currentElementNumber} / ${countElements} · ${elementsPercentage.toFixed(0)}%`
     : `${currentElementNumber} / ${countElements}`;
-  action.speedLabel = `${currentSpeed.toFixed(0)} MB/s`;
+  action.speedLabel = `${currentSpeed.toFixed(2)} MB/s`;
 
   const now = Date.now();
   // Throttle DOM updates to at most once every 80ms to prevent UI stutter/overload, but update instantly on completion
@@ -973,7 +1042,12 @@ function updateProgressBar(totalPercentage, elementsPercentage, countElements, c
     // Update detailed progress modal if visible
     const modal = document.querySelector(".file-progress-modal");
     if (modal) {
-      let actionTitle = (typeof IsCopyToCut !== "undefined" && IsCopyToCut === true) ? "Moving Items" : "Copying Items";
+      let actionTitle = "Copying Items";
+      if (action.name.toLowerCase().includes("compress") || action.name.toLowerCase().includes("archiv")) {
+        actionTitle = "Compressing Items";
+      } else if (typeof IsCopyToCut !== "undefined" && IsCopyToCut === true) {
+        actionTitle = "Moving Items";
+      }
       modal.querySelector(".progress-modal-title").textContent = `${actionTitle}...`;
 
       const currentFileEl = modal.querySelector(".progress-modal-current-file");
@@ -998,7 +1072,7 @@ function updateProgressBar(totalPercentage, elementsPercentage, countElements, c
       if (countPillEl) countPillEl.textContent = pillText;
 
       const speedEl = modal.querySelector(".progress-modal-meta-speed");
-      if (speedEl) speedEl.textContent = `${currentSpeed.toFixed(0)} MB/s`;
+      if (speedEl) speedEl.textContent = `${currentSpeed.toFixed(2)} MB/s`;
     }
   }
 }

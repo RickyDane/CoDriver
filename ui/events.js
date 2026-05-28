@@ -155,7 +155,17 @@ listen("watcher-event", (event) => {
 
 listen("refreshView", () => refreshView());
 
-listen("show-progressbar", () => showProgressbar());
+listen("show-progressbar", () => {
+  if (typeof FileOpProgressActionId !== "undefined" && FileOpProgressActionId) {
+    const existing = ArrActiveActions.find((a) => a.id === FileOpProgressActionId);
+    if (!existing) {
+      FileOpProgressActionId = null;
+    }
+  } else {
+    FileOpProgressActionId = null;
+  }
+  showProgressbar();
+});
 
 listen("update-progress-bar", (event) => {
   let data = event.payload;

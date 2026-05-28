@@ -52,6 +52,7 @@ commands.allow = [
   "get_image_dimensions",
   "upscale_image",
   "ai_upscale_image",
+  "compress_image",
   "ai_style_image",
   "get_simple_dir_info",
   "get_selection_size",
@@ -82,5 +83,6 @@ commands.allow = [
   "ai_execute_organize",
   "get_disk_space_tree",
   "stop_disk_analysis",
-  "stop_copy_paste"
+  "stop_copy_paste",
+  "stop_compression"
 ]

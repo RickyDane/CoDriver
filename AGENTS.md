@@ -11,7 +11,8 @@ For a comprehensive, deep-dive architectural reference covering module trees, Ta
 **CoDriver** is a high-performance, cross-platform desktop file explorer built with **Tauri v2** and **Rust**.
 - **No path caching**: Directory exploration is done in real-time, relying on the raw speed of Rust, concurrent disk access (`rayon` & `jwalk`), and CPU power.
 - **Cross-platform**: Native feel on Windows, macOS, and Linux.
-- **Rich features**: Includes dual-pane layout, miller columns, quick file preview (images, PDFs, video, code), drag-and-drop, multi-format archive compression/extraction, SSHFS mount integration, and Gemini AI-powered features (like image background removal).
+- **Rich features**: Includes dual-pane layout, miller columns, quick file preview (images, PDFs, video, code), drag-and-drop, multi-format archive compression/extraction, native FTP remote connection integration, and Gemini & OpenAI AI-powered superpowers (like image upscaling, creative enhancement, style editing, and semantic directory organizing).
+
 
 ---
 
@@ -112,6 +113,11 @@ sequenceDiagram
    ```javascript
    const result = await invoke("your_command_name", { customArgument: "value" });
    ```
+4. **Permissions & Capabilities (Tauri v2)**:
+   Tauri v2 enforces fine-grained capability restrictions. Any new command declared on the backend **MUST** be added to the allowed commands list in the application capabilities/permissions configuration to be callable from the frontend:
+   - File: `src-tauri/permissions/app-commands.toml`
+   - Section: Add your command string to the `commands.allow` array list.
+   - Failure to register your new command in this file will result in a runtime IPC error: `"your_command_name not allowed. Command not found"`.
 
 ---
 
