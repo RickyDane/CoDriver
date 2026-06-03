@@ -140,8 +140,8 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/tauri.conf.json": {
-    "mtime": 1780495535.8954914,
-    "ast_hash": "43db9ed25e918be6170357c82138d973",
+    "mtime": 1780488192.7582395,
+    "ast_hash": "4255c589e7fe4f0b956ea18b9d8516a8",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/build.rs": {
@@ -11102,11 +11102,6 @@
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/windows-schema.json": {
     "mtime": 1780489290.961011,
     "ast_hash": "599d62d6a68bd79461a23d13d1079ede",
-    "semantic_hash": ""
-  },
-  "/Users/rickyperlick/Coding/CoDriver/docs/release-notes-0.7.6.md": {
-    "mtime": 1780495597.126852,
-    "ast_hash": "6334d5e267a879d675a06cee04d5b054",
     "semantic_hash": ""
   }
 }

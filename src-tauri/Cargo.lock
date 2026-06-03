@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "CoDriver"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "anyhow",
  "archiver-rs",

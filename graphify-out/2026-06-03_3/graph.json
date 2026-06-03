@@ -281,7 +281,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L185",
       "id": "ui_main_logic_getvectoriconandcolor",
-      "community": 16,
+      "community": 1,
       "norm_label": "getvectoriconandcolor()"
     },
     {
@@ -299,7 +299,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L641",
       "id": "ui_main_logic_updatefilesearchbarstate",
-      "community": 1,
+      "community": 177,
       "norm_label": "updatefilesearchbarstate()"
     },
     {
@@ -317,7 +317,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L700",
       "id": "ui_main_logic_startfullsearch",
-      "community": 1,
+      "community": 177,
       "norm_label": "startfullsearch()"
     },
     {
@@ -326,7 +326,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L731",
       "id": "ui_main_logic_stopfullsearch",
-      "community": 1,
+      "community": 177,
       "norm_label": "stopfullsearch()"
     },
     {
@@ -398,7 +398,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L1406",
       "id": "ui_main_logic_showitems",
-      "community": 16,
+      "community": 14,
       "norm_label": "showitems()"
     },
     {
@@ -470,7 +470,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L1899",
       "id": "ui_main_logic_deleteitems",
-      "community": 137,
+      "community": 51,
       "norm_label": "deleteitems()"
     },
     {
@@ -479,7 +479,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L1935",
       "id": "ui_main_logic_showdeletepopup",
-      "community": 137,
+      "community": 1,
       "norm_label": "showdeletepopup()"
     },
     {
@@ -560,7 +560,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L2527",
       "id": "ui_main_logic_compressitem",
-      "community": 14,
+      "community": 51,
       "norm_label": "compressitem()"
     },
     {
@@ -605,7 +605,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L3551",
       "id": "ui_main_logic_showloadingpopup",
-      "community": 16,
+      "community": 14,
       "norm_label": "showloadingpopup()"
     },
     {
@@ -614,7 +614,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L3563",
       "id": "ui_main_logic_closeloadingpopup",
-      "community": 16,
+      "community": 14,
       "norm_label": "closeloadingpopup()"
     },
     {
@@ -776,7 +776,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L4039",
       "id": "ui_main_logic_createfileinputprompt",
-      "community": 2,
+      "community": 50,
       "norm_label": "createfileinputprompt()"
     },
     {
@@ -794,7 +794,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L4075",
       "id": "ui_main_logic_renameelementinputprompt",
-      "community": 2,
+      "community": 50,
       "norm_label": "renameelementinputprompt()"
     },
     {
@@ -992,7 +992,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L5036",
       "id": "ui_main_logic_startdeletesizecalculation",
-      "community": 137,
+      "community": 1,
       "norm_label": "startdeletesizecalculation()"
     },
     {
@@ -1199,7 +1199,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L5638",
       "id": "ui_main_logic_searchfor",
-      "community": 1,
+      "community": 177,
       "norm_label": "searchfor()"
     },
     {
@@ -1307,7 +1307,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L6011",
       "id": "ui_main_logic_closesettings",
-      "community": 14,
+      "community": 216,
       "norm_label": "closesettings()"
     },
     {
@@ -1343,7 +1343,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L6227",
       "id": "ui_main_logic_addfavorite",
-      "community": 10,
+      "community": 216,
       "norm_label": "addfavorite()"
     },
     {
@@ -1352,7 +1352,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L6235",
       "id": "ui_main_logic_removefavorite",
-      "community": 10,
+      "community": 216,
       "norm_label": "removefavorite()"
     },
     {
@@ -1559,7 +1559,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L7387",
       "id": "ui_main_logic_sortitems",
-      "community": 16,
+      "community": 14,
       "norm_label": "sortitems()"
     },
     {
@@ -1568,7 +1568,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L7452",
       "id": "ui_main_logic_getfdirobjectlistfromdirectorylist",
-      "community": 16,
+      "community": 14,
       "norm_label": "getfdirobjectlistfromdirectorylist()"
     },
     {
@@ -1595,7 +1595,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L7503",
       "id": "ui_main_logic_hextorgba",
-      "community": 16,
+      "community": 1,
       "norm_label": "hextorgba()"
     },
     {
@@ -1685,7 +1685,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L7738",
       "id": "ui_main_logic_checkcolormode",
-      "community": 1,
+      "community": 216,
       "norm_label": "checkcolormode()"
     },
     {
@@ -1694,7 +1694,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L7795",
       "id": "ui_main_logic_applytheme",
-      "community": 1,
+      "community": 216,
       "norm_label": "applytheme()"
     },
     {
@@ -1703,7 +1703,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L7800",
       "id": "ui_main_logic_applythemefromselect",
-      "community": 1,
+      "community": 216,
       "norm_label": "applythemefromselect()"
     },
     {
@@ -1766,7 +1766,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L7943",
       "id": "ui_main_logic_closethemecreator",
-      "community": 1,
+      "community": 216,
       "norm_label": "closethemecreator()"
     },
     {
@@ -1856,7 +1856,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L8100",
       "id": "ui_main_logic_togglecollapsesection",
-      "community": 10,
+      "community": 23,
       "norm_label": "togglecollapsesection()"
     },
     {
@@ -1865,7 +1865,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L8129",
       "id": "ui_main_logic_restorecollapsestate",
-      "community": 10,
+      "community": 23,
       "norm_label": "restorecollapsestate()"
     },
     {
@@ -1946,7 +1946,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L8554",
       "id": "ui_main_logic_fileoperationcontextmenu",
-      "community": 14,
+      "community": 219,
       "norm_label": "fileoperationcontextmenu()"
     },
     {
@@ -1964,7 +1964,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L8618",
       "id": "ui_main_logic_openconfiglocation",
-      "community": 14,
+      "community": 9,
       "norm_label": "openconfiglocation()"
     },
     {
@@ -2054,7 +2054,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L8833",
       "id": "ui_main_logic_resetbackbutton",
-      "community": 14,
+      "community": 219,
       "norm_label": "resetbackbutton()"
     },
     {
@@ -2225,7 +2225,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L10530",
       "id": "ui_main_logic_getfdirfromelement",
-      "community": 16,
+      "community": 1,
       "norm_label": "getfdirfromelement()"
     },
     {
@@ -2234,7 +2234,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L10541",
       "id": "ui_main_logic_compareitems",
-      "community": 16,
+      "community": 1,
       "norm_label": "compareitems()"
     },
     {
@@ -2243,7 +2243,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L10555",
       "id": "ui_main_logic_findinsertionindex",
-      "community": 16,
+      "community": 1,
       "norm_label": "findinsertionindex()"
     },
     {
@@ -2450,7 +2450,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L11203",
       "id": "ui_main_logic_isnodeselected",
-      "community": 48,
+      "community": 1,
       "norm_label": "isnodeselected()"
     },
     {
@@ -2459,7 +2459,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L11222",
       "id": "ui_main_logic_clearnestedoverrides",
-      "community": 48,
+      "community": 1,
       "norm_label": "clearnestedoverrides()"
     },
     {
@@ -2468,7 +2468,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L11231",
       "id": "ui_main_logic_togglenodeselection",
-      "community": 48,
+      "community": 1,
       "norm_label": "togglenodeselection()"
     },
     {
@@ -2477,7 +2477,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L11237",
       "id": "ui_main_logic_hasdeselecteddescendants",
-      "community": 48,
+      "community": 1,
       "norm_label": "hasdeselecteddescendants()"
     },
     {
@@ -2486,7 +2486,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L11247",
       "id": "ui_main_logic_hasselecteddescendants",
-      "community": 48,
+      "community": 1,
       "norm_label": "hasselecteddescendants()"
     },
     {
@@ -2495,7 +2495,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L11257",
       "id": "ui_main_logic_isnodeindeterminate",
-      "community": 48,
+      "community": 1,
       "norm_label": "isnodeindeterminate()"
     },
     {
@@ -2531,7 +2531,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L11405",
       "id": "ui_main_logic_collectdeletionplan",
-      "community": 48,
+      "community": 1,
       "norm_label": "collectdeletionplan()"
     },
     {
@@ -2540,7 +2540,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L11426",
       "id": "ui_main_logic_putdiskanalyzerinbackground",
-      "community": 4,
+      "community": 51,
       "norm_label": "putdiskanalyzerinbackground()"
     },
     {
@@ -2558,7 +2558,7 @@
       "source_file": "ui/main_logic.js",
       "source_location": "L11458",
       "id": "ui_main_logic_reopendiskanalyzermodal",
-      "community": 1,
+      "community": 48,
       "norm_label": "reopendiskanalyzermodal()"
     },
     {
@@ -3089,7 +3089,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L23",
       "id": "ui_utils_applications",
-      "community": 4,
+      "community": 179,
       "norm_label": "applications"
     },
     {
@@ -3125,7 +3125,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L82",
       "id": "ui_utils_cleardraghighlight",
-      "community": 4,
+      "community": 219,
       "norm_label": "cleardraghighlight()"
     },
     {
@@ -3134,7 +3134,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L90",
       "id": "ui_utils_handledragover",
-      "community": 4,
+      "community": 219,
       "norm_label": "handledragover()"
     },
     {
@@ -3143,7 +3143,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L156",
       "id": "ui_utils_handledragleave",
-      "community": 4,
+      "community": 219,
       "norm_label": "handledragleave()"
     },
     {
@@ -3152,7 +3152,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L167",
       "id": "ui_utils_handledragdrop",
-      "community": 25,
+      "community": 219,
       "norm_label": "handledragdrop()"
     },
     {
@@ -3170,7 +3170,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L309",
       "id": "ui_utils_getthumbnail",
-      "community": 174,
+      "community": 2,
       "norm_label": "getthumbnail()"
     },
     {
@@ -3251,7 +3251,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L428",
       "id": "ui_utils_createnewaction",
-      "community": 29,
+      "community": 51,
       "norm_label": "createnewaction()"
     },
     {
@@ -3260,7 +3260,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L440",
       "id": "ui_utils_removeaction",
-      "community": 4,
+      "community": 51,
       "norm_label": "removeaction()"
     },
     {
@@ -3269,7 +3269,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L453",
       "id": "ui_utils_renderactiveactionspill",
-      "community": 4,
+      "community": 51,
       "norm_label": "renderactiveactionspill()"
     },
     {
@@ -3314,7 +3314,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L551",
       "id": "ui_utils_refreshactiveactionspopup",
-      "community": 4,
+      "community": 51,
       "norm_label": "refreshactiveactionspopup()"
     },
     {
@@ -3332,7 +3332,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L614",
       "id": "ui_utils_updateitemmetadata",
-      "community": 4,
+      "community": 48,
       "norm_label": "updateitemmetadata()"
     },
     {
@@ -3350,7 +3350,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L834",
       "id": "ui_utils_getorcreatefileopaction",
-      "community": 4,
+      "community": 51,
       "norm_label": "getorcreatefileopaction()"
     },
     {
@@ -3368,7 +3368,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L870",
       "id": "ui_utils_cancelactioninline",
-      "community": 4,
+      "community": 51,
       "norm_label": "cancelactioninline()"
     },
     {
@@ -3386,7 +3386,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L1009",
       "id": "ui_utils_updateprogressbar",
-      "community": 4,
+      "community": 51,
       "norm_label": "updateprogressbar()"
     },
     {
@@ -3395,7 +3395,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L1080",
       "id": "ui_utils_finishprogressbar",
-      "community": 14,
+      "community": 51,
       "norm_label": "finishprogressbar()"
     },
     {
@@ -3422,7 +3422,7 @@
       "source_file": "ui/utils.js",
       "source_location": "L1174",
       "id": "ui_utils_rendermarkdown",
-      "community": 4,
+      "community": 229,
       "norm_label": "rendermarkdown()"
     },
     {
@@ -4061,7 +4061,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_all_app_commands",
-      "community": 24,
+      "community": 223,
       "norm_label": "allow-all-app-commands"
     },
     {
@@ -4070,7 +4070,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_all_app_commands_identifier",
-      "community": 24,
+      "community": 223,
       "norm_label": "identifier"
     },
     {
@@ -4079,7 +4079,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_all_app_commands_description",
-      "community": 24,
+      "community": 223,
       "norm_label": "description"
     },
     {
@@ -4088,7 +4088,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_all_app_commands_commands",
-      "community": 24,
+      "community": 223,
       "norm_label": "commands"
     },
     {
@@ -4097,7 +4097,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_commands_allow",
-      "community": 8,
+      "community": 26,
       "norm_label": "allow"
     },
     {
@@ -4106,7 +4106,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_commands_deny",
-      "community": 8,
+      "community": 26,
       "norm_label": "deny"
     },
     {
@@ -4178,7 +4178,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_cli_permissions",
-      "community": 24,
+      "community": 31,
       "norm_label": "permissions"
     },
     {
@@ -4187,7 +4187,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_cli_matches",
-      "community": 8,
+      "community": 26,
       "norm_label": "allow-cli-matches"
     },
     {
@@ -4196,7 +4196,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_cli_matches_identifier",
-      "community": 8,
+      "community": 26,
       "norm_label": "identifier"
     },
     {
@@ -4205,7 +4205,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_cli_matches_description",
-      "community": 8,
+      "community": 26,
       "norm_label": "description"
     },
     {
@@ -4214,7 +4214,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_cli_matches_commands",
-      "community": 8,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -4223,7 +4223,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_cli_matches",
-      "community": 8,
+      "community": 26,
       "norm_label": "deny-cli-matches"
     },
     {
@@ -4232,7 +4232,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_cli_matches_identifier",
-      "community": 8,
+      "community": 26,
       "norm_label": "identifier"
     },
     {
@@ -4241,7 +4241,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_cli_matches_description",
-      "community": 8,
+      "community": 26,
       "norm_label": "description"
     },
     {
@@ -4250,7 +4250,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_cli_matches_commands",
-      "community": 8,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -4277,7 +4277,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_clipboard_manager",
-      "community": 24,
+      "community": 0,
       "norm_label": "clipboard-manager"
     },
     {
@@ -4736,7 +4736,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_clipboard_manager_permission_sets",
-      "community": 24,
+      "community": 0,
       "norm_label": "permission_sets"
     },
     {
@@ -4745,7 +4745,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_clipboard_manager_global_scope_schema",
-      "community": 24,
+      "community": 0,
       "norm_label": "global_scope_schema"
     },
     {
@@ -4826,7 +4826,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_app_hide",
-      "community": 26,
+      "community": 115,
       "norm_label": "allow-app-hide"
     },
     {
@@ -4835,7 +4835,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_app_hide_identifier",
-      "community": 26,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -4844,7 +4844,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_app_hide_description",
-      "community": 26,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -4853,7 +4853,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_app_hide_commands",
-      "community": 26,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -4898,7 +4898,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_bundle_type",
-      "community": 31,
+      "community": 115,
       "norm_label": "allow-bundle-type"
     },
     {
@@ -4907,7 +4907,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_bundle_type_identifier",
-      "community": 31,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -4916,7 +4916,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_bundle_type_description",
-      "community": 31,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -4925,7 +4925,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_bundle_type_commands",
-      "community": 8,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -5078,7 +5078,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_register_listener",
-      "community": 0,
+      "community": 26,
       "norm_label": "allow-register-listener"
     },
     {
@@ -5087,7 +5087,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_register_listener_identifier",
-      "community": 0,
+      "community": 26,
       "norm_label": "identifier"
     },
     {
@@ -5096,7 +5096,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_register_listener_description",
-      "community": 0,
+      "community": 26,
       "norm_label": "description"
     },
     {
@@ -5105,7 +5105,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_register_listener_commands",
-      "community": 8,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -5150,7 +5150,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_remove_listener",
-      "community": 26,
+      "community": 115,
       "norm_label": "allow-remove-listener"
     },
     {
@@ -5159,7 +5159,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_remove_listener_identifier",
-      "community": 26,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -5168,7 +5168,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_remove_listener_description",
-      "community": 26,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -5177,7 +5177,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_remove_listener_commands",
-      "community": 26,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -5186,7 +5186,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_set_app_theme",
-      "community": 51,
+      "community": 115,
       "norm_label": "allow-set-app-theme"
     },
     {
@@ -5195,7 +5195,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_set_app_theme_identifier",
-      "community": 51,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -5204,7 +5204,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_set_app_theme_description",
-      "community": 51,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -5213,7 +5213,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_set_app_theme_commands",
-      "community": 51,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -5366,7 +5366,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_app_hide",
-      "community": 177,
+      "community": 26,
       "norm_label": "deny-app-hide"
     },
     {
@@ -5375,7 +5375,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_app_hide_identifier",
-      "community": 177,
+      "community": 26,
       "norm_label": "identifier"
     },
     {
@@ -5384,7 +5384,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_app_hide_description",
-      "community": 177,
+      "community": 26,
       "norm_label": "description"
     },
     {
@@ -5393,7 +5393,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_app_hide_commands",
-      "community": 177,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -5438,7 +5438,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_bundle_type",
-      "community": 115,
+      "community": 0,
       "norm_label": "deny-bundle-type"
     },
     {
@@ -5447,7 +5447,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_bundle_type_identifier",
-      "community": 115,
+      "community": 0,
       "norm_label": "identifier"
     },
     {
@@ -5456,7 +5456,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_bundle_type_description",
-      "community": 115,
+      "community": 0,
       "norm_label": "description"
     },
     {
@@ -5465,7 +5465,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_bundle_type_commands",
-      "community": 115,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -5474,7 +5474,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_default_window_icon",
-      "community": 176,
+      "community": 26,
       "norm_label": "deny-default-window-icon"
     },
     {
@@ -5483,7 +5483,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_default_window_icon_identifier",
-      "community": 176,
+      "community": 26,
       "norm_label": "identifier"
     },
     {
@@ -5492,7 +5492,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_default_window_icon_description",
-      "community": 176,
+      "community": 26,
       "norm_label": "description"
     },
     {
@@ -5501,7 +5501,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_default_window_icon_commands",
-      "community": 176,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -5510,7 +5510,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_fetch_data_store_identifiers",
-      "community": 179,
+      "community": 115,
       "norm_label": "deny-fetch-data-store-identifiers"
     },
     {
@@ -5519,7 +5519,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_fetch_data_store_identifiers_identifier",
-      "community": 179,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -5528,7 +5528,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_fetch_data_store_identifiers_description",
-      "community": 179,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -5537,7 +5537,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_fetch_data_store_identifiers_commands",
-      "community": 179,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -5582,7 +5582,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_name",
-      "community": 115,
+      "community": 226,
       "norm_label": "deny-name"
     },
     {
@@ -5591,7 +5591,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_name_identifier",
-      "community": 115,
+      "community": 226,
       "norm_label": "identifier"
     },
     {
@@ -5600,7 +5600,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_name_description",
-      "community": 115,
+      "community": 226,
       "norm_label": "description"
     },
     {
@@ -5609,7 +5609,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_name_commands",
-      "community": 115,
+      "community": 226,
       "norm_label": "commands"
     },
     {
@@ -5654,7 +5654,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_remove_data_store",
-      "community": 115,
+      "community": 176,
       "norm_label": "deny-remove-data-store"
     },
     {
@@ -5663,7 +5663,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_remove_data_store_identifier",
-      "community": 115,
+      "community": 176,
       "norm_label": "identifier"
     },
     {
@@ -5672,7 +5672,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_remove_data_store_description",
-      "community": 115,
+      "community": 176,
       "norm_label": "description"
     },
     {
@@ -5681,7 +5681,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_remove_data_store_commands",
-      "community": 115,
+      "community": 176,
       "norm_label": "commands"
     },
     {
@@ -5690,7 +5690,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_remove_listener",
-      "community": 224,
+      "community": 115,
       "norm_label": "deny-remove-listener"
     },
     {
@@ -5699,7 +5699,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_remove_listener_identifier",
-      "community": 224,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -5708,7 +5708,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_remove_listener_description",
-      "community": 224,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -5717,7 +5717,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_remove_listener_commands",
-      "community": 224,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -5798,7 +5798,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_supports_multiple_windows",
-      "community": 8,
+      "community": 26,
       "norm_label": "deny-supports-multiple-windows"
     },
     {
@@ -5807,7 +5807,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_supports_multiple_windows_identifier",
-      "community": 8,
+      "community": 26,
       "norm_label": "identifier"
     },
     {
@@ -5816,7 +5816,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_supports_multiple_windows_description",
-      "community": 8,
+      "community": 26,
       "norm_label": "description"
     },
     {
@@ -5825,7 +5825,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_supports_multiple_windows_commands",
-      "community": 8,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -5870,7 +5870,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_version",
-      "community": 219,
+      "community": 26,
       "norm_label": "deny-version"
     },
     {
@@ -5879,7 +5879,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_version_identifier",
-      "community": 219,
+      "community": 26,
       "norm_label": "identifier"
     },
     {
@@ -5888,7 +5888,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_version_description",
-      "community": 219,
+      "community": 26,
       "norm_label": "description"
     },
     {
@@ -5897,7 +5897,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_version_commands",
-      "community": 219,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -5987,7 +5987,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_emit_to",
-      "community": 8,
+      "community": 26,
       "norm_label": "allow-emit-to"
     },
     {
@@ -5996,7 +5996,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_emit_to_identifier",
-      "community": 8,
+      "community": 26,
       "norm_label": "identifier"
     },
     {
@@ -6005,7 +6005,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_emit_to_description",
-      "community": 8,
+      "community": 26,
       "norm_label": "description"
     },
     {
@@ -6014,7 +6014,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_emit_to_commands",
-      "community": 8,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -6347,7 +6347,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_from_path_commands",
-      "community": 8,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -6545,7 +6545,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_new_identifier",
-      "community": 31,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -6752,7 +6752,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_create_default_commands",
-      "community": 31,
+      "community": 26,
       "norm_label": "commands"
     },
     {
@@ -8336,7 +8336,7 @@
       "source_file": "src-tauri/gen/schemas/desktop-schema.json",
       "source_location": "L46",
       "id": "schemas_desktop_schema_capability_properties",
-      "community": 6,
+      "community": 181,
       "norm_label": "properties"
     },
     {
@@ -8408,7 +8408,7 @@
       "source_file": "src-tauri/gen/schemas/desktop-schema.json",
       "source_location": "L56",
       "id": "schemas_desktop_schema_properties_remote",
-      "community": 6,
+      "community": 181,
       "norm_label": "remote"
     },
     {
@@ -8417,7 +8417,7 @@
       "source_file": "src-tauri/gen/schemas/desktop-schema.json",
       "source_location": "L57",
       "id": "schemas_desktop_schema_remote_description",
-      "community": 6,
+      "community": 181,
       "norm_label": "description"
     },
     {
@@ -8426,7 +8426,7 @@
       "source_file": "src-tauri/gen/schemas/desktop-schema.json",
       "source_location": "L58",
       "id": "schemas_desktop_schema_remote_anyof",
-      "community": 6,
+      "community": 181,
       "norm_label": "anyof"
     },
     {
@@ -8930,7 +8930,7 @@
       "source_file": "src-tauri/src/applications.rs",
       "source_location": "L1",
       "id": "src_tauri_src_applications_rs",
-      "community": 4,
+      "community": 179,
       "norm_label": "applications.rs"
     },
     {
@@ -8939,7 +8939,7 @@
       "source_file": "src-tauri/src/applications.rs",
       "source_location": "L29",
       "id": "src_applications_app",
-      "community": 4,
+      "community": 179,
       "norm_label": "app"
     },
     {
@@ -8948,7 +8948,7 @@
       "source_file": "src-tauri/src/applications.rs",
       "source_location": "L41",
       "id": "src_applications_parse_desktop_file",
-      "community": 4,
+      "community": 179,
       "norm_label": "parse_desktop_file()"
     },
     {
@@ -8957,7 +8957,7 @@
       "source_file": "src-tauri/src/applications.rs",
       "source_location": "L66",
       "id": "src_applications_get_apps",
-      "community": 4,
+      "community": 179,
       "norm_label": "get_apps()"
     },
     {
@@ -8966,7 +8966,7 @@
       "source_file": "src-tauri/src/applications.rs",
       "source_location": "L108",
       "id": "src_applications_open_file_with",
-      "community": 4,
+      "community": 179,
       "norm_label": "open_file_with()"
     },
     {
@@ -8975,7 +8975,7 @@
       "source_file": "src-tauri/src/applications.rs",
       "source_location": "L122",
       "id": "src_applications_find_ios_app_icon",
-      "community": 4,
+      "community": 179,
       "norm_label": "find_ios_app_icon()"
     },
     {
@@ -8984,7 +8984,7 @@
       "source_file": "src-tauri/src/applications.rs",
       "source_location": "L170",
       "id": "src_applications_find_app_icns",
-      "community": 4,
+      "community": 179,
       "norm_label": "find_app_icns()"
     },
     {
@@ -9002,7 +9002,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L36",
       "id": "src_main_config_dir",
-      "community": 174,
+      "community": 2,
       "norm_label": "config_dir()"
     },
     {
@@ -9011,7 +9011,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L40",
       "id": "src_main_app_config_dir",
-      "community": 174,
+      "community": 2,
       "norm_label": "app_config_dir()"
     },
     {
@@ -9020,7 +9020,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L44",
       "id": "src_main_home_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "home_dir()"
     },
     {
@@ -9029,7 +9029,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L48",
       "id": "src_main_desktop_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "desktop_dir()"
     },
     {
@@ -9038,7 +9038,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L52",
       "id": "src_main_download_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "download_dir()"
     },
     {
@@ -9047,7 +9047,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L56",
       "id": "src_main_document_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "document_dir()"
     },
     {
@@ -9056,7 +9056,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L60",
       "id": "src_main_picture_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "picture_dir()"
     },
     {
@@ -9065,7 +9065,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L64",
       "id": "src_main_video_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "video_dir()"
     },
     {
@@ -9074,7 +9074,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L68",
       "id": "src_main_audio_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "audio_dir()"
     },
     {
@@ -9083,7 +9083,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L121",
       "id": "src_main_main",
-      "community": 2,
+      "community": 174,
       "norm_label": "main()"
     },
     {
@@ -9137,7 +9137,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L338",
       "id": "src_main_load_app_config",
-      "community": 174,
+      "community": 2,
       "norm_label": "load_app_config()"
     },
     {
@@ -9146,7 +9146,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L387",
       "id": "src_main_save_app_config",
-      "community": 174,
+      "community": 2,
       "norm_label": "save_app_config()"
     },
     {
@@ -9155,7 +9155,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L399",
       "id": "src_main_log_debug",
-      "community": 53,
+      "community": 174,
       "norm_label": "log_debug()"
     },
     {
@@ -9173,7 +9173,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L542",
       "id": "src_main_get_themes",
-      "community": 174,
+      "community": 2,
       "norm_label": "get_themes()"
     },
     {
@@ -9182,7 +9182,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L588",
       "id": "src_main_save_theme",
-      "community": 174,
+      "community": 2,
       "norm_label": "save_theme()"
     },
     {
@@ -9191,7 +9191,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L616",
       "id": "src_main_delete_theme",
-      "community": 174,
+      "community": 2,
       "norm_label": "delete_theme()"
     },
     {
@@ -9227,7 +9227,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L770",
       "id": "src_main_switch_to_directory",
-      "community": 2,
+      "community": 5,
       "norm_label": "switch_to_directory()"
     },
     {
@@ -9236,7 +9236,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L774",
       "id": "src_main_switch_view",
-      "community": 174,
+      "community": 2,
       "norm_label": "switch_view()"
     },
     {
@@ -9254,7 +9254,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L796",
       "id": "src_main_set_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "set_dir()"
     },
     {
@@ -9263,7 +9263,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L817",
       "id": "src_main_parse_ftp_url",
-      "community": 2,
+      "community": 50,
       "norm_label": "parse_ftp_url()"
     },
     {
@@ -9380,7 +9380,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1199",
       "id": "src_main_list_dirs",
-      "community": 2,
+      "community": 50,
       "norm_label": "list_dirs()"
     },
     {
@@ -9389,7 +9389,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1274",
       "id": "src_main_push_history",
-      "community": 2,
+      "community": 5,
       "norm_label": "push_history()"
     },
     {
@@ -9398,7 +9398,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1279",
       "id": "src_main_pop_history",
-      "community": 2,
+      "community": 5,
       "norm_label": "pop_history()"
     },
     {
@@ -9407,7 +9407,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1285",
       "id": "src_main_open_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "open_dir()"
     },
     {
@@ -9416,7 +9416,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1310",
       "id": "src_main_go_back",
-      "community": 2,
+      "community": 5,
       "norm_label": "go_back()"
     },
     {
@@ -9425,7 +9425,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1345",
       "id": "src_main_go_to_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "go_to_dir()"
     },
     {
@@ -9434,7 +9434,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1365",
       "id": "src_main_mount_sshfs",
-      "community": 53,
+      "community": 33,
       "norm_label": "mount_sshfs()"
     },
     {
@@ -9452,7 +9452,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1468",
       "id": "src_main_go_home",
-      "community": 2,
+      "community": 5,
       "norm_label": "go_home()"
     },
     {
@@ -9470,7 +9470,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1479",
       "id": "src_main_search_ftp_recursive",
-      "community": 53,
+      "community": 174,
       "norm_label": "search_ftp_recursive()"
     },
     {
@@ -9479,7 +9479,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1575",
       "id": "src_main_search_for",
-      "community": 53,
+      "community": 174,
       "norm_label": "search_for()"
     },
     {
@@ -9731,7 +9731,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3709",
       "id": "src_main_create_file",
-      "community": 2,
+      "community": 50,
       "norm_label": "create_file()"
     },
     {
@@ -9740,7 +9740,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3723",
       "id": "src_main_rename_element",
-      "community": 2,
+      "community": 50,
       "norm_label": "rename_element()"
     },
     {
@@ -9749,7 +9749,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3766",
       "id": "src_main_save_config",
-      "community": 174,
+      "community": 2,
       "norm_label": "save_config()"
     },
     {
@@ -9767,7 +9767,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3897",
       "id": "src_main_add_favorite",
-      "community": 174,
+      "community": 2,
       "norm_label": "add_favorite()"
     },
     {
@@ -9776,7 +9776,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3909",
       "id": "src_main_get_installed_apps",
-      "community": 4,
+      "community": 179,
       "norm_label": "get_installed_apps()"
     },
     {
@@ -9785,7 +9785,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3919",
       "id": "src_main_open_with",
-      "community": 4,
+      "community": 179,
       "norm_label": "open_with()"
     },
     {
@@ -9839,7 +9839,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3951",
       "id": "src_main_get_df_dir",
-      "community": 2,
+      "community": 5,
       "norm_label": "get_df_dir()"
     },
     {
@@ -9848,7 +9848,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3982",
       "id": "src_main_get_app_icns",
-      "community": 174,
+      "community": 2,
       "norm_label": "get_app_icns()"
     },
     {
@@ -9857,7 +9857,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4125",
       "id": "src_main_get_thumbnail",
-      "community": 174,
+      "community": 2,
       "norm_label": "get_thumbnail()"
     },
     {
@@ -9893,7 +9893,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4262",
       "id": "src_main_get_image_mime_type",
-      "community": 5,
+      "community": 2,
       "norm_label": "get_image_mime_type()"
     },
     {
@@ -9902,7 +9902,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4272",
       "id": "src_main_get_image_data",
-      "community": 5,
+      "community": 2,
       "norm_label": "get_image_data()"
     },
     {
@@ -9911,7 +9911,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4280",
       "id": "src_main_get_gemini_keychain_key",
-      "community": 5,
+      "community": 2,
       "norm_label": "get_gemini_keychain_key()"
     },
     {
@@ -9920,7 +9920,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4313",
       "id": "src_main_set_gemini_keychain_key",
-      "community": 174,
+      "community": 2,
       "norm_label": "set_gemini_keychain_key()"
     },
     {
@@ -9929,7 +9929,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4343",
       "id": "src_main_get_openai_keychain_key",
-      "community": 5,
+      "community": 2,
       "norm_label": "get_openai_keychain_key()"
     },
     {
@@ -9938,7 +9938,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4376",
       "id": "src_main_set_openai_keychain_key",
-      "community": 174,
+      "community": 2,
       "norm_label": "set_openai_keychain_key()"
     },
     {
@@ -9947,7 +9947,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4406",
       "id": "src_main_call_gemini_api",
-      "community": 5,
+      "community": 2,
       "norm_label": "call_gemini_api()"
     },
     {
@@ -9956,7 +9956,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4436",
       "id": "src_main_call_openai_api",
-      "community": 5,
+      "community": 2,
       "norm_label": "call_openai_api()"
     },
     {
@@ -9965,7 +9965,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4463",
       "id": "src_main_extract_openai_text",
-      "community": 5,
+      "community": 2,
       "norm_label": "extract_openai_text()"
     },
     {
@@ -9974,7 +9974,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4470",
       "id": "src_main_extract_openai_image",
-      "community": 5,
+      "community": 2,
       "norm_label": "extract_openai_image()"
     },
     {
@@ -9983,7 +9983,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4477",
       "id": "src_main_extract_gemini_text",
-      "community": 5,
+      "community": 2,
       "norm_label": "extract_gemini_text()"
     },
     {
@@ -9992,7 +9992,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4484",
       "id": "src_main_extract_gemini_image",
-      "community": 5,
+      "community": 2,
       "norm_label": "extract_gemini_image()"
     },
     {
@@ -10001,7 +10001,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4502",
       "id": "src_main_save_ai_image",
-      "community": 5,
+      "community": 2,
       "norm_label": "save_ai_image()"
     },
     {
@@ -10010,7 +10010,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4521",
       "id": "src_main_ai_upscale_image",
-      "community": 5,
+      "community": 2,
       "norm_label": "ai_upscale_image()"
     },
     {
@@ -10019,7 +10019,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4702",
       "id": "src_main_ai_style_image",
-      "community": 5,
+      "community": 2,
       "norm_label": "ai_style_image()"
     },
     {
@@ -10028,7 +10028,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4825",
       "id": "src_main_ai_get_organizer_suggestions",
-      "community": 5,
+      "community": 2,
       "norm_label": "ai_get_organizer_suggestions()"
     },
     {
@@ -10046,7 +10046,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5044",
       "id": "src_main_get_selection_size",
-      "community": 2,
+      "community": 50,
       "norm_label": "get_selection_size()"
     },
     {
@@ -10055,7 +10055,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5068",
       "id": "src_main_get_capped_selection_size",
-      "community": 2,
+      "community": 50,
       "norm_label": "get_capped_selection_size()"
     },
     {
@@ -10064,7 +10064,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5094",
       "id": "src_main_get_simple_dir_info",
-      "community": 2,
+      "community": 50,
       "norm_label": "get_simple_dir_info()"
     },
     {
@@ -10073,7 +10073,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5142",
       "id": "src_main_get_file_content",
-      "community": 2,
+      "community": 50,
       "norm_label": "get_file_content()"
     },
     {
@@ -10082,7 +10082,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5200",
       "id": "src_main_get_file_base64",
-      "community": 2,
+      "community": 50,
       "norm_label": "get_file_base64()"
     },
     {
@@ -10091,7 +10091,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5251",
       "id": "src_main_open_config_location",
-      "community": 14,
+      "community": 9,
       "norm_label": "open_config_location()"
     },
     {
@@ -10154,7 +10154,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5335",
       "id": "src_main_get_ftp_temp_file",
-      "community": 2,
+      "community": 50,
       "norm_label": "get_ftp_temp_file()"
     },
     {
@@ -10163,7 +10163,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5361",
       "id": "src_main_get_config_location",
-      "community": 174,
+      "community": 2,
       "norm_label": "get_config_location()"
     },
     {
@@ -10172,7 +10172,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5371",
       "id": "src_main_log",
-      "community": 2,
+      "community": 50,
       "norm_label": "log()"
     },
     {
@@ -10244,7 +10244,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5781",
       "id": "src_main_get_single_item_info",
-      "community": 2,
+      "community": 50,
       "norm_label": "get_single_item_info()"
     },
     {
@@ -10253,7 +10253,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5844",
       "id": "src_main_get_clipboard_files",
-      "community": 2,
+      "community": 50,
       "norm_label": "get_clipboard_files()"
     },
     {
@@ -10397,7 +10397,7 @@
       "source_file": "src-tauri/src/utils.rs",
       "source_location": "L165",
       "id": "src_utils_err_log",
-      "community": 53,
+      "community": 33,
       "norm_label": "err_log()"
     },
     {
@@ -10451,7 +10451,7 @@
       "source_file": "src-tauri/src/utils.rs",
       "source_location": "L413",
       "id": "src_utils_show_progressbar",
-      "community": 33,
+      "community": 53,
       "norm_label": "show_progressbar()"
     },
     {
@@ -10766,7 +10766,7 @@
       "source_file": "src-tauri/src/utils.rs",
       "source_location": "L1514",
       "id": "src_utils_setup_fs_watcher",
-      "community": 33,
+      "community": 174,
       "norm_label": "setup_fs_watcher()"
     },
     {
@@ -10784,7 +10784,7 @@
       "source_file": "src-tauri/src/utils.rs",
       "source_location": "L1555",
       "id": "src_utils_handle_fs_change",
-      "community": 33,
+      "community": 174,
       "norm_label": "handle_fs_change()"
     },
     {
@@ -12415,78 +12415,6 @@
       "id": "docs_kofi_terms_4_licence_conditions_code_contributions",
       "community": 158,
       "norm_label": "4. licence conditions & code contributions"
-    },
-    {
-      "label": "release-notes-0.7.6.md",
-      "file_type": "document",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L1",
-      "id": "docs_release_notes_0_7_6_md",
-      "community": 13,
-      "norm_label": "release-notes-0.7.6.md"
-    },
-    {
-      "label": "Release Notes: CoDriver v0.7.6",
-      "file_type": "document",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L1",
-      "id": "docs_release_notes_0_7_6_release_notes_codriver_v0_7_6",
-      "community": 13,
-      "norm_label": "release notes: codriver v0.7.6"
-    },
-    {
-      "label": "Summary",
-      "file_type": "document",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L3",
-      "id": "docs_release_notes_0_7_6_summary",
-      "community": 13,
-      "norm_label": "summary"
-    },
-    {
-      "label": "What's New & Fixes",
-      "file_type": "document",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L6",
-      "id": "docs_release_notes_0_7_6_what_s_new_fixes",
-      "community": 13,
-      "norm_label": "what's new & fixes"
-    },
-    {
-      "label": "1. Windows Image Thumbnail Fix",
-      "file_type": "document",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L8",
-      "id": "docs_release_notes_0_7_6_1_windows_image_thumbnail_fix",
-      "community": 13,
-      "norm_label": "1. windows image thumbnail fix"
-    },
-    {
-      "label": "2. Disabling Sidebar Top Blur on Windows & Linux",
-      "file_type": "document",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L12",
-      "id": "docs_release_notes_0_7_6_2_disabling_sidebar_top_blur_on_windows_linux",
-      "community": 13,
-      "norm_label": "2. disabling sidebar top blur on windows & linux"
-    },
-    {
-      "label": "3. Window Maximize Button Fix (Windows & Linux)",
-      "file_type": "document",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L16",
-      "id": "docs_release_notes_0_7_6_3_window_maximize_button_fix_windows_linux",
-      "community": 13,
-      "norm_label": "3. window maximize button fix (windows & linux)"
-    },
-    {
-      "label": "Migration Notes",
-      "file_type": "document",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L20",
-      "id": "docs_release_notes_0_7_6_migration_notes",
-      "community": 13,
-      "norm_label": "migration notes"
     },
     {
       "label": "macos-signing-notarization.md",
@@ -15797,7 +15725,7 @@
       "source_file": "docs/review/context-menu-visual-overhaul/findings.md",
       "source_location": "L1",
       "id": "docs_review_context_menu_visual_overhaul_findings_md",
-      "community": 170,
+      "community": 172,
       "norm_label": "findings.md"
     },
     {
@@ -15806,7 +15734,7 @@
       "source_file": "docs/review/context-menu-visual-overhaul/findings.md",
       "source_location": "L1",
       "id": "context_menu_visual_overhaul_findings_code_review_context_menu_visual_overhaul",
-      "community": 170,
+      "community": 172,
       "norm_label": "code review: context menu visual overhaul"
     },
     {
@@ -16400,7 +16328,7 @@
       "source_file": "docs/review/context-menu-visual-overhaul/findings.md",
       "source_location": "L295",
       "id": "context_menu_visual_overhaul_findings_positive_findings",
-      "community": 170,
+      "community": 172,
       "norm_label": "positive findings"
     },
     {
@@ -17551,7 +17479,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L185",
-      "community": 211,
+      "community": 15,
       "norm_label": "getvectoriconandcolor()",
       "id": "ui_main_logic_v3_getvectoriconandcolor"
     },
@@ -17659,7 +17587,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L1292",
-      "community": 211,
+      "community": 173,
       "norm_label": "showitems()",
       "id": "ui_main_logic_v3_showitems"
     },
@@ -17731,7 +17659,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L1781",
-      "community": 29,
+      "community": 51,
       "norm_label": "deleteitems()",
       "id": "ui_main_logic_v3_deleteitems"
     },
@@ -17740,7 +17668,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L1817",
-      "community": 29,
+      "community": 15,
       "norm_label": "showdeletepopup()",
       "id": "ui_main_logic_v3_showdeletepopup"
     },
@@ -17794,7 +17722,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L2213",
-      "community": 29,
+      "community": 71,
       "norm_label": "extractitem()",
       "id": "ui_main_logic_v3_extractitem"
     },
@@ -17803,7 +17731,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L2228",
-      "community": 29,
+      "community": 71,
       "norm_label": "showextractpopup()",
       "id": "ui_main_logic_v3_showextractpopup"
     },
@@ -17821,7 +17749,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L2409",
-      "community": 29,
+      "community": 51,
       "norm_label": "compressitem()",
       "id": "ui_main_logic_v3_compressitem"
     },
@@ -17866,7 +17794,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L3152",
-      "community": 211,
+      "community": 173,
       "norm_label": "showloadingpopup()",
       "id": "ui_main_logic_v3_showloadingpopup"
     },
@@ -17875,7 +17803,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L3164",
-      "community": 211,
+      "community": 173,
       "norm_label": "closeloadingpopup()",
       "id": "ui_main_logic_v3_closeloadingpopup"
     },
@@ -17938,7 +17866,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L3239",
-      "community": 71,
+      "community": 221,
       "norm_label": "escapehtml()",
       "id": "ui_main_logic_v3_escapehtml"
     },
@@ -17992,7 +17920,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L3333",
-      "community": 25,
+      "community": 71,
       "norm_label": "runresolvedcopymove()",
       "id": "ui_main_logic_v3_runresolvedcopymove"
     },
@@ -18010,7 +17938,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L3470",
-      "community": 25,
+      "community": 71,
       "norm_label": "itemmoveto()",
       "id": "ui_main_logic_v3_itemmoveto"
     },
@@ -18019,7 +17947,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L3502",
-      "community": 25,
+      "community": 71,
       "norm_label": "pasteitem()",
       "id": "ui_main_logic_v3_pasteitem"
     },
@@ -18064,7 +17992,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L3712",
-      "community": 29,
+      "community": 71,
       "norm_label": "createfolder()",
       "id": "ui_main_logic_v3_createfolder"
     },
@@ -18073,7 +18001,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L3719",
-      "community": 29,
+      "community": 71,
       "norm_label": "createfile()",
       "id": "ui_main_logic_v3_createfile"
     },
@@ -18082,7 +18010,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L3725",
-      "community": 29,
+      "community": 71,
       "norm_label": "renameelement()",
       "id": "ui_main_logic_v3_renameelement"
     },
@@ -18109,7 +18037,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L3795",
-      "community": 217,
+      "community": 13,
       "norm_label": "checkappconfig()",
       "id": "ui_main_logic_v3_checkappconfig"
     },
@@ -18136,7 +18064,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L4105",
-      "community": 217,
+      "community": 13,
       "norm_label": "applyplatformfeatures()",
       "id": "ui_main_logic_v3_applyplatformfeatures"
     },
@@ -18145,7 +18073,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L4133",
-      "community": 34,
+      "community": 13,
       "norm_label": "listdisks()",
       "id": "ui_main_logic_v3_listdisks"
     },
@@ -18172,7 +18100,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L4294",
-      "community": 25,
+      "community": 71,
       "norm_label": "refreshview()",
       "id": "ui_main_logic_v3_refreshview"
     },
@@ -18226,7 +18154,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L4597",
-      "community": 136,
+      "community": 29,
       "norm_label": "startpropertiessizecalculation()",
       "id": "ui_main_logic_v3_startpropertiessizecalculation"
     },
@@ -18235,7 +18163,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L4603",
-      "community": 136,
+      "community": 29,
       "norm_label": "finishpropertiessizecalculation()",
       "id": "ui_main_logic_v3_finishpropertiessizecalculation"
     },
@@ -18253,7 +18181,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L4618",
-      "community": 29,
+      "community": 15,
       "norm_label": "startdeletesizecalculation()",
       "id": "ui_main_logic_v3_startdeletesizecalculation"
     },
@@ -18307,7 +18235,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L4730",
-      "community": 25,
+      "community": 13,
       "norm_label": "gohome()",
       "id": "ui_main_logic_v3_gohome"
     },
@@ -18451,7 +18379,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L5175",
-      "community": 34,
+      "community": 13,
       "norm_label": "ejectdisk()",
       "id": "ui_main_logic_v3_ejectdisk"
     },
@@ -18514,7 +18442,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L5371",
-      "community": 25,
+      "community": 13,
       "norm_label": "switchview()",
       "id": "ui_main_logic_v3_switchview"
     },
@@ -18541,7 +18469,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L5460",
-      "community": 25,
+      "community": 13,
       "norm_label": "switchtodualpane()",
       "id": "ui_main_logic_v3_switchtodualpane"
     },
@@ -18568,7 +18496,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L5585",
-      "community": 217,
+      "community": 13,
       "norm_label": "closesettings()",
       "id": "ui_main_logic_v3_closesettings"
     },
@@ -18586,7 +18514,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L5606",
-      "community": 217,
+      "community": 13,
       "norm_label": "saveconfig()",
       "id": "ui_main_logic_v3_saveconfig"
     },
@@ -18604,7 +18532,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L5796",
-      "community": 34,
+      "community": 13,
       "norm_label": "addfavorite()",
       "id": "ui_main_logic_v3_addfavorite"
     },
@@ -18613,7 +18541,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L5804",
-      "community": 217,
+      "community": 13,
       "norm_label": "removefavorite()",
       "id": "ui_main_logic_v3_removefavorite"
     },
@@ -18622,7 +18550,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L5810",
-      "community": 136,
+      "community": 29,
       "norm_label": "getextdescription()",
       "id": "ui_main_logic_v3_getextdescription"
     },
@@ -18631,7 +18559,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L5814",
-      "community": 136,
+      "community": 29,
       "norm_label": "showproperties()",
       "id": "ui_main_logic_v3_showproperties"
     },
@@ -18640,7 +18568,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6013",
-      "community": 136,
+      "community": 29,
       "norm_label": "closeinfoproperties()",
       "id": "ui_main_logic_v3_closeinfoproperties"
     },
@@ -18658,7 +18586,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6046",
-      "community": 136,
+      "community": 29,
       "norm_label": "showitempreview()",
       "id": "ui_main_logic_v3_showitempreview"
     },
@@ -18676,7 +18604,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6451",
-      "community": 29,
+      "community": 71,
       "norm_label": "renameitemswithformat()",
       "id": "ui_main_logic_v3_renameitemswithformat"
     },
@@ -18685,7 +18613,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6474",
-      "community": 29,
+      "community": 71,
       "norm_label": "closemultirenamepopup()",
       "id": "ui_main_logic_v3_closemultirenamepopup"
     },
@@ -18712,7 +18640,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6527",
-      "community": 71,
+      "community": 221,
       "norm_label": "switchftptab()",
       "id": "ui_main_logic_v3_switchftptab"
     },
@@ -18721,7 +18649,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6541",
-      "community": 71,
+      "community": 221,
       "norm_label": "showftpconfig()",
       "id": "ui_main_logic_v3_showftpconfig"
     },
@@ -18730,7 +18658,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6582",
-      "community": 71,
+      "community": 221,
       "norm_label": "startftpdiscovery()",
       "id": "ui_main_logic_v3_startftpdiscovery"
     },
@@ -18748,7 +18676,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6670",
-      "community": 71,
+      "community": 221,
       "norm_label": "loadsavedftpconnections()",
       "id": "ui_main_logic_v3_loadsavedftpconnections"
     },
@@ -18766,7 +18694,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6759",
-      "community": 71,
+      "community": 221,
       "norm_label": "deletesavedconnection()",
       "id": "ui_main_logic_v3_deletesavedconnection"
     },
@@ -18793,7 +18721,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6829",
-      "community": 34,
+      "community": 29,
       "norm_label": "closeftpconfig()",
       "id": "ui_main_logic_v3_closeftpconfig"
     },
@@ -18802,7 +18730,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6842",
-      "community": 34,
+      "community": 29,
       "norm_label": "connecttoftp()",
       "id": "ui_main_logic_v3_connecttoftp"
     },
@@ -18811,7 +18739,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6854",
-      "community": 34,
+      "community": 29,
       "norm_label": "openftp()",
       "id": "ui_main_logic_v3_openftp"
     },
@@ -18820,7 +18748,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6908",
-      "community": 211,
+      "community": 173,
       "norm_label": "sortitems()",
       "id": "ui_main_logic_v3_sortitems"
     },
@@ -18829,7 +18757,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L6973",
-      "community": 211,
+      "community": 173,
       "norm_label": "getfdirobjectlistfromdirectorylist()",
       "id": "ui_main_logic_v3_getfdirobjectlistfromdirectorylist"
     },
@@ -18856,7 +18784,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L7024",
-      "community": 211,
+      "community": 15,
       "norm_label": "hextorgba()",
       "id": "ui_main_logic_v3_hextorgba"
     },
@@ -18946,7 +18874,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L7259",
-      "community": 217,
+      "community": 15,
       "norm_label": "checkcolormode()",
       "id": "ui_main_logic_v3_checkcolormode"
     },
@@ -18955,7 +18883,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L7314",
-      "community": 217,
+      "community": 15,
       "norm_label": "applytheme()",
       "id": "ui_main_logic_v3_applytheme"
     },
@@ -18964,7 +18892,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L7319",
-      "community": 217,
+      "community": 15,
       "norm_label": "applythemefromselect()",
       "id": "ui_main_logic_v3_applythemefromselect"
     },
@@ -19027,7 +18955,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L7462",
-      "community": 217,
+      "community": 15,
       "norm_label": "closethemecreator()",
       "id": "ui_main_logic_v3_closethemecreator"
     },
@@ -19045,7 +18973,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L7529",
-      "community": 217,
+      "community": 13,
       "norm_label": "deleteactivetheme()",
       "id": "ui_main_logic_v3_deleteactivetheme"
     },
@@ -19108,7 +19036,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L7611",
-      "community": 34,
+      "community": 13,
       "norm_label": "getdir()",
       "id": "ui_main_logic_v3_getdir"
     },
@@ -19126,7 +19054,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L7648",
-      "community": 34,
+      "community": 13,
       "norm_label": "restorecollapsestate()",
       "id": "ui_main_logic_v3_restorecollapsestate"
     },
@@ -19171,7 +19099,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L7750",
-      "community": 29,
+      "community": 71,
       "norm_label": "schedulediskusagerefresh()",
       "id": "ui_main_logic_v3_schedulediskusagerefresh"
     },
@@ -19198,7 +19126,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L7853",
-      "community": 34,
+      "community": 13,
       "norm_label": "insertsitenavbuttons()",
       "id": "ui_main_logic_v3_insertsitenavbuttons"
     },
@@ -19225,7 +19153,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L8137",
-      "community": 29,
+      "community": 25,
       "norm_label": "openconfiglocation()",
       "id": "ui_main_logic_v3_openconfiglocation"
     },
@@ -19234,7 +19162,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L8143",
-      "community": 34,
+      "community": 13,
       "norm_label": "showpopup()",
       "id": "ui_main_logic_v3_showpopup"
     },
@@ -19243,7 +19171,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L8250",
-      "community": 29,
+      "community": 14,
       "norm_label": "closeconfirmpopup()",
       "id": "ui_main_logic_v3_closeconfirmpopup"
     },
@@ -19279,7 +19207,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L8307",
-      "community": 34,
+      "community": 13,
       "norm_label": "unmountnetworkdrive()",
       "id": "ui_main_logic_v3_unmountnetworkdrive"
     },
@@ -19297,7 +19225,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L8319",
-      "community": 34,
+      "community": 13,
       "norm_label": "ejectftp()",
       "id": "ui_main_logic_v3_ejectftp"
     },
@@ -19306,7 +19234,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L8336",
-      "community": 217,
+      "community": 13,
       "norm_label": "configbackbutton()",
       "id": "ui_main_logic_v3_configbackbutton"
     },
@@ -19324,7 +19252,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L8360",
-      "community": 34,
+      "community": 13,
       "norm_label": "handlemountchanges()",
       "id": "ui_main_logic_v3_handlemountchanges"
     },
@@ -19441,7 +19369,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L9856",
-      "community": 211,
+      "community": 173,
       "norm_label": "applydirectoryliststyles()",
       "id": "ui_main_logic_v3_applydirectoryliststyles"
     },
@@ -19792,7 +19720,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L10879",
-      "community": 4,
+      "community": 51,
       "norm_label": "putdiskanalyzerinbackground()",
       "id": "ui_main_logic_v3_putdiskanalyzerinbackground"
     },
@@ -19801,7 +19729,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L10907",
-      "community": 148,
+      "community": 15,
       "norm_label": "triggerstopdiskanalysis()",
       "id": "ui_main_logic_v3_triggerstopdiskanalysis"
     },
@@ -19810,7 +19738,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L10911",
-      "community": 148,
+      "community": 4,
       "norm_label": "reopendiskanalyzermodal()",
       "id": "ui_main_logic_v3_reopendiskanalyzermodal"
     },
@@ -19819,7 +19747,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L10960",
-      "community": 148,
+      "community": 15,
       "norm_label": "showdiskanalyzerpopup()",
       "id": "ui_main_logic_v3_showdiskanalyzerpopup"
     },
@@ -19828,7 +19756,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L11140",
-      "community": 148,
+      "community": 15,
       "norm_label": "closediskanalyzerpopup()",
       "id": "ui_main_logic_v3_closediskanalyzerpopup"
     },
@@ -19891,7 +19819,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L11562",
-      "community": 4,
+      "community": 229,
       "norm_label": "showupdatedetails()",
       "id": "ui_main_logic_v3_showupdatedetails"
     },
@@ -19900,7 +19828,7 @@
       "file_type": "code",
       "source_file": "ui/main_logic_v3.js",
       "source_location": "L11579",
-      "community": 4,
+      "community": 229,
       "norm_label": "checkforupdates()",
       "id": "ui_main_logic_v3_checkforupdates"
     },
@@ -21104,7 +21032,7 @@
       "captured_at": null,
       "author": "code-reviewer",
       "contributor": null,
-      "community": 10,
+      "community": 23,
       "norm_label": "collapsible sidebar review summary",
       "id": "collapsible_sidebar_summary_summary"
     },
@@ -21117,7 +21045,7 @@
       "captured_at": null,
       "author": "code-reviewer",
       "contributor": null,
-      "community": 10,
+      "community": 23,
       "norm_label": "collapsible sidebar review findings",
       "id": "collapsible_sidebar_findings_findings"
     },
@@ -21156,7 +21084,7 @@
       "captured_at": null,
       "author": "code-reviewer",
       "contributor": null,
-      "community": 50,
+      "community": 53,
       "norm_label": "copy/move conflict handling re-review summary",
       "id": "copy_move_conflict_handling_summary_summary"
     },
@@ -21182,7 +21110,7 @@
       "captured_at": null,
       "author": "documentation-writer",
       "contributor": null,
-      "community": 50,
+      "community": 53,
       "norm_label": "copy/move conflict handling release notes",
       "id": "copy_move_conflict_handling_release_notes_release_notes"
     },
@@ -21195,7 +21123,7 @@
       "captured_at": null,
       "author": "documentation-writer",
       "contributor": null,
-      "community": 50,
+      "community": 53,
       "norm_label": "copy/move conflict handling commit message",
       "id": "copy_move_conflict_handling_commit_message_commit_message"
     },
@@ -21247,7 +21175,7 @@
       "captured_at": null,
       "author": "main-agent",
       "contributor": null,
-      "community": 50,
+      "community": 53,
       "norm_label": "architecture context: system shape and conflict resolution",
       "id": "arch_context_system_shape_and_conflicts"
     },
@@ -21286,7 +21214,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 50,
+      "community": 53,
       "norm_label": "arr_copy_paste() rust command",
       "id": "src_tauri_main_arr_copy_paste"
     },
@@ -41786,9 +41714,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L2",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_tauri_gen_schemas_windows_schema_json",
-      "target": "schemas_windows_schema_schema"
+      "target": "schemas_windows_schema_schema",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41796,9 +41724,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L3",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_tauri_gen_schemas_windows_schema_json",
-      "target": "schemas_windows_schema_title"
+      "target": "schemas_windows_schema_title",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41806,9 +41734,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L4",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_tauri_gen_schemas_windows_schema_json",
-      "target": "schemas_windows_schema_description"
+      "target": "schemas_windows_schema_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41816,9 +41744,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L5",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_tauri_gen_schemas_windows_schema_json",
-      "target": "schemas_windows_schema_anyof"
+      "target": "schemas_windows_schema_anyof",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41826,9 +41754,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L38",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_tauri_gen_schemas_windows_schema_json",
-      "target": "schemas_windows_schema_definitions"
+      "target": "schemas_windows_schema_definitions",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41836,9 +41764,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L39",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions",
-      "target": "schemas_windows_schema_definitions_capability"
+      "target": "schemas_windows_schema_definitions_capability",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41846,9 +41774,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L106",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions",
-      "target": "schemas_windows_schema_definitions_capabilityremote"
+      "target": "schemas_windows_schema_definitions_capabilityremote",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41856,9 +41784,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L122",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions",
-      "target": "schemas_windows_schema_definitions_permissionentry"
+      "target": "schemas_windows_schema_definitions_permissionentry",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41866,9 +41794,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L2138",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions",
-      "target": "schemas_windows_schema_definitions_identifier"
+      "target": "schemas_windows_schema_definitions_identifier",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41876,9 +41804,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L6349",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions",
-      "target": "schemas_windows_schema_definitions_value"
+      "target": "schemas_windows_schema_definitions_value",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41886,9 +41814,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L6388",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions",
-      "target": "schemas_windows_schema_definitions_number"
+      "target": "schemas_windows_schema_definitions_number",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41896,9 +41824,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L6403",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions",
-      "target": "schemas_windows_schema_definitions_target"
+      "target": "schemas_windows_schema_definitions_target",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41906,9 +41834,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L40",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_capability",
-      "target": "schemas_windows_schema_capability_description"
+      "target": "schemas_windows_schema_capability_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41916,9 +41844,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L41",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_capability",
-      "target": "schemas_windows_schema_capability_type"
+      "target": "schemas_windows_schema_capability_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41926,9 +41854,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L42",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_capability",
-      "target": "schemas_windows_schema_capability_required"
+      "target": "schemas_windows_schema_capability_required",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41936,9 +41864,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L46",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_capability",
-      "target": "schemas_windows_schema_capability_properties"
+      "target": "schemas_windows_schema_capability_properties",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41946,9 +41874,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L47",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_capability_properties",
-      "target": "schemas_windows_schema_properties_identifier"
+      "target": "schemas_windows_schema_properties_identifier",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41956,9 +41884,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L51",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_capability_properties",
-      "target": "schemas_windows_schema_properties_description"
+      "target": "schemas_windows_schema_properties_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41966,9 +41894,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L56",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_capability_properties",
-      "target": "schemas_windows_schema_properties_remote"
+      "target": "schemas_windows_schema_properties_remote",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41976,9 +41904,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L67",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_capability_properties",
-      "target": "schemas_windows_schema_properties_local"
+      "target": "schemas_windows_schema_properties_local",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41986,9 +41914,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L72",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_capability_properties",
-      "target": "schemas_windows_schema_properties_windows"
+      "target": "schemas_windows_schema_properties_windows",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -41996,9 +41924,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L79",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_capability_properties",
-      "target": "schemas_windows_schema_properties_webviews"
+      "target": "schemas_windows_schema_properties_webviews",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42006,9 +41934,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L86",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_capability_properties",
-      "target": "schemas_windows_schema_properties_permissions"
+      "target": "schemas_windows_schema_properties_permissions",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42016,9 +41944,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L94",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_capability_properties",
-      "target": "schemas_windows_schema_properties_platforms"
+      "target": "schemas_windows_schema_properties_platforms",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42026,9 +41954,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L48",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_identifier",
-      "target": "schemas_windows_schema_identifier_description"
+      "target": "schemas_windows_schema_identifier_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42036,9 +41964,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L49",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_identifier",
-      "target": "schemas_windows_schema_identifier_type"
+      "target": "schemas_windows_schema_identifier_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42046,9 +41974,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L2139",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_identifier",
-      "target": "schemas_windows_schema_identifier_description"
+      "target": "schemas_windows_schema_identifier_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42056,9 +41984,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L52",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_description",
-      "target": "schemas_windows_schema_description_description"
+      "target": "schemas_windows_schema_description_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42066,9 +41994,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L53",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_description",
-      "target": "schemas_windows_schema_description_default"
+      "target": "schemas_windows_schema_description_default",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42076,9 +42004,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L54",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_description",
-      "target": "schemas_windows_schema_description_type"
+      "target": "schemas_windows_schema_description_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42086,9 +42014,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L57",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_remote",
-      "target": "schemas_windows_schema_remote_description"
+      "target": "schemas_windows_schema_remote_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42096,9 +42024,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L58",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_remote",
-      "target": "schemas_windows_schema_remote_anyof"
+      "target": "schemas_windows_schema_remote_anyof",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42106,9 +42034,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L68",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_local",
-      "target": "schemas_windows_schema_local_description"
+      "target": "schemas_windows_schema_local_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42116,9 +42044,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L69",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_local",
-      "target": "schemas_windows_schema_local_default"
+      "target": "schemas_windows_schema_local_default",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42126,9 +42054,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L70",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_local",
-      "target": "schemas_windows_schema_local_type"
+      "target": "schemas_windows_schema_local_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42136,9 +42064,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L73",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_windows",
-      "target": "schemas_windows_schema_windows_description"
+      "target": "schemas_windows_schema_windows_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42146,9 +42074,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L74",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_windows",
-      "target": "schemas_windows_schema_windows_type"
+      "target": "schemas_windows_schema_windows_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42156,9 +42084,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L75",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_windows",
-      "target": "schemas_windows_schema_windows_items"
+      "target": "schemas_windows_schema_windows_items",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42166,9 +42094,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L76",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_windows_items",
-      "target": "schemas_windows_schema_items_type"
+      "target": "schemas_windows_schema_items_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42176,9 +42104,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L83",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_webviews_items",
-      "target": "schemas_windows_schema_items_type"
+      "target": "schemas_windows_schema_items_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42186,9 +42114,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L117",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_urls_items",
-      "target": "schemas_windows_schema_items_type"
+      "target": "schemas_windows_schema_items_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42196,9 +42124,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L80",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_webviews",
-      "target": "schemas_windows_schema_webviews_description"
+      "target": "schemas_windows_schema_webviews_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42206,9 +42134,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L81",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_webviews",
-      "target": "schemas_windows_schema_webviews_type"
+      "target": "schemas_windows_schema_webviews_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42216,9 +42144,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L82",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_webviews",
-      "target": "schemas_windows_schema_webviews_items"
+      "target": "schemas_windows_schema_webviews_items",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42226,9 +42154,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L87",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_permissions",
-      "target": "schemas_windows_schema_permissions_description"
+      "target": "schemas_windows_schema_permissions_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42236,9 +42164,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L88",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_permissions",
-      "target": "schemas_windows_schema_permissions_type"
+      "target": "schemas_windows_schema_permissions_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42246,9 +42174,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L89",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_permissions",
-      "target": "schemas_windows_schema_permissions_items"
+      "target": "schemas_windows_schema_permissions_items",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42256,9 +42184,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L92",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_permissions",
-      "target": "schemas_windows_schema_permissions_uniqueitems"
+      "target": "schemas_windows_schema_permissions_uniqueitems",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42266,9 +42194,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L90",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_permissions_items",
-      "target": "schemas_windows_schema_items_ref"
+      "target": "schemas_windows_schema_items_ref",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42276,9 +42204,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L101",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_platforms_items",
-      "target": "schemas_windows_schema_items_ref"
+      "target": "schemas_windows_schema_items_ref",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42286,9 +42214,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L95",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_platforms",
-      "target": "schemas_windows_schema_platforms_description"
+      "target": "schemas_windows_schema_platforms_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42296,9 +42224,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L96",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_platforms",
-      "target": "schemas_windows_schema_platforms_type"
+      "target": "schemas_windows_schema_platforms_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42306,9 +42234,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L100",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_platforms",
-      "target": "schemas_windows_schema_platforms_items"
+      "target": "schemas_windows_schema_platforms_items",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42316,9 +42244,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L107",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_capabilityremote",
-      "target": "schemas_windows_schema_capabilityremote_description"
+      "target": "schemas_windows_schema_capabilityremote_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42326,9 +42254,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L108",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_capabilityremote",
-      "target": "schemas_windows_schema_capabilityremote_type"
+      "target": "schemas_windows_schema_capabilityremote_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42336,9 +42264,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L109",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_capabilityremote",
-      "target": "schemas_windows_schema_capabilityremote_required"
+      "target": "schemas_windows_schema_capabilityremote_required",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42346,9 +42274,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L112",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_capabilityremote",
-      "target": "schemas_windows_schema_capabilityremote_properties"
+      "target": "schemas_windows_schema_capabilityremote_properties",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42356,9 +42284,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L113",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_capabilityremote_properties",
-      "target": "schemas_windows_schema_properties_urls"
+      "target": "schemas_windows_schema_properties_urls",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42366,9 +42294,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L114",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_urls",
-      "target": "schemas_windows_schema_urls_description"
+      "target": "schemas_windows_schema_urls_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42376,9 +42304,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L115",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_urls",
-      "target": "schemas_windows_schema_urls_type"
+      "target": "schemas_windows_schema_urls_type",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42386,9 +42314,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L116",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_properties_urls",
-      "target": "schemas_windows_schema_urls_items"
+      "target": "schemas_windows_schema_urls_items",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42396,9 +42324,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L123",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_permissionentry",
-      "target": "schemas_windows_schema_permissionentry_description"
+      "target": "schemas_windows_schema_permissionentry_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42406,9 +42334,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L124",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_permissionentry",
-      "target": "schemas_windows_schema_permissionentry_anyof"
+      "target": "schemas_windows_schema_permissionentry_anyof",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42416,9 +42344,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L2140",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_identifier",
-      "target": "schemas_windows_schema_identifier_oneof"
+      "target": "schemas_windows_schema_identifier_oneof",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42426,9 +42354,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L6350",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_value",
-      "target": "schemas_windows_schema_value_description"
+      "target": "schemas_windows_schema_value_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42436,9 +42364,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L6351",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_value",
-      "target": "schemas_windows_schema_value_anyof"
+      "target": "schemas_windows_schema_value_anyof",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42446,9 +42374,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L6389",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_number",
-      "target": "schemas_windows_schema_number_description"
+      "target": "schemas_windows_schema_number_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42456,9 +42384,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L6390",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_number",
-      "target": "schemas_windows_schema_number_anyof"
+      "target": "schemas_windows_schema_number_anyof",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42466,9 +42394,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L6404",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_target",
-      "target": "schemas_windows_schema_target_description"
+      "target": "schemas_windows_schema_target_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -42476,9 +42404,9 @@
       "source_file": "src-tauri/gen/schemas/windows-schema.json",
       "source_location": "L6405",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "schemas_windows_schema_definitions_target",
-      "target": "schemas_windows_schema_target_oneof"
+      "target": "schemas_windows_schema_target_oneof",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -51474,76 +51402,6 @@
       "confidence_score": 1.0,
       "source": "docs_kofi_terms_codriver_membership_terms_conditions",
       "target": "docs_kofi_terms_4_licence_conditions_code_contributions"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L1",
-      "weight": 1.0,
-      "source": "docs_release_notes_0_7_6_md",
-      "target": "docs_release_notes_0_7_6_release_notes_codriver_v0_7_6",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L3",
-      "weight": 1.0,
-      "source": "docs_release_notes_0_7_6_release_notes_codriver_v0_7_6",
-      "target": "docs_release_notes_0_7_6_summary",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L6",
-      "weight": 1.0,
-      "source": "docs_release_notes_0_7_6_release_notes_codriver_v0_7_6",
-      "target": "docs_release_notes_0_7_6_what_s_new_fixes",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L20",
-      "weight": 1.0,
-      "source": "docs_release_notes_0_7_6_release_notes_codriver_v0_7_6",
-      "target": "docs_release_notes_0_7_6_migration_notes",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L8",
-      "weight": 1.0,
-      "source": "docs_release_notes_0_7_6_what_s_new_fixes",
-      "target": "docs_release_notes_0_7_6_1_windows_image_thumbnail_fix",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L12",
-      "weight": 1.0,
-      "source": "docs_release_notes_0_7_6_what_s_new_fixes",
-      "target": "docs_release_notes_0_7_6_2_disabling_sidebar_top_blur_on_windows_linux",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/release-notes-0.7.6.md",
-      "source_location": "L16",
-      "weight": 1.0,
-      "source": "docs_release_notes_0_7_6_what_s_new_fixes",
-      "target": "docs_release_notes_0_7_6_3_window_maximize_button_fix_windows_linux",
-      "confidence_score": 1.0
     },
     {
       "relation": "contains",
