@@ -140,8 +140,8 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/tauri.conf.json": {
-    "mtime": 1780495535.8954914,
-    "ast_hash": "43db9ed25e918be6170357c82138d973",
+    "mtime": 1780488192.7582395,
+    "ast_hash": "4255c589e7fe4f0b956ea18b9d8516a8",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/build.rs": {
@@ -150,14 +150,14 @@
     "semantic_hash": "1be34a5c61c2c35365de3dab14298f0b"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/capabilities/migrated.json": {
-    "mtime": 1780491306.3084886,
-    "ast_hash": "91f67ee11713acf9f8f49c15f68d35a8",
-    "semantic_hash": ""
+    "mtime": 1780488192.7532952,
+    "ast_hash": "cb86ad59f23b34cd28eddf239d73d441",
+    "semantic_hash": "cb86ad59f23b34cd28eddf239d73d441"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/capabilities.json": {
-    "mtime": 1780491323.6261237,
-    "ast_hash": "c677190c272ca309bb99cd9c2b2ec788",
-    "semantic_hash": ""
+    "mtime": 1780488192.7542045,
+    "ast_hash": "bfb21cab154c2d86a3ba998639726cb6",
+    "semantic_hash": "bfb21cab154c2d86a3ba998639726cb6"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/acl-manifests.json": {
     "mtime": 1780488192.7540615,
@@ -170,7 +170,7 @@
     "semantic_hash": "599d62d6a68bd79461a23d13d1079ede"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/desktop-schema.json": {
-    "mtime": 1780489290.961011,
+    "mtime": 1780488192.7546105,
     "ast_hash": "599d62d6a68bd79461a23d13d1079ede",
     "semantic_hash": "599d62d6a68bd79461a23d13d1079ede"
   },
@@ -11097,16 +11097,6 @@
   "/Users/rickyperlick/Coding/CoDriver/ui/main_logic.js": {
     "mtime": 1780488192.801798,
     "ast_hash": "6ba92bebeb1772a675a6e67fca540da0",
-    "semantic_hash": ""
-  },
-  "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/windows-schema.json": {
-    "mtime": 1780489290.961011,
-    "ast_hash": "599d62d6a68bd79461a23d13d1079ede",
-    "semantic_hash": ""
-  },
-  "/Users/rickyperlick/Coding/CoDriver/docs/release-notes-0.7.6.md": {
-    "mtime": 1780495597.126852,
-    "ast_hash": "6334d5e267a879d675a06cee04d5b054",
     "semantic_hash": ""
   }
 }

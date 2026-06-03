@@ -1,6 +1,6 @@
 [package]
 name = "CoDriver"
-version = "0.7.5"
+version = "0.7.6"
 description = "A simple file explorer"
 authors = ["Ricky Dane Perlick"]
 license = "BSD-2-Clause license"

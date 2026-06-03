@@ -1,6 +1,6 @@
 {
   "/Users/rickyperlick/Coding/CoDriver/ui/events.js": {
-    "mtime": 1780488192.7595148,
+    "mtime": 1779987026.8857088,
     "ast_hash": "3c26cca6fb4f60246f8d4c559d8c4e19",
     "semantic_hash": ""
   },
@@ -15,7 +15,7 @@
     "semantic_hash": "7f40379b88cefe6f6f7c26c813b05b25"
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/models.js": {
-    "mtime": 1780488192.8021116,
+    "mtime": 1779906735.328352,
     "ast_hash": "904f0f1a57a98d8623db74a6585f9ee7",
     "semantic_hash": ""
   },
@@ -25,7 +25,7 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/contextmenu.js": {
-    "mtime": 1780488192.7590406,
+    "mtime": 1779655609.8089263,
     "ast_hash": "9b61782cb52863835b63932ddbadcfdc",
     "semantic_hash": "9b61782cb52863835b63932ddbadcfdc"
   },
@@ -35,7 +35,7 @@
     "semantic_hash": "25fdd06b0fd5b3c204ed9d0a2b8fd7f7"
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/utils.js": {
-    "mtime": 1780488192.8034666,
+    "mtime": 1779968841.1567497,
     "ast_hash": "ee03ac0eed250e5819939b184eb2afe4",
     "semantic_hash": ""
   },
@@ -140,8 +140,8 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/tauri.conf.json": {
-    "mtime": 1780495535.8954914,
-    "ast_hash": "43db9ed25e918be6170357c82138d973",
+    "mtime": 1779986356.2795198,
+    "ast_hash": "717ad13ef4827e5d3700164645463a2e",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/build.rs": {
@@ -150,32 +150,32 @@
     "semantic_hash": "1be34a5c61c2c35365de3dab14298f0b"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/capabilities/migrated.json": {
-    "mtime": 1780491306.3084886,
-    "ast_hash": "91f67ee11713acf9f8f49c15f68d35a8",
-    "semantic_hash": ""
+    "mtime": 1779720990.3449383,
+    "ast_hash": "cb86ad59f23b34cd28eddf239d73d441",
+    "semantic_hash": "cb86ad59f23b34cd28eddf239d73d441"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/capabilities.json": {
-    "mtime": 1780491323.6261237,
-    "ast_hash": "c677190c272ca309bb99cd9c2b2ec788",
-    "semantic_hash": ""
+    "mtime": 1779720992.77687,
+    "ast_hash": "bfb21cab154c2d86a3ba998639726cb6",
+    "semantic_hash": "bfb21cab154c2d86a3ba998639726cb6"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/acl-manifests.json": {
-    "mtime": 1780488192.7540615,
+    "mtime": 1779970917.1299555,
     "ast_hash": "0840e96d381e3cfc41a34a468e96199f",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/macOS-schema.json": {
-    "mtime": 1780488192.7550087,
+    "mtime": 1779720987.9504397,
     "ast_hash": "599d62d6a68bd79461a23d13d1079ede",
     "semantic_hash": "599d62d6a68bd79461a23d13d1079ede"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/desktop-schema.json": {
-    "mtime": 1780489290.961011,
+    "mtime": 1779720987.9504397,
     "ast_hash": "599d62d6a68bd79461a23d13d1079ede",
     "semantic_hash": "599d62d6a68bd79461a23d13d1079ede"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/window_tauri_ext.rs": {
-    "mtime": 1780488192.7579207,
+    "mtime": 1779617902.0110996,
     "ast_hash": "3a7e0d77c6b8a4a3dff5d372d7ca578d",
     "semantic_hash": "3a7e0d77c6b8a4a3dff5d372d7ca578d"
   },
@@ -185,67 +185,67 @@
     "semantic_hash": "8fe56b9fb9f759017a8fcb36d80c505b"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/main.rs": {
-    "mtime": 1780488736.861519,
-    "ast_hash": "e6a037681c5c495e954df7dd552779a1",
+    "mtime": 1779973448.2530525,
+    "ast_hash": "d54ca81ea70bcff94c9ae6c3276f3467",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/utils.rs": {
-    "mtime": 1780488192.7576537,
+    "mtime": 1779988488.2120383,
     "ast_hash": "d8770147dbb03aa1332111ef214bd1d0",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/remote/ftp.rs": {
-    "mtime": 1780488192.7569418,
+    "mtime": 1779705515.9851446,
     "ast_hash": "194d6334a4bfaa0b01e13c7e8b71b381",
     "semantic_hash": "194d6334a4bfaa0b01e13c7e8b71b381"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/remote/mod.rs": {
-    "mtime": 1780488192.7572756,
+    "mtime": 1779617902.0103576,
     "ast_hash": "951bd8d0a73dfc3a06fa6e8ffd10c00c",
     "semantic_hash": "951bd8d0a73dfc3a06fa6e8ffd10c00c"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/remote/ftp/ftp_discovery.rs": {
-    "mtime": 1780488192.7571783,
+    "mtime": 1779617902.0101445,
     "ast_hash": "c051d5c3dcfa03799a9cb0b7b69dcc77",
     "semantic_hash": "c051d5c3dcfa03799a9cb0b7b69dcc77"
   },
   "/Users/rickyperlick/Coding/CoDriver/themes/Hacker.json": {
-    "mtime": 1780488192.7587247,
+    "mtime": 1779617902.0129883,
     "ast_hash": "d04f744fca6d848d48c237d7f4a57e58",
     "semantic_hash": "d04f744fca6d848d48c237d7f4a57e58"
   },
   "/Users/rickyperlick/Coding/CoDriver/themes/Light.json": {
-    "mtime": 1780488192.7588546,
+    "mtime": 1779617902.013325,
     "ast_hash": "3870925284ba48514ddf598a35d5eea2",
     "semantic_hash": "3870925284ba48514ddf598a35d5eea2"
   },
   "/Users/rickyperlick/Coding/CoDriver/themes/Default.json": {
-    "mtime": 1780488192.7585974,
+    "mtime": 1779617902.0126007,
     "ast_hash": "29a930ad167eddab4d0def023e13bbc7",
     "semantic_hash": "29a930ad167eddab4d0def023e13bbc7"
   },
   "/Users/rickyperlick/Coding/CoDriver/themes/Dark.json": {
-    "mtime": 1780488192.7584617,
+    "mtime": 1779617902.012223,
     "ast_hash": "4dd049c7551ae2631b94fca70847265c",
     "semantic_hash": "4dd049c7551ae2631b94fca70847265c"
   },
   "/Users/rickyperlick/Coding/CoDriver/CONTEXT.md": {
-    "mtime": 1780488192.4603143,
+    "mtime": 1779782784.3191395,
     "ast_hash": "f2bdd2f449ce13f83bd534d139aeffa2",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/README.md": {
-    "mtime": 1780488192.4607258,
-    "ast_hash": "6356dacb8ccb675bd8c444f8a938697e",
-    "semantic_hash": ""
+    "mtime": 1779730408.9223602,
+    "ast_hash": "1418d910d79e0735a99232e9b89127e4",
+    "semantic_hash": "1418d910d79e0735a99232e9b89127e4"
   },
   "/Users/rickyperlick/Coding/CoDriver/AGENTS.md": {
-    "mtime": 1780488192.4599376,
+    "mtime": 1779970932.4412994,
     "ast_hash": "43161689a8d2ec9bcaf0fcb27cf3d081",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/index.html": {
-    "mtime": 1780488192.7602599,
+    "mtime": 1779988092.88233,
     "ast_hash": "a366cbcfc200d349ae395e8a55c02d2b",
     "semantic_hash": ""
   },
@@ -300,17 +300,17 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/.agents/workflows/graphify.md": {
-    "mtime": 1780488192.4587853,
+    "mtime": 1779742733.9878383,
     "ast_hash": "afa1ffc01aa56ac681c7335686f44767",
     "semantic_hash": "afa1ffc01aa56ac681c7335686f44767"
   },
   "/Users/rickyperlick/Coding/CoDriver/.agents/rules/graphify.md": {
-    "mtime": 1780488192.458443,
+    "mtime": 1779742733.9876482,
     "ast_hash": "f1e53ecc9194573d3c28fc116c743a2e",
     "semantic_hash": "f1e53ecc9194573d3c28fc116c743a2e"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/kofi_terms.md": {
-    "mtime": 1780488192.461403,
+    "mtime": 1779642739.1902874,
     "ast_hash": "d70f6af4f42af2f9c84455501e6b07da",
     "semantic_hash": "d70f6af4f42af2f9c84455501e6b07da"
   },
@@ -325,12 +325,12 @@
     "semantic_hash": "e94d822a1487965d35dd06a7e34ef676"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/design/specs/viewmode-selector.md": {
-    "mtime": 1780488192.4611578,
+    "mtime": 1779617901.9954724,
     "ast_hash": "974d0bb2717973808e5e76e28d2cfbe6",
     "semantic_hash": "974d0bb2717973808e5e76e28d2cfbe6"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/design/specs/collapsible-sidebar-sections.md": {
-    "mtime": 1780488192.460948,
+    "mtime": 1779617901.9951756,
     "ast_hash": "02895ff64f091e7c6697310536339c05",
     "semantic_hash": "02895ff64f091e7c6697310536339c05"
   },
@@ -340,62 +340,62 @@
     "semantic_hash": "5abc2eb815565744044c1203d8f96313"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/planning/popup-glassmorphism-overhaul/implementation-tracker.md": {
-    "mtime": 1780488192.4627874,
+    "mtime": 1779617901.9990668,
     "ast_hash": "0978e9c460e420d3af141a9b989660bf",
     "semantic_hash": "0978e9c460e420d3af141a9b989660bf"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/planning/popup-glassmorphism-overhaul/handoffs.md": {
-    "mtime": 1780488192.4626262,
+    "mtime": 1779617901.998557,
     "ast_hash": "fe88114868b3a88945254d9b9aa33b6b",
     "semantic_hash": "fe88114868b3a88945254d9b9aa33b6b"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/planning/popup-glassmorphism-overhaul/plan.md": {
-    "mtime": 1780488192.463184,
+    "mtime": 1779617901.9994228,
     "ast_hash": "c1d6f704c4c41e9b9f138fb468c8f8d2",
     "semantic_hash": "c1d6f704c4c41e9b9f138fb468c8f8d2"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/planning/popup-glassmorphism-overhaul/decisions.md": {
-    "mtime": 1780488192.4624672,
+    "mtime": 1779617901.998444,
     "ast_hash": "2f9126d1af98af31c839f037e1339462",
     "semantic_hash": "2f9126d1af98af31c839f037e1339462"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/planning/disk-sidebar-fixes/implementation-tracker.md": {
-    "mtime": 1780488192.4618082,
+    "mtime": 1779617901.9977012,
     "ast_hash": "52e155df1c98f53589126945f0d82a10",
     "semantic_hash": "52e155df1c98f53589126945f0d82a10"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/planning/disk-sidebar-fixes/handoffs.md": {
-    "mtime": 1780488192.461707,
+    "mtime": 1779617901.996919,
     "ast_hash": "aed8395fef353d1c45b17cc1fa51587b",
     "semantic_hash": "aed8395fef353d1c45b17cc1fa51587b"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/planning/disk-sidebar-fixes/plan.md": {
-    "mtime": 1780488192.4620402,
+    "mtime": 1779617901.9981353,
     "ast_hash": "26e369a002a6f6689db7613d1004e9ce",
     "semantic_hash": "26e369a002a6f6689db7613d1004e9ce"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/planning/disk-sidebar-fixes/decisions.md": {
-    "mtime": 1780488192.4615867,
+    "mtime": 1779617901.996604,
     "ast_hash": "3422f22cdadba2bf178dc976b3c42229",
     "semantic_hash": "3422f22cdadba2bf178dc976b3c42229"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/review/collapsible-sidebar/summary.md": {
-    "mtime": 1780488192.463537,
+    "mtime": 1779617901.999971,
     "ast_hash": "80ca91f304da8bb09f8e5670115a3185",
     "semantic_hash": "80ca91f304da8bb09f8e5670115a3185"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/review/collapsible-sidebar/findings.md": {
-    "mtime": 1780488192.463441,
+    "mtime": 1779617901.9998357,
     "ast_hash": "1bd92a05c32a778337f11da411b97262",
     "semantic_hash": "1bd92a05c32a778337f11da411b97262"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/review/popup-overhaul/summary.md": {
-    "mtime": 1780488192.464386,
+    "mtime": 1779617902.0015368,
     "ast_hash": "a539957089f706e72d35dc9b25eaa9fa",
     "semantic_hash": "a539957089f706e72d35dc9b25eaa9fa"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/review/popup-overhaul/findings.md": {
-    "mtime": 1780488192.4642813,
+    "mtime": 1779617902.0012593,
     "ast_hash": "9c99e3826d302920066fa8e97ea3f815",
     "semantic_hash": "9c99e3826d302920066fa8e97ea3f815"
   },
@@ -410,12 +410,12 @@
     "semantic_hash": "818a5443b2835740ceacaf0fb2e45cb2"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/review/context-menu-visual-overhaul/summary.md": {
-    "mtime": 1780488192.4640324,
+    "mtime": 1779617902.0005646,
     "ast_hash": "abf2c53af9a2bc2222e56f18049bbf90",
     "semantic_hash": "abf2c53af9a2bc2222e56f18049bbf90"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/review/context-menu-visual-overhaul/findings.md": {
-    "mtime": 1780488192.463889,
+    "mtime": 1779617902.000437,
     "ast_hash": "209ffc186661bbafa5ec233ab88af746",
     "semantic_hash": "209ffc186661bbafa5ec233ab88af746"
   },
@@ -430,17 +430,17 @@
     "semantic_hash": "b942024c4e8fd8783263db08665aff77"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/superpowers/plans/2026-05-20-image-background-removal.md": {
-    "mtime": 1780488192.4645612,
+    "mtime": 1779617902.001956,
     "ast_hash": "56a7caab1fa9186fc8d4f1b1cf2c5089",
     "semantic_hash": "56a7caab1fa9186fc8d4f1b1cf2c5089"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/superpowers/specs/2026-05-16-popup-overhaul-design.md": {
-    "mtime": 1780488192.4646919,
+    "mtime": 1779617902.00237,
     "ast_hash": "51ea04828c72ed2f7f3c65b375ca7a91",
     "semantic_hash": "51ea04828c72ed2f7f3c65b375ca7a91"
   },
   "/Users/rickyperlick/Coding/CoDriver/docs/superpowers/specs/2026-05-20-image-background-removal-design.md": {
-    "mtime": 1780488192.4647737,
+    "mtime": 1779617902.0027268,
     "ast_hash": "4918c090e4c10c116be99ff228ac8467",
     "semantic_hash": "4918c090e4c10c116be99ff228ac8467"
   },
@@ -505,12 +505,12 @@
     "semantic_hash": "7e9cd07252e81fae4764c52a8c3be7d1"
   },
   "/Users/rickyperlick/Coding/CoDriver/.github/workflows/tag.yml": {
-    "mtime": 1780488192.4594972,
+    "mtime": 1779722182.690235,
     "ast_hash": "82857717098b157a3011c6924891d7cd",
     "semantic_hash": "82857717098b157a3011c6924891d7cd"
   },
   "/Users/rickyperlick/Coding/CoDriver/.github/workflows/main.yml": {
-    "mtime": 1780488192.4592843,
+    "mtime": 1779722187.5715673,
     "ast_hash": "5a6e535780aa34cfde45ffc322b985ca",
     "semantic_hash": "5a6e535780aa34cfde45ffc322b985ca"
   },
@@ -590,7 +590,7 @@
     "semantic_hash": "b8e04c658cfb85cddef6163edd27ad2f"
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/resources/app_icon.png": {
-    "mtime": 1780488192.8026717,
+    "mtime": 1779729265.3828533,
     "ast_hash": "66858778849d2e4272085bee1ea90545",
     "semantic_hash": "66858778849d2e4272085bee1ea90545"
   },
@@ -11085,28 +11085,18 @@
     "semantic_hash": "66858778849d2e4272085bee1ea90545"
   },
   "/Users/rickyperlick/Coding/CoDriver/.github/workflows/deploy-website.yml": {
-    "mtime": 1780488192.459047,
+    "mtime": 1779744900.535451,
     "ast_hash": "3f1414731a8583fb1c8d00425b5b5390",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/lucide/webfonts/lucide.svg": {
-    "mtime": 1780488192.793045,
+    "mtime": 1779827495.2952385,
     "ast_hash": "b2ccf1aec0bbfdef0d5f7c0e98187b14",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/main_logic.js": {
-    "mtime": 1780488192.801798,
+    "mtime": 1779990350.4144485,
     "ast_hash": "6ba92bebeb1772a675a6e67fca540da0",
-    "semantic_hash": ""
-  },
-  "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/windows-schema.json": {
-    "mtime": 1780489290.961011,
-    "ast_hash": "599d62d6a68bd79461a23d13d1079ede",
-    "semantic_hash": ""
-  },
-  "/Users/rickyperlick/Coding/CoDriver/docs/release-notes-0.7.6.md": {
-    "mtime": 1780495597.126852,
-    "ast_hash": "6334d5e267a879d675a06cee04d5b054",
     "semantic_hash": ""
   }
 }

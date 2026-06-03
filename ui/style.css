@@ -296,6 +296,11 @@ body {
 }
 
 .site-nav-bar-blur-top {
+  display: none;
+}
+
+.darwin .site-nav-bar-blur-top {
+  display: block;
   position: fixed;
   top: 0;
   left: 0;
@@ -311,6 +316,7 @@ body {
       transparent 100%);
   mask-image: linear-gradient(to bottom, black 0%, black 40%, transparent 100%);
 }
+
 
 .site-nav-bar-gradient-top {
   position: fixed;

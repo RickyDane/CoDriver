@@ -35,6 +35,7 @@
     "core:window:allow-set-closable",
     "core:window:allow-set-title",
     "core:window:allow-maximize",
+    "core:window:allow-toggle-maximize",
     "core:window:allow-unmaximize",
     "core:window:allow-minimize",
     "core:window:allow-unminimize",

@@ -4134,7 +4134,11 @@ async fn get_thumbnail(image_path: String) -> String {
         let _ = create_dir(&thumbnails_dir);
     }
 
-    let new_thumbnail_path = thumbnails_dir.join(image_path.clone().split("/").last().unwrap());
+    let filename = Path::new(&image_path)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let new_thumbnail_path = thumbnails_dir.join(&filename);
 
     if PathBuf::from(&new_thumbnail_path).exists() {
         return new_thumbnail_path.to_string_lossy().to_string();
@@ -4145,7 +4149,7 @@ async fn get_thumbnail(image_path: String) -> String {
     if item.is_err() {
         dbg_log(format!(
             "Couldn't load image for thumbnail: {}",
-            &image_path.split("/").last().unwrap()
+            &filename
         ));
         return image_path;
     }
@@ -4155,13 +4159,18 @@ async fn get_thumbnail(image_path: String) -> String {
 
     dbg_log(format!(
         "Saving thumbnail for: {}",
-        image_path.split("/").last().unwrap()
+        &filename
     ));
+
+    let file_ext = Path::new(&image_path)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("");
 
     thumbnail
         .save_with_format(
             &new_thumbnail_path,
-            image::ImageFormat::from_extension(image_path.split(".").last().unwrap())
+            image::ImageFormat::from_extension(file_ext)
                 .expect("Couldn't get format by extension"),
         )
         .expect("Couldn't save thumbnail");
@@ -5486,14 +5495,26 @@ async fn load_item_image(arr_items: Vec<ImageItem>, is_single: bool) {
     for item in arr_items {
         let handle = tokio::task::spawn(async move {
             // Second: Get actual image data
-            let image_dir = item
-                .image_url
-                .trim_end_matches(&("/".to_owned() + item.image_url.split("/").last().unwrap()));
+            let path = Path::new(&item.image_url);
+            let image_dir = path.parent().unwrap_or(Path::new(""));
+            let image_dir_norm = image_dir.to_string_lossy().replace("\\", "/");
+
+            let current_dir_norm = match current_dir() {
+                Ok(dir) => dir.to_string_lossy().replace("\\", "/"),
+                Err(_) => String::new(),
+            };
+
+            #[cfg(target_os = "windows")]
+            let is_current = image_dir_norm.to_lowercase() == current_dir_norm.to_lowercase();
+
+            #[cfg(not(target_os = "windows"))]
+            let is_current = image_dir_norm == current_dir_norm;
 
             // Skip loading the image when the image dir is not the current directory
             // => Means that the user switched directories in the meantime
             if item.image_url.starts_with("resources/")
-                || (image_dir != current_dir().unwrap().to_str().unwrap() && !is_single)
+                || item.image_url.starts_with("resources\\")
+                || (!is_current && !is_single)
             {
                 // Skipped loading the image
                 return;
@@ -5794,7 +5815,10 @@ async fn get_single_item_info(path: String) -> Result<FDir, String> {
         }
     };
 
-    let name = path.split("/").last().unwrap().to_string();
+    let name = Path::new(&path)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| path.clone());
     let size = metadata.len();
     let is_dir = metadata.is_dir();
     let file_ext = path.split(".").last().unwrap_or("").into();
