@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use tauri::{Runtime, Window, WebviewWindow};
 
 pub trait WindowExt {

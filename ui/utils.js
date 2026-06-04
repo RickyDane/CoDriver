@@ -81,10 +81,11 @@ let LastDraggedOverElement = null;
 
 function clearDragHighlight(el) {
   if (!el) return;
-  el.style.opacity = "1";
-  el.style.border = "1px solid transparent";
-  el.style.backgroundColor = "transparent";
-  el.style.scale = "1";
+  el.classList.remove("dragged-over");
+  el.style.opacity = "";
+  el.style.border = "";
+  el.style.backgroundColor = "";
+  el.style.scale = "";
 }
 
 const handleDragOver = (event) => {
@@ -106,30 +107,21 @@ const handleDragOver = (event) => {
       let isAcceptableDrop = isDir || el.classList.contains("site-nav-bar-button") || el.classList.contains("site-nav-bar-button-fav") || el.classList.contains("go-back-button");
 
       if (isAcceptableDrop) {
+        // Prevent highlighting if dragging over a selected item
+        if (el.classList.contains("item-link") && typeof ArrSelectedItems !== "undefined" && ArrSelectedItems.includes(el)) {
+          if (LastDraggedOverElement) {
+            clearDragHighlight(LastDraggedOverElement);
+            LastDraggedOverElement = null;
+            DraggedOverElement = null;
+          }
+          return;
+        }
+
         if (LastDraggedOverElement && LastDraggedOverElement !== el) {
           clearDragHighlight(LastDraggedOverElement);
         }
 
-        // Apply hover highlights based on target type
-        if (el.classList.contains("site-nav-bar-button") || el.classList.contains("site-nav-bar-button-fav")) {
-          el.style.border = "1px solid var(--tertiaryColor)";
-          el.style.backgroundColor = "var(--sidebarHover)";
-          if (el.classList.contains("site-nav-bar-button")) {
-            el.style.scale = "1.05";
-          }
-        } else if (el.classList.contains("go-back-button")) {
-          el.style.border = "1px solid var(--selectColor2)";
-          el.style.backgroundColor = "var(--transparentColor)";
-          el.style.scale = "1.05";
-        } else {
-          // Main directory item (.item-link)
-          if (typeof ArrSelectedItems !== "undefined" && !ArrSelectedItems.includes(el)) {
-            el.style.opacity = "0.5";
-            el.style.border = "1px solid var(--textColor)";
-            el.style.backgroundColor = "var(--selectColor3)";
-          }
-        }
-
+        el.classList.add("dragged-over");
         DraggedOverElement = el;
         LastDraggedOverElement = el;
         if (typeof MousePos !== "undefined") {

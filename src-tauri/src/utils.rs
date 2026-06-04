@@ -1,4 +1,4 @@
-use brotlic::{CompressorWriter, DecompressorReader};
+use brotlic::{CompressorWriter, DecompressorReader, BrotliEncoderOptions, Quality};
 use bzip2::read::MultiBzDecoder;
 use chrono::prelude::*;
 use color_print::cprintln;
@@ -1006,7 +1006,7 @@ pub async fn compress_items(
         dbg_log(format!("Starting Brotli compression. Session ID: {}, Target: {:?}", session_id, output_path));
         let mut br_path = output_path.to_path_buf();
         br_path.set_extension("tar.br");
-        compress_files_to_brotli_tar(session_id, &br_path, input_paths)?;
+        compress_files_to_brotli_tar(session_id, &br_path, input_paths, compression_level)?;
         br_path
     } else {
         dbg_log(format!("Starting ZIP/ZSTD ({}) compression. Session ID: {}, Target: {:?}", compression_format, session_id, output_path));
@@ -1650,6 +1650,7 @@ pub fn compress_files_to_brotli_tar<P>(
     session_id: usize,
     output_path: P,
     files: Vec<impl AsRef<Path>>,
+    compression_level: i32,
 ) -> io::Result<()>
 where
     P: AsRef<Path>,
@@ -1668,7 +1669,13 @@ where
     let current_file_idx = Arc::new(Mutex::new(0usize));
 
     let output_file = File::create(output_path.as_ref())?;
-    let compressor = CompressorWriter::new(output_file);
+    let quality = Quality::new(compression_level as u8)
+        .unwrap_or_else(|_| Quality::default());
+    let encoder = BrotliEncoderOptions::new()
+        .quality(quality)
+        .build()
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+    let compressor = CompressorWriter::with_encoder(encoder, output_file);
     let mut tar_builder = tar::Builder::new(compressor);
 
     for file_path in files {

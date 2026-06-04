@@ -3366,17 +3366,11 @@ async fn extract_item(from_path: String, app_window: WebviewWindow) {
     let sw = Stopwatch::start_new();
 
     if file_ext == ".br" {
-        let stripped_path = from_path
-            .strip_suffix(&file_ext)
-            .unwrap()
-            .strip_suffix(".tar")
-            .unwrap();
-        let _ = extract_brotli_tar(
-            &from_path,
-            &stripped_path
-                .strip_suffix(&(".".to_string() + stripped_path.split(".").last().unwrap()))
-                .unwrap(),
-        );
+        let mut stripped_path = from_path.strip_suffix(&file_ext).unwrap().to_string();
+        if stripped_path.ends_with(".tar") {
+            stripped_path = stripped_path.strip_suffix(".tar").unwrap().to_string();
+        }
+        let _ = extract_brotli_tar(&from_path, &stripped_path);
     } else if file_ext == ".density" {
         let _ = extract_from_density(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     } else if from_path.ends_with(".tar.zst") || from_path.ends_with(".tar.zstd") {
@@ -5841,6 +5835,7 @@ async fn get_single_item_info(path: String) -> Result<FDir, String> {
 }
 
 #[tauri::command]
+#[allow(deprecated)]
 async fn get_clipboard_files() -> Result<Vec<FDir>, String> {
     #[cfg(target_os = "macos")]
     {
@@ -5913,6 +5908,7 @@ async fn get_clipboard_files() -> Result<Vec<FDir>, String> {
 }
 
 #[tauri::command]
+#[allow(deprecated)]
 async fn write_clipboard_files(files: Vec<String>) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
@@ -6007,6 +6003,7 @@ async fn write_clipboard_files(files: Vec<String>) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[allow(deprecated)]
 async fn save_clipboard_image(target_dir: String) -> Result<String, String> {
     #[cfg(target_os = "macos")]
     {
