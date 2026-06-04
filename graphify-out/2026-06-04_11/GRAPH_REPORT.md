@@ -1,11 +1,11 @@
 # Graph Report - CoDriver  (2026-06-04)
 
 ## Corpus Check
-- 71 files · ~1,463,441 words
+- 71 files · ~1,463,339 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2336 nodes · 4010 edges · 226 communities (181 shown, 45 thin omitted)
+- 2336 nodes · 4010 edges · 224 communities (179 shown, 45 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 259 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
@@ -214,9 +214,7 @@
 - [[_COMMUNITY_Community 218|Community 218]]
 - [[_COMMUNITY_Community 219|Community 219]]
 - [[_COMMUNITY_Community 220|Community 220]]
-- [[_COMMUNITY_Community 221|Community 221]]
 - [[_COMMUNITY_Community 222|Community 222]]
-- [[_COMMUNITY_Community 223|Community 223]]
 - [[_COMMUNITY_Community 227|Community 227]]
 - [[_COMMUNITY_Community 228|Community 228]]
 
@@ -257,11 +255,11 @@
 - **Conflict Resolution Orchestration** — ui_main_logic_pasteitem, src_main_arr_copy_paste, memories_project_context_conflict_discovery_ui_vs_backend, components_file_operations_file [INFERRED 0.95]
 - **Deployment Pipelines** — workflows_tag_file, workflows_main_file, snap_snapcraft_file [INFERRED 0.95]
 
-## Communities (226 total, 45 thin omitted)
+## Communities (224 total, 45 thin omitted)
 
 ### Community 0 - "Tauri Security & Command Permissions"
-Cohesion: 0.05
-Nodes (53): description, identifier, commands, description, identifier, commands, description, identifier (+45 more)
+Cohesion: 0.07
+Nodes (28): description, identifier, commands, description, identifier, commands, description, identifier (+20 more)
 
 ### Community 1 - "Frontend Explorer UI State & Global Event Loops"
 Cohesion: 0.02
@@ -293,7 +291,7 @@ Nodes (15): anyOf, definitions, Identifier, Number, PermissionEntry, Value, oneO
 
 ### Community 8 - "System Architecture, API Contracts & Specs"
 Cohesion: 0.07
-Nodes (36): commands, description, identifier, commands, description, identifier, commands, commands (+28 more)
+Nodes (29): commands, description, identifier, commands, description, identifier, commands, description (+21 more)
 
 ### Community 9 - "Pane Navigation & Drag-and-Drop Handlers"
 Cohesion: 0.14
@@ -301,7 +299,7 @@ Nodes (33): get_current_dir(), applyCustomIconColor(), cancelSearch(), changeIco
 
 ### Community 10 - "Explorer Configuration & Dual Pane Operations"
 Cohesion: 0.21
-Nodes (8): commands, description, identifier, commands, description, identifier, deny-app-show, deny-set-dock-visibility
+Nodes (8): commands, description, identifier, commands, description, identifier, allow-app-hide, allow-read-text
 
 ### Community 11 - "Directory Rendering & DOM Item Rendering"
 Cohesion: 0.04
@@ -324,8 +322,8 @@ Cohesion: 0.02
 Nodes (42): appWindow, ArrActiveActions, ArrDirectoryItems, ArrFavorites, BuiltInThemes, buttons, cdCtMenu, compareItems() (+34 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.50
-Nodes (4): commands, description, identifier, allow-cli-matches
+Cohesion: 0.21
+Nodes (8): commands, description, identifier, commands, description, identifier, allow-write-image, deny-bundle-type
 
 ### Community 17 - "Context Menu Visual Overhaul Summary"
 Cohesion: 0.17
@@ -356,8 +354,8 @@ Cohesion: 0.19
 Nodes (13): Collapsible Sidebar Review Findings, Collapsible Sidebar Review Summary, Display-Only Quote Cleanup Rationale, Disk Sidebar Display and Usage Refresh Fixes Handoffs, addNewMount(), createSidebarDiskButton(), displayDiskName(), getDiskUsedPercentage() (+5 more)
 
 ### Community 24 - "__app-acl__ & cli"
-Cohesion: 0.10
-Nodes (40): commands, description, identifier, __app-acl__, default_permission, global_scope_schema, permission_sets, permissions (+32 more)
+Cohesion: 0.11
+Nodes (36): __app-acl__, default_permission, global_scope_schema, permission_sets, permissions, cli, default_permission, global_scope_schema (+28 more)
 
 ### Community 25 - "unmount_network_drive() & success_log()"
 Cohesion: 0.10
@@ -384,12 +382,12 @@ Cohesion: 0.22
 Nodes (8): build, beforeBuildCommand, beforeDevCommand, frontendDist, identifier, mainBinaryName, productName, version
 
 ### Community 31 - "calc_transfer_speed() & clear_console()"
-Cohesion: 0.06
-Nodes (40): commands, description, identifier, commands, description, identifier, description, identifier (+32 more)
+Cohesion: 0.07
+Nodes (36): commands, description, identifier, commands, description, identifier, commands, description (+28 more)
 
 ### Community 32 - "audio_dir() & desktop_dir()"
-Cohesion: 0.15
-Nodes (13): definitions, Number, PermissionEntry, Target, Value, anyOf, description, anyOf (+5 more)
+Cohesion: 0.13
+Nodes (15): definitions, Identifier, Number, PermissionEntry, Target, Value, oneOf, anyOf (+7 more)
 
 ### Community 33 - "go_back() & go_home()"
 Cohesion: 0.10
@@ -464,8 +462,8 @@ Cohesion: 0.15
 Nodes (13): get_machine_bytes(), load_item_image(), log_debug(), main(), rename_elements_with_format(), search_for(), search_ftp_recursive(), stop_compression() (+5 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.50
-Nodes (4): commands, description, identifier, allow-remove-listener
+Cohesion: 0.21
+Nodes (8): commands, description, identifier, commands, description, identifier, allow-remove-listener, deny-read-text
 
 ### Community 52 - "Copy/Move Destination Conflict Modal Mockup"
 Cohesion: 0.50
@@ -553,11 +551,11 @@ Nodes (11): API Contracts, `arr_copy_paste`, `arr_delete_items`, code:js (invoke
 
 ### Community 114 - "Community 114"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, allow-name
+Nodes (4): commands, description, identifier, allow-app-show
 
 ### Community 115 - "Community 115"
 Cohesion: 0.04
-Nodes (55): commands, description, identifier, commands, description, identifier, commands, commands (+47 more)
+Nodes (57): description, identifier, commands, description, identifier, commands, description, identifier (+49 more)
 
 ### Community 116 - "Community 116"
 Cohesion: 0.22
@@ -780,12 +778,12 @@ Cohesion: 0.50
 Nodes (4): CR-006: Staggered `nth-child` animation delays count dividers, Description, Impact, Recommendation
 
 ### Community 171 - "Community 171"
-Cohesion: 0.29
-Nodes (6): Code Review: Context Menu Visual Overhaul, CR-009: Stale `ContextMenu` global variable — dead reference, Description, Impact, Positive Findings, Recommendation
+Cohesion: 0.50
+Nodes (4): CR-009: Stale `ContextMenu` global variable — dead reference, Description, Impact, Recommendation
 
 ### Community 172 - "Community 172"
-Cohesion: 0.50
-Nodes (4): CR-011: `checkDisabled` returns `undefined` for unhandled labels, Description, Impact, Recommendation
+Cohesion: 0.29
+Nodes (6): Code Review: Context Menu Visual Overhaul, CR-011: `checkDisabled` returns `undefined` for unhandled labels, Description, Impact, Positive Findings, Recommendation
 
 ### Community 173 - "Community 173"
 Cohesion: 0.40
@@ -796,24 +794,24 @@ Cohesion: 0.12
 Nodes (30): add_favorite(), ai_get_organizer_suggestions(), ai_style_image(), ai_upscale_image(), app_config_dir(), call_gemini_api(), call_openai_api(), config_dir() (+22 more)
 
 ### Community 175 - "Community 175"
-Cohesion: 0.22
-Nodes (9): properties, Identifier, description, oneOf, type, identifier, remote, anyOf (+1 more)
+Cohesion: 0.18
+Nodes (11): description, properties, required, type, Capability, description, type, identifier (+3 more)
 
 ### Community 176 - "Community 176"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, allow-register-listener
+Nodes (4): commands, description, identifier, allow-all-app-commands
 
 ### Community 177 - "Community 177"
-Cohesion: 0.14
-Nodes (12): commands, description, identifier, commands, description, identifier, commands, description (+4 more)
+Cohesion: 0.06
+Nodes (46): commands, commands, description, identifier, commands, commands, description, identifier (+38 more)
 
 ### Community 178 - "Community 178"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, allow-set-app-theme
+Nodes (4): commands, description, identifier, allow-supports-multiple-windows
 
 ### Community 179 - "Community 179"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-app-hide
+Nodes (4): commands, description, identifier, allow-clear
 
 ### Community 180 - "Community 180"
 Cohesion: 0.40
@@ -849,11 +847,11 @@ Nodes (4): commands, description, identifier, allow-tauri-version
 
 ### Community 214 - "Community 214"
 Cohesion: 0.50
-Nodes (4): description, required, type, Capability
+Nodes (4): commands, description, identifier, allow-read-image
 
 ### Community 215 - "Community 215"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-cli-matches
+Nodes (4): commands, description, identifier, deny-write-html
 
 ### Community 216 - "Community 216"
 Cohesion: 0.08
@@ -865,27 +863,19 @@ Nodes (19): applyPlatformFeatures(), applyTheme(), applyThemeFromSelect(), check
 
 ### Community 218 - "Community 218"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-default-window-icon
+Nodes (4): commands, description, identifier, deny-write-image
 
 ### Community 219 - "Community 219"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-fetch-data-store-identifiers
+Nodes (4): commands, description, identifier, deny-write-text
 
 ### Community 220 - "Community 220"
 Cohesion: 0.40
 Nodes (6): addNewMount(), createSidebarDiskButton(), displayDiskName(), getDiskUsedPercentage(), setDiskDropdowns(), updateSidebarDiskButtonUsage()
 
-### Community 221 - "Community 221"
-Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-identifier
-
 ### Community 222 - "Community 222"
 Cohesion: 0.40
 Nodes (4): anyOf, description, $schema, title
-
-### Community 223 - "Community 223"
-Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-tauri-version
 
 ### Community 227 - "Community 227"
 Cohesion: 0.50
@@ -912,7 +902,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `appWindow`, `ds`, `cdCtMenu` to the rest of the system?**
   _914 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Tauri Security & Command Permissions` be split into smaller, more focused modules?**
-  _Cohesion score 0.045718432510885344 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07142857142857142 - nodes in this community are weakly interconnected._
 - **Should `Frontend Explorer UI State & Global Event Loops` be split into smaller, more focused modules?**
   _Cohesion score 0.023964165733482642 - nodes in this community are weakly interconnected._
 - **Should `Rust Backend Tauri IPC Commands` be split into smaller, more focused modules?**

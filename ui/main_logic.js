@@ -2192,19 +2192,20 @@ async function showCompressPopup(item) {
     <dl class="props-card__list">
       <div class="props-card__row">
         <dt class="props-card__label"><i class="fa-solid fa-file-code"></i>Format</dt>
-        <dd class="props-card__value">
-          <select class="props-card__input compression-popup-type-select" style="cursor: pointer;">
-            <option value="zstd">Zstd (Level -7 - 22)</option>
-            <option value="zip">Zip (Level 1 - 9)</option>
-            <option value="density">Density (Level 1 - 3)</option>
-            <option value="br">Brotli (Level 1)</option>
-          </select>
+        <dd class="props-card__value" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="compression-popup-type-btn" data-value="zstd">Zstd</button>
+          <button class="compression-popup-type-btn" data-value="zip">Zip</button>
+          <button class="compression-popup-type-btn" data-value="density">Density</button>
+          <button class="compression-popup-type-btn active" data-value="br">Brotli</button>
         </dd>
       </div>
-      <div class="props-card__row">
+      <div class="props-card__row" style="padding-bottom: 24px;">
         <dt class="props-card__label"><i class="fa-solid fa-gauge-high"></i>Level</dt>
-        <dd class="props-card__value">
-          <input type="number" class="props-card__input compression-popup-level-input" value="1" placeholder="Default: 1" />
+        <dd class="props-card__value" style="display: flex; align-items: center; gap: 0; width: 100%;">
+          <div class="compression-slider-wrapper" style="flex: 1; position: relative; display: flex; flex-direction: column;">
+            <input type="range" class="compression-popup-level-slider" style="width: 100%; cursor: pointer;" />
+            <div class="compression-slider-ticks-container" style="position: relative; width: calc(100% - 16px); margin-left: 8px; margin-right: 8px; height: 32px; margin-top: 4px;"></div>
+          </div>
         </dd>
       </div>
       ${itemsListHtml ? `
@@ -2228,22 +2229,235 @@ async function showCompressPopup(item) {
   popup.classList.add("popup-enter");
   IsPopUpOpen = true;
 
+  const typeButtons = popup.querySelectorAll(".compression-popup-type-btn");
+  const levelSlider = popup.querySelector(".compression-popup-level-slider");
+  const ticksContainer = popup.querySelector(".compression-slider-ticks-container");
+
+  const methodRanges = {
+    zstd: { min: -7, max: 22, default: 3 },
+    zip: { min: 1, max: 9, default: 6 },
+    density: { min: 1, max: 3, default: 1 },
+    br: { min: 0, max: 11, default: 6 }
+  };
+
+  function getSelectedMethod() {
+    const activeBtn = popup.querySelector(".compression-popup-type-btn.active");
+    return activeBtn ? activeBtn.dataset.value : "br";
+  }
+
+  function getCompressionLabel(val, min, max) {
+    const range = max - min;
+    if (range <= 0) return "Balanced";
+    const p = (val - min) / range;
+    if (p <= 0.12) return "Fastest";
+    if (p <= 0.38) return "Faster";
+    if (p <= 0.62) return "Balanced";
+    if (p <= 0.88) return "Slower";
+    return "Maximum";
+  }
+
+  function renderTicks() {
+    const selectedMethod = getSelectedMethod();
+    const config = methodRanges[selectedMethod] || methodRanges.zstd;
+    const min = parseInt(config.min);
+    const max = parseInt(config.max);
+    const range = max - min;
+
+    ticksContainer.innerHTML = "";
+
+    if (range <= 0) return;
+
+    // Group values by their labels
+    const groups = {};
+    for (let val = min; val <= max; val++) {
+      const label = getCompressionLabel(val, min, max);
+      if (!groups[label]) {
+        groups[label] = [];
+      }
+      groups[label].push(val);
+    }
+
+    // Render tick line for all discrete values from min to max
+    for (let val = min; val <= max; val++) {
+      const p = (val - min) / range;
+      const leftPercent = p * 100;
+      
+      const tick = document.createElement("div");
+      tick.className = "compression-slider-tick-line";
+      tick.dataset.value = val;
+      tick.style.position = "absolute";
+      tick.style.left = `${leftPercent}%`;
+      tick.style.top = "0";
+      tick.style.transform = "translateX(-50%)";
+      tick.style.width = "1px";
+      tick.style.height = "6px";
+      tick.style.backgroundColor = "rgba(255, 255, 255, 0.25)";
+      tick.style.transition = "all 0.15s ease";
+      ticksContainer.appendChild(tick);
+    }
+
+    // Render intermediate group labels at their midpoint positions
+    Object.entries(groups).forEach(([label, vals]) => {
+      if (label === "Fastest" || label === "Maximum") return;
+
+      const sum = vals.reduce((a, b) => a + b, 0);
+      const avg = sum / vals.length;
+      const p = (avg - min) / range;
+      const leftPercent = p * 100;
+
+      const labelEl = document.createElement("div");
+      labelEl.className = "compression-slider-tick-label";
+      labelEl.dataset.label = label;
+      labelEl.textContent = label;
+      labelEl.style.position = "absolute";
+      labelEl.style.left = `${leftPercent}%`;
+      labelEl.style.top = "10px";
+      labelEl.style.transform = "translateX(-50%)";
+      labelEl.style.fontSize = "10px";
+      labelEl.style.color = "var(--textColor2)";
+      labelEl.style.transition = "all 0.15s ease";
+      labelEl.style.whiteSpace = "nowrap";
+      labelEl.style.userSelect = "none";
+      ticksContainer.appendChild(labelEl);
+    });
+
+    // Render Fastest edge label under the first tick (left aligned)
+    const fastestEl = document.createElement("div");
+    fastestEl.className = "compression-slider-tick-label compression-slider-edge-label-bottom";
+    fastestEl.dataset.label = "Fastest";
+    fastestEl.textContent = "Fastest";
+    fastestEl.style.position = "absolute";
+    fastestEl.style.left = "0%";
+    fastestEl.style.top = "10px";
+    fastestEl.style.fontSize = "11px";
+    fastestEl.style.fontWeight = "bold";
+    fastestEl.style.color = "var(--textColor2)";
+    fastestEl.style.transition = "all 0.15s ease";
+    fastestEl.style.whiteSpace = "nowrap";
+    fastestEl.style.userSelect = "none";
+    ticksContainer.appendChild(fastestEl);
+
+    // Render Maximum edge label under the last tick (right aligned)
+    const maximumEl = document.createElement("div");
+    maximumEl.className = "compression-slider-tick-label compression-slider-edge-label-bottom";
+    maximumEl.dataset.label = "Maximum";
+    maximumEl.textContent = "Maximum";
+    maximumEl.style.position = "absolute";
+    maximumEl.style.left = "100%";
+    maximumEl.style.top = "10px";
+    maximumEl.style.transform = "translateX(-100%)";
+    maximumEl.style.fontSize = "11px";
+    maximumEl.style.fontWeight = "bold";
+    maximumEl.style.color = "var(--textColor2)";
+    maximumEl.style.transition = "all 0.15s ease";
+    maximumEl.style.whiteSpace = "nowrap";
+    maximumEl.style.userSelect = "none";
+    ticksContainer.appendChild(maximumEl);
+
+    updateTickHighlights();
+  }
+
+  function updateTickHighlights() {
+    const selectedMethod = getSelectedMethod();
+    const config = methodRanges[selectedMethod] || methodRanges.zstd;
+    const min = parseInt(config.min);
+    const max = parseInt(config.max);
+    const currentVal = parseInt(levelSlider.value);
+    const currentLabel = getCompressionLabel(currentVal, min, max);
+
+    // Highlight active tick line
+    const tickLines = ticksContainer.querySelectorAll(".compression-slider-tick-line");
+    tickLines.forEach((tick) => {
+      if (parseInt(tick.dataset.value) === currentVal) {
+        tick.style.height = "10px";
+        tick.style.backgroundColor = "var(--selectColor2)";
+        tick.style.boxShadow = "0 0 6px var(--selectColor2)";
+      } else {
+        tick.style.height = "6px";
+        tick.style.backgroundColor = "rgba(255, 255, 255, 0.25)";
+        tick.style.boxShadow = "none";
+      }
+    });
+
+    // Highlight active label (covers intermediate and edge labels)
+    const tickLabels = ticksContainer.querySelectorAll(".compression-slider-tick-label");
+    tickLabels.forEach((labelEl) => {
+      if (labelEl.dataset.label === currentLabel) {
+        labelEl.style.color = "var(--selectColor2)";
+        if (labelEl.classList.contains("compression-slider-edge-label-bottom")) {
+          labelEl.style.fontWeight = "800";
+        } else {
+          labelEl.style.fontWeight = "bold";
+        }
+        if (labelEl.style.transform && labelEl.style.transform.includes("translateX(-100%)")) {
+          labelEl.style.transform = "translateX(-100%) scale(1.05)";
+        } else if (labelEl.style.transform && labelEl.style.transform.includes("translateX(-50%)")) {
+          labelEl.style.transform = "translateX(-50%) scale(1.05)";
+        } else {
+          labelEl.style.transform = "scale(1.05)";
+        }
+      } else {
+        labelEl.style.color = "var(--textColor2)";
+        if (labelEl.classList.contains("compression-slider-edge-label-bottom")) {
+          labelEl.style.fontWeight = "bold";
+        } else {
+          labelEl.style.fontWeight = "normal";
+        }
+        if (labelEl.style.transform && labelEl.style.transform.includes("translateX(-100%)")) {
+          labelEl.style.transform = "translateX(-100%) scale(1)";
+        } else if (labelEl.style.transform && labelEl.style.transform.includes("translateX(-50%)")) {
+          labelEl.style.transform = "translateX(-50%) scale(1)";
+        } else {
+          labelEl.style.transform = "scale(1)";
+        }
+      }
+    });
+  }
+
+  function updateSliderConfig() {
+    const selectedMethod = getSelectedMethod();
+    const config = methodRanges[selectedMethod] || methodRanges.zstd;
+    
+    levelSlider.min = parseInt(config.min);
+    levelSlider.max = parseInt(config.max);
+    levelSlider.value = parseInt(config.default);
+
+    renderTicks();
+  }
+
+  typeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      typeButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      updateSliderConfig();
+    });
+  });
+
+  levelSlider.addEventListener("input", updateTickHighlights);
+
+  // Initialize slider limits and defaults
+  updateSliderConfig();
+
   popup.querySelector(".compress-item-button").addEventListener("click", async () => {
     await compressItem(
       arrCompressItems,
-      $(".compression-popup-level-input").val(),
-      $(".compression-popup-type-select").val(),
+      levelSlider.value,
+      getSelectedMethod(),
     );
   });
 
-  const levelInput = popup.querySelector(".compression-popup-level-input");
-  levelInput.addEventListener("focus", () => (IsInputFocused = true));
-  levelInput.addEventListener("blur", () => (IsInputFocused = false));
-  levelInput.addEventListener("keyup", (e) => {
-    if (((e.ctrlKey && Platform != "darwin") || e.metaKey) && e.key === "Enter") {
+  popup.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeCompressPopup();
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
       popup.querySelector(".compress-item-button").click();
     }
   });
+
+  popup.querySelector(".compress-item-button").focus();
 }
 
 async function compressItem(
@@ -2263,8 +2477,11 @@ async function compressItem(
   ) {
     alert("Compression level must be between -7 and 22");
     return;
-  } else if (compressionType == "br" && compressionLevel != 1) {
-    alert("Compression level must be 1");
+  } else if (
+    compressionType == "br" &&
+    (compressionLevel > 11 || compressionLevel < 0)
+  ) {
+    alert("Compression level must be between 0 and 11");
     return;
   }
   closeCompressPopup();

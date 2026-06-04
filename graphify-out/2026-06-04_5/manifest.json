@@ -25,9 +25,9 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/contextmenu.js": {
-    "mtime": 1780573707.81947,
-    "ast_hash": "5af23101e4cfc6e33f57d1adbb5ced29",
-    "semantic_hash": ""
+    "mtime": 1780488192.7590406,
+    "ast_hash": "9b61782cb52863835b63932ddbadcfdc",
+    "semantic_hash": "9b61782cb52863835b63932ddbadcfdc"
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/file_extensions.js": {
     "mtime": 1779136409.238588,
@@ -175,9 +175,9 @@
     "semantic_hash": "599d62d6a68bd79461a23d13d1079ede"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/window_tauri_ext.rs": {
-    "mtime": 1780570492.038124,
-    "ast_hash": "89781ac2baa65b09ba221367feb684a2",
-    "semantic_hash": ""
+    "mtime": 1780488192.7579207,
+    "ast_hash": "3a7e0d77c6b8a4a3dff5d372d7ca578d",
+    "semantic_hash": "3a7e0d77c6b8a4a3dff5d372d7ca578d"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/applications.rs": {
     "mtime": 1779136409.2349153,
@@ -185,13 +185,13 @@
     "semantic_hash": "8fe56b9fb9f759017a8fcb36d80c505b"
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/main.rs": {
-    "mtime": 1780570497.416013,
-    "ast_hash": "8f5e3f78a36b1fb7c689c16634c9c15d",
+    "mtime": 1780565887.8324149,
+    "ast_hash": "15dc71ed2836e62fa490d8546fe44ed7",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/utils.rs": {
-    "mtime": 1780571530.8522835,
-    "ast_hash": "a228165016780bc72086b257c57460c4",
+    "mtime": 1780488192.7576537,
+    "ast_hash": "d8770147dbb03aa1332111ef214bd1d0",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/src/remote/ftp.rs": {
@@ -11095,8 +11095,8 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/main_logic.js": {
-    "mtime": 1780572914.5548885,
-    "ast_hash": "c1e747ff0f6cf3994fc52cd8b5e75ab3",
+    "mtime": 1780567974.473121,
+    "ast_hash": "b301b6e1348cf4e3f6d6044005ea48ea",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/windows-schema.json": {

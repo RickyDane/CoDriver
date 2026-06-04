@@ -25,9 +25,9 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/contextmenu.js": {
-    "mtime": 1780573707.81947,
-    "ast_hash": "5af23101e4cfc6e33f57d1adbb5ced29",
-    "semantic_hash": ""
+    "mtime": 1780488192.7590406,
+    "ast_hash": "9b61782cb52863835b63932ddbadcfdc",
+    "semantic_hash": "9b61782cb52863835b63932ddbadcfdc"
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/file_extensions.js": {
     "mtime": 1779136409.238588,
@@ -11095,8 +11095,8 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/main_logic.js": {
-    "mtime": 1780572914.5548885,
-    "ast_hash": "c1e747ff0f6cf3994fc52cd8b5e75ab3",
+    "mtime": 1780572339.019555,
+    "ast_hash": "ad77244157d284046abda024d380e6e7",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/windows-schema.json": {

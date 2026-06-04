@@ -29,47 +29,6 @@ class CDContextMenu {
     ],
     [
       {
-        label: "Extra",
-        icon: "fa-solid fa-ellipsis",
-        subItems: [
-          {
-            label: "Find duplicates",
-            icon: "fa-solid fa-copy",
-            action: () => {
-              let path = this.selectedItem
-                ? this.selectedItem.getAttribute("itempath")
-                : CurrentDir;
-              showDuplicateFinderPopup(path);
-              this.hide();
-            },
-          },
-          {
-            label: "Smart Organize",
-            icon: "fa-solid fa-wand-magic-sparkles",
-            action: () => {
-              let path = this.selectedItem
-                ? this.selectedItem.getAttribute("itempath")
-                : CurrentDir;
-              showSmartOrganizerPopup(path);
-              this.hide();
-            },
-          },
-          {
-            label: "Disk Analyzer",
-            icon: "fa-solid fa-chart-pie",
-            action: () => {
-              let path = this.selectedItem
-                ? this.selectedItem.getAttribute("itempath")
-                : CurrentDir;
-              showDiskAnalyzerPopup(path);
-              this.hide();
-            },
-          },
-        ],
-      },
-    ],
-    [
-      {
         label: "Copy",
         icon: "fa-solid fa-copy",
         action: () => copyItem(this.selectedItem),
@@ -134,35 +93,6 @@ class CDContextMenu {
     ],
     [
       {
-        label: "Properties",
-        icon: "fa-solid fa-info-circle",
-        action: () => showProperties(this.selectedItem),
-      },
-    ],
-  ];
-
-  diskItemGroups = [
-    [
-      {
-        label: "Open Disk",
-        icon: "fa-solid fa-folder-open",
-        action: () => openItem(this.selectedItem, ""),
-      },
-    ],
-    [
-      {
-        label: "Add to Favorites",
-        icon: "fa-solid fa-star",
-        action: () => addFavorite(this.selectedItem.getAttribute("itempath")),
-      },
-      {
-        label: "Remove Favorite",
-        icon: "fa-regular fa-star",
-        action: () => removeFavorite(this.selectedItem.getAttribute("itempath")),
-      },
-    ],
-    [
-      {
         label: "Extra",
         icon: "fa-solid fa-ellipsis",
         subItems: [
@@ -204,6 +134,35 @@ class CDContextMenu {
     ],
     [
       {
+        label: "Properties",
+        icon: "fa-solid fa-info-circle",
+        action: () => showProperties(this.selectedItem),
+      },
+    ],
+  ];
+
+  diskItemGroups = [
+    [
+      {
+        label: "Open Disk",
+        icon: "fa-solid fa-folder-open",
+        action: () => openItem(this.selectedItem, ""),
+      },
+    ],
+    [
+      {
+        label: "Add to Favorites",
+        icon: "fa-solid fa-star",
+        action: () => addFavorite(this.selectedItem.getAttribute("itempath")),
+      },
+      {
+        label: "Remove Favorite",
+        icon: "fa-regular fa-star",
+        action: () => removeFavorite(this.selectedItem.getAttribute("itempath")),
+      },
+    ],
+    [
+      {
         label: "Copy Path",
         icon: "fa-solid fa-clipboard",
         action: async () => {
@@ -220,6 +179,47 @@ class CDContextMenu {
         label: "Eject Disk",
         icon: "fa-solid fa-eject",
         action: () => ejectDisk(this.selectedItem),
+      },
+    ],
+    [
+      {
+        label: "Extra",
+        icon: "fa-solid fa-ellipsis",
+        subItems: [
+          {
+            label: "Find duplicates",
+            icon: "fa-solid fa-copy",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showDuplicateFinderPopup(path);
+              this.hide();
+            },
+          },
+          {
+            label: "Smart Organize",
+            icon: "fa-solid fa-wand-magic-sparkles",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showSmartOrganizerPopup(path);
+              this.hide();
+            },
+          },
+          {
+            label: "Disk Analyzer",
+            icon: "fa-solid fa-chart-pie",
+            action: () => {
+              let path = this.selectedItem
+                ? this.selectedItem.getAttribute("itempath")
+                : CurrentDir;
+              showDiskAnalyzerPopup(path);
+              this.hide();
+            },
+          },
+        ],
       },
     ],
     [
@@ -257,6 +257,21 @@ class CDContextMenu {
     ],
     [
       {
+        label: "Copy Path",
+        icon: "fa-solid fa-clipboard",
+        action: async () => {
+          await writeText(this.selectedItem.getAttribute("itempath"));
+          showToast("Copied path to clipboard", ToastType.INFO);
+        },
+      },
+      {
+        label: "Open in Terminal",
+        icon: "fa-solid fa-terminal",
+        action: () => openInTerminal(this.selectedItem),
+      },
+    ],
+    [
+      {
         label: "Extra",
         icon: "fa-solid fa-ellipsis",
         subItems: [
@@ -294,21 +309,6 @@ class CDContextMenu {
             },
           },
         ],
-      },
-    ],
-    [
-      {
-        label: "Copy Path",
-        icon: "fa-solid fa-clipboard",
-        action: async () => {
-          await writeText(this.selectedItem.getAttribute("itempath"));
-          showToast("Copied path to clipboard", ToastType.INFO);
-        },
-      },
-      {
-        label: "Open in Terminal",
-        icon: "fa-solid fa-terminal",
-        action: () => openInTerminal(this.selectedItem),
       },
     ],
     [

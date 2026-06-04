@@ -5835,6 +5835,7 @@ async fn get_single_item_info(path: String) -> Result<FDir, String> {
 }
 
 #[tauri::command]
+#[allow(deprecated)]
 async fn get_clipboard_files() -> Result<Vec<FDir>, String> {
     #[cfg(target_os = "macos")]
     {
@@ -5907,6 +5908,7 @@ async fn get_clipboard_files() -> Result<Vec<FDir>, String> {
 }
 
 #[tauri::command]
+#[allow(deprecated)]
 async fn write_clipboard_files(files: Vec<String>) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
@@ -6001,6 +6003,7 @@ async fn write_clipboard_files(files: Vec<String>) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[allow(deprecated)]
 async fn save_clipboard_image(target_dir: String) -> Result<String, String> {
     #[cfg(target_os = "macos")]
     {

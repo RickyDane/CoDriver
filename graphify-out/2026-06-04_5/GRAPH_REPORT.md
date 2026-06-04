@@ -1,16 +1,16 @@
 # Graph Report - CoDriver  (2026-06-04)
 
 ## Corpus Check
-- 71 files · ~1,463,441 words
+- 71 files · ~1,462,677 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2336 nodes · 4010 edges · 226 communities (181 shown, 45 thin omitted)
+- 2336 nodes · 4010 edges · 225 communities (180 shown, 45 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 259 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `62f33033`
+- Built from commit: `c6d56dff`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -31,7 +31,7 @@
 - [[_COMMUNITY_Rust Native System Clipboard Utilities|Rust Native System Clipboard Utilities]]
 - [[_COMMUNITY_Popup Modals & Workspace Panel Closers|Popup Modals & Workspace Panel Closers]]
 - [[_COMMUNITY_ai_get_organizer_suggestions() & ai_style_image()|ai_get_organizer_suggestions() & ai_style_image()]]
-- [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_clearNestedOverrides() & collectDeletionPlan()|clearNestedOverrides() & collectDeletionPlan()]]
 - [[_COMMUNITY_Context Menu Visual Overhaul Summary|Context Menu Visual Overhaul Summary]]
 - [[_COMMUNITY_.setSelectedItem() & deSelectItem()|.setSelectedItem() & deSelectItem()]]
 - [[_COMMUNITY_Dark.json & name|Dark.json & name]]
@@ -214,7 +214,6 @@
 - [[_COMMUNITY_Community 218|Community 218]]
 - [[_COMMUNITY_Community 219|Community 219]]
 - [[_COMMUNITY_Community 220|Community 220]]
-- [[_COMMUNITY_Community 221|Community 221]]
 - [[_COMMUNITY_Community 222|Community 222]]
 - [[_COMMUNITY_Community 223|Community 223]]
 - [[_COMMUNITY_Community 227|Community 227]]
@@ -257,15 +256,15 @@
 - **Conflict Resolution Orchestration** — ui_main_logic_pasteitem, src_main_arr_copy_paste, memories_project_context_conflict_discovery_ui_vs_backend, components_file_operations_file [INFERRED 0.95]
 - **Deployment Pipelines** — workflows_tag_file, workflows_main_file, snap_snapcraft_file [INFERRED 0.95]
 
-## Communities (226 total, 45 thin omitted)
+## Communities (225 total, 45 thin omitted)
 
 ### Community 0 - "Tauri Security & Command Permissions"
 Cohesion: 0.05
-Nodes (53): description, identifier, commands, description, identifier, commands, description, identifier (+45 more)
+Nodes (53): commands, description, identifier, commands, description, identifier, commands, description (+45 more)
 
 ### Community 1 - "Frontend Explorer UI State & Global Event Loops"
 Cohesion: 0.02
-Nodes (52): check_for_updates(), appWindow, ArrActiveActions, ArrDirectoryItems, ArrFavorites, b, BuiltInThemes, buttons (+44 more)
+Nodes (52): check_for_updates(), applyTheme(), applyThemeFromSelect(), appWindow, ArrActiveActions, ArrDirectoryItems, ArrFavorites, b (+44 more)
 
 ### Community 2 - "Rust Backend Tauri IPC Commands"
 Cohesion: 0.04
@@ -292,16 +291,16 @@ Cohesion: 0.15
 Nodes (15): anyOf, definitions, Identifier, Number, PermissionEntry, Value, oneOf, anyOf (+7 more)
 
 ### Community 8 - "System Architecture, API Contracts & Specs"
-Cohesion: 0.07
-Nodes (36): commands, description, identifier, commands, description, identifier, commands, commands (+28 more)
+Cohesion: 0.06
+Nodes (50): commands, commands, description, identifier, commands, description, identifier, commands (+42 more)
 
 ### Community 9 - "Pane Navigation & Drag-and-Drop Handlers"
-Cohesion: 0.14
-Nodes (33): get_current_dir(), applyCustomIconColor(), cancelSearch(), changeIconSize(), clearComparison(), clearComparisonVisuals(), clearQuickSearch(), closeSyncPopup() (+25 more)
+Cohesion: 0.12
+Nodes (37): get_current_dir(), applyCustomIconColor(), cancelSearch(), changeIconSize(), clearComparison(), clearComparisonVisuals(), clearQuickSearch(), closeSyncPopup() (+29 more)
 
 ### Community 10 - "Explorer Configuration & Dual Pane Operations"
-Cohesion: 0.21
-Nodes (8): commands, description, identifier, commands, description, identifier, deny-app-show, deny-set-dock-visibility
+Cohesion: 0.15
+Nodes (16): Collapsible Sidebar Review Findings, Collapsible Sidebar Review Summary, unmount_network_drive(), success_log(), connectToFtp(), ejectDisk(), ejectFTP(), getDir() (+8 more)
 
 ### Community 11 - "Directory Rendering & DOM Item Rendering"
 Cohesion: 0.04
@@ -323,9 +322,9 @@ Nodes (27): Popup Overhaul Review Findings, closeCompressPopup(), closeConfirmPo
 Cohesion: 0.02
 Nodes (42): appWindow, ArrActiveActions, ArrDirectoryItems, ArrFavorites, BuiltInThemes, buttons, cdCtMenu, compareItems() (+34 more)
 
-### Community 16 - "Community 16"
+### Community 16 - "clearNestedOverrides() & collectDeletionPlan()"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, allow-cli-matches
+Nodes (4): commands, description, identifier, deny-app-show
 
 ### Community 17 - "Context Menu Visual Overhaul Summary"
 Cohesion: 0.17
@@ -352,12 +351,12 @@ Cohesion: 0.15
 Nodes (12): name, nav_bar_color, primary_color, secondary_color, sidebar_top_blur_overlay_color, site_bar_color, tertiary_color, text_color (+4 more)
 
 ### Community 23 - "Collapsible Sidebar Review Findings &"
-Cohesion: 0.19
-Nodes (13): Collapsible Sidebar Review Findings, Collapsible Sidebar Review Summary, Display-Only Quote Cleanup Rationale, Disk Sidebar Display and Usage Refresh Fixes Handoffs, addNewMount(), createSidebarDiskButton(), displayDiskName(), getDiskUsedPercentage() (+5 more)
+Cohesion: 0.31
+Nodes (9): Display-Only Quote Cleanup Rationale, Disk Sidebar Display and Usage Refresh Fixes Handoffs, addNewMount(), createSidebarDiskButton(), displayDiskName(), getDiskUsedPercentage(), refreshDiskSidebarUsage(), setDiskDropdowns() (+1 more)
 
 ### Community 24 - "__app-acl__ & cli"
-Cohesion: 0.10
-Nodes (40): commands, description, identifier, __app-acl__, default_permission, global_scope_schema, permission_sets, permissions (+32 more)
+Cohesion: 0.11
+Nodes (37): commands, description, identifier, __app-acl__, default_permission, global_scope_schema, permission_sets, permissions (+29 more)
 
 ### Community 25 - "unmount_network_drive() & success_log()"
 Cohesion: 0.10
@@ -384,12 +383,12 @@ Cohesion: 0.22
 Nodes (8): build, beforeBuildCommand, beforeDevCommand, frontendDist, identifier, mainBinaryName, productName, version
 
 ### Community 31 - "calc_transfer_speed() & clear_console()"
-Cohesion: 0.06
-Nodes (40): commands, description, identifier, commands, description, identifier, description, identifier (+32 more)
+Cohesion: 0.05
+Nodes (44): commands, description, identifier, description, identifier, commands, description, identifier (+36 more)
 
 ### Community 32 - "audio_dir() & desktop_dir()"
-Cohesion: 0.15
-Nodes (13): definitions, Number, PermissionEntry, Target, Value, anyOf, description, anyOf (+5 more)
+Cohesion: 0.13
+Nodes (15): definitions, Identifier, Number, PermissionEntry, Target, Value, oneOf, anyOf (+7 more)
 
 ### Community 33 - "go_back() & go_home()"
 Cohesion: 0.10
@@ -464,8 +463,8 @@ Cohesion: 0.15
 Nodes (13): get_machine_bytes(), load_item_image(), log_debug(), main(), rename_elements_with_format(), search_for(), search_ftp_recursive(), stop_compression() (+5 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.50
-Nodes (4): commands, description, identifier, allow-remove-listener
+Cohesion: 0.21
+Nodes (8): commands, description, identifier, commands, description, identifier, allow-register-listener, deny-remove-listener
 
 ### Community 52 - "Copy/Move Destination Conflict Modal Mockup"
 Cohesion: 0.50
@@ -553,11 +552,11 @@ Nodes (11): API Contracts, `arr_copy_paste`, `arr_delete_items`, code:js (invoke
 
 ### Community 114 - "Community 114"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, allow-name
+Nodes (4): commands, description, identifier, deny-set-dock-visibility
 
 ### Community 115 - "Community 115"
-Cohesion: 0.04
-Nodes (55): commands, description, identifier, commands, description, identifier, commands, commands (+47 more)
+Cohesion: 0.05
+Nodes (44): commands, description, identifier, commands, description, identifier, commands, description (+36 more)
 
 ### Community 116 - "Community 116"
 Cohesion: 0.22
@@ -772,16 +771,16 @@ Cohesion: 0.50
 Nodes (3): code:mermaid (graph TB), CoDriver Architecture, Documentation Map
 
 ### Community 169 - "Community 169"
-Cohesion: 0.50
-Nodes (4): CR-003: `display: block` vs `display: flex` — CSS and JS disagree, Description, Impact, Recommendation
+Cohesion: 0.29
+Nodes (6): Code Review: Context Menu Visual Overhaul, CR-003: `display: block` vs `display: flex` — CSS and JS disagree, Description, Impact, Positive Findings, Recommendation
 
 ### Community 170 - "Community 170"
 Cohesion: 0.50
 Nodes (4): CR-006: Staggered `nth-child` animation delays count dividers, Description, Impact, Recommendation
 
 ### Community 171 - "Community 171"
-Cohesion: 0.29
-Nodes (6): Code Review: Context Menu Visual Overhaul, CR-009: Stale `ContextMenu` global variable — dead reference, Description, Impact, Positive Findings, Recommendation
+Cohesion: 0.50
+Nodes (4): CR-009: Stale `ContextMenu` global variable — dead reference, Description, Impact, Recommendation
 
 ### Community 172 - "Community 172"
 Cohesion: 0.50
@@ -796,24 +795,24 @@ Cohesion: 0.12
 Nodes (30): add_favorite(), ai_get_organizer_suggestions(), ai_style_image(), ai_upscale_image(), app_config_dir(), call_gemini_api(), call_openai_api(), config_dir() (+22 more)
 
 ### Community 175 - "Community 175"
-Cohesion: 0.22
-Nodes (9): properties, Identifier, description, oneOf, type, identifier, remote, anyOf (+1 more)
+Cohesion: 0.18
+Nodes (11): description, properties, required, type, Capability, description, type, identifier (+3 more)
 
 ### Community 176 - "Community 176"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, allow-register-listener
+Nodes (4): commands, description, identifier, deny-app-hide
 
 ### Community 177 - "Community 177"
-Cohesion: 0.14
-Nodes (12): commands, description, identifier, commands, description, identifier, commands, description (+4 more)
+Cohesion: 0.21
+Nodes (8): commands, description, identifier, commands, description, identifier, allow-app-hide, allow-identifier
 
 ### Community 178 - "Community 178"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, allow-set-app-theme
+Nodes (4): commands, description, identifier, allow-supports-multiple-windows
 
 ### Community 179 - "Community 179"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-app-hide
+Nodes (4): commands, description, identifier, deny-fetch-data-store-identifiers
 
 ### Community 180 - "Community 180"
 Cohesion: 0.40
@@ -849,15 +848,15 @@ Nodes (4): commands, description, identifier, allow-tauri-version
 
 ### Community 214 - "Community 214"
 Cohesion: 0.50
-Nodes (4): description, required, type, Capability
+Nodes (4): commands, description, identifier, allow-app-show
 
 ### Community 215 - "Community 215"
-Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-cli-matches
+Cohesion: 0.21
+Nodes (8): commands, description, identifier, commands, description, identifier, allow-name, allow-remove-listener
 
 ### Community 216 - "Community 216"
-Cohesion: 0.08
-Nodes (35): check_app_config(), unmount_network_drive(), success_log(), addFavorite(), applyPlatformFeatures(), applyTheme(), applyThemeFromSelect(), checkAppConfig() (+27 more)
+Cohesion: 0.15
+Nodes (19): check_app_config(), addFavorite(), applyPlatformFeatures(), checkAppConfig(), closeSettings(), configBackButton(), deleteActiveTheme(), editActiveTheme() (+11 more)
 
 ### Community 217 - "Community 217"
 Cohesion: 0.12
@@ -865,19 +864,15 @@ Nodes (19): applyPlatformFeatures(), applyTheme(), applyThemeFromSelect(), check
 
 ### Community 218 - "Community 218"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-default-window-icon
+Nodes (4): commands, description, identifier, deny-tauri-version
 
 ### Community 219 - "Community 219"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-fetch-data-store-identifiers
+Nodes (4): commands, description, identifier, deny-version
 
 ### Community 220 - "Community 220"
 Cohesion: 0.40
 Nodes (6): addNewMount(), createSidebarDiskButton(), displayDiskName(), getDiskUsedPercentage(), setDiskDropdowns(), updateSidebarDiskButtonUsage()
-
-### Community 221 - "Community 221"
-Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-identifier
 
 ### Community 222 - "Community 222"
 Cohesion: 0.40
@@ -885,7 +880,7 @@ Nodes (4): anyOf, description, $schema, title
 
 ### Community 223 - "Community 223"
 Cohesion: 0.50
-Nodes (4): commands, description, identifier, deny-tauri-version
+Nodes (4): commands, description, identifier, allow-set-app-theme
 
 ### Community 227 - "Community 227"
 Cohesion: 0.50
@@ -903,11 +898,11 @@ Nodes (4): default, description, type, local
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `showToast()` connect `calculate_local_dir_size() & calculate_space_tree_rec()` to `Frontend Explorer UI State & Global Event Loops`, `File Selection & Client-Side Local Storage`, `Community 217`, `list_disks() & sortByLoad`, `Community 137`, `Pane Navigation & Drag-and-Drop Handlers`, `FTP Configuration & Path Normalization Helpers`, `Community 173`, `Popup Modals & Workspace Panel Closers`, `cancelSearch() & searchFor()`, `Community 148`, `Event-Driven Disk Refresh Rationale &`, `Community 216`, `unmount_network_drive() & success_log()`, `App & find_app_icns()`?**
+- **Why does `showToast()` connect `calculate_local_dir_size() & calculate_space_tree_rec()` to `File Selection & Client-Side Local Storage`, `Community 217`, `list_disks() & sortByLoad`, `Community 137`, `Pane Navigation & Drag-and-Drop Handlers`, `Explorer Configuration & Dual Pane Operations`, `FTP Configuration & Path Normalization Helpers`, `Community 173`, `Popup Modals & Workspace Panel Closers`, `cancelSearch() & searchFor()`, `Community 148`, `Event-Driven Disk Refresh Rationale &`, `Community 216`, `unmount_network_drive() & success_log()`, `App & find_app_icns()`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Why does `formatBytes()` connect `cancelSearch() & searchFor()` to `go_back() & go_home()`, `File Selection & Client-Side Local Storage`, `list_disks() & sortByLoad`, `Community 136`, `FTP Configuration & Path Normalization Helpers`, `Community 211`, `Community 148`, `add_favorite() & app_config_dir()`?**
   _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `stopSearching()` connect `Community 173` to `Frontend Explorer UI State & Global Event Loops`, `Rust Backend Tauri IPC Commands`, `File Selection & Client-Side Local Storage`?**
+- **Why does `stopSearching()` connect `Community 173` to `Pane Navigation & Drag-and-Drop Handlers`, `Rust Backend Tauri IPC Commands`, `File Selection & Client-Side Local Storage`?**
   _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **What connects `appWindow`, `ds`, `cdCtMenu` to the rest of the system?**
   _914 weakly-connected nodes found - possible documentation gaps or missing edges._
