@@ -3366,17 +3366,11 @@ async fn extract_item(from_path: String, app_window: WebviewWindow) {
     let sw = Stopwatch::start_new();
 
     if file_ext == ".br" {
-        let stripped_path = from_path
-            .strip_suffix(&file_ext)
-            .unwrap()
-            .strip_suffix(".tar")
-            .unwrap();
-        let _ = extract_brotli_tar(
-            &from_path,
-            &stripped_path
-                .strip_suffix(&(".".to_string() + stripped_path.split(".").last().unwrap()))
-                .unwrap(),
-        );
+        let mut stripped_path = from_path.strip_suffix(&file_ext).unwrap().to_string();
+        if stripped_path.ends_with(".tar") {
+            stripped_path = stripped_path.strip_suffix(".tar").unwrap().to_string();
+        }
+        let _ = extract_brotli_tar(&from_path, &stripped_path);
     } else if file_ext == ".density" {
         let _ = extract_from_density(&from_path, &from_path.strip_suffix(&file_ext).unwrap());
     } else if from_path.ends_with(".tar.zst") || from_path.ends_with(".tar.zstd") {

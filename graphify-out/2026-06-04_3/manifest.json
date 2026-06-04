@@ -35,8 +35,8 @@
     "semantic_hash": "25fdd06b0fd5b3c204ed9d0a2b8fd7f7"
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/utils.js": {
-    "mtime": 1780567560.5641992,
-    "ast_hash": "9638336ef6a5a362e33eeff2e931bd55",
+    "mtime": 1780488192.8034666,
+    "ast_hash": "ee03ac0eed250e5819939b184eb2afe4",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/jquery.js": {
@@ -140,8 +140,8 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/tauri.conf.json": {
-    "mtime": 1780569362.3434737,
-    "ast_hash": "523b0f9e31c6a65bae455661b445487d",
+    "mtime": 1780565826.417251,
+    "ast_hash": "43db9ed25e918be6170357c82138d973",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/build.rs": {
@@ -245,8 +245,8 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/index.html": {
-    "mtime": 1780567194.0893273,
-    "ast_hash": "0394b46436e0f6a5de7f5319849b64ba",
+    "mtime": 1780566534.3086588,
+    "ast_hash": "049d76dbceafbc3f62f240ebc00d69d6",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/resources/inter/OFL.txt": {
@@ -11095,8 +11095,8 @@
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/ui/main_logic.js": {
-    "mtime": 1780567974.473121,
-    "ast_hash": "b301b6e1348cf4e3f6d6044005ea48ea",
+    "mtime": 1780566901.4490027,
+    "ast_hash": "c283fc3686060285de0de753001a89f0",
     "semantic_hash": ""
   },
   "/Users/rickyperlick/Coding/CoDriver/src-tauri/gen/schemas/windows-schema.json": {

@@ -180,7 +180,7 @@ let CurrentSortAscending = true;
 let SelectedItemToOpen = null;
 let DefaultFileIcon = "";
 let DefaultFolderIcon = "";
-const IconThemes = ["Prestige Glass", "Minimalist Outline", "Golden Luxury", "Lucide Default"];
+const IconThemes = ["Prestige Glass", "Lucide Default"];
 
 function getVectorIconAndColor(item, themeName) {
   let isDir = item.is_dir == 1;
@@ -193,188 +193,60 @@ function getVectorIconAndColor(item, themeName) {
 
   let customColor = localStorage.getItem("icon-color-" + themeName);
 
-  if (themeName === "Minimalist Outline") {
-    let baseColor = customColor || "var(--textColor2)";
-    iconColor = baseColor;
+  if (themeName === "Lucide Default") {
     if (isDir) {
-      iconClass = "fa-regular fa-folder";
+      iconClass = "fa-solid fa-folder lucide-generic-folder";
+      iconColor = customColor || "#6E6E80";
+      customStyle = "";
       switch (name) {
-        case "downloads": iconClass = "fa-regular fa-circle-down"; break;
-        case "desktop": iconClass = "fa-solid fa-desktop"; break;
+        case "downloads":
+          iconClass = "fa-solid fa-circle-down";
+          customStyle = "";
+          break;
+        case "desktop":
+          iconClass = "fa-solid fa-desktop";
+          customStyle = "";
+          break;
         case "dokumente":
         case "documents":
         case "docs":
-          iconClass = "fa-regular fa-file-lines";
+          iconClass = "fa-solid fa-file-invoice";
+          customStyle = "";
           break;
         case "musik":
         case "music":
           iconClass = "fa-solid fa-music";
+          customStyle = "";
           break;
         case "bilder":
         case "photos":
         case "pictures":
         case "images":
-          iconClass = "fa-regular fa-image";
+          iconClass = "fa-solid fa-image";
+          customStyle = "";
           break;
         case "videos":
         case "video":
         case "movies":
-          iconClass = "fa-regular fa-file-video";
+          iconClass = "fa-solid fa-video";
+          customStyle = "";
           break;
         case "coding":
         case "code":
           iconClass = "fa-solid fa-code";
+          customStyle = "";
           break;
         case "tools":
-          iconClass = "fa-solid fa-wrench";
+          iconClass = "fa-solid fa-screwdriver-wrench";
+          customStyle = "";
           break;
         case "games":
           iconClass = "fa-solid fa-gamepad";
+          customStyle = "";
           break;
       }
     } else {
-      switch (ext) {
-        case ".rs":
-        case ".js":
-        case ".jsx":
-        case ".ts":
-        case ".tsx":
-        case ".py":
-        case ".go":
-        case ".c":
-        case ".cs":
-        case ".html":
-        case ".css":
-        case ".json":
-        case ".xml":
-        case ".php":
-        case ".dart":
-          iconClass = "fa-regular fa-file-code";
-          break;
-        case ".png":
-        case ".jpg":
-        case ".jpeg":
-        case ".gif":
-        case ".webp":
-        case ".svg":
-          iconClass = "fa-regular fa-file-image";
-          break;
-        case ".mp3":
-        case ".wav":
-        case ".ogg":
-        case ".opus":
-          iconClass = "fa-regular fa-file-audio";
-          break;
-        case ".mp4":
-        case ".mkv":
-        case ".avi":
-        case ".mov":
-        case ".webm":
-          iconClass = "fa-regular fa-file-video";
-          break;
-        case ".pdf":
-          iconClass = "fa-regular fa-file-pdf";
-          break;
-        case ".docx":
-        case ".doc":
-          iconClass = "fa-regular fa-file-word";
-          break;
-        case ".xlsx":
-          iconClass = "fa-regular fa-file-excel";
-          break;
-        case ".zip":
-        case ".rar":
-        case ".tar":
-        case ".7z":
-        case ".zst":
-        case ".zstd":
-        case ".gz":
-        case ".xz":
-        case ".bz2":
-        case ".lz":
-        case ".lz4":
-        case ".lzma":
-        case ".lzo":
-        case ".z":
-        case ".br":
-        case ".brotli":
-        case ".density":
-        case ".tgz":
-        case ".tbz2":
-        case ".txz":
-          iconClass = "fa-regular fa-file-zipper";
-          break;
-        case ".txt":
-        case ".md":
-          iconClass = "fa-regular fa-file-lines";
-          break;
-        default:
-          iconClass = "fa-regular fa-file";
-          break;
-      }
-    }
-  } else if (themeName === "Golden Luxury") {
-    if (isDir) {
-      iconClass = "fa-solid fa-folder";
-      iconColor = customColor || "#d4af37";
-      customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
-      switch (name) {
-        case "downloads": 
-          iconClass = "fa-solid fa-circle-down"; 
-          iconColor = customColor || "#f3e5ab"; 
-          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`; 
-          break;
-        case "desktop": 
-          iconClass = "fa-solid fa-desktop"; 
-          iconColor = customColor || "#d4af37"; 
-          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`; 
-          break;
-        case "dokumente":
-        case "documents":
-        case "docs":
-          iconClass = "fa-solid fa-file-invoice"; 
-          iconColor = customColor || "#c5a059"; 
-          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
-          break;
-        case "musik":
-        case "music":
-          iconClass = "fa-solid fa-music"; 
-          iconColor = customColor || "#b8860b"; 
-          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
-          break;
-        case "bilder":
-        case "photos":
-        case "pictures":
-        case "images":
-          iconClass = "fa-solid fa-image"; 
-          iconColor = customColor || "#ffd700"; 
-          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
-          break;
-        case "videos":
-        case "video":
-        case "movies":
-          iconClass = "fa-solid fa-video"; 
-          iconColor = customColor || "#b76e79"; 
-          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
-          break;
-        case "coding":
-        case "code":
-          iconClass = "fa-solid fa-code"; 
-          iconColor = customColor || "#f0e68c"; 
-          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
-          break;
-        case "tools":
-          iconClass = "fa-solid fa-screwdriver-wrench"; 
-          iconColor = customColor || "#cd7f32"; 
-          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
-          break;
-        case "games":
-          iconClass = "fa-solid fa-gamepad"; 
-          iconColor = customColor || "#ffdf00"; 
-          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.4)};`;
-          break;
-      }
-    } else {
+      iconColor = customColor || "var(--textColor2)";
       switch (ext) {
         case ".rs":
         case ".js":
@@ -392,8 +264,6 @@ function getVectorIconAndColor(item, themeName) {
         case ".php":
         case ".dart":
           iconClass = "fa-solid fa-file-code";
-          iconColor = "#f3e5ab";
-          customStyle = "--glow-color: rgba(243, 229, 171, 0.35);";
           break;
         case ".png":
         case ".jpg":
@@ -402,16 +272,12 @@ function getVectorIconAndColor(item, themeName) {
         case ".webp":
         case ".svg":
           iconClass = "fa-solid fa-file-image";
-          iconColor = "#ffd700";
-          customStyle = "--glow-color: rgba(255, 215, 0, 0.35);";
           break;
         case ".mp3":
         case ".wav":
         case ".ogg":
         case ".opus":
           iconClass = "fa-solid fa-file-audio";
-          iconColor = "#b8860b";
-          customStyle = "--glow-color: rgba(184, 134, 11, 0.35);";
           break;
         case ".mp4":
         case ".mkv":
@@ -419,24 +285,16 @@ function getVectorIconAndColor(item, themeName) {
         case ".mov":
         case ".webm":
           iconClass = "fa-solid fa-file-video";
-          iconColor = "#b76e79";
-          customStyle = "--glow-color: rgba(183, 110, 121, 0.35);";
           break;
         case ".pdf":
           iconClass = "fa-solid fa-file-pdf";
-          iconColor = "#ffd700";
-          customStyle = "--glow-color: rgba(255, 215, 0, 0.35);";
           break;
         case ".docx":
         case ".doc":
           iconClass = "fa-solid fa-file-word";
-          iconColor = "#c5a059";
-          customStyle = "--glow-color: rgba(197, 160, 89, 0.35);";
           break;
         case ".xlsx":
           iconClass = "fa-solid fa-file-excel";
-          iconColor = "#ffd700";
-          customStyle = "--glow-color: rgba(255, 215, 0, 0.35);";
           break;
         case ".zip":
         case ".rar":
@@ -459,153 +317,13 @@ function getVectorIconAndColor(item, themeName) {
         case ".tbz2":
         case ".txz":
           iconClass = "fa-solid fa-file-zipper";
-          iconColor = "#aa7c11";
-          customStyle = "--glow-color: rgba(170, 124, 17, 0.35);";
           break;
         case ".txt":
         case ".md":
           iconClass = "fa-solid fa-file-lines";
-          iconColor = "#f5f5dc";
-          customStyle = "--glow-color: rgba(245, 245, 220, 0.3);";
           break;
         default:
           iconClass = "fa-solid fa-file";
-          iconColor = customColor || "#d4af37";
-          customStyle = `--glow-color: ${hexToRgba(iconColor, 0.3)};`;
-          break;
-      }
-    }
-  } else if (themeName === "Lucide Default") {
-    if (isDir) {
-      iconClass = "fa-solid fa-folder lucide-generic-folder";
-      iconColor = customColor || "#6E6E80";
-      customStyle = "";
-      switch (name) {
-        case "downloads":
-          iconClass = "lucide icon-download";
-          customStyle = "";
-          break;
-        case "desktop":
-          iconClass = "lucide icon-monitor";
-          customStyle = "";
-          break;
-        case "dokumente":
-        case "documents":
-        case "docs":
-          iconClass = "lucide icon-files";
-          customStyle = "";
-          break;
-        case "musik":
-        case "music":
-          iconClass = "lucide icon-music";
-          customStyle = "";
-          break;
-        case "bilder":
-        case "photos":
-        case "pictures":
-        case "images":
-          iconClass = "lucide icon-image";
-          customStyle = "";
-          break;
-        case "videos":
-        case "video":
-        case "movies":
-          iconClass = "lucide icon-video";
-          customStyle = "";
-          break;
-        case "coding":
-        case "code":
-          iconClass = "lucide icon-code-2";
-          customStyle = "";
-          break;
-        case "tools":
-          iconClass = "lucide icon-wrench";
-          customStyle = "";
-          break;
-        case "games":
-          iconClass = "lucide icon-gamepad-2";
-          customStyle = "";
-          break;
-      }
-    } else {
-      iconColor = customColor || "var(--textColor2)";
-      switch (ext) {
-        case ".rs":
-        case ".js":
-        case ".jsx":
-        case ".ts":
-        case ".tsx":
-        case ".py":
-        case ".go":
-        case ".c":
-        case ".cs":
-        case ".html":
-        case ".css":
-        case ".json":
-        case ".xml":
-        case ".php":
-        case ".dart":
-          iconClass = "lucide icon-file-code";
-          break;
-        case ".png":
-        case ".jpg":
-        case ".jpeg":
-        case ".gif":
-        case ".webp":
-        case ".svg":
-          iconClass = "lucide icon-file-image";
-          break;
-        case ".mp3":
-        case ".wav":
-        case ".ogg":
-        case ".opus":
-          iconClass = "lucide icon-file-audio";
-          break;
-        case ".mp4":
-        case ".mkv":
-        case ".avi":
-        case ".mov":
-        case ".webm":
-          iconClass = "lucide icon-file-video";
-          break;
-        case ".pdf":
-          iconClass = "lucide icon-file-text";
-          break;
-        case ".docx":
-        case ".doc":
-          iconClass = "lucide icon-file-text";
-          break;
-        case ".xlsx":
-          iconClass = "lucide icon-file-spreadsheet";
-          break;
-        case ".zip":
-        case ".rar":
-        case ".tar":
-        case ".7z":
-        case ".zst":
-        case ".zstd":
-        case ".gz":
-        case ".xz":
-        case ".bz2":
-        case ".lz":
-        case ".lz4":
-        case ".lzma":
-        case ".lzo":
-        case ".z":
-        case ".br":
-        case ".brotli":
-        case ".density":
-        case ".tgz":
-        case ".tbz2":
-        case ".txz":
-          iconClass = "lucide icon-file-archive";
-          break;
-        case ".txt":
-        case ".md":
-          iconClass = "lucide icon-file-text";
-          break;
-        default:
-          iconClass = "lucide icon-file";
           break;
       }
     }
@@ -932,6 +650,13 @@ async function resetEverything() {
   IsFileOpIntern = false;
   if (ArrCopyItems.length == 0) {
     IsCopyToCut = false;
+  }
+  document.querySelectorAll(".dragged-over").forEach((el) => {
+    clearDragHighlight(el);
+  });
+  if (DraggedOverElement) {
+    clearDragHighlight(DraggedOverElement);
+    DraggedOverElement = null;
   }
   $(".path-item")?.css("opacity", "1");
   $(".site-nav-bar-button").css("border", "1px solid transparent");
@@ -1518,19 +1243,17 @@ async function showItems(items, dualPaneSide = "", millerCol = 1, isFromSort = f
       e.preventDefault();
       MousePos = [e.clientX, e.clientY];
       if (item.getAttribute("itemisdir") == "1") {
-        if (!ArrSelectedItems.includes(item))
-          item.style.border = "1px solid var(--selectColor2)";
-        {
-          item.style.backgroundColor = "var(--selectColor3)";
-          item.style.scale = "1";
+        if (!ArrSelectedItems.includes(item)) {
+          if (DraggedOverElement && DraggedOverElement !== item) {
+            clearDragHighlight(DraggedOverElement);
+          }
+          item.classList.add("dragged-over");
           DraggedOverElement = item;
         }
       }
     });
     item.addEventListener("dragleave", () => {
-      item.style.border = "1px solid transparent";
-      item.style.backgroundColor = "1px solid var(--transparentColor)";
-      item.style.scale = "1";
+      clearDragHighlight(item);
     });
     // :item_right_click :context_menu / showItems()
     // Open context menu when right-clicking on file/folder
@@ -1690,15 +1413,16 @@ async function addSingleItem(
     MousePos = [e.clientX, e.clientY];
     if (itemLink.getAttribute("itemisdir") == "1") {
       if (!ArrSelectedItems.includes(itemLink)) {
-        itemLink.style.opacity = "0.5";
-        itemLink.style.border = "1px solid var(--textColor)";
+        if (DraggedOverElement && DraggedOverElement !== itemLink) {
+          clearDragHighlight(DraggedOverElement);
+        }
+        itemLink.classList.add("dragged-over");
         DraggedOverElement = itemLink;
       }
     }
   });
   itemLink.addEventListener("dragleave", () => {
-    itemLink.style.opacity = "1";
-    itemLink.style.border = "1px solid transparent";
+    clearDragHighlight(itemLink);
   });
   // :item_right_click :context_menu | addSingleItem()
   // Open context menu when right-clicking on file/folder
@@ -1868,17 +1592,15 @@ function updateCurrentPath(currentDir, dualPaneSide) {
       pathItem.ondragover = (e) => {
         MousePos = [e.clientX, e.clientY - 60];
         e.preventDefault();
-        pathItem.style.border = "2px solid var(--selectColor)";
-        pathItem.style.backgroundColor = "var(--tertiaryColor)";
-        pathItem.style.scale = "1.05";
+        if (DraggedOverElement && DraggedOverElement !== pathItem) {
+          clearDragHighlight(DraggedOverElement);
+        }
+        pathItem.classList.add("dragged-over");
         DraggedOverElement = pathItem;
       };
       pathItem.ondragleave = (e) => {
         e.preventDefault();
-        pathItem.style.opacity = 1;
-        pathItem.style.border = "2px solid transparent";
-        pathItem.style.backgroundColor = "var(--transparentColor)";
-        pathItem.style.scale = "1";
+        clearDragHighlight(pathItem);
       };
 
       let divider = document.createElement("i");
@@ -4281,6 +4003,10 @@ async function checkAppConfig() {
 
     // Set active icon theme card matching localStorage
     let savedIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
+    if (savedIconTheme !== "Prestige Glass" && savedIconTheme !== "Lucide Default") {
+      savedIconTheme = "Prestige Glass";
+      localStorage.setItem("current-icon-theme", savedIconTheme);
+    }
     document.querySelectorAll(".icon-theme-card").forEach(card => {
       if (card.getAttribute("data-theme") === savedIconTheme) {
         card.classList.add("active");
@@ -4944,7 +4670,9 @@ async function selectItem(
           item.children[0].classList.remove("selected-item");
         } else {
           item.children[0].children[0].classList.remove("selected-item");
-          item.children[0].children[1].classList.remove("selected-item-min");
+          item.children[0].querySelectorAll(".item-icon").forEach(icon => {
+            icon.classList.remove("selected-item-min");
+          });
         }
       }
     });
@@ -4967,9 +4695,9 @@ async function selectItem(
       SelectedElement?.children[0].classList.add("selected-item");
     } else {
       SelectedElement?.children[0].children[0].classList.add("selected-item");
-      SelectedElement?.children[0].children[1].classList.add(
-        "selected-item-min",
-      );
+      SelectedElement?.children[0].querySelectorAll(".item-icon").forEach(icon => {
+        icon.classList.add("selected-item-min");
+      });
     }
   }
   SelectedElement.setAttribute("itemisselected", true);
@@ -5092,7 +4820,9 @@ function deSelectItem(item) {
       item.children[0]?.classList.remove("selected-item");
     } else {
       item.children[0]?.children[0]?.classList.remove("selected-item");
-      item.children[0]?.children[1]?.classList.remove("selected-item-min");
+      item.children[0]?.querySelectorAll(".item-icon").forEach(icon => {
+        icon.classList.remove("selected-item-min");
+      });
     }
   }
   var index = ArrSelectedItems.indexOf(item);
@@ -5125,9 +4855,9 @@ async function unSelectAllItems() {
             ArrSelectedItems[i].children[0].children[0].classList.remove(
               "selected-item",
             );
-            ArrSelectedItems[i].children[0].children[1].classList.remove(
-              "selected-item-min",
-            );
+            ArrSelectedItems[i].children[0].querySelectorAll(".item-icon").forEach(icon => {
+              icon.classList.remove("selected-item-min");
+            });
           }
         } catch (e) {
           writeLog(e);
@@ -7542,8 +7272,6 @@ function parseCssColor(colorStr) {
 }
 
 const DefaultIconColors = {
-  "Minimalist Outline": "var(--textColor2)",
-  "Golden Luxury": "#d4af37",
   "Lucide Default": "#6E6E80"
 };
 
@@ -7626,30 +7354,16 @@ function updateIconThemePreviews() {
       if (folderIcon) {
         if (folderIcon.tagName !== "IMG") {
           folderIcon.style.color = customColor;
-          if (themeName === "Golden Luxury") {
-            folderIcon.style.setProperty("--glow-color", hexToRgba(customColor, 0.4));
-            folderIcon.style.filter = `drop-shadow(0 0 6px ${hexToRgba(customColor, 0.4)})`;
-          } else {
-            folderIcon.style.filter = "none";
-          }
+          folderIcon.style.filter = "none";
         }
       }
       
-      if (themeName === "Minimalist Outline" || themeName === "Lucide Default") {
+      if (themeName === "Lucide Default") {
         if (fileCodeIcon) fileCodeIcon.style.color = customColor;
         if (fileImageIcon) fileImageIcon.style.color = customColor;
       }
     } else {
-      if (themeName === "Minimalist Outline") {
-        if (folderIcon) folderIcon.style.color = "var(--textColor2)";
-        if (fileCodeIcon) fileCodeIcon.style.color = "var(--textColor2)";
-        if (fileImageIcon) fileImageIcon.style.color = "var(--textColor2)";
-      } else if (themeName === "Golden Luxury") {
-        if (folderIcon) {
-          folderIcon.style.color = "#d4af37";
-          folderIcon.style.filter = "drop-shadow(0 0 6px rgba(212, 175, 55, 0.5))";
-        }
-      } else if (themeName === "Lucide Default") {
+      if (themeName === "Lucide Default") {
         if (folderIcon) {
           folderIcon.style.color = "#6E6E80";
           folderIcon.style.filter = "none";
@@ -7711,7 +7425,7 @@ function changeIconSize(scalePercent) {
   if (currentIconTheme === "Prestige Glass" || currentIconTheme === "Lucide Default") {
     baseListIcon = 28;
     baseMillerIcon = 21;
-    baseGridIcon = 64;
+    baseGridIcon = 56;
   }
 
   // Boost base font size for thin outline vectors (Lucide) to align visual presence with solid vectors
@@ -8411,16 +8125,15 @@ async function insertSiteNavButtons() {
     };
     button.ondragover = (e) => {
       e.preventDefault();
-      button.style.border = "1px solid var(--tertiaryColor)";
-      button.style.backgroundColor = "var(--sidebarHover)";
-      button.style.scale = "1.05";
+      if (DraggedOverElement && DraggedOverElement !== button) {
+        clearDragHighlight(DraggedOverElement);
+      }
+      button.classList.add("dragged-over");
       DraggedOverElement = button;
       MousePos = [e.clientX, e.clientY];
     };
     button.ondragleave = () => {
-      button.style.border = "1px solid transparent";
-      button.style.backgroundColor = "transparent";
-      button.style.scale = "1";
+      clearDragHighlight(button);
     };
     document.querySelector(".site-nav-bar").append(button);
   }
@@ -8491,14 +8204,15 @@ async function insertSiteNavButtons() {
       };
       button.ondragover = (e) => {
         e.preventDefault();
-        button.style.border = "1px solid var(--tertiaryColor)";
-        button.style.backgroundColor = "var(--sidebarHover)";
+        if (DraggedOverElement && DraggedOverElement !== button) {
+          clearDragHighlight(DraggedOverElement);
+        }
+        button.classList.add("dragged-over");
         DraggedOverElement = button;
         MousePos = [e.clientX, e.clientY];
       };
       button.ondragleave = () => {
-        button.style.border = "1px solid transparent";
-        button.style.backgroundColor = "transparent";
+        clearDragHighlight(button);
       };
       favContainer.append(button);
     });
@@ -8819,14 +8533,15 @@ async function configBackButton(path = "") {
   button.setAttribute("itempath", path);
   button.ondragover = (e) => {
     e.preventDefault();
-    button.style.border = "1px solid var(--selectColor2)";
-    button.style.backgroundColor = "var(--transparentColor)";
-    button.style.scale = "1.05";
+    if (DraggedOverElement && DraggedOverElement !== button) {
+      clearDragHighlight(DraggedOverElement);
+    }
+    button.classList.add("dragged-over");
     DraggedOverElement = button;
     MousePos = [e.clientX, e.clientY];
   };
   button.ondragleave = () => {
-    resetBackButton();
+    clearDragHighlight(button);
   };
 }
 
@@ -10369,9 +10084,9 @@ function applyDirectoryListStyles(element, mode) {
   if (!element) return;
   if (mode === "wrap") {
     element.style.display = "grid";
-    element.style.gridTemplateColumns = "repeat(auto-fill, minmax(90px, 1fr))";
-    element.style.columnGap = "15px";
-    element.style.rowGap = "15px";
+    element.style.gridTemplateColumns = "repeat(auto-fill, minmax(calc(var(--gridIconSize) + 24px), 1fr))";
+    element.style.columnGap = "12px";
+    element.style.rowGap = "12px";
   } else if (mode === "column") {
     element.style.display = "grid";
     element.style.gridTemplateColumns = "unset";
@@ -10434,7 +10149,7 @@ function getTargetContainers(parentPath) {
 function createItemInnerHtml(item, itemIconId, viewMode, dualPaneSide) {
   let fileIcon = "resources/file-icon.png";
   let iconSize = "56px";
-  let vectorFontSize = "28px";
+  let vectorFontSize = "22px";
   if (viewMode === "column") {
     iconSize = "24px";
     vectorFontSize = "13px";
@@ -10458,29 +10173,25 @@ function createItemInnerHtml(item, itemIconId, viewMode, dualPaneSide) {
 
   // Boost initial font size for thin outline vectors (Lucide) to align visual presence with solid vectors
   if (isVectorTheme && currentIconTheme.startsWith("Lucide")) {
-    if (viewMode === "wrap") vectorFontSize = "36px";
-    else if (viewMode === "column") vectorFontSize = "17px";
-    else if (viewMode === "miller") vectorFontSize = "13px";
+    if (viewMode === "wrap") vectorFontSize = "22px";
+    else if (viewMode === "column") vectorFontSize = "14px";
+    else if (viewMode === "miller") vectorFontSize = "11px";
   }
 
   let vectorHtml = "";
   if (isVectorTheme) {
     let vectorData = getVectorIconAndColor(item, currentIconTheme);
     let finalFontSize = vectorFontSize;
-    let finalTransform = "";
     if (currentIconTheme === "Lucide Default" && vectorData.iconClass.includes("fa-folder")) {
       if (viewMode === "wrap") {
-        finalFontSize = "29px !important";
-        finalTransform = "transform: scale(0.68) !important;";
+        finalFontSize = "18px !important";
       } else if (viewMode === "column") {
-        finalFontSize = "15px !important";
-        finalTransform = "transform: scale(0.7) !important;";
+        finalFontSize = "11px !important";
       } else if (viewMode === "miller") {
-        finalFontSize = "12px !important";
-        finalTransform = "transform: scale(0.7) !important;";
+        finalFontSize = "9px !important";
       }
     }
-    vectorHtml = `<i class="${vectorData.iconClass} item-icon vector-icon" style="color: ${vectorData.iconColor}; font-size: ${finalFontSize}; ${finalTransform} display: flex; align-items: center; justify-content: center; ${vectorData.customStyle}" id="${itemIconId}-vector"></i>`;
+    vectorHtml = `<i class="${vectorData.iconClass} item-icon vector-icon" style="color: ${vectorData.iconColor}; font-size: ${finalFontSize}; display: flex; align-items: center; justify-content: center; ${vectorData.customStyle}" id="${itemIconId}-vector"></i>`;
   }
 
   if (viewMode === "wrap") {
@@ -10660,17 +10371,16 @@ async function handleDynamicCreate(path) {
         MousePos = [e.clientX, e.clientY];
         if (itemLink.getAttribute("itemisdir") == "1") {
           if (!ArrSelectedItems.includes(itemLink)) {
-            itemLink.style.border = "1px solid var(--selectColor2)";
-            itemLink.style.backgroundColor = "var(--selectColor3)";
-            itemLink.style.scale = "1";
+            if (DraggedOverElement && DraggedOverElement !== itemLink) {
+              clearDragHighlight(DraggedOverElement);
+            }
+            itemLink.classList.add("dragged-over");
             DraggedOverElement = itemLink;
           }
         }
       });
       itemLink.addEventListener("dragleave", () => {
-        itemLink.style.border = "1px solid transparent";
-        itemLink.style.backgroundColor = "1px solid var(--transparentColor)";
-        itemLink.style.scale = "1";
+        clearDragHighlight(itemLink);
       });
       itemLink.addEventListener("contextmenu", (e) => {
         e.preventDefault();

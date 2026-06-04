@@ -288,7 +288,7 @@
       "label": "MousePos",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L337",
+      "source_location": "L619",
       "id": "ui_main_logic_mousepos",
       "community": 1,
       "norm_label": "mousepos"
@@ -297,16 +297,16 @@
       "label": "updateFileSearchbarState()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L359",
+      "source_location": "L641",
       "id": "ui_main_logic_updatefilesearchbarstate",
-      "community": 9,
+      "community": 1,
       "norm_label": "updatefilesearchbarstate()"
     },
     {
       "label": "fileName",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L411",
+      "source_location": "L693",
       "id": "ui_main_logic_filename",
       "community": 1,
       "norm_label": "filename"
@@ -315,25 +315,25 @@
       "label": "startFullSearch()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L418",
+      "source_location": "L700",
       "id": "ui_main_logic_startfullsearch",
-      "community": 9,
+      "community": 1,
       "norm_label": "startfullsearch()"
     },
     {
       "label": "stopFullSearch()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L449",
+      "source_location": "L731",
       "id": "ui_main_logic_stopfullsearch",
-      "community": 9,
+      "community": 1,
       "norm_label": "stopfullsearch()"
     },
     {
       "label": "clearQuickSearch()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L591",
+      "source_location": "L873",
       "id": "ui_main_logic_clearquicksearch",
       "community": 9,
       "norm_label": "clearquicksearch()"
@@ -342,7 +342,7 @@
       "label": "resetQuickSearch()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L610",
+      "source_location": "L892",
       "id": "ui_main_logic_resetquicksearch",
       "community": 14,
       "norm_label": "resetquicksearch()"
@@ -351,7 +351,7 @@
       "label": "resetEverything()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L628",
+      "source_location": "L910",
       "id": "ui_main_logic_reseteverything",
       "community": 14,
       "norm_label": "reseteverything()"
@@ -360,7 +360,7 @@
       "label": "positionContextMenu()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L800",
+      "source_location": "L1075",
       "id": "ui_main_logic_positioncontextmenu",
       "community": 17,
       "norm_label": "positioncontextmenu()"
@@ -369,7 +369,7 @@
       "label": "isShortcut()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L829",
+      "source_location": "L1104",
       "id": "ui_main_logic_isshortcut",
       "community": 1,
       "norm_label": "isshortcut()"
@@ -378,7 +378,7 @@
       "label": "diskDropdown",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L930",
+      "source_location": "L1205",
       "id": "ui_main_logic_diskdropdown",
       "community": 1,
       "norm_label": "diskdropdown"
@@ -387,7 +387,7 @@
       "label": "evt",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L931",
+      "source_location": "L1206",
       "id": "ui_main_logic_evt",
       "community": 1,
       "norm_label": "evt"
@@ -396,7 +396,7 @@
       "label": "showItems()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1131",
+      "source_location": "L1406",
       "id": "ui_main_logic_showitems",
       "community": 26,
       "norm_label": "showitems()"
@@ -405,7 +405,7 @@
       "label": "arrLoadItemImage()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1311",
+      "source_location": "L1588",
       "id": "ui_main_logic_arrloaditemimage",
       "community": 26,
       "norm_label": "arrloaditemimage()"
@@ -414,7 +414,7 @@
       "label": "writeToLocalStorage()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1325",
+      "source_location": "L1602",
       "id": "ui_main_logic_writetolocalstorage",
       "community": 4,
       "norm_label": "writetolocalstorage()"
@@ -423,7 +423,7 @@
       "label": "readFromLocalStorage()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1333",
+      "source_location": "L1610",
       "id": "ui_main_logic_readfromlocalstorage",
       "community": 4,
       "norm_label": "readfromlocalstorage()"
@@ -432,7 +432,7 @@
       "label": "addSingleItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1341",
+      "source_location": "L1618",
       "id": "ui_main_logic_addsingleitem",
       "community": 26,
       "norm_label": "addsingleitem()"
@@ -441,7 +441,7 @@
       "label": "getCurrentDir()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1475",
+      "source_location": "L1751",
       "id": "ui_main_logic_getcurrentdir",
       "community": 9,
       "norm_label": "getcurrentdir()"
@@ -450,7 +450,7 @@
       "label": "setCurrentDir()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1479",
+      "source_location": "L1755",
       "id": "ui_main_logic_setcurrentdir",
       "community": 9,
       "norm_label": "setcurrentdir()"
@@ -459,7 +459,7 @@
       "label": "updateCurrentPath()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1538",
+      "source_location": "L1814",
       "id": "ui_main_logic_updatecurrentpath",
       "community": 9,
       "norm_label": "updatecurrentpath()"
@@ -468,7 +468,7 @@
       "label": "deleteItems()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1621",
+      "source_location": "L1899",
       "id": "ui_main_logic_deleteitems",
       "community": 137,
       "norm_label": "deleteitems()"
@@ -477,7 +477,7 @@
       "label": "showDeletePopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1657",
+      "source_location": "L1935",
       "id": "ui_main_logic_showdeletepopup",
       "community": 137,
       "norm_label": "showdeletepopup()"
@@ -486,7 +486,7 @@
       "label": "startCopyMoveSizeCalculation()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1818",
+      "source_location": "L2096",
       "id": "ui_main_logic_startcopymovesizecalculation",
       "community": 1,
       "norm_label": "startcopymovesizecalculation()"
@@ -495,7 +495,7 @@
       "label": "finishCopyMoveSizeCalculation()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1824",
+      "source_location": "L2102",
       "id": "ui_main_logic_finishcopymovesizecalculation",
       "community": 1,
       "norm_label": "finishcopymovesizecalculation()"
@@ -504,7 +504,7 @@
       "label": "isCopyMoveSizeUpdateCurrent()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1831",
+      "source_location": "L2109",
       "id": "ui_main_logic_iscopymovesizeupdatecurrent",
       "community": 1,
       "norm_label": "iscopymovesizeupdatecurrent()"
@@ -513,7 +513,7 @@
       "label": "showCopyMovePopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L1835",
+      "source_location": "L2113",
       "id": "ui_main_logic_showcopymovepopup",
       "community": 1,
       "norm_label": "showcopymovepopup()"
@@ -522,7 +522,7 @@
       "label": "copyItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L2011",
+      "source_location": "L2289",
       "id": "ui_main_logic_copyitem",
       "community": 53,
       "norm_label": "copyitem()"
@@ -531,7 +531,7 @@
       "label": "extractItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L2053",
+      "source_location": "L2331",
       "id": "ui_main_logic_extractitem",
       "community": 137,
       "norm_label": "extractitem()"
@@ -540,7 +540,7 @@
       "label": "showExtractPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L2068",
+      "source_location": "L2346",
       "id": "ui_main_logic_showextractpopup",
       "community": 137,
       "norm_label": "showextractpopup()"
@@ -549,7 +549,7 @@
       "label": "showCompressPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L2140",
+      "source_location": "L2418",
       "id": "ui_main_logic_showcompresspopup",
       "community": 1,
       "norm_label": "showcompresspopup()"
@@ -558,7 +558,7 @@
       "label": "compressItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L2249",
+      "source_location": "L2527",
       "id": "ui_main_logic_compressitem",
       "community": 14,
       "norm_label": "compressitem()"
@@ -567,7 +567,7 @@
       "label": "closeCompressPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L2396",
+      "source_location": "L2674",
       "id": "ui_main_logic_closecompresspopup",
       "community": 14,
       "norm_label": "closecompresspopup()"
@@ -576,7 +576,7 @@
       "label": "showImageEditPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L2411",
+      "source_location": "L2689",
       "id": "ui_main_logic_showimageeditpopup",
       "community": 1,
       "norm_label": "showimageeditpopup()"
@@ -585,7 +585,7 @@
       "label": "showUpscalePopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3254",
+      "source_location": "L3532",
       "id": "ui_main_logic_showupscalepopup",
       "community": 1,
       "norm_label": "showupscalepopup()"
@@ -594,7 +594,7 @@
       "label": "closeUpscalePopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3258",
+      "source_location": "L3536",
       "id": "ui_main_logic_closeupscalepopup",
       "community": 14,
       "norm_label": "closeupscalepopup()"
@@ -603,7 +603,7 @@
       "label": "showLoadingPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3273",
+      "source_location": "L3551",
       "id": "ui_main_logic_showloadingpopup",
       "community": 26,
       "norm_label": "showloadingpopup()"
@@ -612,7 +612,7 @@
       "label": "closeLoadingPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3285",
+      "source_location": "L3563",
       "id": "ui_main_logic_closeloadingpopup",
       "community": 26,
       "norm_label": "closeloadingpopup()"
@@ -621,7 +621,7 @@
       "label": "showInputPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3298",
+      "source_location": "L3576",
       "id": "ui_main_logic_showinputpopup",
       "community": 1,
       "norm_label": "showinputpopup()"
@@ -630,7 +630,7 @@
       "label": "closeInputPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3324",
+      "source_location": "L3602",
       "id": "ui_main_logic_closeinputpopup",
       "community": 14,
       "norm_label": "closeinputpopup()"
@@ -639,7 +639,7 @@
       "label": "normalizePath()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3337",
+      "source_location": "L3615",
       "id": "ui_main_logic_normalizepath",
       "community": 12,
       "norm_label": "normalizepath()"
@@ -648,7 +648,7 @@
       "label": "parentPath()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3341",
+      "source_location": "L3619",
       "id": "ui_main_logic_parentpath",
       "community": 12,
       "norm_label": "parentpath()"
@@ -657,7 +657,7 @@
       "label": "joinPath()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3348",
+      "source_location": "L3626",
       "id": "ui_main_logic_joinpath",
       "community": 12,
       "norm_label": "joinpath()"
@@ -666,7 +666,7 @@
       "label": "comparablePath()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3355",
+      "source_location": "L3633",
       "id": "ui_main_logic_comparablepath",
       "community": 12,
       "norm_label": "comparablepath()"
@@ -675,7 +675,7 @@
       "label": "escapeHtml()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3360",
+      "source_location": "L3638",
       "id": "ui_main_logic_escapehtml",
       "community": 12,
       "norm_label": "escapehtml()"
@@ -684,7 +684,7 @@
       "label": "toCopyModel()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3369",
+      "source_location": "L3647",
       "id": "ui_main_logic_tocopymodel",
       "community": 1,
       "norm_label": "tocopymodel()"
@@ -693,7 +693,7 @@
       "label": "formatConflictMeta()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3380",
+      "source_location": "L3658",
       "id": "ui_main_logic_formatconflictmeta",
       "community": 12,
       "norm_label": "formatconflictmeta()"
@@ -702,7 +702,7 @@
       "label": "getDestinationConflict()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3386",
+      "source_location": "L3664",
       "id": "ui_main_logic_getdestinationconflict",
       "community": 12,
       "norm_label": "getdestinationconflict()"
@@ -711,7 +711,7 @@
       "label": "isConflictActionValid()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3395",
+      "source_location": "L3673",
       "id": "ui_main_logic_isconflictactionvalid",
       "community": 12,
       "norm_label": "isconflictactionvalid()"
@@ -720,7 +720,7 @@
       "label": "resolveCopyMoveConflicts()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3400",
+      "source_location": "L3678",
       "id": "ui_main_logic_resolvecopymoveconflicts",
       "community": 12,
       "norm_label": "resolvecopymoveconflicts()"
@@ -729,7 +729,7 @@
       "label": "runResolvedCopyMove()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3454",
+      "source_location": "L3732",
       "id": "ui_main_logic_runresolvedcopymove",
       "community": 12,
       "norm_label": "runresolvedcopymove()"
@@ -738,7 +738,7 @@
       "label": "showDestinationConflictPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3485",
+      "source_location": "L3763",
       "id": "ui_main_logic_showdestinationconflictpopup",
       "community": 12,
       "norm_label": "showdestinationconflictpopup()"
@@ -747,7 +747,7 @@
       "label": "itemMoveTo()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3593",
+      "source_location": "L3871",
       "id": "ui_main_logic_itemmoveto",
       "community": 9,
       "norm_label": "itemmoveto()"
@@ -756,7 +756,7 @@
       "label": "pasteItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3625",
+      "source_location": "L3903",
       "id": "ui_main_logic_pasteitem",
       "community": 53,
       "norm_label": "pasteitem()"
@@ -765,7 +765,7 @@
       "label": "createFolderInputPrompt()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3729",
+      "source_location": "L4007",
       "id": "ui_main_logic_createfolderinputprompt",
       "community": 137,
       "norm_label": "createfolderinputprompt()"
@@ -774,7 +774,7 @@
       "label": "createFileInputPrompt()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3761",
+      "source_location": "L4039",
       "id": "ui_main_logic_createfileinputprompt",
       "community": 2,
       "norm_label": "createfileinputprompt()"
@@ -783,7 +783,7 @@
       "label": "closeInputDialogs()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3790",
+      "source_location": "L4068",
       "id": "ui_main_logic_closeinputdialogs",
       "community": 14,
       "norm_label": "closeinputdialogs()"
@@ -792,7 +792,7 @@
       "label": "renameElementInputPrompt()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3797",
+      "source_location": "L4075",
       "id": "ui_main_logic_renameelementinputprompt",
       "community": 2,
       "norm_label": "renameelementinputprompt()"
@@ -801,7 +801,7 @@
       "label": "createFolder()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3835",
+      "source_location": "L4113",
       "id": "ui_main_logic_createfolder",
       "community": 137,
       "norm_label": "createfolder()"
@@ -810,7 +810,7 @@
       "label": "createFile()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3842",
+      "source_location": "L4120",
       "id": "ui_main_logic_createfile",
       "community": 137,
       "norm_label": "createfile()"
@@ -819,7 +819,7 @@
       "label": "renameElement()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3848",
+      "source_location": "L4126",
       "id": "ui_main_logic_renameelement",
       "community": 137,
       "norm_label": "renameelement()"
@@ -828,7 +828,7 @@
       "label": "showAppInfo()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3854",
+      "source_location": "L4132",
       "id": "ui_main_logic_showappinfo",
       "community": 1,
       "norm_label": "showappinfo()"
@@ -837,7 +837,7 @@
       "label": "copyDiagnosticsInfo()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3896",
+      "source_location": "L4174",
       "id": "ui_main_logic_copydiagnosticsinfo",
       "community": 34,
       "norm_label": "copydiagnosticsinfo()"
@@ -846,7 +846,7 @@
       "label": "checkAppConfig()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L3918",
+      "source_location": "L4196",
       "id": "ui_main_logic_checkappconfig",
       "community": 216,
       "norm_label": "checkappconfig()"
@@ -855,7 +855,7 @@
       "label": "refreshThemesOnly()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4190",
+      "source_location": "L4464",
       "id": "ui_main_logic_refreshthemesonly",
       "community": 34,
       "norm_label": "refreshthemesonly()"
@@ -864,7 +864,7 @@
       "label": "openAppChangelog()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4233",
+      "source_location": "L4507",
       "id": "ui_main_logic_openappchangelog",
       "community": 1,
       "norm_label": "openappchangelog()"
@@ -873,7 +873,7 @@
       "label": "applyPlatformFeatures()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4237",
+      "source_location": "L4511",
       "id": "ui_main_logic_applyplatformfeatures",
       "community": 216,
       "norm_label": "applyplatformfeatures()"
@@ -882,7 +882,7 @@
       "label": "listDisks()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4265",
+      "source_location": "L4539",
       "id": "ui_main_logic_listdisks",
       "community": 10,
       "norm_label": "listdisks()"
@@ -891,7 +891,7 @@
       "label": "isEjectableDisk()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4364",
+      "source_location": "L4638",
       "id": "ui_main_logic_isejectabledisk",
       "community": 1,
       "norm_label": "isejectabledisk()"
@@ -900,7 +900,7 @@
       "label": "listDirectories()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4374",
+      "source_location": "L4648",
       "id": "ui_main_logic_listdirectories",
       "community": 9,
       "norm_label": "listdirectories()"
@@ -909,7 +909,7 @@
       "label": "refreshView()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4440",
+      "source_location": "L4714",
       "id": "ui_main_logic_refreshview",
       "community": 9,
       "norm_label": "refreshview()"
@@ -918,7 +918,7 @@
       "label": "refreshBothViews()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4444",
+      "source_location": "L4718",
       "id": "ui_main_logic_refreshbothviews",
       "community": 9,
       "norm_label": "refreshbothviews()"
@@ -927,7 +927,7 @@
       "label": "interactWithItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4463",
+      "source_location": "L4737",
       "id": "ui_main_logic_interactwithitem",
       "community": 18,
       "norm_label": "interactwithitem()"
@@ -936,16 +936,16 @@
       "label": "openItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4556",
+      "source_location": "L4830",
       "id": "ui_main_logic_openitem",
-      "community": 18,
+      "community": 9,
       "norm_label": "openitem()"
     },
     {
       "label": "selectItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4621",
+      "source_location": "L4895",
       "id": "ui_main_logic_selectitem",
       "community": 18,
       "norm_label": "selectitem()"
@@ -954,7 +954,7 @@
       "label": "selectionInfo",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4724",
+      "source_location": "L4998",
       "id": "ui_main_logic_selectioninfo",
       "community": 1,
       "norm_label": "selectioninfo"
@@ -963,16 +963,16 @@
       "label": "startPropertiesSizeCalculation()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4743",
+      "source_location": "L5017",
       "id": "ui_main_logic_startpropertiessizecalculation",
-      "community": 48,
+      "community": 18,
       "norm_label": "startpropertiessizecalculation()"
     },
     {
       "label": "finishPropertiesSizeCalculation()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4749",
+      "source_location": "L5023",
       "id": "ui_main_logic_finishpropertiessizecalculation",
       "community": 14,
       "norm_label": "finishpropertiessizecalculation()"
@@ -981,7 +981,7 @@
       "label": "isPropertiesSizeUpdateCurrent()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4756",
+      "source_location": "L5030",
       "id": "ui_main_logic_ispropertiessizeupdatecurrent",
       "community": 4,
       "norm_label": "ispropertiessizeupdatecurrent()"
@@ -990,7 +990,7 @@
       "label": "startDeleteSizeCalculation()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4764",
+      "source_location": "L5038",
       "id": "ui_main_logic_startdeletesizecalculation",
       "community": 137,
       "norm_label": "startdeletesizecalculation()"
@@ -999,7 +999,7 @@
       "label": "finishDeleteSizeCalculation()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4770",
+      "source_location": "L5044",
       "id": "ui_main_logic_finishdeletesizecalculation",
       "community": 1,
       "norm_label": "finishdeletesizecalculation()"
@@ -1008,7 +1008,7 @@
       "label": "isDeleteSizeUpdateCurrent()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4777",
+      "source_location": "L5051",
       "id": "ui_main_logic_isdeletesizeupdatecurrent",
       "community": 1,
       "norm_label": "isdeletesizeupdatecurrent()"
@@ -1017,7 +1017,7 @@
       "label": "updateSelectionInfo()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4782",
+      "source_location": "L5056",
       "id": "ui_main_logic_updateselectioninfo",
       "community": 18,
       "norm_label": "updateselectioninfo()"
@@ -1026,7 +1026,7 @@
       "label": "deSelectItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4809",
+      "source_location": "L5083",
       "id": "ui_main_logic_deselectitem",
       "community": 18,
       "norm_label": "deselectitem()"
@@ -1035,7 +1035,7 @@
       "label": "unSelectAllItems()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4840",
+      "source_location": "L5114",
       "id": "ui_main_logic_unselectallitems",
       "community": 18,
       "norm_label": "unselectallitems()"
@@ -1044,7 +1044,7 @@
       "label": "goHome()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4878",
+      "source_location": "L5152",
       "id": "ui_main_logic_gohome",
       "community": 9,
       "norm_label": "gohome()"
@@ -1053,7 +1053,7 @@
       "label": "goBack()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4888",
+      "source_location": "L5162",
       "id": "ui_main_logic_goback",
       "community": 9,
       "norm_label": "goback()"
@@ -1062,7 +1062,7 @@
       "label": "handleShiftArrowNavigation()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4907",
+      "source_location": "L5181",
       "id": "ui_main_logic_handleshiftarrownavigation",
       "community": 18,
       "norm_label": "handleshiftarrownavigation()"
@@ -1071,7 +1071,7 @@
       "label": "goUp()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L4994",
+      "source_location": "L5268",
       "id": "ui_main_logic_goup",
       "community": 9,
       "norm_label": "goup()"
@@ -1080,7 +1080,7 @@
       "label": "goDown()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5070",
+      "source_location": "L5344",
       "id": "ui_main_logic_godown",
       "community": 1,
       "norm_label": "godown()"
@@ -1089,7 +1089,7 @@
       "label": "goToOtherPane()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5138",
+      "source_location": "L5412",
       "id": "ui_main_logic_gotootherpane",
       "community": 9,
       "norm_label": "gotootherpane()"
@@ -1098,7 +1098,7 @@
       "label": "initDualPane()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5151",
+      "source_location": "L5425",
       "id": "ui_main_logic_initdualpane",
       "community": 9,
       "norm_label": "initdualpane()"
@@ -1107,7 +1107,7 @@
       "label": "setDiskDropdowns()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5164",
+      "source_location": "L5438",
       "id": "ui_main_logic_setdiskdropdowns",
       "community": 23,
       "norm_label": "setdiskdropdowns()"
@@ -1116,7 +1116,7 @@
       "label": "navigateToDisk()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5187",
+      "source_location": "L5461",
       "id": "ui_main_logic_navigatetodisk",
       "community": 9,
       "norm_label": "navigatetodisk()"
@@ -1125,7 +1125,7 @@
       "label": "goLeft()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5195",
+      "source_location": "L5469",
       "id": "ui_main_logic_goleft",
       "community": 18,
       "norm_label": "goleft()"
@@ -1134,7 +1134,7 @@
       "label": "goRight()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5210",
+      "source_location": "L5484",
       "id": "ui_main_logic_goright",
       "community": 18,
       "norm_label": "goright()"
@@ -1143,7 +1143,7 @@
       "label": "goGridUp()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5225",
+      "source_location": "L5499",
       "id": "ui_main_logic_gogridup",
       "community": 18,
       "norm_label": "gogridup()"
@@ -1152,7 +1152,7 @@
       "label": "goGridDown()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5249",
+      "source_location": "L5523",
       "id": "ui_main_logic_gogriddown",
       "community": 18,
       "norm_label": "gogriddown()"
@@ -1161,16 +1161,16 @@
       "label": "openSelectedItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5273",
+      "source_location": "L5547",
       "id": "ui_main_logic_openselecteditem",
-      "community": 18,
+      "community": 9,
       "norm_label": "openselecteditem()"
     },
     {
       "label": "goToDir()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5291",
+      "source_location": "L5565",
       "id": "ui_main_logic_gotodir",
       "community": 1,
       "norm_label": "gotodir()"
@@ -1179,7 +1179,7 @@
       "label": "openInTerminal()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5302",
+      "source_location": "L5576",
       "id": "ui_main_logic_openinterminal",
       "community": 34,
       "norm_label": "openinterminal()"
@@ -1188,7 +1188,7 @@
       "label": "ejectDisk()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5323",
+      "source_location": "L5597",
       "id": "ui_main_logic_ejectdisk",
       "community": 10,
       "norm_label": "ejectdisk()"
@@ -1197,16 +1197,16 @@
       "label": "searchFor()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5368",
+      "source_location": "L5642",
       "id": "ui_main_logic_searchfor",
-      "community": 9,
+      "community": 1,
       "norm_label": "searchfor()"
     },
     {
       "label": "openFullSearchContainer()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5440",
+      "source_location": "L5714",
       "id": "ui_main_logic_openfullsearchcontainer",
       "community": 1,
       "norm_label": "openfullsearchcontainer()"
@@ -1215,7 +1215,7 @@
       "label": "closeFullSearchContainer()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5455",
+      "source_location": "L5729",
       "id": "ui_main_logic_closefullsearchcontainer",
       "community": 14,
       "norm_label": "closefullsearchcontainer()"
@@ -1224,7 +1224,7 @@
       "label": "openSearchBar()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5487",
+      "source_location": "L5761",
       "id": "ui_main_logic_opensearchbar",
       "community": 1,
       "norm_label": "opensearchbar()"
@@ -1233,7 +1233,7 @@
       "label": "closeSearchBar()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5501",
+      "source_location": "L5775",
       "id": "ui_main_logic_closesearchbar",
       "community": 14,
       "norm_label": "closesearchbar()"
@@ -1242,7 +1242,7 @@
       "label": "cancelSearch()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5509",
+      "source_location": "L5783",
       "id": "ui_main_logic_cancelsearch",
       "community": 9,
       "norm_label": "cancelsearch()"
@@ -1251,7 +1251,7 @@
       "label": "switchView()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5527",
+      "source_location": "L5801",
       "id": "ui_main_logic_switchview",
       "community": 9,
       "norm_label": "switchview()"
@@ -1260,7 +1260,7 @@
       "label": "buttons",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5600",
+      "source_location": "L5874",
       "id": "ui_main_logic_buttons",
       "community": 1,
       "norm_label": "buttons"
@@ -1269,7 +1269,7 @@
       "label": "index",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5602",
+      "source_location": "L5876",
       "id": "ui_main_logic_index",
       "community": 1,
       "norm_label": "index"
@@ -1278,7 +1278,7 @@
       "label": "switchToDualPane()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5616",
+      "source_location": "L5890",
       "id": "ui_main_logic_switchtodualpane",
       "community": 9,
       "norm_label": "switchtodualpane()"
@@ -1287,7 +1287,7 @@
       "label": "switchHiddenFiles()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5715",
+      "source_location": "L5989",
       "id": "ui_main_logic_switchhiddenfiles",
       "community": 9,
       "norm_label": "switchhiddenfiles()"
@@ -1296,7 +1296,7 @@
       "label": "openSettings()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5730",
+      "source_location": "L6004",
       "id": "ui_main_logic_opensettings",
       "community": 216,
       "norm_label": "opensettings()"
@@ -1305,16 +1305,16 @@
       "label": "closeSettings()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5741",
+      "source_location": "L6015",
       "id": "ui_main_logic_closesettings",
-      "community": 216,
+      "community": 14,
       "norm_label": "closesettings()"
     },
     {
       "label": "showSettingsTab()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5752",
+      "source_location": "L6026",
       "id": "ui_main_logic_showsettingstab",
       "community": 216,
       "norm_label": "showsettingstab()"
@@ -1323,7 +1323,7 @@
       "label": "saveConfig()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5762",
+      "source_location": "L6036",
       "id": "ui_main_logic_saveconfig",
       "community": 216,
       "norm_label": "saveconfig()"
@@ -1332,52 +1332,52 @@
       "label": "resetSettingsToDefaults()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5897",
+      "source_location": "L6171",
       "id": "ui_main_logic_resetsettingstodefaults",
-      "community": 9,
+      "community": 218,
       "norm_label": "resetsettingstodefaults()"
     },
     {
       "label": "addFavorite()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5957",
+      "source_location": "L6231",
       "id": "ui_main_logic_addfavorite",
-      "community": 216,
+      "community": 10,
       "norm_label": "addfavorite()"
     },
     {
       "label": "removeFavorite()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5965",
+      "source_location": "L6239",
       "id": "ui_main_logic_removefavorite",
-      "community": 216,
+      "community": 10,
       "norm_label": "removefavorite()"
     },
     {
       "label": "getExtDescription()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5971",
+      "source_location": "L6245",
       "id": "ui_main_logic_getextdescription",
-      "community": 48,
+      "community": 18,
       "norm_label": "getextdescription()"
     },
     {
       "label": "showProperties()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L5975",
+      "source_location": "L6249",
       "id": "ui_main_logic_showproperties",
-      "community": 48,
+      "community": 18,
       "norm_label": "showproperties()"
     },
     {
       "label": "closeInfoProperties()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6209",
+      "source_location": "L6483",
       "id": "ui_main_logic_closeinfoproperties",
       "community": 14,
       "norm_label": "closeinfoproperties()"
@@ -1386,7 +1386,7 @@
       "label": "copyPropertiesSizeRow()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6226",
+      "source_location": "L6500",
       "id": "ui_main_logic_copypropertiessizerow",
       "community": 34,
       "norm_label": "copypropertiessizerow()"
@@ -1395,16 +1395,16 @@
       "label": "showItemPreview()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6255",
+      "source_location": "L6529",
       "id": "ui_main_logic_showitempreview",
-      "community": 48,
+      "community": 18,
       "norm_label": "showitempreview()"
     },
     {
       "label": "showMultiRenamePopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6520",
+      "source_location": "L6794",
       "id": "ui_main_logic_showmultirenamepopup",
       "community": 1,
       "norm_label": "showmultirenamepopup()"
@@ -1413,7 +1413,7 @@
       "label": "renameItemsWithFormat()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6660",
+      "source_location": "L6934",
       "id": "ui_main_logic_renameitemswithformat",
       "community": 14,
       "norm_label": "renameitemswithformat()"
@@ -1422,7 +1422,7 @@
       "label": "closeMultiRenamePopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6683",
+      "source_location": "L6957",
       "id": "ui_main_logic_closemultirenamepopup",
       "community": 14,
       "norm_label": "closemultirenamepopup()"
@@ -1431,7 +1431,7 @@
       "label": "closeItemPreview()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6698",
+      "source_location": "L6972",
       "id": "ui_main_logic_closeitempreview",
       "community": 14,
       "norm_label": "closeitempreview()"
@@ -1440,7 +1440,7 @@
       "label": "evalCurrentLoad()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6711",
+      "source_location": "L6985",
       "id": "ui_main_logic_evalcurrentload",
       "community": 1,
       "norm_label": "evalcurrentload()"
@@ -1449,7 +1449,7 @@
       "label": "switchFtpTab()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6736",
+      "source_location": "L7010",
       "id": "ui_main_logic_switchftptab",
       "community": 12,
       "norm_label": "switchftptab()"
@@ -1458,7 +1458,7 @@
       "label": "showFtpConfig()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6750",
+      "source_location": "L7024",
       "id": "ui_main_logic_showftpconfig",
       "community": 12,
       "norm_label": "showftpconfig()"
@@ -1467,7 +1467,7 @@
       "label": "startFtpDiscovery()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6791",
+      "source_location": "L7065",
       "id": "ui_main_logic_startftpdiscovery",
       "community": 12,
       "norm_label": "startftpdiscovery()"
@@ -1476,7 +1476,7 @@
       "label": "selectDiscoveredServer()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6863",
+      "source_location": "L7137",
       "id": "ui_main_logic_selectdiscoveredserver",
       "community": 1,
       "norm_label": "selectdiscoveredserver()"
@@ -1485,7 +1485,7 @@
       "label": "loadSavedFtpConnections()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6879",
+      "source_location": "L7153",
       "id": "ui_main_logic_loadsavedftpconnections",
       "community": 12,
       "norm_label": "loadsavedftpconnections()"
@@ -1494,7 +1494,7 @@
       "label": "selectSavedConnection()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6946",
+      "source_location": "L7220",
       "id": "ui_main_logic_selectsavedconnection",
       "community": 1,
       "norm_label": "selectsavedconnection()"
@@ -1503,7 +1503,7 @@
       "label": "deleteSavedConnection()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6968",
+      "source_location": "L7242",
       "id": "ui_main_logic_deletesavedconnection",
       "community": 12,
       "norm_label": "deletesavedconnection()"
@@ -1512,25 +1512,25 @@
       "label": "showFtpLoader()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L6985",
+      "source_location": "L7259",
       "id": "ui_main_logic_showftploader",
-      "community": 18,
+      "community": 9,
       "norm_label": "showftploader()"
     },
     {
       "label": "hideFtpLoader()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7016",
+      "source_location": "L7290",
       "id": "ui_main_logic_hideftploader",
-      "community": 18,
+      "community": 9,
       "norm_label": "hideftploader()"
     },
     {
       "label": "closeFtpConfig()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7038",
+      "source_location": "L7312",
       "id": "ui_main_logic_closeftpconfig",
       "community": 14,
       "norm_label": "closeftpconfig()"
@@ -1539,7 +1539,7 @@
       "label": "connectToFtp()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7051",
+      "source_location": "L7325",
       "id": "ui_main_logic_connecttoftp",
       "community": 10,
       "norm_label": "connecttoftp()"
@@ -1548,7 +1548,7 @@
       "label": "openFTP()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7063",
+      "source_location": "L7337",
       "id": "ui_main_logic_openftp",
       "community": 10,
       "norm_label": "openftp()"
@@ -1557,7 +1557,7 @@
       "label": "sortItems()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7117",
+      "source_location": "L7391",
       "id": "ui_main_logic_sortitems",
       "community": 26,
       "norm_label": "sortitems()"
@@ -1566,7 +1566,7 @@
       "label": "getFDirObjectListFromDirectoryList()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7182",
+      "source_location": "L7456",
       "id": "ui_main_logic_getfdirobjectlistfromdirectorylist",
       "community": 26,
       "norm_label": "getfdirobjectlistfromdirectorylist()"
@@ -1575,7 +1575,7 @@
       "label": "BuiltInThemes",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7195",
+      "source_location": "L7469",
       "id": "ui_main_logic_builtinthemes",
       "community": 1,
       "norm_label": "builtinthemes"
@@ -1584,7 +1584,7 @@
       "label": "LoadedUserThemes",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7230",
+      "source_location": "L7504",
       "id": "ui_main_logic_loadeduserthemes",
       "community": 1,
       "norm_label": "loadeduserthemes"
@@ -1593,7 +1593,7 @@
       "label": "hexToRgba()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7233",
+      "source_location": "L7507",
       "id": "ui_main_logic_hextorgba",
       "community": 26,
       "norm_label": "hextorgba()"
@@ -1602,7 +1602,7 @@
       "label": "getRgbComponents()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7244",
+      "source_location": "L7518",
       "id": "ui_main_logic_getrgbcomponents",
       "community": 216,
       "norm_label": "getrgbcomponents()"
@@ -1611,7 +1611,7 @@
       "label": "parseCssColor()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7263",
+      "source_location": "L7537",
       "id": "ui_main_logic_parsecsscolor",
       "community": 216,
       "norm_label": "parsecsscolor()"
@@ -1620,7 +1620,7 @@
       "label": "DefaultIconColors",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7274",
+      "source_location": "L7548",
       "id": "ui_main_logic_defaulticoncolors",
       "community": 1,
       "norm_label": "defaulticoncolors"
@@ -1629,25 +1629,25 @@
       "label": "initIconColorSettings()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7278",
+      "source_location": "L7554",
       "id": "ui_main_logic_initiconcolorsettings",
-      "community": 9,
+      "community": 218,
       "norm_label": "initiconcolorsettings()"
     },
     {
       "label": "applyCustomIconColor()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7305",
+      "source_location": "L7581",
       "id": "ui_main_logic_applycustomiconcolor",
-      "community": 9,
+      "community": 218,
       "norm_label": "applycustomiconcolor()"
     },
     {
       "label": "resetCustomIconColor()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7329",
+      "source_location": "L7605",
       "id": "ui_main_logic_resetcustomiconcolor",
       "community": 9,
       "norm_label": "resetcustomiconcolor()"
@@ -1656,34 +1656,34 @@
       "label": "updateIconThemePreviews()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7344",
+      "source_location": "L7620",
       "id": "ui_main_logic_updateiconthemepreviews",
-      "community": 9,
+      "community": 218,
       "norm_label": "updateiconthemepreviews()"
     },
     {
       "label": "selectIconTheme()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7376",
+      "source_location": "L7666",
       "id": "ui_main_logic_selecticontheme",
-      "community": 9,
+      "community": 218,
       "norm_label": "selecticontheme()"
     },
     {
       "label": "changeIconSize()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7404",
+      "source_location": "L7694",
       "id": "ui_main_logic_changeiconsize",
-      "community": 9,
+      "community": 218,
       "norm_label": "changeiconsize()"
     },
     {
       "label": "checkColorMode()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7452",
+      "source_location": "L7742",
       "id": "ui_main_logic_checkcolormode",
       "community": 1,
       "norm_label": "checkcolormode()"
@@ -1692,7 +1692,7 @@
       "label": "applyTheme()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7509",
+      "source_location": "L7799",
       "id": "ui_main_logic_applytheme",
       "community": 1,
       "norm_label": "applytheme()"
@@ -1701,7 +1701,7 @@
       "label": "applyThemeFromSelect()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7514",
+      "source_location": "L7804",
       "id": "ui_main_logic_applythemefromselect",
       "community": 1,
       "norm_label": "applythemefromselect()"
@@ -1710,7 +1710,7 @@
       "label": "openThemeCreator()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7531",
+      "source_location": "L7821",
       "id": "ui_main_logic_openthemecreator",
       "community": 216,
       "norm_label": "openthemecreator()"
@@ -1719,7 +1719,7 @@
       "label": "editActiveTheme()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7558",
+      "source_location": "L7848",
       "id": "ui_main_logic_editactivetheme",
       "community": 216,
       "norm_label": "editactivetheme()"
@@ -1728,7 +1728,7 @@
       "label": "setThemeCreatorColorRow()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7589",
+      "source_location": "L7879",
       "id": "ui_main_logic_setthemecreatorcolorrow",
       "community": 216,
       "norm_label": "setthemecreatorcolorrow()"
@@ -1737,16 +1737,16 @@
       "label": "convertToHex()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7627",
+      "source_location": "L7917",
       "id": "ui_main_logic_converttohex",
-      "community": 9,
+      "community": 218,
       "norm_label": "converttohex()"
     },
     {
       "label": "previewThemeColor()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7641",
+      "source_location": "L7931",
       "id": "ui_main_logic_previewthemecolor",
       "community": 216,
       "norm_label": "previewthemecolor()"
@@ -1755,7 +1755,7 @@
       "label": "previewThemeColorText()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7653",
+      "source_location": "L7943",
       "id": "ui_main_logic_previewthemecolortext",
       "community": 216,
       "norm_label": "previewthemecolortext()"
@@ -1764,7 +1764,7 @@
       "label": "closeThemeCreator()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7657",
+      "source_location": "L7947",
       "id": "ui_main_logic_closethemecreator",
       "community": 1,
       "norm_label": "closethemecreator()"
@@ -1773,7 +1773,7 @@
       "label": "saveCustomTheme()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7669",
+      "source_location": "L7959",
       "id": "ui_main_logic_savecustomtheme",
       "community": 216,
       "norm_label": "savecustomtheme()"
@@ -1782,7 +1782,7 @@
       "label": "deleteActiveTheme()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7724",
+      "source_location": "L8014",
       "id": "ui_main_logic_deleteactivetheme",
       "community": 216,
       "norm_label": "deleteactivetheme()"
@@ -1791,7 +1791,7 @@
       "label": "open_with()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7747",
+      "source_location": "L8037",
       "id": "ui_main_logic_open_with",
       "community": 1,
       "norm_label": "open_with()"
@@ -1800,7 +1800,7 @@
       "label": "getSetInstalledApplications()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7752",
+      "source_location": "L8042",
       "id": "ui_main_logic_getsetinstalledapplications",
       "community": 1,
       "norm_label": "getsetinstalledapplications()"
@@ -1809,7 +1809,7 @@
       "label": "cancelOperation()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7760",
+      "source_location": "L8050",
       "id": "ui_main_logic_canceloperation",
       "community": 1,
       "norm_label": "canceloperation()"
@@ -1818,34 +1818,34 @@
       "label": "addMillerCol()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7765",
+      "source_location": "L8055",
       "id": "ui_main_logic_addmillercol",
-      "community": 18,
+      "community": 9,
       "norm_label": "addmillercol()"
     },
     {
       "label": "removeExcessMillerCols()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7783",
+      "source_location": "L8073",
       "id": "ui_main_logic_removeexcessmillercols",
-      "community": 18,
+      "community": 9,
       "norm_label": "removeexcessmillercols()"
     },
     {
       "label": "setMillerColActive()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7793",
+      "source_location": "L8083",
       "id": "ui_main_logic_setmillercolactive",
-      "community": 18,
+      "community": 9,
       "norm_label": "setmillercolactive()"
     },
     {
       "label": "getDir()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7806",
+      "source_location": "L8096",
       "id": "ui_main_logic_getdir",
       "community": 10,
       "norm_label": "getdir()"
@@ -1854,7 +1854,7 @@
       "label": "toggleCollapseSection()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7814",
+      "source_location": "L8104",
       "id": "ui_main_logic_togglecollapsesection",
       "community": 10,
       "norm_label": "togglecollapsesection()"
@@ -1863,7 +1863,7 @@
       "label": "restoreCollapseState()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7843",
+      "source_location": "L8133",
       "id": "ui_main_logic_restorecollapsestate",
       "community": 10,
       "norm_label": "restorecollapsestate()"
@@ -1872,7 +1872,7 @@
       "label": "markSelectedDisk()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7855",
+      "source_location": "L8145",
       "id": "ui_main_logic_markselecteddisk",
       "community": 1,
       "norm_label": "markselecteddisk()"
@@ -1881,7 +1881,7 @@
       "label": "displayDiskName()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7861",
+      "source_location": "L8151",
       "id": "ui_main_logic_displaydiskname",
       "community": 23,
       "norm_label": "displaydiskname()"
@@ -1890,7 +1890,7 @@
       "label": "getDiskUsedPercentage()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7873",
+      "source_location": "L8163",
       "id": "ui_main_logic_getdiskusedpercentage",
       "community": 23,
       "norm_label": "getdiskusedpercentage()"
@@ -1899,7 +1899,7 @@
       "label": "updateSidebarDiskButtonUsage()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7882",
+      "source_location": "L8172",
       "id": "ui_main_logic_updatesidebardiskbuttonusage",
       "community": 23,
       "norm_label": "updatesidebardiskbuttonusage()"
@@ -1908,7 +1908,7 @@
       "label": "scheduleDiskUsageRefresh()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7945",
+      "source_location": "L8235",
       "id": "ui_main_logic_schedulediskusagerefresh",
       "community": 137,
       "norm_label": "schedulediskusagerefresh()"
@@ -1917,7 +1917,7 @@
       "label": "refreshDiskSidebarUsage()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7952",
+      "source_location": "L8242",
       "id": "ui_main_logic_refreshdisksidebarusage",
       "community": 23,
       "norm_label": "refreshdisksidebarusage()"
@@ -1926,7 +1926,7 @@
       "label": "createSidebarDiskButton()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L7968",
+      "source_location": "L8258",
       "id": "ui_main_logic_createsidebardiskbutton",
       "community": 23,
       "norm_label": "createsidebardiskbutton()"
@@ -1935,7 +1935,7 @@
       "label": "insertSiteNavButtons()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8048",
+      "source_location": "L8338",
       "id": "ui_main_logic_insertsitenavbuttons",
       "community": 10,
       "norm_label": "insertsitenavbuttons()"
@@ -1944,7 +1944,7 @@
       "label": "fileOperationContextMenu()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8268",
+      "source_location": "L8558",
       "id": "ui_main_logic_fileoperationcontextmenu",
       "community": 14,
       "norm_label": "fileoperationcontextmenu()"
@@ -1953,25 +1953,25 @@
       "label": "openDirAndSwitch()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8305",
+      "source_location": "L8595",
       "id": "ui_main_logic_opendirandswitch",
-      "community": 18,
+      "community": 9,
       "norm_label": "opendirandswitch()"
     },
     {
       "label": "openConfigLocation()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8332",
+      "source_location": "L8622",
       "id": "ui_main_logic_openconfiglocation",
-      "community": 18,
+      "community": 14,
       "norm_label": "openconfiglocation()"
     },
     {
       "label": "showPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8338",
+      "source_location": "L8628",
       "id": "ui_main_logic_showpopup",
       "community": 10,
       "norm_label": "showpopup()"
@@ -1980,7 +1980,7 @@
       "label": "closeConfirmPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8445",
+      "source_location": "L8735",
       "id": "ui_main_logic_closeconfirmpopup",
       "community": 14,
       "norm_label": "closeconfirmpopup()"
@@ -1989,7 +1989,7 @@
       "label": "resetContextMenu()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8462",
+      "source_location": "L8752",
       "id": "ui_main_logic_resetcontextmenu",
       "community": 1,
       "norm_label": "resetcontextmenu()"
@@ -1998,7 +1998,7 @@
       "label": "showCustomContextMenu()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8468",
+      "source_location": "L8758",
       "id": "ui_main_logic_showcustomcontextmenu",
       "community": 1,
       "norm_label": "showcustomcontextmenu()"
@@ -2007,7 +2007,7 @@
       "label": "closeCustomContextMenu()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8498",
+      "source_location": "L8788",
       "id": "ui_main_logic_closecustomcontextmenu",
       "community": 14,
       "norm_label": "closecustomcontextmenu()"
@@ -2016,7 +2016,7 @@
       "label": "unmountNetworkDrive()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8502",
+      "source_location": "L8792",
       "id": "ui_main_logic_unmountnetworkdrive",
       "community": 10,
       "norm_label": "unmountnetworkdrive()"
@@ -2025,7 +2025,7 @@
       "label": "unmountDrive()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8510",
+      "source_location": "L8800",
       "id": "ui_main_logic_unmountdrive",
       "community": 1,
       "norm_label": "unmountdrive()"
@@ -2034,7 +2034,7 @@
       "label": "ejectFTP()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8514",
+      "source_location": "L8804",
       "id": "ui_main_logic_ejectftp",
       "community": 10,
       "norm_label": "ejectftp()"
@@ -2043,7 +2043,7 @@
       "label": "configBackButton()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8531",
+      "source_location": "L8821",
       "id": "ui_main_logic_configbackbutton",
       "community": 216,
       "norm_label": "configbackbutton()"
@@ -2052,7 +2052,7 @@
       "label": "resetBackButton()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8548",
+      "source_location": "L8837",
       "id": "ui_main_logic_resetbackbutton",
       "community": 14,
       "norm_label": "resetbackbutton()"
@@ -2061,7 +2061,7 @@
       "label": "handleMountChanges()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8556",
+      "source_location": "L8845",
       "id": "ui_main_logic_handlemountchanges",
       "community": 10,
       "norm_label": "handlemountchanges()"
@@ -2070,7 +2070,7 @@
       "label": "addNewMount()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8560",
+      "source_location": "L8849",
       "id": "ui_main_logic_addnewmount",
       "community": 23,
       "norm_label": "addnewmount()"
@@ -2079,7 +2079,7 @@
       "label": "removeMount()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8566",
+      "source_location": "L8855",
       "id": "ui_main_logic_removemount",
       "community": 1,
       "norm_label": "removemount()"
@@ -2088,7 +2088,7 @@
       "label": "compareDualPanes()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8579",
+      "source_location": "L8868",
       "id": "ui_main_logic_comparedualpanes",
       "community": 9,
       "norm_label": "comparedualpanes()"
@@ -2097,7 +2097,7 @@
       "label": "markItem()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8717",
+      "source_location": "L9006",
       "id": "ui_main_logic_markitem",
       "community": 1,
       "norm_label": "markitem()"
@@ -2106,7 +2106,7 @@
       "label": "clearComparisonVisuals()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8737",
+      "source_location": "L9026",
       "id": "ui_main_logic_clearcomparisonvisuals",
       "community": 9,
       "norm_label": "clearcomparisonvisuals()"
@@ -2115,7 +2115,7 @@
       "label": "clearComparison()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8746",
+      "source_location": "L9035",
       "id": "ui_main_logic_clearcomparison",
       "community": 9,
       "norm_label": "clearcomparison()"
@@ -2124,7 +2124,7 @@
       "label": "showSyncPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8764",
+      "source_location": "L9053",
       "id": "ui_main_logic_showsyncpopup",
       "community": 1,
       "norm_label": "showsyncpopup()"
@@ -2133,7 +2133,7 @@
       "label": "closeSyncPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8806",
+      "source_location": "L9095",
       "id": "ui_main_logic_closesyncpopup",
       "community": 9,
       "norm_label": "closesyncpopup()"
@@ -2142,7 +2142,7 @@
       "label": "executeSync()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8814",
+      "source_location": "L9103",
       "id": "ui_main_logic_executesync",
       "community": 9,
       "norm_label": "executesync()"
@@ -2151,7 +2151,7 @@
       "label": "showDuplicateFinderPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L8967",
+      "source_location": "L9256",
       "id": "ui_main_logic_showduplicatefinderpopup",
       "community": 1,
       "norm_label": "showduplicatefinderpopup()"
@@ -2160,7 +2160,7 @@
       "label": "closeSmartOrganizerPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L9737",
+      "source_location": "L10026",
       "id": "ui_main_logic_closesmartorganizerpopup",
       "community": 14,
       "norm_label": "closesmartorganizerpopup()"
@@ -2169,7 +2169,7 @@
       "label": "showSmartOrganizerPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L9752",
+      "source_location": "L10041",
       "id": "ui_main_logic_showsmartorganizerpopup",
       "community": 34,
       "norm_label": "showsmartorganizerpopup()"
@@ -2178,7 +2178,7 @@
       "label": "clampInput()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10048",
+      "source_location": "L10337",
       "id": "ui_main_logic_clampinput",
       "community": 1,
       "norm_label": "clampinput()"
@@ -2187,7 +2187,7 @@
       "label": "applyDirectoryListStyles()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10083",
+      "source_location": "L10372",
       "id": "ui_main_logic_applydirectoryliststyles",
       "community": 26,
       "norm_label": "applydirectoryliststyles()"
@@ -2196,7 +2196,7 @@
       "label": "getParentPath()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10103",
+      "source_location": "L10392",
       "id": "ui_main_logic_getparentpath",
       "community": 26,
       "norm_label": "getparentpath()"
@@ -2205,7 +2205,7 @@
       "label": "getTargetContainers()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10111",
+      "source_location": "L10400",
       "id": "ui_main_logic_gettargetcontainers",
       "community": 26,
       "norm_label": "gettargetcontainers()"
@@ -2214,7 +2214,7 @@
       "label": "createItemInnerHtml()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10149",
+      "source_location": "L10438",
       "id": "ui_main_logic_createiteminnerhtml",
       "community": 26,
       "norm_label": "createiteminnerhtml()"
@@ -2223,7 +2223,7 @@
       "label": "getFDirFromElement()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10241",
+      "source_location": "L10530",
       "id": "ui_main_logic_getfdirfromelement",
       "community": 26,
       "norm_label": "getfdirfromelement()"
@@ -2232,7 +2232,7 @@
       "label": "compareItems()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10252",
+      "source_location": "L10541",
       "id": "ui_main_logic_compareitems",
       "community": 26,
       "norm_label": "compareitems()"
@@ -2241,7 +2241,7 @@
       "label": "findInsertionIndex()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10266",
+      "source_location": "L10555",
       "id": "ui_main_logic_findinsertionindex",
       "community": 26,
       "norm_label": "findinsertionindex()"
@@ -2250,7 +2250,7 @@
       "label": "handleDynamicCreate()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10287",
+      "source_location": "L10576",
       "id": "ui_main_logic_handledynamiccreate",
       "community": 26,
       "norm_label": "handledynamiccreate()"
@@ -2259,7 +2259,7 @@
       "label": "handleDynamicRemove()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10419",
+      "source_location": "L10709",
       "id": "ui_main_logic_handledynamicremove",
       "community": 26,
       "norm_label": "handledynamicremove()"
@@ -2268,7 +2268,7 @@
       "label": "handleDynamicUpdate()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10447",
+      "source_location": "L10737",
       "id": "ui_main_logic_handledynamicupdate",
       "community": 26,
       "norm_label": "handledynamicupdate()"
@@ -2277,7 +2277,7 @@
       "label": "DefaultShortcuts",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10509",
+      "source_location": "L10799",
       "id": "ui_main_logic_defaultshortcuts",
       "community": 1,
       "norm_label": "defaultshortcuts"
@@ -2286,7 +2286,7 @@
       "label": "ShortcutLabels",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10540",
+      "source_location": "L10830",
       "id": "ui_main_logic_shortcutlabels",
       "community": 1,
       "norm_label": "shortcutlabels"
@@ -2295,7 +2295,7 @@
       "label": "ConfiguredShortcuts",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10571",
+      "source_location": "L10861",
       "id": "ui_main_logic_configuredshortcuts",
       "community": 1,
       "norm_label": "configuredshortcuts"
@@ -2304,7 +2304,7 @@
       "label": "matchShortcut()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10574",
+      "source_location": "L10864",
       "id": "ui_main_logic_matchshortcut",
       "community": 1,
       "norm_label": "matchshortcut()"
@@ -2313,7 +2313,7 @@
       "label": "formatShortcutForDisplay()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10638",
+      "source_location": "L10928",
       "id": "ui_main_logic_formatshortcutfordisplay",
       "community": 1,
       "norm_label": "formatshortcutfordisplay()"
@@ -2322,7 +2322,7 @@
       "label": "startRecordingShortcut()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10657",
+      "source_location": "L10947",
       "id": "ui_main_logic_startrecordingshortcut",
       "community": 1,
       "norm_label": "startrecordingshortcut()"
@@ -2331,7 +2331,7 @@
       "label": "populateShortcutsUI()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10707",
+      "source_location": "L10997",
       "id": "ui_main_logic_populateshortcutsui",
       "community": 1,
       "norm_label": "populateshortcutsui()"
@@ -2340,7 +2340,7 @@
       "label": "filterShortcuts()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10749",
+      "source_location": "L11039",
       "id": "ui_main_logic_filtershortcuts",
       "community": 1,
       "norm_label": "filtershortcuts()"
@@ -2349,7 +2349,7 @@
       "label": "resetSingleShortcut()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10768",
+      "source_location": "L11058",
       "id": "ui_main_logic_resetsingleshortcut",
       "community": 1,
       "norm_label": "resetsingleshortcut()"
@@ -2358,7 +2358,7 @@
       "label": "resetAllShortcuts()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10774",
+      "source_location": "L11064",
       "id": "ui_main_logic_resetallshortcuts",
       "community": 1,
       "norm_label": "resetallshortcuts()"
@@ -2367,7 +2367,7 @@
       "label": "selectAllExplorerItems()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10782",
+      "source_location": "L11072",
       "id": "ui_main_logic_selectallexploreritems",
       "community": 18,
       "norm_label": "selectallexploreritems()"
@@ -2376,7 +2376,7 @@
       "label": "toggleAiProviderRows()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10803",
+      "source_location": "L11093",
       "id": "ui_main_logic_toggleaiproviderrows",
       "community": 1,
       "norm_label": "toggleaiproviderrows()"
@@ -2385,7 +2385,7 @@
       "label": "toggleAdvancedAiSettings()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10856",
+      "source_location": "L11146",
       "id": "ui_main_logic_toggleadvancedaisettings",
       "community": 1,
       "norm_label": "toggleadvancedaisettings()"
@@ -2394,7 +2394,7 @@
       "label": "onGeminiImageModelChange()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10870",
+      "source_location": "L11160",
       "id": "ui_main_logic_ongeminiimagemodelchange",
       "community": 1,
       "norm_label": "ongeminiimagemodelchange()"
@@ -2403,7 +2403,7 @@
       "label": "onOpenAiImageModelChange()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10878",
+      "source_location": "L11168",
       "id": "ui_main_logic_onopenaiimagemodelchange",
       "community": 1,
       "norm_label": "onopenaiimagemodelchange()"
@@ -2412,7 +2412,7 @@
       "label": "DiskAnalyzerStack",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10892",
+      "source_location": "L11182",
       "id": "ui_main_logic_diskanalyzerstack",
       "community": 1,
       "norm_label": "diskanalyzerstack"
@@ -2421,7 +2421,7 @@
       "label": "DiskAnalyzerSelections",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10900",
+      "source_location": "L11190",
       "id": "ui_main_logic_diskanalyzerselections",
       "community": 1,
       "norm_label": "diskanalyzerselections"
@@ -2430,7 +2430,7 @@
       "label": "DiskAnalyzerChartData",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10901",
+      "source_location": "L11191",
       "id": "ui_main_logic_diskanalyzerchartdata",
       "community": 1,
       "norm_label": "diskanalyzerchartdata"
@@ -2439,7 +2439,7 @@
       "label": "DiskAnalyzerColors",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10903",
+      "source_location": "L11193",
       "id": "ui_main_logic_diskanalyzercolors",
       "community": 1,
       "norm_label": "diskanalyzercolors"
@@ -2448,7 +2448,7 @@
       "label": "isNodeSelected()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10913",
+      "source_location": "L11203",
       "id": "ui_main_logic_isnodeselected",
       "community": 48,
       "norm_label": "isnodeselected()"
@@ -2457,7 +2457,7 @@
       "label": "clearNestedOverrides()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10932",
+      "source_location": "L11222",
       "id": "ui_main_logic_clearnestedoverrides",
       "community": 48,
       "norm_label": "clearnestedoverrides()"
@@ -2466,7 +2466,7 @@
       "label": "toggleNodeSelection()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10941",
+      "source_location": "L11231",
       "id": "ui_main_logic_togglenodeselection",
       "community": 48,
       "norm_label": "togglenodeselection()"
@@ -2475,7 +2475,7 @@
       "label": "hasDeselectedDescendants()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10947",
+      "source_location": "L11237",
       "id": "ui_main_logic_hasdeselecteddescendants",
       "community": 48,
       "norm_label": "hasdeselecteddescendants()"
@@ -2484,7 +2484,7 @@
       "label": "hasSelectedDescendants()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10957",
+      "source_location": "L11247",
       "id": "ui_main_logic_hasselecteddescendants",
       "community": 48,
       "norm_label": "hasselecteddescendants()"
@@ -2493,7 +2493,7 @@
       "label": "isNodeIndeterminate()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10967",
+      "source_location": "L11257",
       "id": "ui_main_logic_isnodeindeterminate",
       "community": 48,
       "norm_label": "isnodeindeterminate()"
@@ -2502,7 +2502,7 @@
       "label": "updateDeleteButton()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10976",
+      "source_location": "L11266",
       "id": "ui_main_logic_updatedeletebutton",
       "community": 48,
       "norm_label": "updatedeletebutton()"
@@ -2511,7 +2511,7 @@
       "label": "startAnalyzerDeletion()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L10989",
+      "source_location": "L11279",
       "id": "ui_main_logic_startanalyzerdeletion",
       "community": 48,
       "norm_label": "startanalyzerdeletion()"
@@ -2520,7 +2520,7 @@
       "label": "getSelectedStats()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11093",
+      "source_location": "L11383",
       "id": "ui_main_logic_getselectedstats",
       "community": 48,
       "norm_label": "getselectedstats()"
@@ -2529,7 +2529,7 @@
       "label": "collectDeletionPlan()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11115",
+      "source_location": "L11405",
       "id": "ui_main_logic_collectdeletionplan",
       "community": 48,
       "norm_label": "collectdeletionplan()"
@@ -2538,7 +2538,7 @@
       "label": "putDiskAnalyzerInBackground()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11136",
+      "source_location": "L11426",
       "id": "ui_main_logic_putdiskanalyzerinbackground",
       "community": 4,
       "norm_label": "putdiskanalyzerinbackground()"
@@ -2547,7 +2547,7 @@
       "label": "triggerStopDiskAnalysis()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11164",
+      "source_location": "L11454",
       "id": "ui_main_logic_triggerstopdiskanalysis",
       "community": 1,
       "norm_label": "triggerstopdiskanalysis()"
@@ -2556,7 +2556,7 @@
       "label": "reopenDiskAnalyzerModal()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11168",
+      "source_location": "L11458",
       "id": "ui_main_logic_reopendiskanalyzermodal",
       "community": 1,
       "norm_label": "reopendiskanalyzermodal()"
@@ -2565,7 +2565,7 @@
       "label": "showDiskAnalyzerPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11217",
+      "source_location": "L11507",
       "id": "ui_main_logic_showdiskanalyzerpopup",
       "community": 1,
       "norm_label": "showdiskanalyzerpopup()"
@@ -2574,7 +2574,7 @@
       "label": "closeDiskAnalyzerPopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11397",
+      "source_location": "L11687",
       "id": "ui_main_logic_closediskanalyzerpopup",
       "community": 1,
       "norm_label": "closediskanalyzerpopup()"
@@ -2583,7 +2583,7 @@
       "label": "renderDiskSpaceNode()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11414",
+      "source_location": "L11704",
       "id": "ui_main_logic_renderdiskspacenode",
       "community": 48,
       "norm_label": "renderdiskspacenode()"
@@ -2592,7 +2592,7 @@
       "label": "navigateDiskAnalyzerBack()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11440",
+      "source_location": "L11730",
       "id": "ui_main_logic_navigatediskanalyzerback",
       "community": 48,
       "norm_label": "navigatediskanalyzerback()"
@@ -2601,7 +2601,7 @@
       "label": "drawDonutChart()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11447",
+      "source_location": "L11737",
       "id": "ui_main_logic_drawdonutchart",
       "community": 48,
       "norm_label": "drawdonutchart()"
@@ -2610,7 +2610,7 @@
       "label": "renderVirtualLegend()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11653",
+      "source_location": "L11943",
       "id": "ui_main_logic_rendervirtuallegend",
       "community": 48,
       "norm_label": "rendervirtuallegend()"
@@ -2619,7 +2619,7 @@
       "label": "truncateString()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11799",
+      "source_location": "L12089",
       "id": "ui_main_logic_truncatestring",
       "community": 1,
       "norm_label": "truncatestring()"
@@ -2628,7 +2628,7 @@
       "label": "openItemByPath()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11803",
+      "source_location": "L12093",
       "id": "ui_main_logic_openitembypath",
       "community": 9,
       "norm_label": "openitembypath()"
@@ -2637,7 +2637,7 @@
       "label": "showUpdateDetails()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11819",
+      "source_location": "L12109",
       "id": "ui_main_logic_showupdatedetails",
       "community": 1,
       "norm_label": "showupdatedetails()"
@@ -2646,7 +2646,7 @@
       "label": "checkForUpdates()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11836",
+      "source_location": "L12126",
       "id": "ui_main_logic_checkforupdates",
       "community": 1,
       "norm_label": "checkforupdates()"
@@ -2655,7 +2655,7 @@
       "label": "checkUpdatesInBackground()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11888",
+      "source_location": "L12178",
       "id": "ui_main_logic_checkupdatesinbackground",
       "community": 1,
       "norm_label": "checkupdatesinbackground()"
@@ -2664,7 +2664,7 @@
       "label": "closeUpdatePopup()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11913",
+      "source_location": "L12203",
       "id": "ui_main_logic_closeupdatepopup",
       "community": 1,
       "norm_label": "closeupdatepopup()"
@@ -2673,7 +2673,7 @@
       "label": "startUpdateDownload()",
       "file_type": "code",
       "source_file": "ui/main_logic.js",
-      "source_location": "L11923",
+      "source_location": "L12213",
       "id": "ui_main_logic_startupdatedownload",
       "community": 1,
       "norm_label": "startupdatedownload()"
@@ -3132,16 +3132,16 @@
       "label": "handleDragOver()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L91",
+      "source_location": "L90",
       "id": "ui_utils_handledragover",
-      "community": 14,
+      "community": 4,
       "norm_label": "handledragover()"
     },
     {
       "label": "handleDragLeave()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L148",
+      "source_location": "L156",
       "id": "ui_utils_handledragleave",
       "community": 4,
       "norm_label": "handledragleave()"
@@ -3150,7 +3150,7 @@
       "label": "handleDragDrop()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L159",
+      "source_location": "L167",
       "id": "ui_utils_handledragdrop",
       "community": 25,
       "norm_label": "handledragdrop()"
@@ -3159,7 +3159,7 @@
       "label": "showToast()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L262",
+      "source_location": "L270",
       "id": "ui_utils_showtoast",
       "community": 34,
       "norm_label": "showtoast()"
@@ -3168,7 +3168,7 @@
       "label": "getThumbnail()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L301",
+      "source_location": "L309",
       "id": "ui_utils_getthumbnail",
       "community": 174,
       "norm_label": "getthumbnail()"
@@ -3177,7 +3177,7 @@
       "label": "getSimpleDirInfo()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L307",
+      "source_location": "L315",
       "id": "ui_utils_getsimpledirinfo",
       "community": 4,
       "norm_label": "getsimpledirinfo()"
@@ -3186,7 +3186,7 @@
       "label": "shouldApplySizeCalculationUpdate()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L329",
+      "source_location": "L337",
       "id": "ui_utils_shouldapplysizecalculationupdate",
       "community": 4,
       "norm_label": "shouldapplysizecalculationupdate()"
@@ -3195,7 +3195,7 @@
       "label": "setSizeCalculationLoading()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L341",
+      "source_location": "L349",
       "id": "ui_utils_setsizecalculationloading",
       "community": 4,
       "norm_label": "setsizecalculationloading()"
@@ -3204,7 +3204,7 @@
       "label": "formatBytes()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L373",
+      "source_location": "L381",
       "id": "ui_utils_formatbytes",
       "community": 48,
       "norm_label": "formatbytes()"
@@ -3213,7 +3213,7 @@
       "label": "formatSizeWithLimit()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L384",
+      "source_location": "L392",
       "id": "ui_utils_formatsizewithlimit",
       "community": 136,
       "norm_label": "formatsizewithlimit()"
@@ -3222,7 +3222,7 @@
       "label": "writeLog()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L388",
+      "source_location": "L396",
       "id": "ui_utils_writelog",
       "community": 25,
       "norm_label": "writelog()"
@@ -3231,7 +3231,7 @@
       "label": "isImage()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L394",
+      "source_location": "L402",
       "id": "ui_utils_isimage",
       "community": 17,
       "norm_label": "isimage()"
@@ -3240,7 +3240,7 @@
       "label": "stopSearching()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L415",
+      "source_location": "L423",
       "id": "ui_utils_stopsearching",
       "community": 173,
       "norm_label": "stopsearching()"
@@ -3249,7 +3249,7 @@
       "label": "createNewAction()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L420",
+      "source_location": "L428",
       "id": "ui_utils_createnewaction",
       "community": 29,
       "norm_label": "createnewaction()"
@@ -3258,7 +3258,7 @@
       "label": "removeAction()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L432",
+      "source_location": "L440",
       "id": "ui_utils_removeaction",
       "community": 4,
       "norm_label": "removeaction()"
@@ -3267,7 +3267,7 @@
       "label": "renderActiveActionsPill()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L445",
+      "source_location": "L453",
       "id": "ui_utils_renderactiveactionspill",
       "community": 4,
       "norm_label": "renderactiveactionspill()"
@@ -3276,7 +3276,7 @@
       "label": "toggleActiveActionsPopup()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L482",
+      "source_location": "L490",
       "id": "ui_utils_toggleactiveactionspopup",
       "community": 4,
       "norm_label": "toggleactiveactionspopup()"
@@ -3285,7 +3285,7 @@
       "label": "showActiveActionsPopup()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L491",
+      "source_location": "L499",
       "id": "ui_utils_showactiveactionspopup",
       "community": 4,
       "norm_label": "showactiveactionspopup()"
@@ -3294,7 +3294,7 @@
       "label": "closeActiveActionsPopup()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L527",
+      "source_location": "L535",
       "id": "ui_utils_closeactiveactionspopup",
       "community": 4,
       "norm_label": "closeactiveactionspopup()"
@@ -3303,7 +3303,7 @@
       "label": "handleActiveActionsOutsideClick()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L538",
+      "source_location": "L546",
       "id": "ui_utils_handleactiveactionsoutsideclick",
       "community": 4,
       "norm_label": "handleactiveactionsoutsideclick()"
@@ -3312,7 +3312,7 @@
       "label": "refreshActiveActionsPopup()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L543",
+      "source_location": "L551",
       "id": "ui_utils_refreshactiveactionspopup",
       "community": 4,
       "norm_label": "refreshactiveactionspopup()"
@@ -3321,7 +3321,7 @@
       "label": "endsWith()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L588",
+      "source_location": "L596",
       "id": "ui_utils_endswith",
       "community": 17,
       "norm_label": "endswith()"
@@ -3330,7 +3330,7 @@
       "label": "updateItemMetadata()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L606",
+      "source_location": "L614",
       "id": "ui_utils_updateitemmetadata",
       "community": 4,
       "norm_label": "updateitemmetadata()"
@@ -3339,7 +3339,7 @@
       "label": "getIconForFile()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L614",
+      "source_location": "L622",
       "id": "ui_utils_geticonforfile",
       "community": 211,
       "norm_label": "geticonforfile()"
@@ -3348,7 +3348,7 @@
       "label": "getOrCreateFileOpAction()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L826",
+      "source_location": "L834",
       "id": "ui_utils_getorcreatefileopaction",
       "community": 4,
       "norm_label": "getorcreatefileopaction()"
@@ -3357,7 +3357,7 @@
       "label": "reopenProgressModal()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L850",
+      "source_location": "L858",
       "id": "ui_utils_reopenprogressmodal",
       "community": 4,
       "norm_label": "reopenprogressmodal()"
@@ -3366,7 +3366,7 @@
       "label": "cancelActionInline()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L862",
+      "source_location": "L870",
       "id": "ui_utils_cancelactioninline",
       "community": 4,
       "norm_label": "cancelactioninline()"
@@ -3375,7 +3375,7 @@
       "label": "showProgressbar()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L889",
+      "source_location": "L897",
       "id": "ui_utils_showprogressbar",
       "community": 4,
       "norm_label": "showprogressbar()"
@@ -3384,7 +3384,7 @@
       "label": "updateProgressBar()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L1001",
+      "source_location": "L1009",
       "id": "ui_utils_updateprogressbar",
       "community": 4,
       "norm_label": "updateprogressbar()"
@@ -3393,7 +3393,7 @@
       "label": "finishProgressBar()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L1072",
+      "source_location": "L1080",
       "id": "ui_utils_finishprogressbar",
       "community": 14,
       "norm_label": "finishprogressbar()"
@@ -3402,7 +3402,7 @@
       "label": "tryLoadCachedImage()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L1132",
+      "source_location": "L1140",
       "id": "ui_utils_tryloadcachedimage",
       "community": 4,
       "norm_label": "tryloadcachedimage()"
@@ -3411,7 +3411,7 @@
       "label": "setItemImage()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L1151",
+      "source_location": "L1159",
       "id": "ui_utils_setitemimage",
       "community": 4,
       "norm_label": "setitemimage()"
@@ -3420,7 +3420,7 @@
       "label": "renderMarkdown()",
       "file_type": "code",
       "source_file": "ui/utils.js",
-      "source_location": "L1166",
+      "source_location": "L1174",
       "id": "ui_utils_rendermarkdown",
       "community": 4,
       "norm_label": "rendermarkdown()"
@@ -4799,7 +4799,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_core_app",
-      "community": 115,
+      "community": 24,
       "norm_label": "core:app"
     },
     {
@@ -4898,7 +4898,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_bundle_type",
-      "community": 31,
+      "community": 0,
       "norm_label": "allow-bundle-type"
     },
     {
@@ -4907,7 +4907,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_bundle_type_identifier",
-      "community": 31,
+      "community": 0,
       "norm_label": "identifier"
     },
     {
@@ -4916,7 +4916,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_bundle_type_description",
-      "community": 31,
+      "community": 0,
       "norm_label": "description"
     },
     {
@@ -4997,7 +4997,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_fetch_data_store_identifiers_commands",
-      "community": 115,
+      "community": 8,
       "norm_label": "commands"
     },
     {
@@ -5006,7 +5006,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_identifier",
-      "community": 177,
+      "community": 224,
       "norm_label": "allow-identifier"
     },
     {
@@ -5015,7 +5015,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_identifier_identifier",
-      "community": 177,
+      "community": 224,
       "norm_label": "identifier"
     },
     {
@@ -5024,7 +5024,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_identifier_description",
-      "community": 177,
+      "community": 224,
       "norm_label": "description"
     },
     {
@@ -5033,7 +5033,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_identifier_commands",
-      "community": 177,
+      "community": 224,
       "norm_label": "commands"
     },
     {
@@ -5042,7 +5042,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_name",
-      "community": 215,
+      "community": 8,
       "norm_label": "allow-name"
     },
     {
@@ -5051,7 +5051,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_name_identifier",
-      "community": 215,
+      "community": 8,
       "norm_label": "identifier"
     },
     {
@@ -5060,7 +5060,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_name_description",
-      "community": 215,
+      "community": 8,
       "norm_label": "description"
     },
     {
@@ -5069,7 +5069,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_name_commands",
-      "community": 215,
+      "community": 8,
       "norm_label": "commands"
     },
     {
@@ -5078,7 +5078,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_register_listener",
-      "community": 51,
+      "community": 115,
       "norm_label": "allow-register-listener"
     },
     {
@@ -5087,7 +5087,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_register_listener_identifier",
-      "community": 51,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -5096,7 +5096,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_register_listener_description",
-      "community": 51,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -5105,7 +5105,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_register_listener_commands",
-      "community": 51,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -5186,7 +5186,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_set_app_theme",
-      "community": 223,
+      "community": 115,
       "norm_label": "allow-set-app-theme"
     },
     {
@@ -5195,7 +5195,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_set_app_theme_identifier",
-      "community": 223,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -5204,7 +5204,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_set_app_theme_description",
-      "community": 223,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -5213,7 +5213,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_set_app_theme_commands",
-      "community": 223,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -5222,7 +5222,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_set_dock_visibility",
-      "community": 115,
+      "community": 51,
       "norm_label": "allow-set-dock-visibility"
     },
     {
@@ -5231,7 +5231,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_set_dock_visibility_identifier",
-      "community": 115,
+      "community": 51,
       "norm_label": "identifier"
     },
     {
@@ -5240,7 +5240,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_set_dock_visibility_description",
-      "community": 115,
+      "community": 51,
       "norm_label": "description"
     },
     {
@@ -5249,7 +5249,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_set_dock_visibility_commands",
-      "community": 115,
+      "community": 51,
       "norm_label": "commands"
     },
     {
@@ -5330,7 +5330,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_version",
-      "community": 8,
+      "community": 115,
       "norm_label": "allow-version"
     },
     {
@@ -5339,7 +5339,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_version_identifier",
-      "community": 8,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -5348,7 +5348,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_version_description",
-      "community": 8,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -5357,7 +5357,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_version_commands",
-      "community": 8,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -5366,7 +5366,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_app_hide",
-      "community": 176,
+      "community": 224,
       "norm_label": "deny-app-hide"
     },
     {
@@ -5375,7 +5375,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_app_hide_identifier",
-      "community": 176,
+      "community": 224,
       "norm_label": "identifier"
     },
     {
@@ -5384,7 +5384,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_app_hide_description",
-      "community": 176,
+      "community": 224,
       "norm_label": "description"
     },
     {
@@ -5393,7 +5393,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_app_hide_commands",
-      "community": 176,
+      "community": 224,
       "norm_label": "commands"
     },
     {
@@ -5402,7 +5402,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_app_show",
-      "community": 16,
+      "community": 115,
       "norm_label": "deny-app-show"
     },
     {
@@ -5411,7 +5411,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_app_show_identifier",
-      "community": 16,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -5420,7 +5420,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_app_show_description",
-      "community": 16,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -5429,7 +5429,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_app_show_commands",
-      "community": 16,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -5438,7 +5438,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_bundle_type",
-      "community": 0,
+      "community": 176,
       "norm_label": "deny-bundle-type"
     },
     {
@@ -5447,7 +5447,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_bundle_type_identifier",
-      "community": 0,
+      "community": 176,
       "norm_label": "identifier"
     },
     {
@@ -5456,7 +5456,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_bundle_type_description",
-      "community": 0,
+      "community": 176,
       "norm_label": "description"
     },
     {
@@ -5465,7 +5465,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_bundle_type_commands",
-      "community": 8,
+      "community": 176,
       "norm_label": "commands"
     },
     {
@@ -5510,7 +5510,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_fetch_data_store_identifiers",
-      "community": 179,
+      "community": 176,
       "norm_label": "deny-fetch-data-store-identifiers"
     },
     {
@@ -5519,7 +5519,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_fetch_data_store_identifiers_identifier",
-      "community": 179,
+      "community": 176,
       "norm_label": "identifier"
     },
     {
@@ -5528,7 +5528,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_fetch_data_store_identifiers_description",
-      "community": 179,
+      "community": 176,
       "norm_label": "description"
     },
     {
@@ -5537,7 +5537,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_fetch_data_store_identifiers_commands",
-      "community": 179,
+      "community": 176,
       "norm_label": "commands"
     },
     {
@@ -5690,7 +5690,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_remove_listener",
-      "community": 51,
+      "community": 115,
       "norm_label": "deny-remove-listener"
     },
     {
@@ -5699,7 +5699,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_remove_listener_identifier",
-      "community": 51,
+      "community": 115,
       "norm_label": "identifier"
     },
     {
@@ -5708,7 +5708,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_remove_listener_description",
-      "community": 51,
+      "community": 115,
       "norm_label": "description"
     },
     {
@@ -5717,7 +5717,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_remove_listener_commands",
-      "community": 51,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -5834,7 +5834,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_deny_tauri_version",
-      "community": 218,
+      "community": 51,
       "norm_label": "deny-tauri-version"
     },
     {
@@ -5843,7 +5843,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_tauri_version_identifier",
-      "community": 218,
+      "community": 51,
       "norm_label": "identifier"
     },
     {
@@ -5852,7 +5852,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_tauri_version_description",
-      "community": 218,
+      "community": 51,
       "norm_label": "description"
     },
     {
@@ -5861,7 +5861,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_tauri_version_commands",
-      "community": 218,
+      "community": 51,
       "norm_label": "commands"
     },
     {
@@ -5906,7 +5906,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_core_app_permission_sets",
-      "community": 115,
+      "community": 24,
       "norm_label": "permission_sets"
     },
     {
@@ -5915,7 +5915,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_core_app_global_scope_schema",
-      "community": 115,
+      "community": 24,
       "norm_label": "global_scope_schema"
     },
     {
@@ -6545,7 +6545,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_new_identifier",
-      "community": 31,
+      "community": 0,
       "norm_label": "identifier"
     },
     {
@@ -6563,7 +6563,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_deny_new_commands",
-      "community": 0,
+      "community": 115,
       "norm_label": "commands"
     },
     {
@@ -6797,7 +6797,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_permissions_allow_insert",
-      "community": 31,
+      "community": 179,
       "norm_label": "allow-insert"
     },
     {
@@ -6806,7 +6806,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_insert_identifier",
-      "community": 31,
+      "community": 179,
       "norm_label": "identifier"
     },
     {
@@ -6815,7 +6815,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_insert_description",
-      "community": 31,
+      "community": 179,
       "norm_label": "description"
     },
     {
@@ -6824,7 +6824,7 @@
       "source_file": "src-tauri/gen/schemas/acl-manifests.json",
       "source_location": "L1",
       "id": "schemas_acl_manifests_allow_insert_commands",
-      "community": 31,
+      "community": 179,
       "norm_label": "commands"
     },
     {
@@ -9020,7 +9020,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L44",
       "id": "src_main_home_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "home_dir()"
     },
     {
@@ -9029,7 +9029,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L48",
       "id": "src_main_desktop_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "desktop_dir()"
     },
     {
@@ -9038,7 +9038,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L52",
       "id": "src_main_download_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "download_dir()"
     },
     {
@@ -9047,7 +9047,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L56",
       "id": "src_main_document_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "document_dir()"
     },
     {
@@ -9056,7 +9056,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L60",
       "id": "src_main_picture_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "picture_dir()"
     },
     {
@@ -9065,7 +9065,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L64",
       "id": "src_main_video_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "video_dir()"
     },
     {
@@ -9074,7 +9074,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L68",
       "id": "src_main_audio_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "audio_dir()"
     },
     {
@@ -9083,7 +9083,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L121",
       "id": "src_main_main",
-      "community": 50,
+      "community": 2,
       "norm_label": "main()"
     },
     {
@@ -9155,7 +9155,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L399",
       "id": "src_main_log_debug",
-      "community": 50,
+      "community": 2,
       "norm_label": "log_debug()"
     },
     {
@@ -9227,7 +9227,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L770",
       "id": "src_main_switch_to_directory",
-      "community": 5,
+      "community": 16,
       "norm_label": "switch_to_directory()"
     },
     {
@@ -9254,7 +9254,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L796",
       "id": "src_main_set_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "set_dir()"
     },
     {
@@ -9389,7 +9389,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1274",
       "id": "src_main_push_history",
-      "community": 5,
+      "community": 16,
       "norm_label": "push_history()"
     },
     {
@@ -9398,7 +9398,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1279",
       "id": "src_main_pop_history",
-      "community": 5,
+      "community": 16,
       "norm_label": "pop_history()"
     },
     {
@@ -9407,7 +9407,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1285",
       "id": "src_main_open_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "open_dir()"
     },
     {
@@ -9416,7 +9416,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1310",
       "id": "src_main_go_back",
-      "community": 5,
+      "community": 16,
       "norm_label": "go_back()"
     },
     {
@@ -9425,7 +9425,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1345",
       "id": "src_main_go_to_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "go_to_dir()"
     },
     {
@@ -9434,7 +9434,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1365",
       "id": "src_main_mount_sshfs",
-      "community": 33,
+      "community": 53,
       "norm_label": "mount_sshfs()"
     },
     {
@@ -9452,7 +9452,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1468",
       "id": "src_main_go_home",
-      "community": 5,
+      "community": 16,
       "norm_label": "go_home()"
     },
     {
@@ -9461,7 +9461,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1474",
       "id": "src_main_stop_searching",
-      "community": 50,
+      "community": 174,
       "norm_label": "stop_searching()"
     },
     {
@@ -9470,7 +9470,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1479",
       "id": "src_main_search_ftp_recursive",
-      "community": 50,
+      "community": 2,
       "norm_label": "search_ftp_recursive()"
     },
     {
@@ -9479,7 +9479,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L1575",
       "id": "src_main_search_for",
-      "community": 50,
+      "community": 2,
       "norm_label": "search_for()"
     },
     {
@@ -9686,7 +9686,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3458",
       "id": "src_main_open_item",
-      "community": 18,
+      "community": 9,
       "norm_label": "open_item()"
     },
     {
@@ -9758,7 +9758,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3862",
       "id": "src_main_rename_elements_with_format",
-      "community": 50,
+      "community": 174,
       "norm_label": "rename_elements_with_format()"
     },
     {
@@ -9821,7 +9821,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3934",
       "id": "src_main_stop_compression",
-      "community": 50,
+      "community": 174,
       "norm_label": "stop_compression()"
     },
     {
@@ -9839,7 +9839,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L3945",
       "id": "src_main_get_df_dir",
-      "community": 5,
+      "community": 16,
       "norm_label": "get_df_dir()"
     },
     {
@@ -9893,7 +9893,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4256",
       "id": "src_main_get_image_mime_type",
-      "community": 174,
+      "community": 5,
       "norm_label": "get_image_mime_type()"
     },
     {
@@ -9902,7 +9902,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4266",
       "id": "src_main_get_image_data",
-      "community": 174,
+      "community": 5,
       "norm_label": "get_image_data()"
     },
     {
@@ -9911,7 +9911,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4274",
       "id": "src_main_get_gemini_keychain_key",
-      "community": 174,
+      "community": 5,
       "norm_label": "get_gemini_keychain_key()"
     },
     {
@@ -9929,7 +9929,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4337",
       "id": "src_main_get_openai_keychain_key",
-      "community": 174,
+      "community": 5,
       "norm_label": "get_openai_keychain_key()"
     },
     {
@@ -9947,7 +9947,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4400",
       "id": "src_main_call_gemini_api",
-      "community": 174,
+      "community": 5,
       "norm_label": "call_gemini_api()"
     },
     {
@@ -9956,7 +9956,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4430",
       "id": "src_main_call_openai_api",
-      "community": 174,
+      "community": 5,
       "norm_label": "call_openai_api()"
     },
     {
@@ -9965,7 +9965,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4457",
       "id": "src_main_extract_openai_text",
-      "community": 174,
+      "community": 5,
       "norm_label": "extract_openai_text()"
     },
     {
@@ -9974,7 +9974,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4464",
       "id": "src_main_extract_openai_image",
-      "community": 174,
+      "community": 5,
       "norm_label": "extract_openai_image()"
     },
     {
@@ -9983,7 +9983,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4471",
       "id": "src_main_extract_gemini_text",
-      "community": 174,
+      "community": 5,
       "norm_label": "extract_gemini_text()"
     },
     {
@@ -9992,7 +9992,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4478",
       "id": "src_main_extract_gemini_image",
-      "community": 174,
+      "community": 5,
       "norm_label": "extract_gemini_image()"
     },
     {
@@ -10001,7 +10001,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4496",
       "id": "src_main_save_ai_image",
-      "community": 174,
+      "community": 5,
       "norm_label": "save_ai_image()"
     },
     {
@@ -10010,7 +10010,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4515",
       "id": "src_main_ai_upscale_image",
-      "community": 174,
+      "community": 5,
       "norm_label": "ai_upscale_image()"
     },
     {
@@ -10019,7 +10019,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4696",
       "id": "src_main_ai_style_image",
-      "community": 174,
+      "community": 5,
       "norm_label": "ai_style_image()"
     },
     {
@@ -10028,7 +10028,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L4819",
       "id": "src_main_ai_get_organizer_suggestions",
-      "community": 174,
+      "community": 5,
       "norm_label": "ai_get_organizer_suggestions()"
     },
     {
@@ -10091,7 +10091,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5245",
       "id": "src_main_open_config_location",
-      "community": 18,
+      "community": 14,
       "norm_label": "open_config_location()"
     },
     {
@@ -10217,7 +10217,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5474",
       "id": "src_main_load_item_image",
-      "community": 50,
+      "community": 174,
       "norm_label": "load_item_image()"
     },
     {
@@ -10235,7 +10235,7 @@
       "source_file": "src-tauri/src/main.rs",
       "source_location": "L5764",
       "id": "src_main_get_machine_bytes",
-      "community": 50,
+      "community": 174,
       "norm_label": "get_machine_bytes()"
     },
     {
@@ -10379,7 +10379,7 @@
       "source_file": "src-tauri/src/utils.rs",
       "source_location": "L149",
       "id": "src_utils_dbg_log",
-      "community": 50,
+      "community": 174,
       "norm_label": "dbg_log()"
     },
     {
@@ -10397,7 +10397,7 @@
       "source_file": "src-tauri/src/utils.rs",
       "source_location": "L165",
       "id": "src_utils_err_log",
-      "community": 33,
+      "community": 53,
       "norm_label": "err_log()"
     },
     {
@@ -10451,7 +10451,7 @@
       "source_file": "src-tauri/src/utils.rs",
       "source_location": "L413",
       "id": "src_utils_show_progressbar",
-      "community": 53,
+      "community": 33,
       "norm_label": "show_progressbar()"
     },
     {
@@ -10703,7 +10703,7 @@
       "source_file": "src-tauri/src/utils.rs",
       "source_location": "L948",
       "id": "src_utils_human_to_bytes",
-      "community": 50,
+      "community": 174,
       "norm_label": "human_to_bytes()"
     },
     {
@@ -10766,7 +10766,7 @@
       "source_file": "src-tauri/src/utils.rs",
       "source_location": "L1514",
       "id": "src_utils_setup_fs_watcher",
-      "community": 50,
+      "community": 33,
       "norm_label": "setup_fs_watcher()"
     },
     {
@@ -10784,7 +10784,7 @@
       "source_file": "src-tauri/src/utils.rs",
       "source_location": "L1555",
       "id": "src_utils_handle_fs_change",
-      "community": 50,
+      "community": 33,
       "norm_label": "handle_fs_change()"
     },
     {
@@ -15725,7 +15725,7 @@
       "source_file": "docs/review/context-menu-visual-overhaul/findings.md",
       "source_location": "L1",
       "id": "docs_review_context_menu_visual_overhaul_findings_md",
-      "community": 169,
+      "community": 140,
       "norm_label": "findings.md"
     },
     {
@@ -15734,7 +15734,7 @@
       "source_file": "docs/review/context-menu-visual-overhaul/findings.md",
       "source_location": "L1",
       "id": "context_menu_visual_overhaul_findings_code_review_context_menu_visual_overhaul",
-      "community": 169,
+      "community": 140,
       "norm_label": "code review: context menu visual overhaul"
     },
     {
@@ -16328,7 +16328,7 @@
       "source_file": "docs/review/context-menu-visual-overhaul/findings.md",
       "source_location": "L295",
       "id": "context_menu_visual_overhaul_findings_positive_findings",
-      "community": 169,
+      "community": 140,
       "norm_label": "positive findings"
     },
     {
@@ -21156,7 +21156,7 @@
       "captured_at": null,
       "author": "code-reviewer",
       "contributor": null,
-      "community": 53,
+      "community": 50,
       "norm_label": "copy/move conflict handling re-review summary",
       "id": "copy_move_conflict_handling_summary_summary"
     },
@@ -21182,7 +21182,7 @@
       "captured_at": null,
       "author": "documentation-writer",
       "contributor": null,
-      "community": 53,
+      "community": 50,
       "norm_label": "copy/move conflict handling release notes",
       "id": "copy_move_conflict_handling_release_notes_release_notes"
     },
@@ -21195,7 +21195,7 @@
       "captured_at": null,
       "author": "documentation-writer",
       "contributor": null,
-      "community": 53,
+      "community": 50,
       "norm_label": "copy/move conflict handling commit message",
       "id": "copy_move_conflict_handling_commit_message_commit_message"
     },
@@ -21247,7 +21247,7 @@
       "captured_at": null,
       "author": "main-agent",
       "contributor": null,
-      "community": 53,
+      "community": 50,
       "norm_label": "architecture context: system shape and conflict resolution",
       "id": "arch_context_system_shape_and_conflicts"
     },
@@ -21286,7 +21286,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 53,
+      "community": 50,
       "norm_label": "arr_copy_paste() rust command",
       "id": "src_tauri_main_arr_copy_paste"
     },
@@ -24672,22 +24672,22 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "ui/main_logic.js",
-      "source_location": "L9599",
+      "source_location": "L307",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "ui_main_logic_createiteminnerhtml",
-      "target": "ui_main_logic_getvectoriconandcolor"
+      "source": "ui_main_logic_getvectoriconandcolor",
+      "target": "ui_main_logic_hextorgba"
     },
     {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "ui/main_logic.js",
-      "source_location": "L307",
+      "source_location": "L9599",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "ui_main_logic_getvectoriconandcolor",
-      "target": "ui_main_logic_hextorgba"
+      "source": "ui_main_logic_createiteminnerhtml",
+      "target": "ui_main_logic_getvectoriconandcolor"
     },
     {
       "relation": "calls",
@@ -25018,17 +25018,6 @@
       "weight": 1.0,
       "source": "ui_main_logic_reseteverything",
       "target": "ui_utils_finishprogressbar"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "ui/main_logic.js",
-      "source_location": "L658",
-      "weight": 1.0,
-      "source": "ui_main_logic_reseteverything",
-      "target": "ui_utils_cleardraghighlight"
     },
     {
       "relation": "calls",
