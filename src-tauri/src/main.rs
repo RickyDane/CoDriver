@@ -333,6 +333,9 @@ struct AppConfig {
     openai_text_model: String,
     openai_image_model: String,
     shortcuts: std::collections::HashMap<String, String>,
+    current_icon_theme: String,
+    current_icon_scale: String,
+    icon_accent_color: String,
 }
 
 fn load_app_config() -> Value {
@@ -374,6 +377,9 @@ fn load_app_config() -> Value {
         openai_text_model: "gpt-4o".to_string(),
         openai_image_model: "gpt-image-2".to_string(),
         shortcuts: std::collections::HashMap::new(),
+        current_icon_theme: "Prestige Glass".to_string(),
+        current_icon_scale: "100".to_string(),
+        icon_accent_color: "".to_string(),
     };
     if let Some(parent) = config_path.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -535,6 +541,30 @@ async fn check_app_config() -> AppConfig {
             .replace('"', "")
             .replace("null", "gpt-image-2"),
         shortcuts: shortcuts_map,
+        current_icon_theme: {
+            let val = app_config["current_icon_theme"].to_string().replace('"', "");
+            if val.is_empty() || val == "null" {
+                "Prestige Glass".to_string()
+            } else {
+                val
+            }
+        },
+        current_icon_scale: {
+            let val = app_config["current_icon_scale"].to_string().replace('"', "");
+            if val.is_empty() || val == "null" {
+                "100".to_string()
+            } else {
+                val
+            }
+        },
+        icon_accent_color: {
+            let val = app_config["icon_accent_color"].to_string().replace('"', "");
+            if val == "null" {
+                "".to_string()
+            } else {
+                val
+            }
+        },
     }
 }
 
@@ -3782,6 +3812,9 @@ async fn save_config(
     openai_text_model: String,
     openai_image_model: String,
     shortcuts: std::collections::HashMap<String, String>,
+    current_icon_theme: String,
+    current_icon_scale: String,
+    icon_accent_color: String,
 ) {
     let app_config = load_app_config();
 
@@ -3853,6 +3886,9 @@ async fn save_config(
         openai_text_model: openai_text_model.replace("\\", ""),
         openai_image_model: openai_image_model.replace("\\", ""),
         shortcuts,
+        current_icon_theme: current_icon_theme.replace("\\", ""),
+        current_icon_scale: current_icon_scale.replace("\\", ""),
+        icon_accent_color: icon_accent_color.replace("\\", ""),
     };
     let app_config_val = serde_json::to_value(&app_config_json).unwrap_or(serde_json::Value::Null);
     save_app_config(&app_config_val);

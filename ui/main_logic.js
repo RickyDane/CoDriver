@@ -15,6 +15,31 @@ const { resolveResource } = TAURI.path;
 
 // :entry_point Entry point
 
+function safeGetLocalStorage(key, defaultValue = "") {
+  try {
+    return localStorage.getItem(key) || defaultValue;
+  } catch (e) {
+    console.warn("safeGetLocalStorage failed:", e);
+    return defaultValue;
+  }
+}
+
+function safeSetLocalStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    console.warn("safeSetLocalStorage failed:", e);
+  }
+}
+
+function safeRemoveLocalStorage(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {
+    console.warn("safeRemoveLocalStorage failed:", e);
+  }
+}
+
 getMatches().then((matches) => {
   // alert(JSON.stringify(matches.args.source.value));
 });
@@ -109,6 +134,9 @@ ds.subscribe("DS:unselect", async (payload) => {
 });
 
 /* region Global Variables */
+let CurrentIconTheme = "Prestige Glass";
+let CurrentIconScale = "100";
+let CurrentIconAccentColor = "";
 let ShiftAnchorElement = null;
 let IsLShiftDown = false;
 let ViewMode = "wrap";
@@ -191,7 +219,7 @@ function getVectorIconAndColor(item, themeName) {
   let iconColor = "var(--textColor2)";
   let customStyle = "";
 
-  let customColor = localStorage.getItem("icon-color-" + themeName);
+  let customColor = themeName === "Lucide Default" ? CurrentIconAccentColor : safeGetLocalStorage("icon-color-" + themeName);
 
   if (themeName === "Lucide Default") {
     if (isDir) {
@@ -4218,14 +4246,15 @@ async function checkAppConfig() {
       $(".edit-theme-btn").css("display", "block");
     }
 
-    // Set active icon theme card matching localStorage
-    let savedIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
-    if (savedIconTheme !== "Prestige Glass" && savedIconTheme !== "Lucide Default") {
-      savedIconTheme = "Prestige Glass";
-      localStorage.setItem("current-icon-theme", savedIconTheme);
+    // Set active icon theme card matching appConfig (with localStorage fallback)
+    CurrentIconTheme = appConfig.current_icon_theme || safeGetLocalStorage("current-icon-theme", "Prestige Glass");
+    if (CurrentIconTheme !== "Prestige Glass" && CurrentIconTheme !== "Lucide Default") {
+      CurrentIconTheme = "Prestige Glass";
     }
+    safeSetLocalStorage("current-icon-theme", CurrentIconTheme);
+
     document.querySelectorAll(".icon-theme-card").forEach(card => {
-      if (card.getAttribute("data-theme") === savedIconTheme) {
+      if (card.getAttribute("data-theme") === CurrentIconTheme) {
         card.classList.add("active");
       } else {
         card.classList.remove("active");
@@ -4233,12 +4262,19 @@ async function checkAppConfig() {
     });
 
     // Wire and load icon scale settings
-    let savedIconScale = localStorage.getItem("current-icon-scale") || "100";
+    CurrentIconScale = appConfig.current_icon_scale || safeGetLocalStorage("current-icon-scale", "100");
     let iconSlider = document.querySelector(".icon-size-slider");
     if (iconSlider) {
-      iconSlider.value = savedIconScale;
+      iconSlider.value = CurrentIconScale;
     }
-    changeIconSize(savedIconScale);
+
+    // Set the accent color from appConfig (with local storage fallback/sync)
+    CurrentIconAccentColor = appConfig.icon_accent_color || safeGetLocalStorage("icon-color-Lucide Default", "");
+    if (CurrentIconAccentColor) {
+      safeSetLocalStorage("icon-color-Lucide Default", CurrentIconAccentColor);
+    }
+
+    changeIconSize(CurrentIconScale);
     initIconColorSettings();
 
     checkColorMode(appConfig);
@@ -6077,6 +6113,10 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     document.body.style.opacity = "1.0";
   }
 
+  let currentIconTheme = CurrentIconTheme;
+  let currentIconScale = CurrentIconScale;
+  let iconAccentColor = CurrentIconAccentColor;
+
   await invoke("save_config", {
     configuredPathOne,
     configuredPathTwo,
@@ -6102,6 +6142,9 @@ async function saveConfig(isToReload = true, isVerbose = true) {
     openaiTextModel,
     openaiImageModel,
     shortcuts: ConfiguredShortcuts,
+    currentIconTheme,
+    currentIconScale,
+    iconAccentColor,
   });
   if (isVerbose === true) {
     showToast("Settings have been saved", ToastType.INFO);
@@ -7493,7 +7536,7 @@ const DefaultIconColors = {
 };
 
 function initIconColorSettings() {
-  let activeIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
+  let activeIconTheme = CurrentIconTheme;
   
   if (activeIconTheme === "Prestige Glass") {
     $(".icon-color-controls").css("display", "none");
@@ -7502,7 +7545,7 @@ function initIconColorSettings() {
     $(".icon-color-controls").css("display", "flex");
     $(".icon-color-na-message").css("display", "none");
     
-    let customColor = localStorage.getItem("icon-color-" + activeIconTheme);
+    let customColor = activeIconTheme === "Lucide Default" ? CurrentIconAccentColor : safeGetLocalStorage("icon-color-" + activeIconTheme);
     let defaultColor = DefaultIconColors[activeIconTheme] || "var(--textColor2)";
     
     let displayColor = customColor || defaultColor;
@@ -7520,13 +7563,15 @@ function initIconColorSettings() {
 }
 
 function applyCustomIconColor(color) {
-  let activeIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
-  if (activeIconTheme === "Prestige Glass") return;
+  if (CurrentIconTheme === "Prestige Glass") return;
   
   let cleanedColor = color.trim();
   if (!cleanedColor) return;
   
-  localStorage.setItem("icon-color-" + activeIconTheme, cleanedColor);
+  if (CurrentIconTheme === "Lucide Default") {
+    CurrentIconAccentColor = cleanedColor;
+  }
+  safeSetLocalStorage("icon-color-" + CurrentIconTheme, cleanedColor);
   
   let hexColor = convertToHex(cleanedColor);
   if (hexColor.startsWith("#") && hexColor.length === 7) {
@@ -7541,13 +7586,17 @@ function applyCustomIconColor(color) {
   } else {
     listDirectories();
   }
+
+  saveConfig(false, false);
 }
 
 function resetCustomIconColor() {
-  let activeIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
-  if (activeIconTheme === "Prestige Glass") return;
+  if (CurrentIconTheme === "Prestige Glass") return;
   
-  localStorage.removeItem("icon-color-" + activeIconTheme);
+  if (CurrentIconTheme === "Lucide Default") {
+    CurrentIconAccentColor = "";
+  }
+  safeRemoveLocalStorage("icon-color-" + CurrentIconTheme);
   
   initIconColorSettings();
   
@@ -7556,12 +7605,14 @@ function resetCustomIconColor() {
   } else {
     listDirectories();
   }
+
+  saveConfig(false, false);
 }
 
 function updateIconThemePreviews() {
   document.querySelectorAll(".icon-theme-card").forEach(card => {
     let themeName = card.getAttribute("data-theme");
-    let customColor = localStorage.getItem("icon-color-" + themeName);
+    let customColor = themeName === "Lucide Default" ? CurrentIconAccentColor : safeGetLocalStorage("icon-color-" + themeName);
     
     let folderIcon = card.querySelector(".icon-preview-row i.fa-folder, .icon-preview-row i.fa-folder-open, .icon-preview-row i.icon-folder, .icon-preview-row img[src*='folder']");
     let fileCodeIcon = card.querySelector(".icon-preview-row i.fa-file-code, .icon-preview-row i.fa-code, .icon-preview-row i.icon-file-code, .icon-preview-row img[src*='code']");
@@ -7601,14 +7652,14 @@ function selectIconTheme(themeName) {
   });
 
   // Save selection
-  localStorage.setItem("current-icon-theme", themeName);
+  CurrentIconTheme = themeName;
+  safeSetLocalStorage("current-icon-theme", themeName);
 
   // Initialize color controls for the newly active icon theme
   initIconColorSettings();
 
   // Recalculate dynamic CSS variables for correct size weight scaling
-  let savedScale = localStorage.getItem("current-icon-scale") || "100";
-  changeIconSize(savedScale);
+  changeIconSize(CurrentIconScale);
 
   // Apply immediately by refreshing directory contents
   if (IsDualPaneEnabled) {
@@ -7616,6 +7667,8 @@ function selectIconTheme(themeName) {
   } else {
     listDirectories();
   }
+
+  saveConfig(false, false);
 }
 
 function changeIconSize(scalePercent) {
@@ -7627,19 +7680,19 @@ function changeIconSize(scalePercent) {
     indicator.textContent = scalePercent + "%";
   }
 
-  // Save scale to localStorage
-  localStorage.setItem("current-icon-scale", scalePercent);
+  // Save scale
+  CurrentIconScale = scalePercent;
+  safeSetLocalStorage("current-icon-scale", scalePercent);
 
   // Check if current active icon theme is a Lucide theme
-  let currentIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
-  let isLucideTheme = currentIconTheme === "Lucide Default";
+  let isLucideTheme = CurrentIconTheme === "Lucide Default";
 
   // Determine base sizes with premium boosts for default PG and LD
   let baseListIcon = 24;
   let baseMillerIcon = 18;
   let baseGridIcon = 56;
 
-  if (currentIconTheme === "Prestige Glass" || currentIconTheme === "Lucide Default") {
+  if (CurrentIconTheme === "Prestige Glass" || CurrentIconTheme === "Lucide Default") {
     baseListIcon = 28;
     baseMillerIcon = 21;
     baseGridIcon = 56;
@@ -7650,7 +7703,7 @@ function changeIconSize(scalePercent) {
   let baseMillerVector = isLucideTheme ? 13 : 10;
   let baseGridVector = isLucideTheme ? 36 : 28;
 
-  if (currentIconTheme === "Lucide Default") {
+  if (isLucideTheme) {
     baseListVector = 21;
     baseMillerVector = 16;
     baseGridVector = 44;
@@ -8051,7 +8104,7 @@ function toggleCollapseSection(sectionEl) {
     header.setAttribute("aria-expanded", "false");
   }
 
-  localStorage.setItem(
+  safeSetLocalStorage(
     "sidebar-section-" + sectionKey,
     isCollapsed ? "expanded" : "collapsed",
   );
@@ -8059,7 +8112,7 @@ function toggleCollapseSection(sectionEl) {
 
 function restoreCollapseState(sectionEl) {
   const sectionKey = sectionEl.dataset.section;
-  const saved = localStorage.getItem("sidebar-section-" + sectionKey);
+  const saved = safeGetLocalStorage("sidebar-section-" + sectionKey);
   if (saved === "collapsed") {
     const content = sectionEl.querySelector(".collapse-content");
     const header = sectionEl.querySelector(".collapse-header");
@@ -10385,7 +10438,7 @@ function createItemInnerHtml(item, itemIconId, viewMode, dualPaneSide) {
   let isApp = ext === ".app";
 
   // Get active icon theme
-  let currentIconTheme = localStorage.getItem("current-icon-theme") || "Prestige Glass";
+  let currentIconTheme = CurrentIconTheme;
   let isVectorTheme = currentIconTheme !== "Prestige Glass" && fileIcon.startsWith("resources/") && !isApp;
 
   // Boost initial font size for thin outline vectors (Lucide) to align visual presence with solid vectors
