@@ -6500,7 +6500,7 @@ body.light-mode .icon-theme-card__preview.bg-lucide-default {
 .item-link.dragged-over {
   border-color: var(--selectColor2) !important;
   background-color: var(--selectColor3) !important;
-  scale: 1.03 !important;
+  scale: 1.01 !important;
   box-shadow: 0 4px 12px rgba(11, 100, 253, 0.2) !important;
 }
 

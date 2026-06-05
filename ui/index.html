@@ -302,7 +302,7 @@
                                     </div>
                                     <div class="settings-slider-wrap">
                                         <span class="settings-slider-value" id="icon-size-value">100%</span>
-                                        <input type="range" min="60" max="140" value="100" class="settings-slider icon-size-slider" oninput="changeIconSize(this.value)">
+                                        <input type="range" min="60" max="140" value="100" class="settings-slider icon-size-slider" oninput="changeIconSize(this.value)" onchange="saveConfig(false, false)">
                                     </div>
                                 </div>
                                 <div class="settings-row">
