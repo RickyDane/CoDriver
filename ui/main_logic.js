@@ -716,6 +716,10 @@ document.addEventListener("mousedown", (e) => {
     !e.target.closest(".context-menu") &&
     !e.target.closest(".props-card") &&
     !e.target.closest(".delete-popup") &&
+    // Clicks inside the item preview or on any part of a file/folder entry
+    // must not reset the selection, otherwise arrow navigation restarts at the top
+    !e.target.closest(".item-preview-popup") &&
+    !e.target.closest(".item-link") &&
     !e.target.classList.contains("context-item-icon") &&
     !e.target.classList.contains("context-item") &&
     !e.target.classList.contains("open-with-item") &&
