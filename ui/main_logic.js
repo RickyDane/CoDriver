@@ -5244,11 +5244,34 @@ function handleShiftArrowNavigation(direction, e) {
   }
 }
 
+// Keeps the pane index trackers in sync with the currently selected element.
+// Items selected by mouse click do not update LeftPaneItemIndex / RightPaneItemIndex,
+// so keyboard navigation has to start from the element's own position.
+function syncPaneIndexWithSelectedElement() {
+  if (SelectedElement == null) return;
+  const index = parseInt(SelectedElement.getAttribute("itemindex"));
+  if (isNaN(index)) return;
+  const paneSide = SelectedElement.getAttribute("itempaneside");
+  if (paneSide == "left" || paneSide == "right") {
+    SelectedItemPaneSide = paneSide;
+  } else if (SelectedItemPaneSide != "left" && SelectedItemPaneSide != "right") {
+    SelectedItemPaneSide = "left";
+  }
+  if (SelectedItemPaneSide == "right") {
+    RightPaneItemIndex = index;
+  } else {
+    LeftPaneItemIndex = index;
+  }
+}
+
 function goUp(isSwitched = false, toFirst = false) {
   let element = null;
   let selectedItemIndex = 0;
   if (toFirst == false) {
     if (SelectedElement != null) {
+      if (isSwitched == false) {
+        syncPaneIndexWithSelectedElement();
+      }
       if (SelectedItemPaneSide == "left") {
         selectedItemIndex = LeftPaneItemIndex;
         if (LeftPaneItemIndex > 0 && isSwitched == true) {
@@ -5324,6 +5347,7 @@ function goDown() {
   let element = null;
   let selectedItemIndex = 0;
   if (SelectedElement != null) {
+    syncPaneIndexWithSelectedElement();
     selectedItemIndex = SelectedElement.getAttribute("itemindex");
     if (SelectedItemPaneSide == "left") {
       if (
