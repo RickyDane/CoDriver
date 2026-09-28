@@ -5249,8 +5249,15 @@ function goUp(isSwitched = false, toFirst = false) {
   let selectedItemIndex = 0;
   if (toFirst == false) {
     if (SelectedElement != null) {
+      // Use the index of the currently selected element (like goDown does).
+      // The stored pane index is not updated when an item is selected with
+      // the mouse, so relying on it would jump back to the first item.
+      let currentIndex = parseInt(SelectedElement.getAttribute("itemindex"));
       if (SelectedItemPaneSide == "left") {
-        selectedItemIndex = LeftPaneItemIndex;
+        selectedItemIndex =
+          isSwitched == false && !isNaN(currentIndex)
+            ? currentIndex
+            : LeftPaneItemIndex;
         if (LeftPaneItemIndex > 0 && isSwitched == true) {
           selectedItemIndex = LeftPaneItemIndex;
           element =
@@ -5269,7 +5276,10 @@ function goUp(isSwitched = false, toFirst = false) {
         }
         LeftPaneItemIndex = selectedItemIndex;
       } else if (SelectedItemPaneSide == "right") {
-        selectedItemIndex = RightPaneItemIndex;
+        selectedItemIndex =
+          isSwitched == false && !isNaN(currentIndex)
+            ? currentIndex
+            : RightPaneItemIndex;
         if (RightPaneItemIndex > 0 && isSwitched == true) {
           selectedItemIndex = RightPaneItemIndex;
           element =
